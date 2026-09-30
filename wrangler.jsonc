@@ -1,9 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hania360-home",
-  "compatibility_date": "2026-09-30",
-  "assets": {
-    "directory": ".",
-    "not_found_handling": "404-page"
-  }
+  "main": "worker.js",
+  "compatibility_date": "2026-09-30"
 }
