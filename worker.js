@@ -38,8 +38,11 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     const pages = {"/":HOME,"/index.html":HOME,"/guides":GUIDES,"/guides/":GUIDES,...ARTICLE_PAGES,"/about":ABOUT,"/privacy":PRIVACY,"/terms":TERMS,"/contact":CONTACT};
-    // ads.txt for Google AdSense. The Worker owns all apex-domain paths.\n    if (url.pathname === "/ads.txt") return new Response("google.com, pub-5716914780099032, DIRECT, f08c47fec0942fa0
-",{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"public, max-age=3600"}});\n    // Canonicalize known routes with a trailing slash.\n    if (url.pathname.length > 1 && url.pathname.endsWith("/") && pages[url.pathname.slice(0,-1)]) return Response.redirect(url.origin + url.pathname.slice(0,-1) + url.search, 301);\n    if (url.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\nSitemap: https://hania360.com/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8"}});
+    // ads.txt for Google AdSense. The Worker owns all apex-domain paths.
+    if (url.pathname === "/ads.txt") return new Response("google.com, pub-5716914780099032, DIRECT, f08c47fec0942fa0\n",{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"public, max-age=3600"}});
+    // Canonicalize known routes with a trailing slash.
+    if (url.pathname.length > 1 && url.pathname.endsWith("/") && pages[url.pathname.slice(0,-1)]) return Response.redirect(url.origin + url.pathname.slice(0,-1) + url.search, 301);
+    if (url.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\nSitemap: https://hania360.com/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8"}});
     if (url.pathname === "/sitemap.xml") {
       const paths=["","guides",...ARTICLES.map(a=>"guides/"+a.slug),"about","privacy","terms","contact"];
       const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+paths.map(p=>'<url><loc>https://hania360.com/'+p+'</loc></url>').join("")+'</urlset>';
