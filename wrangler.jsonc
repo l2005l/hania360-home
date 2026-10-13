@@ -2,5 +2,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hania360-home",
   "main": "worker.js",
-  "compatibility_date": "2026-09-30"
+  "compatibility_date": "2026-09-30",
+  "env": {
+    // Staging: its own workers.dev address, never indexed by search engines.
+    "staging": {
+      "name": "hania360-home-staging",
+      "vars": { "ENVIRONMENT": "staging" }
+    }
+  }
 }
