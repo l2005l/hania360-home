@@ -24,7 +24,7 @@ var a=document.getElementById("acct"),c=document.getElementById("todayCard");if(
 fetch(p+"/api/session",{credentials:"include",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){
 if(!j||(!j.signedIn&&j.ready!==true))return;
 if(j.signedIn&&j.user){a.textContent=j.user.email;a.title="Hania Today: מה חשוב היום";a.setAttribute("aria-label","מחובר כ־"+j.user.email+". ל־Hania Today");a.href=t;a.className="account on";
-if(c){c.href=t;c.hidden=false;fetch(p+"/api/today",{credentials:"include",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(!d||!d.signedIn)return;var n=((d.save&&d.save.expiring)||[]).length+((d.gil&&d.gil.birthdays)||[]).length;if(n)document.getElementById("todayCardLine").textContent=(n===1?"דבר אחד":n+" דברים")+" שכדאי לדעת היום, ועוד בדף שלך"}).catch(function(){})}}
+if(c){c.href=t;c.hidden=false;fetch(p+"/api/today",{credentials:"include",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(!d||!d.signedIn)return;var n=((d.save&&d.save.expiring)||[]).length+((d.gil&&d.gil.birthdays)||[]).length;var pt=d.points&&d.points.balance,ps=pt?" · ★ "+pt.toLocaleString("he-IL")+" נקודות":"";if(n)document.getElementById("todayCardLine").textContent=(n===1?"דבר אחד":n+" דברים")+" שכדאי לדעת היום"+ps;else if(pt)document.getElementById("todayCardLine").textContent="יום רגוע"+ps}).catch(function(){})}}
 else{a.textContent="כניסה";a.setAttribute("aria-label","כניסה לחשבון Hania360");a.href=p+"/?return="+encodeURIComponent(t)}
 a.hidden=false}).catch(function(){})})();</script></body></html>`;
 }
