@@ -5,6 +5,31 @@ const CSS = `
 .account.on{border-color:#F28C28;color:#fff}
 .account.on::before{content:"";flex:none;width:8px;height:8px;margin-inline-end:8px;border-radius:50%;background:#F28C28}
 .account[hidden]{display:none}
+.account.in{background:#F28C28;border-color:#F28C28;color:#071426;direction:rtl}
+.hero.home{max-width:760px}.hero.home h1{font-size:clamp(2.1rem,7.5vw,3.9rem);line-height:1.12}
+.hero-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+.cta.big{min-height:52px;padding:15px 26px;background:#F28C28;color:#071426;font-size:1.08rem;margin-top:0}
+.ghost-cta{display:inline-flex;align-items:center;min-height:52px;padding:0 20px;border:1px solid #33475f;border-radius:14px;text-decoration:none;font-weight:700;color:#e2e8f0}
+.tiny{color:#94a3b8;font-size:.9rem;margin:12px 0 0}
+.preview{max-width:420px;margin:40px auto 10px;padding:18px;border:1px solid #2b3f58;border-radius:28px;background:#f3f5f8;color:#0d1f36;box-shadow:0 30px 80px #0007}
+.pv-head{background:#071426;color:#fff;border-radius:18px;padding:16px 18px}.pv-head b{display:block;font-size:1.3rem}.pv-head small{color:#9fb0c6}
+.pv-head .pv-t{color:#F28C28}
+.pv-list{list-style:none;margin:12px 0 0;padding:0;background:#fff;border-radius:16px;overflow:hidden}
+.pv-list li{display:flex;align-items:center;gap:12px;padding:11px 14px}.pv-list li+li{border-top:1px solid #e3e8ef}
+.pv-b{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:11px;color:#fff;font-weight:800;font-size:.72rem;direction:ltr}
+.pv-list b{display:block;font-size:.95rem}.pv-list small{color:#5b6b7f;font-size:.82rem}
+.pv-note{text-align:center;color:#5b6b7f;font-size:.82rem;margin:10px 0 0}
+.section-title{text-align:center;margin:56px 0 18px}.section-title h2{font-size:1.9rem;margin:0}.section-title p{color:#bdc8d8;margin:8px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tile{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid #2b3f58;border-radius:22px;background:linear-gradient(145deg,rgba(12,32,57,.95),rgba(7,20,38,.96));text-decoration:none;min-height:0}
+.tile .icon{width:52px;height:52px;border-radius:15px}.tile b{font-size:1.1rem}.tile span.d{color:#bdc8d8;line-height:1.6;font-size:.93rem}
+.tile .feeds{margin-top:auto;color:#F28C28;font-size:.82rem;font-weight:700}
+.more-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.mini{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #25364d;border-radius:16px;text-decoration:none;background:#ffffff06}
+.mini .icon{width:40px;height:40px;border-radius:12px;flex:none}.mini b{display:block;font-size:.95rem}.mini small{color:#94a3b8;font-size:.8rem}
+.guides-short p{margin:10px 0}
+@media(max-width:860px){.tiles,.more-apps{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.tiles,.more-apps{grid-template-columns:1fr}}
 .today-card{position:relative;display:flex;align-items:center;gap:14px;margin:28px 0 36px;padding:16px 18px;border:1px solid #F28C28;border-radius:18px;background:linear-gradient(0deg,#F28C281a,#F28C281a),#0d1f36;color:#fff;text-decoration:none}
 .today-card[hidden]{display:none}
 .today-card b{display:block;font-size:1.05rem}
@@ -23,27 +48,53 @@ var p=live?"https://pass.hania360.com":(stg?"https://hania-pass-staging.lior-han
 var a=document.getElementById("acct"),c=document.getElementById("todayCard");if(!p||!a||!window.fetch)return;
 fetch(p+"/api/session",{credentials:"include",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){
 if(!j||(!j.signedIn&&j.ready!==true))return;
-if(j.signedIn&&j.user){a.textContent=j.user.email;a.title="Hania Today: מה חשוב היום";a.setAttribute("aria-label","מחובר כ־"+j.user.email+". ל־Hania Today");a.href=t;a.className="account on";
+if(j.signedIn&&j.user){var hc=document.getElementById("heroCta"),hn=document.getElementById("heroNote"),hw=document.getElementById("howCta");if(hc){hc.textContent="ל־Hania Today שלי";hc.href=t}if(hn)hn.textContent="מחובר כ־"+j.user.email;if(hw){hw.textContent="ל־Hania Today שלי";hw.href=t}
+a.textContent=j.user.email;a.title="Hania Today: מה חשוב היום";a.setAttribute("aria-label","מחובר כ־"+j.user.email+". ל־Hania Today");a.href=t;a.className="account on";
 if(c){c.href=t;c.hidden=false;fetch(p+"/api/today",{credentials:"include",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(!d||!d.signedIn)return;var n=((d.save&&d.save.expiring)||[]).length+((d.gil&&d.gil.birthdays)||[]).length;var pt=d.points&&d.points.balance,ps=pt?" · ★ "+pt.toLocaleString("he-IL")+" נקודות":"";if(n)document.getElementById("todayCardLine").textContent=(n===1?"דבר אחד":n+" דברים")+" שכדאי לדעת היום"+ps;else if(pt)document.getElementById("todayCardLine").textContent="יום רגוע"+ps}).catch(function(){})}}
-else{a.textContent="כניסה";a.setAttribute("aria-label","כניסה לחשבון Hania360");a.href=p+"/?return="+encodeURIComponent(t)}
+else{a.textContent="כניסה";a.className="account in";a.setAttribute("aria-label","כניסה לחשבון Hania360");a.href=p+"/?return="+encodeURIComponent(t);["heroCta","howCta"].forEach(function(id){var e=document.getElementById(id);if(e)e.href=a.href})}
 a.hidden=false}).catch(function(){})})();</script></body></html>`;
 }
 
-const HOME = layout("Hania360 — טכנולוגיה, יצירה ורעיונות במקום אחד","Hania360 הוא הבית הדיגיטלי של HaniaSave, HaniaION, אלינויה, HaniaFlight, HaniaGo, HaniaCart, hania גיל ובוט ניתוח המניות — כלים ושירותים שימושיים במקום אחד.",`
-<header class="hero"><p class="eyebrow">טכנולוגיה · יצירה · רעיונות</p><h1>כלים ומדריכים לחיסכון, לניווט מדויק וליצירה</h1><p class="lead">Hania360 הוא הבית של שמונה פרויקטים עצמאיים ושל מדריכים מעשיים שנכתבו מתוך העבודה עליהם: איך לחסוך לפני קנייה, להבין טוב יותר GPS ויונוספירה, להתחיל ליצור בעבודת יד, להטיס מטוס קרב בסימולטור, לתכנן טיול משפחתי מהדלת בבית ועד החזרה, לנהל את הקניות והמלאי של הבית, ולחשב גיל ויום הולדת לפי הלוח העברי והלועזי.</p><a class="cta" href="/guides">לכל המדריכים</a></header><a class="today-card" id="todayCard" href="#" hidden><svg class="today-sun" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#F28C28"/><circle cx="20" cy="20" r="6.5" fill="#071426"/><g stroke="#071426" stroke-width="2.4" stroke-linecap="round"><path d="M20 6.5v4M20 29.5v4M6.5 20h4M29.5 20h4M10.5 10.5l2.8 2.8M26.7 26.7l2.8 2.8M10.5 29.5l2.8-2.8M26.7 13.3l2.8-2.8"/></g></svg><span><b>Hania Today</b><small id="todayCardLine">הדף האישי שלך: שוברים, קניות, טיולים וימי הולדת במקום אחד</small></span><span class="today-arrow" aria-hidden="true">←</span></a>
-<section class="projects" aria-label="הפרויקטים של Hania360">
-<a class="card" href="https://gps.hania360.com/"><span class="icon">${ION}</span><span class="arrow">←</span><h2>HaniaION</h2><p>מערכת לחישובי GPS ונתוני יונוספירה, בדיקות והתראות. מיועדת לגישה נוחה לנתונים ולכלים ממחשב או מטלפון.</p><span class="domain">gps.hania360.com</span></a>
-<a class="card purple" href="https://elinoya.hania360.com/"><span class="icon">${ELI}</span><span class="arrow">←</span><h2>אלינויה</h2><p>סדנאות בוטיק ליצירה והשראה, ובהן עבודה עם בטון פולימרי ונרות מעוצבים. באתר ניתן להכיר את הסדנאות ולבדוק מועדים.</p><span class="domain">elinoya.hania360.com</span></a>
-<a class="card sky" href="https://flight.hania360.com/"><span class="icon"><img class="project-logo" src="https://flight.hania360.com/icons/icon-192.png" alt=""></span><span class="arrow">←</span><h2>HaniaFlight</h2><p>סימולטור טיסה תלת־ממדי של מטוסי קרב ישראליים שרץ בדפדפן ובטלפון: ארבעה מטוסים, קוקפיט לחיץ, התנעה מלאה, שתי זירות ומערכה של חמש משימות.</p><span class="domain">flight.hania360.com</span></a>
-<a class="card green" href="https://invest.hania360.com/bot"><span class="icon"><svg class="project-logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#0d1b2a"/><path d="M96 352l88-96 64 56 96-136 72 72" fill="none" stroke="#45d483" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/><circle cx="344" cy="176" r="26" fill="#45d483"/></svg></span><span class="arrow">←</span><h2>בוט ניתוח המניות</h2><p>ניתוח יומי אוטומטי של רשימת מניות: סריקה יומית של כ־150 מניות: ציון 0–100, הזדמנויות היום, מצב השוק לפי חוזים עתידיים, ותחקיר שבודק מה קרה לכל ציון. כלי תומך החלטה, לא ייעוץ השקעות.</p><span class="domain">invest.hania360.com/bot</span></a>
-<a class="card teal" href="https://go.hania360.com/"><span class="icon"><img class="project-logo" src="https://go.hania360.com/icons/icon-192.png" alt=""></span><span class="arrow">←</span><h2>HaniaGo</h2><p>תכנון וליווי של טיול משפחתי: טיסות עם מחירים אמיתיים, מתי לצאת מהבית, מסלול לכל יום שמותאם לגילאי הילדים, תקציב, ושיתוף הטיול עם כל המשפחה. אפשר להתקין כאפליקציה.</p><span class="domain">go.hania360.com</span></a>
-<a class="card leaf" href="https://cart.hania360.com/"><span class="icon"><img class="project-logo" src="https://cart.hania360.com/icons/icon-192.png" alt=""></span><span class="arrow">←</span><h2>HaniaCart</h2><p>רשימת קניות משותפת לכל בני הבית, מלאי עם התראות לפני שמשהו פג, סריקת חשבוניות, תכנון ארוחות ממה שיש במקרר ומעקב מחירים. בלי הרשמה, ואפשר להתקין כאפליקציה.</p><span class="domain">cart.hania360.com</span></a>
-<a class="card amber" href="https://gil.hania360.com/"><span class="icon"><img class="project-logo" src="https://gil.hania360.com/icons/icon-192.png" alt=""></span><span class="arrow">←</span><h2>hania גיל</h2><p>מחשבון גיל מדויק מתאריך לידה לועזי או עברי: גיל עברי ולועזי, יום ההולדת הבא בשני הלוחות, ורשימת משפחה וחברים עם תזכורות שבוע לפני, יום לפני וביום עצמו. אפשר להתקין כאפליקציה.</p><span class="domain">gil.hania360.com</span></a>
-<a class="card warm" href="https://save.hania360.com/"><span class="icon"><img class="project-logo wallet-logo" src="https://save.hania360.com/icons/icon-192.png" alt=""></span><span class="arrow">←</span><h2>HaniaSave</h2><p>כלי שמרכז הטבות, כרטיסים, שוברים וקאשבק כדי לעזור לבדוק מה משתלם לפני התשלום ולרכז את אפשרויות החיסכון במקום אחד.</p><span class="domain">save.hania360.com</span></a>
+const HOME = layout("Hania360 — היום של המשפחה, בדף אחד","Hania Today מחבר את השוברים, הקניות, הטיול, ימי ההולדת והיומן לדף אחד ולהודעת בוקר אחת. חשבון אחד לכל האפליקציות של Hania360, בחינם.",`
+<header class="hero home"><p class="eyebrow">Hania360 · חשבון אחד לכל הבית</p><h1>היום של המשפחה, בדף אחד</h1>
+<p class="lead">שובר שעומד לפוג, מה נגמר במקרר, הטיול הקרוב, יום הולדת מחר, והפגישות מהיומן. <b>Hania Today</b> אוסף את כל זה מהאפליקציות של Hania360, ושולח כל בוקר הודעה אחת קצרה. רק כשיש מה לספר.</p>
+<div class="hero-actions"><a class="cta big" id="heroCta" href="https://pass.hania360.com/?return=https%3A%2F%2Ftoday.hania360.com%2F">כניסה בחינם</a><a class="ghost-cta" href="#how">איך זה עובד</a></div>
+<p class="tiny" id="heroNote">כניסה עם כתובת מייל, בלי סיסמה ובלי תשלום.</p></header>
+<a class="today-card" id="todayCard" href="#" hidden><svg class="today-sun" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#F28C28"/><circle cx="20" cy="20" r="6.5" fill="#071426"/><g stroke="#071426" stroke-width="2.4" stroke-linecap="round"><path d="M20 6.5v4M20 29.5v4M6.5 20h4M29.5 20h4M10.5 10.5l2.8 2.8M26.7 26.7l2.8 2.8M10.5 29.5l2.8-2.8M26.7 13.3l2.8-2.8"/></g></svg><span><b>Hania Today</b><small id="todayCardLine">הדף האישי שלך: שוברים, קניות, טיולים וימי הולדת במקום אחד</small></span><span class="today-arrow" aria-hidden="true">←</span></a>
+<section class="preview" aria-label="דוגמה לבוקר ב־Hania Today">
+<div class="pv-head"><small>Hania <span class="pv-t">Today</span></small><b>בוקר טוב, משפחת לוי</b><small>יום ראשון, 18 באוקטובר</small></div>
+<ul class="pv-list">
+<li><span class="pv-b" style="background:#5B6B7F">📅</span><span><b>09:30 רופא שיניים</b><small>מהיומן שלך</small></span></li>
+<li><span class="pv-b" style="background:#F28C28;color:#071426">Save</span><span><b>שובר FOX פג מחר</b><small>₪120 שעדיין אפשר לממש</small></span></li>
+<li><span class="pv-b" style="background:#2B6A9E">Cart</span><span><b>נגמרו: חלב, ביצים</b><small>נכנסו לרשימת הקניות המשותפת</small></span></li>
+<li><span class="pv-b" style="background:#8A5414">Gil</span><span><b>מחר יום ההולדת של נועה (8)</b><small>לפי הלוח העברי</small></span></li>
+<li><span class="pv-b" style="background:#0B6E78">Go</span><span><b>הטיול לרומא בעוד 12 ימים</b><small>הטיסה ירדה ל־₪850 לנוסע</small></span></li>
+</ul><p class="pv-note">דוגמה. אצלכם יופיע רק מה שחיברתם.</p></section>
+
+<div class="section-title" id="how"><h2>איך זה עובד</h2><p>שלוש דקות, פעם אחת.</p></div>
+<div class="steps"><div class="step"><b>1. נכנסים</b><span class="muted">לוחצים "כניסה" למעלה, כותבים מייל ולוחצים על הקישור שמגיע. חשבון אחד לכל האתרים של Hania360.</span></div><div class="step"><b>2. מחברים מה שרוצים</b><span class="muted">את הבית מ־HaniaCart, את הטיול מ־HaniaGo, את רשימת ימי ההולדת, את היומן. כל אחד בלחיצה, ואפשר לנתק.</span></div><div class="step"><b>3. מקבלים בוקר מסודר</b><span class="muted">דף אחד שאפשר להוסיף למסך הבית, והודעת בוקר בשעה שבחרתם. כל שימוש גם צובר נקודות Hania.</span></div></div>
+<p style="text-align:center"><a class="cta big" id="howCta" href="https://pass.hania360.com/?return=https%3A%2F%2Ftoday.hania360.com%2F">להתחיל עכשיו</a></p>
+
+<div class="section-title"><h2>האפליקציות שמזינות את הבוקר</h2><p>כל אחת עובדת גם לבד, בלי חשבון. עם חשבון הן מדברות זו עם זו.</p></div>
+<section class="tiles" aria-label="האפליקציות לבית ולמשפחה">
+<a class="tile" href="https://save.hania360.com/"><span class="icon"><img class="project-logo wallet-logo" src="https://save.hania360.com/icons/icon-192.png" alt=""></span><b>HaniaSave</b><span class="d">איזו הטבה, כרטיס או שובר הכי משתלמים לפני שמשלמים, וארנק לשוברים.</span><span class="feeds">← שוברים שפגים, הטבות חדשות</span></a>
+<a class="tile" href="https://cart.hania360.com/"><span class="icon"><img class="project-logo" src="https://cart.hania360.com/icons/icon-192.png" alt=""></span><b>HaniaCart</b><span class="d">רשימת קניות משותפת לכל הבית, מלאי ותוקף, סריקת חשבוניות ותכנון ארוחות.</span><span class="feeds">← מה פג ומה נגמר</span></a>
+<a class="tile" href="https://go.hania360.com/"><span class="icon"><img class="project-logo" src="https://go.hania360.com/icons/icon-192.png" alt=""></span><b>HaniaGo</b><span class="d">טיול משפחתי מהדלת ועד החזרה: טיסות, מסלול לפי גילאי הילדים, תקציב ושיתוף.</span><span class="feeds">← ספירה לאחור והתראות מחיר</span></a>
+<a class="tile" href="https://gil.hania360.com/"><span class="icon"><img class="project-logo" src="https://gil.hania360.com/icons/icon-192.png" alt=""></span><b>HaniaGil</b><span class="d">גיל ויום הולדת בלוח העברי והלועזי, עם רשימת משפחה וחברים.</span><span class="feeds">← ימי הולדת קרובים</span></a>
 </section>
-<section class="content"><h2>מדריכים נבחרים</h2><p><a href="/guides/compare-benefits-before-buying"><strong>איך לבדוק איזו הטבה הכי משתלמת לפני שמשלמים</strong></a><br><span class="muted">השוואה בין מועדונים, כרטיסי אשראי, שוברים וקאשבק לפני קנייה.</span></p><p><a href="/guides/ionosphere-and-gps-accuracy"><strong>היונוספירה ו־GPS: למה המיקום שלכם זז בלי שזזתם</strong></a><br><span class="muted">איך האטמוספרה משפיעה על אותות הלוויין ועל דיוק המיקום.</span></p><p><a href="/guides/beginners-guide-candle-making"><strong>יציקת נרות מעוצבים: מדריך למתחילים</strong></a><br><span class="muted">שעווה, פתיל, ריח, טמפרטורה והבעיות הנפוצות ביציקה.</span></p><p><a href="/guides/haniaflight-first-flight"><strong>הטיסה הראשונה ב־HaniaFlight: מהתנעה ועד נחיתה</strong></a><br><span class="muted">סדר ההתנעה, ההמראה, קריאת התצוגה העילית, נעילה ושיגור, וחזרה לנחיתה.</span></p><p><a href="/guides/haniago-family-trip-planning"><strong>איך מתכננים טיול משפחתי עם HaniaGo</strong></a><br><span class="muted">מבחירת היעד והטיסה ועד מסלול יומי, תקציב ושיתוף עם המשפחה.</span></p><p><a href="/guides/hebrew-birthday-age-calculator"><strong>איך מחשבים גיל ויום הולדת עברי</strong></a><br><span class="muted">גיל מדויק בשני הלוחות, שקיעה, אדר בשנה מעוברת ותזכורות למשפחה ולחברים.</span></p><p><a class="cta" href="/guides">לכל 17 המדריכים</a></p></section>
-<section class="content"><h2>HaniaSave — למצוא את החיסכון לפני שמשלמים</h2><p>כשלאותה חנות יש הטבות בכמה מועדונים, כרטיסי אשראי, שוברים או שירותי קאשבק, קל לפספס את האפשרות המשתלמת. HaniaSave נועד לצמצם את החיפוש הזה: בוחרים חנות וסכום קנייה, בודקים את האפשרויות הרלוונטיות ומקבלים דרך ברורה להמשיך.</p><div class="steps"><div class="step"><b>1. מחפשים חנות</b><span class="muted">מאתרים את בית העסק במאגר ומזינים את סכום הקנייה.</span></div><div class="step"><b>2. משווים אפשרויות</b><span class="muted">המערכת מרכזת הטבות רלוונטיות ומציגה אפשרות מובילה וחלופות כשישנן.</span></div><div class="step"><b>3. משלמים ומעדכנים</b><span class="muted">ממשיכים לאמצעי המתאים וניתן לעדכן את החיסכון לאחר התשלום.</span></div></div><p>המערכת כוללת גם ארנק לשוברים דיגיטליים, כדי שלא יהיה צורך לשמור קודים והודעות במקומות שונים. מידע על הטבות עשוי להשתנות, ולכן לפני רכישה חשוב לבדוק גם את התנאים העדכניים של הגוף שמעניק את ההטבה.</p><a class="cta" href="https://save.hania360.com/">כניסה ל־HaniaSave</a></section>
-<section class="content"><h2>מה הערך של Hania360?</h2><p>המטרה של Hania360 היא לא להיות עמוד קישורים בלבד. זהו בית לפרויקטים עצמאיים עם שימוש מעשי: HaniaION מרכז כלים טכנולוגיים בתחום GPS והיונוספירה; אלינויה מחברת בין מידע, הרשמה וחוויית יצירה; ו־HaniaSave מרכז מידע וכלים לקבלת החלטה לפני תשלום. אנחנו ממשיכים לשפר את המוצרים, את נגישות המידע ואת חוויית השימוש בהתאם לצרכים שעולים מהשטח.</p><h3>שקיפות</h3><p>בחלק מהשירותים עשויים להופיע קישורי שותפים או פרסום. כאשר קישור עשוי להניב עמלה, המטרה היא לשמור על גילוי נאות ולאפשר למשתמש להבין זאת. קבלת עמלה אינה משנה את המחיר למשתמש ואינה מחליפה בדיקה עצמאית של תנאי ההטבה.</p></section>
+<div class="more-apps" aria-label="עוד מ־Hania360">
+<a class="mini" href="https://invest.hania360.com/bot"><span class="icon"><svg class="project-logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#0d1b2a"/><path d="M96 352l88-96 64 56 96-136 72 72" fill="none" stroke="#45d483" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/><circle cx="344" cy="176" r="26" fill="#45d483"/></svg></span><span><b>בוט המניות</b><small>ציון יומי ל־150 מניות</small></span></a>
+<a class="mini" href="https://flight.hania360.com/"><span class="icon"><img class="project-logo" src="https://flight.hania360.com/icons/icon-192.png" alt=""></span><span><b>HaniaFlight</b><small>סימולטור טיסה בדפדפן</small></span></a>
+<a class="mini" href="https://gps.hania360.com/"><span class="icon">${ION}</span><span><b>HaniaION</b><small>GPS ויונוספירה</small></span></a>
+<a class="mini" href="https://elinoya.hania360.com/"><span class="icon">${ELI}</span><span><b>אלינויה</b><small>סדנאות יצירה</small></span></a>
+</div>
+
+<section class="content guides-short"><h2>מדריכים</h2><p class="muted">מדריכים מעשיים שנכתבו מתוך העבודה על האפליקציות.</p>
+<p><a href="/guides/compare-benefits-before-buying"><strong>איך לבדוק איזו הטבה הכי משתלמת לפני שמשלמים</strong></a></p>
+<p><a href="/guides/haniago-family-trip-planning"><strong>איך מתכננים טיול משפחתי עם HaniaGo</strong></a></p>
+<p><a href="/guides/hebrew-birthday-age-calculator"><strong>איך מחשבים גיל ויום הולדת עברי</strong></a></p>
+<p><a href="/guides">לכל המדריכים ←</a></p></section>
+<section class="content"><h2>שקיפות</h2><p>בחלק מהשירותים מופיעים קישורי שותפים או פרסום. קישור כזה עשוי להניב עמלה, וזה לא משנה את המחיר שלכם. הנתונים שלכם נשארים שלכם: כל חיבור בין האפליקציות נעשה רק באישורכם, ואפשר לנתק אותו בכל רגע.</p></section>
 `,"/");
 
 function guidesPage(){
