@@ -113,9 +113,14 @@ const PROJECT_BOX={
   "טיולים":["איפה מתכננים","<a href=\"https://go.hania360.com/\">HaniaGo</a> פתוח לכולם, בלי הרשמה. הוא רץ בדפדפן, במחשב או בטלפון, ואפשר להתקין אותו כאפליקציה מהכפתור שבראש העמוד. חלק מהקישורים להזמנה הם קישורי שותפים, והמחיר למשתמש לא משתנה."],
   "יצירה":["ומה עושים בסדנה",'בסדנאות הבוטיק של <a href="https://elinoya.hania360.com/">אלינויה</a> עובדים בדיוק עם החומרים שתוארו כאן — בטון פולימרי ונרות מעוצבים. החומרים, הכלים והתבניות מוכנים מראש, וכל משתתף יוצא עם פריטים שיצר בעצמו. באתר אפשר להכיר את הסדנאות ולבדוק מועדים.']
 };
+/** Up to three more guides, same subject first, so every guide links to its neighbours. */
+function related(a){
+  const more=[...ARTICLES.filter(x=>x.slug!==a.slug&&x.cat===a.cat),...ARTICLES.filter(x=>x.cat!==a.cat)].slice(0,3);
+  return more.length?`<section class="content"><h2>מדריכים נוספים</h2><ul>${more.map(x=>`<li><a href="/guides/${x.slug}">${x.title}</a></li>`).join("")}</ul></section>`:"";
+}
 function articlePage(a){
   const box=PROJECT_BOX[a.cat];
-  return layout(a.title+" — Hania360",a.desc,`<article class="legal"><p class="eyebrow">${a.cat} · ${a.read} דקות קריאה · ${a.date||"1 באוקטובר 2026"}</p><h1>${a.title}</h1><p class="lead">${a.desc}</p>${a.body}<section class="content"><h2>${box[0]}</h2><p>${box[1]}</p></section><section class="content"><p><strong>צוות Hania360</strong></p><p>אנחנו בונים ומפעילים את HaniaSave, HaniaION ואלינויה. המדריכים נכתבים מתוך העבודה היומיומית על הפרויקטים האלה, ומתעדכנים כשמשהו משתנה. <a href="/about">עוד עלינו</a> · <a href="/contact">מצאתם טעות? כתבו לנו</a></p></section><p><a class="cta" href="/guides">חזרה לכל המדריכים</a></p></article>`,"/guides/"+a.slug);
+  return layout(a.title+" — Hania360",a.desc,`<article class="legal"><p class="eyebrow">${a.cat} · ${a.read} דקות קריאה · ${a.date||"1 באוקטובר 2026"}</p><h1>${a.title}</h1><p class="lead">${a.desc}</p>${a.body}${related(a)}<section class="content"><h2>${box[0]}</h2><p>${box[1]}</p></section><section class="content"><p><strong>צוות Hania360</strong></p><p>אנחנו בונים ומפעילים את HaniaSave, HaniaION ואלינויה. המדריכים נכתבים מתוך העבודה היומיומית על הפרויקטים האלה, ומתעדכנים כשמשהו משתנה. <a href="/about">עוד עלינו</a> · <a href="/contact">מצאתם טעות? כתבו לנו</a></p></section><p><a class="cta" href="/guides">חזרה לכל המדריכים</a></p></article>`,"/guides/"+a.slug);
 }
 const ARTICLE_PAGES=Object.fromEntries(ARTICLES.map(a=>["/guides/"+a.slug,articlePage(a)]));
 
@@ -135,6 +140,8 @@ export default {
   },
   async route(request) {
     const url = new URL(request.url);
+    // One address for search engines: www.hania360.com moves to hania360.com.
+    if (url.hostname === "www.hania360.com") return Response.redirect("https://hania360.com" + url.pathname + url.search, 301);
     const GUIDES=guidesPage();
     const pages = {"/":HOME,"/index.html":HOME,"/guides":GUIDES,"/guides/":GUIDES,...ARTICLE_PAGES,"/about":ABOUT,"/privacy":PRIVACY,"/terms":TERMS,"/contact":CONTACT};
     // ads.txt for Google AdSense. The Worker owns all apex-domain paths.
@@ -144,7 +151,7 @@ export default {
     if (url.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\nSitemap: https://hania360.com/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8"}});
     if (url.pathname === "/sitemap.xml") {
       const paths=["","guides",...ARTICLES.map(a=>"guides/"+a.slug),"about","privacy","terms","contact"];
-      const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+paths.map(p=>'<url><loc>https://hania360.com/'+p+'</loc><lastmod>2026-10-06</lastmod></url>').join("")+'</urlset>';
+      const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+paths.map(p=>'<url><loc>https://hania360.com/'+p+'</loc><lastmod>2026-10-22</lastmod></url>').join("")+'</urlset>';
       return new Response(xml,{headers:{"content-type":"application/xml; charset=utf-8"}});
     }
     const page=pages[url.pathname];
