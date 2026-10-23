@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HaniaBills · החשבונות והמנויים של הבית</title><meta name="description" content="כל החשבונות והמנויים של הבית במקום אחד: כמה יוצא בחודש, מה יורד בקרוב, מה מתחדש ואיפה אפשר לחסוך. בחינם, בלי הרשמה."><link rel="canonical" href="https://hania360.com/bills"><meta name="theme-color" content="#0E6B5C">
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HaniaBills · החשבונות והמנויים של הבית</title><meta name="description" content="כל החשבונות והמנויים של הבית במקום אחד: כמה יוצא בחודש, מה יורד בקרוב, מה מתחדש ואיפה אפשר לחסוך. בחינם, בלי הרשמה."><link rel="canonical" href="https://hania360.com/bills"><meta name="theme-color" content="#0E6B5C"><link rel="manifest" href="/bills/manifest.webmanifest"><link rel="apple-touch-icon" href="/bills/icons/apple-180.png"><link rel="icon" href="/bills/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="HaniaBills">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Suez+One&family=Assistant:wght@400;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -315,4 +315,6 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
   render();
 })();
 </script>
+<script src="/bills/install.js" data-name="HaniaBills" data-color="#0E6B5C" defer></script>
+<script>if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("/bills-sw.js",{scope:"/bills"}).catch(()=>{}));</script>
 </body></html>

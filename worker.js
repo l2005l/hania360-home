@@ -1,4 +1,4 @@
-import BILLS from "./bills/page.js";
+import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
 .brandrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -151,6 +151,8 @@ export default {
       const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+paths.map(p=>'<url><loc>https://hania360.com/'+p+'</loc><lastmod>2026-10-22</lastmod></url>').join("")+'</urlset>';
       return new Response(xml,{headers:{"content-type":"application/xml; charset=utf-8"}});
     }
+    if (BILLS_FILES[url.pathname]) { const [type, body] = BILLS_FILES[url.pathname]; return new Response(body,{headers:{"content-type":type,"cache-control":url.pathname==="/bills-sw.js"?"no-cache":"public, max-age=3600","x-content-type-options":"nosniff"}}); }
+    if (BILLS_IMAGES[url.pathname]) return new Response(Uint8Array.from(atob(BILLS_IMAGES[url.pathname]),c=>c.charCodeAt(0)),{headers:{"content-type":"image/png","cache-control":"public, max-age=86400"}});
     if (url.pathname === "/bills") return new Response(BILLS,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
     const page=pages[url.pathname];
     if (!page) return new Response(layout("העמוד לא נמצא | Hania360","העמוד המבוקש לא נמצא.",`<article class="legal"><h1>העמוד לא נמצא</h1><p>ייתכן שהקישור שגוי או שהעמוד הועבר.</p><p><a href="/">לדף הבית</a> · <a href="/guides">לכל המדריכים</a></p></article>`,url.pathname),{status:404,headers:{"content-type":"text/html; charset=utf-8"}});
