@@ -92,9 +92,10 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
     <form class="editor" id="editor" novalidate>
       <label class="full">שם<input id="fName" maxlength="40" placeholder="למשל: סלולר, ביטוח רכב, נטפליקס" required></label>
       <label>קטגוריה<select id="fCat"></select></label>
-      <label>סכום לחיוב (₪)<input id="fAmt" type="number" inputmode="decimal" min="0" step="1" placeholder="0"></label>
+      <label><span id="fAmtL">סכום לחיוב (₪)</span><input id="fAmt" type="number" inputmode="decimal" min="0" step="1" placeholder="0"></label>
       <label>כל כמה זמן<select id="fFreq"><option value="1">כל חודש</option><option value="2">כל חודשיים</option><option value="3">כל 3 חודשים</option><option value="12">פעם בשנה</option></select></label>
-      <label>החיוב הבא<input id="fNext" type="date"></label>
+      <label id="fInstL" hidden>מחולק לתשלומים<select id="fInst"><option value="1">תשלום אחד</option><option value="2">2 תשלומים</option><option value="3">3 תשלומים</option><option value="4">4 תשלומים</option><option value="6">6 תשלומים</option><option value="10">10 תשלומים</option><option value="12">12 תשלומים</option></select></label>
+      <label><span id="fNextL">החיוב הבא</span><input id="fNext" type="date"></label>
       <label>התחייבות או חידוש עד (לא חובה)<input id="fEnd" type="date"></label>
       <label>כמה קווים/מנויים (לא חובה)<input id="fCount" type="number" min="1" max="20" step="1" placeholder="1"></label>
       <p class="err" id="fErr" hidden></p>
@@ -158,7 +159,20 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
   const uid = () => Math.random().toString(36).slice(2, 10);
 
   /** The next charge on or after today, rolling the saved date forward by its period. */
-  const nextCharge = (b) => { let n = b.next || today, guard = 0; while (n < today && guard++ < 600) n = addMonths(n, b.freq); return n; };
+  // A yearly bill can be split into monthly payments (insurance in 12 payments): `next` is then the first payment of the year.
+  const parts = (b) => (b.freq === 12 && b.inst > 1 ? b.inst : 1);
+  const charge = (b) => b.amount / parts(b);
+  const nextCharge = (b) => {
+    let n = b.next || today, guard = 0;
+    if (parts(b) > 1) {
+      while (addMonths(n, parts(b) - 1) < today && guard++ < 50) n = addMonths(n, 12);
+      for (let k = 0; k < parts(b); k++) { const d = addMonths(n, k); if (d >= today) return d; }
+      return n;
+    }
+    while (n < today && guard++ < 600) n = addMonths(n, b.freq); return n;
+  };
+  /** The first payment of the year the plan is in now (for the editor). */
+  const planStart = (b) => { let n = b.next || today, guard = 0; while (addMonths(n, parts(b) - 1) < today && guard++ < 50) n = addMonths(n, 12); return n; };
   const monthly = (b) => b.amount / b.freq;
 
   function sample() {
@@ -230,7 +244,7 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
     const perMonth = bills.reduce((s, b) => s + monthly(b), 0);
     const soon = bills.filter((b) => daysTo(b.nextDue) <= 30).sort((a, b) => a.nextDue.localeCompare(b.nextDue));
     $("sMonth").textContent = ils(perMonth); $("sYear").textContent = ils(perMonth * 12);
-    $("sSoon").textContent = ils(soon.reduce((s, b) => s + b.amount, 0));
+    $("sSoon").textContent = ils(soon.reduce((s, b) => s + charge(b), 0));
 
     const ul = $("soon"); ul.textContent = "";
     if (!soon.length) ul.append(el("li", "muted", bills.length ? "אין חיובים ב־30 הימים הקרובים." : "כשתוסיפו חשבונות, החיובים הקרובים יופיעו כאן."));
@@ -239,7 +253,7 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
       dt.append(el("b", "", String(f.d)), el("small", "", f.m));
       const main = el("span", "li-main"); main.append(el("b", "", b.name));
       const meta = el("small"); const p = el("span", "pill" + (n <= 3 ? " warn" : ""), when(n)); meta.append(p, " " + catName[b.cat]); main.append(meta);
-      li.append(dt, main, el("span", "amt", ils(b.amount))); ul.append(li);
+      li.append(dt, main, el("span", "amt", ils(charge(b)))); ul.append(li);
     }
     const sm = $("soonMore"); sm.textContent = ""; moreBtn(sm, "soon", soon.length, 4, "כל החיובים הקרובים");
 
@@ -272,12 +286,12 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
       const box = el("div", "cat"); box.append(el("h3", "", name)); const list = el("ul", "list");
       for (const b of items) {
         const li = el("li"), main = el("span", "li-main"); main.append(el("b", "", b.name + (b.count > 1 ? " · " + b.count + " קווים" : "")));
-        const freq = { 1: "כל חודש", 2: "כל חודשיים", 3: "כל 3 חודשים", 12: "פעם בשנה" }[b.freq];
+        const freq = parts(b) > 1 ? ils(b.amount) + " בשנה ב־" + parts(b) + " תשלומים" : { 1: "כל חודש", 2: "כל חודשיים", 3: "כל 3 חודשים", 12: "פעם בשנה" }[b.freq];
         const meta = el("small", "", freq + " · החיוב הבא " + fmtDay(b.nextDue).d + " " + fmtDay(b.nextDue).m);
         if (b.end) { const n = daysTo(b.end); meta.append(" "); meta.append(el("span", "pill " + (n < 0 ? "bad" : n <= 60 ? "warn" : "ok"), n < 0 ? "ההתחייבות הסתיימה" : "חידוש " + when(n))); }
         main.append(meta);
         const ed = el("button", "btn ghost small", "עריכה"); ed.type = "button"; ed.setAttribute("aria-label", "עריכה: " + b.name); ed.addEventListener("click", () => openEditor(b));
-        li.append(main, el("span", "amt", ils(b.amount)), ed); list.append(li);
+        li.append(main, el("span", "amt", ils(charge(b))), ed); list.append(li);
       }
       box.append(list); all.append(box);
     }
@@ -287,16 +301,24 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
   // ---- Editor ----
   let editing = null;
   for (const [id, name] of CATS) $("fCat").append(new Option(name, id));
-  for (const [name, cat, freq] of QUICK) { const b = el("button", "", name); b.type = "button"; b.addEventListener("click", () => { $("fName").value = name; $("fCat").value = cat; $("fFreq").value = String(freq); $("fAmt").focus(); }); $("chips").append(b); }
+  for (const [name, cat, freq] of QUICK) { const b = el("button", "", name); b.type = "button"; b.addEventListener("click", () => { $("fName").value = name; $("fCat").value = cat; $("fFreq").value = String(freq); syncInst(); $("fAmt").focus(); }); $("chips").append(b); }
   function openEditor(b) {
     editing = b || null;
     $("edTitle").textContent = b ? "עריכת " + b.name : "חשבון חדש";
     $("chips").hidden = !!b; $("delWrap").hidden = !b; $("fErr").hidden = true;
     $("fName").value = b ? b.name : ""; $("fCat").value = b ? b.cat : "other"; $("fAmt").value = b ? String(b.amount) : "";
-    $("fFreq").value = String(b ? b.freq : 1); $("fNext").value = b ? nextCharge(b) : today; $("fEnd").value = b && b.end ? b.end : ""; $("fCount").value = b && b.count ? String(b.count) : "";
+    $("fFreq").value = String(b ? b.freq : 1); $("fInst").value = String(b && b.inst > 1 ? b.inst : 1); $("fNext").value = b ? (parts(b) > 1 ? planStart(b) : nextCharge(b)) : today; syncInst(); $("fEnd").value = b && b.end ? b.end : ""; $("fCount").value = b && b.count ? String(b.count) : "";
     $("fDel").textContent = "מחיקה"; delArmed = false;
     $("editorBlock").hidden = false; $("editorBlock").scrollIntoView({ block: "start", behavior: "smooth" }); $("fName").focus({ preventScroll: true });
   }
+  /** For a yearly bill: ask how many payments, and then the amount is the yearly total and the date is the first payment. */
+  function syncInst() {
+    const yearly = $("fFreq").value === "12", split = yearly && Number($("fInst").value) > 1;
+    $("fInstL").hidden = !yearly;
+    $("fAmtL").textContent = split ? "הסכום לכל השנה (₪)" : "סכום לחיוב (₪)";
+    $("fNextL").textContent = split ? "התשלום הראשון" : "החיוב הבא";
+  }
+  $("fFreq").addEventListener("change", syncInst); $("fInst").addEventListener("change", syncInst);
   const closeEditor = () => { $("editorBlock").hidden = true; editing = null; };
   $("addBtn").addEventListener("click", () => openEditor());
   $("fCancel").addEventListener("click", closeEditor);
@@ -306,7 +328,7 @@ form.editor .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
     const name = $("fName").value.trim(), amount = Number($("fAmt").value), next = $("fNext").value;
     const err = !name ? "כתבו שם לחשבון." : !(amount > 0) ? "כתבו סכום גדול מאפס." : !next ? "בחרו את תאריך החיוב הבא." : "";
     if (err) { $("fErr").textContent = err; $("fErr").hidden = false; return; }
-    const rec = { name: name.slice(0, 40), cat: $("fCat").value, amount: Math.round(amount * 100) / 100, freq: Number($("fFreq").value), next, end: $("fEnd").value || "", count: Math.max(0, Math.min(20, Math.round(Number($("fCount").value) || 0))) || undefined };
+    const rec = { name: name.slice(0, 40), cat: $("fCat").value, amount: Math.round(amount * 100) / 100, freq: Number($("fFreq").value), inst: $("fFreq").value === "12" && Number($("fInst").value) > 1 ? Number($("fInst").value) : undefined, next, end: $("fEnd").value || "", count: Math.max(0, Math.min(20, Math.round(Number($("fCount").value) || 0))) || undefined };
     if (editing) Object.assign(state.bills.find((x) => x.id === editing.id), rec); else state.bills.push({ id: uid(), ...rec });
     save(); closeEditor(); render();
   });
