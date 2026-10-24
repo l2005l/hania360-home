@@ -164,6 +164,33 @@ nav.tabs button{border:0;background:none;padding:8px 2px 10px;display:grid;justi
 nav.tabs svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button[aria-selected="true"]{color:var(--brand)}
 .demo{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--soon-soft);color:var(--ink);border-radius:14px;padding:10px 12px;font-size:14px}
+.dayc.cover{border:0;cursor:pointer}
+.dayc .who{font-size:10.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dayc.done{background:var(--ok);color:var(--surface)}
+.ms{display:grid;gap:6px;list-style:none;margin:0;padding:0}
+.ms li{display:flex;gap:10px;align-items:center;font-size:14px}
+.ms li b{font-weight:600}
+.ms li small{color:var(--muted);display:block;font-size:12.5px}
+.ms .md{flex:none;width:2.9em;text-align:center;font-size:12px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:9px;padding:3px 0}
+.kit{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.kit li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.kit input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:var(--ok);margin:1px 0 0}
+.kit small{color:var(--muted);font-size:12px;display:block}
+.kit .due{color:var(--soon);font-weight:600}
+.contacts{display:grid;gap:6px}
+.contacts .c{display:flex;gap:8px;align-items:center;font-size:14.5px}
+.contacts .c span{flex:1;min-width:0}
+.contacts .c bdi{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.inl{display:flex;gap:6px;flex-wrap:wrap}
+.inl input{flex:1;min-width:110px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg)}
+.recap{background:var(--ink);color:var(--surface);border:0}
+.recap h2{font-family:var(--f-display);font-weight:400;font-size:24px}
+.recap .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.recap .grid div{display:grid;gap:0}
+.recap .grid b{font-size:26px;font-variant-numeric:tabular-nums}
+.recap .grid small{opacity:.75;font-size:13px}
+.recap .btn{background:var(--surface);color:var(--ink)}
+.perks{display:grid;gap:8px;list-style:none;margin:0;padding:0}
 .toast{position:fixed;inset-inline:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--surface);border-radius:12px;padding:12px 14px;font-weight:600;text-align:center;max-width:528px;margin:0 auto}
 @media (prefers-reduced-motion:no-preference){.row,.card,.month{animation:rise .35s ease both}@keyframes rise{from{transform:translateY(6px);opacity:.4}}}
 @media (max-width:360px){.money b{font-size:20px}.bar{grid-template-columns:6em 1fr auto}}
@@ -199,13 +226,16 @@ nav.tabs button[aria-selected="true"]{color:var(--brand)}
       <ul class="rows" id="tripRes"></ul>
     </div>
     <div class="sec"><div class="sechead"><h2>השבוע</h2><small>7 הימים הקרובים</small></div><ul class="rows" id="week"></ul></div>
+    <div class="sec" id="perksSec"><div class="sechead"><h2>מה מגיע לכם</h2><small>לפי ההרכב של המשפחה</small></div><ul class="perks" id="perks"></ul><p class="fine" style="margin:0">מידע כללי מ״כל זכות״, לא ייעוץ. את הזכאות המדויקת בודקים בקישור.</p></div>
   </section>
 
   <!-- FAMILY -->
   <section id="v-family" class="sec" aria-label="משפחה" hidden>
     <div class="sechead"><h2>בני הבית</h2><button class="btn small" type="button" id="addPerson">+ בן משפחה</button></div>
     <div class="people" id="people"></div>
+    <div class="sec"><div class="sechead"><h2>השלבים הבאים של הילדים</h2><small>מחושב מתאריך הלידה</small></div><div class="card" id="milestones"></div></div>
     <div class="sec"><div class="sechead"><h2>ימי הולדת</h2><small>לפי הסדר</small></div><ul class="rows" id="bdays"></ul></div>
+    <div class="card" id="kitCard"></div>
   </section>
 
   <!-- HOME -->
@@ -223,6 +253,7 @@ nav.tabs button[aria-selected="true"]{color:var(--brand)}
   <!-- YEAR -->
   <section id="v-year" class="sec" aria-label="השנה" hidden>
     <div class="sechead"><h2>השנה של המשפחה</h2><button class="ghost" type="button" id="icsBtn" hidden>הוספה ליומן</button></div>
+    <div class="card recap" id="recap"></div>
     <div class="filters" id="filters"></div>
     <div id="timeline" class="sec"></div>
     <p class="fine">החופשות לפי לוח החופשות של משרד החינוך לשנת תשפ"ז. במעונות היום הלוח שונה. כדאי לוודא מול הגן או בית הספר.</p>
@@ -316,6 +347,62 @@ const WORK_OFF = new Set(["2026-09-13", "2026-09-21", "2027-04-22", "2027-04-28"
 const vacTitle = (n) => (/^(חופש|יום)/.test(n) ? n : "חופשת " + n);
 const isWorkday = (s) => wd(s) <= 4 && !WORK_OFF.has(s);
 
+// ---- Milestones from the birth date ----------------------------------------------
+const g = (p, boy, girl, any) => (p.gender === "boy" ? boy : p.gender === "girl" ? girl : any);
+let HEB_EN = null, HEB_HE = null;
+try { HEB_EN = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }); HEB_HE = new Intl.DateTimeFormat("he-u-ca-hebrew", { day: "numeric", month: "long", timeZone: "UTC" }); } catch {}
+const hparts = (s) => Object.fromEntries(HEB_EN.formatToParts(parse(s)).map((x) => [x.type, x.value]));
+const hebLeap = (y) => (7 * y + 1) % 19 < 7;
+/** The day the child turns `years` by the Hebrew calendar (bar and bat mitzvah). Adar follows the usual custom: Adar II in a leap year. */
+function hebrewBirthday(birth, years) {
+  if (!HEB_EN) return null;
+  try {
+    const b = hparts(birth), ty = Number(b.year) + years;
+    let month = b.month;
+    if (month === "Adar" && hebLeap(ty)) month = "Adar II";
+    if ((month === "Adar I" || month === "Adar II") && !hebLeap(ty)) month = "Adar";
+    const approx = addDays(birth, Math.round(years * 365.25));
+    let near = null;
+    for (let i = -60; i <= 60; i++) {
+      const d = addDays(approx, i), q = hparts(d);
+      if (Number(q.year) !== ty || q.month !== month) continue;
+      if (Number(q.day) === Number(b.day)) return d;
+      if (Number(q.day) === Number(b.day) - 1) near = addDays(d, 1);
+    }
+    return near;
+  } catch { return null; }
+}
+const heDay = (s) => { try { return HEB_HE.format(parse(s)); } catch { return ""; } };
+const KZ = "https://www.kolzchut.org.il/he/";
+function milestonesFor(p) {
+  if (p.kind !== "child" || !isDay(p.birth || "")) return [];
+  const by = Number(p.birth.slice(0, 4)), out = [];
+  const add = (d, ic, t, s, lead, link) => { if (d && d >= addDays(today, -3)) out.push({ d, ic, t, s, lead, link, p }); };
+  add(by + 3 + "-01-20", "🎒", "רישום לגן של " + p.name, "הרישום לגני העירייה (גיל 3) נפתח בדרך כלל בסוף ינואר. התאריך המדויק באתר העירייה.", 30);
+  add(by + 6 + "-01-20", "✏️", "רישום לכיתה א׳ של " + p.name, "נרשמים בסוף ינואר באתר העירייה. הלימודים מתחילים ב־1 בספטמבר " + (by + 6) + ".", 30);
+  if (p.gender === "boy" || p.gender === "girl") {
+    const d = hebrewBirthday(p.birth, p.gender === "boy" ? 13 : 12);
+    add(d, "🎉", (p.gender === "boy" ? "בר מצווה ל" : "בת מצווה ל") + p.name, "לפי התאריך העברי, " + heDay(p.birth) + ". את המוזיקה מתכננים ב־HaniaMusic", 300, "https://music.hania360.com/event");
+  }
+  add(addMonths(p.birth, 192), "🪪", "תעודת זהות ל" + p.name, "בגיל 16 מוציאים תעודת זהות ראשונה, בלשכת רשות האוכלוסין", 45);
+  add(addMonths(p.birth, 198), "🚗", p.name + g(p, " יכול", " יכולה", " יכול/ה") + " להתחיל שיעורי נהיגה", "מגיל 16.5. קודם עוברים מבחן תיאוריה", 60);
+  add(addMonths(p.birth, 216), "💰", "חיסכון לכל ילד: " + p.name + g(p, " בן 18", " בת 18", " בגיל 18"), "אפשר למשוך את הכסף. מי שמחכה עד גיל 21 מקבל מענק של 568 ₪", 60, KZ + "משיכת_כספים_מתוכנית_%22חיסכון_לכל_ילד%22");
+  return out.sort((a, b) => a.d.localeCompare(b.d));
+}
+
+// ---- Emergency kit (Home Front Command's list) ----------------------------------------
+const KIT = [
+  { id: "water", t: "מים לכל בני הבית ל־3 ימים לפחות", short: "להחליף מים", every: 3 },
+  { id: "food", t: "מזון יבש שלא צריך קירור, ל־3 ימים", short: "לבדוק תוקף של המזון", every: 3 },
+  { id: "light", t: "פנס, תאורת חירום וסוללות", short: "לבדוק פנס וסוללות", every: 6 },
+  { id: "radio", t: "רדיו על סוללות ומטענים ניידים", short: "לבדוק רדיו ומטענים", every: 6 },
+  { id: "aid", t: "ערכת עזרה ראשונה ותרופות קבועות עם מרשמים", short: "לבדוק עזרה ראשונה ותרופות", every: 6 },
+  { id: "docs", t: "צילומי מסמכים חשובים ומזומן", short: "לעדכן צילומי מסמכים", every: 12 },
+  { id: "fire", t: "מטף כיבוי קטן וגלאי עשן", short: "לבדוק מטף וגלאי עשן", every: 12 },
+  { id: "kids", t: "משחקים, ספרים ודפי צביעה לילדים", short: "לרענן משחקים לילדים", every: 12 },
+];
+const kitDue = (k) => { const at = state.kit.checks[k.id]; return at ? addMonths(at, k.every) : null; };
+
 // ---- Example family --------------------------------------------------------------
 function sample() {
   const d = (n) => addDays(today, n);
@@ -326,9 +413,9 @@ function sample() {
     people: [
       { id: P.dani, name: "דני", kind: "adult", birth: y(40) + "-03-14" },
       { id: P.michal, name: "מיכל", kind: "adult", birth: y(38) + d(16).slice(4) },
-      { id: P.noa, name: "נועה", kind: "child", birth: y(10) + "-05-20", school: "yesodi" },
-      { id: P.yoav, name: "יואב", kind: "child", birth: y(5) + d(4).slice(4), school: "gan" },
-      { id: P.tamar, name: "תמר", kind: "child", birth: y(2) + "-02-10", school: "maon" },
+      { id: P.noa, name: "נועה", kind: "child", birth: y(10) + "-05-20", school: "yesodi", gender: "girl" },
+      { id: P.yoav, name: "יואב", kind: "child", birth: y(5) + d(4).slice(4), school: "gan", gender: "boy" },
+      { id: P.tamar, name: "תמר", kind: "child", birth: y(2) + "-02-10", school: "maon", gender: "girl" },
     ],
     items: [
       { id: uid(), kind: "passport", person: P.dani, date: d(150) },
@@ -349,12 +436,17 @@ function sample() {
       { id: uid(), kind: "bill", title: "ביטוח דירה", cat: "insurance", amount: 980, freq: 12, date: d(150), end: d(150) },
       { id: uid(), kind: "bill", title: "חוג כדורגל", cat: "kids", amount: 280, freq: 1, date: d(1) },
     ],
+    cover: {},
+    kit: { checks: { water: addMonths(today, -3), light: addMonths(today, -2), aid: addMonths(today, -1) }, contacts: [{ name: "סבתא רינה", phone: "050-0000000" }, { name: "רופאת הילדים", phone: "03-0000000" }], pickup: {}, meet: "בבית של סבתא רינה" },
+    log: [{ d: addDays(today, -40), k: "save", t: "סלולר", v: 960 }, { d: addDays(today, -40), k: "renew", t: "ביטוח רכב" }],
   };
 }
 
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { state = null; }
 if (!state || !Array.isArray(state.people) || !Array.isArray(state.items)) state = sample();
+state.cover = state.cover || {}; state.log = state.log || [];
+state.kit = Object.assign({ checks: {}, contacts: [], pickup: {}, meet: "" }, state.kit || {});
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 const personOf = (id) => state.people.find((p) => p.id === id);
 const kidsOf = () => state.people.filter((p) => p.kind === "child");
@@ -460,6 +552,8 @@ function attention() {
     out.push({ n: days(it.date), lvl, ic: KINDS[it.kind].ic, t: titleOf(it), s: whyOf(it), it });
   }
   for (const p of state.people) { const b = nextBirthday(p); if (b && days(b.d) <= 7) out.push({ n: days(b.d), lvl: "info", ic: "🎂", t: "יום הולדת " + b.age + " ל" + p.name, s: "השיר שהיה מספר 1 כשנולד/ה, ב־HaniaMusic", link: "https://music.hania360.com/" }); }
+  for (const p of kidsOf()) for (const m of milestonesFor(p)) { const n = days(m.d); if (n <= m.lead) out.push({ n, lvl: n <= 14 ? "soon" : "info", ic: m.ic, t: m.t, s: m.s, link: m.link }); }
+  if (Object.keys(state.kit.checks).length) for (const k of KIT) { const due = kitDue(k); if (due && due <= addDays(today, 7)) out.push({ n: days(due), lvl: "soon", ic: "🎒", t: "תיק חירום: " + k.short, s: "הגיע הזמן לבדוק", kit: k }); }
   const v = nextVacation();
   if (v && !v.none && days(v.from) <= 21) out.push({ n: days(v.from), lvl: v.cover ? "soon" : "info", ic: "🏖️", t: vacTitle(v.name), s: v.cover ? v.cover + " ימי עבודה שהילדים בבית" : "בלי ימי עבודה לכסות" });
   return out.sort((a, b) => a.n - b.n);
@@ -471,7 +565,7 @@ function rowEl(o) {
   const li = h("li", { class: "row " + (cls === "info" ? "" : cls) },
     h("span", { class: "ic", "aria-hidden": "true" }, o.ic),
     h("span", { class: "rmain" }, h("b", {}, o.t), o.s ? h("small", {}, o.s) : null),
-    h("span", { class: "when num " + cls }, o.whenText || whenTxt(n)));
+    o.whenText === "" ? null : h("span", { class: "when num " + cls }, o.whenText || whenTxt(n)));
   if (o.action) li.append(o.action);
   return li;
 }
@@ -506,7 +600,7 @@ function renderNow() {
   $("attnCount").textContent = att.length ? att.length + " פריטים" : "";
   if (!att.length) ul.append(h("li", { class: "empty" }, "אין כלום שמחכה. מה שיתקרב יופיע כאן."));
   for (const a of att) {
-    const btn = a.it ? h("button", { class: "rowbtn", type: "button", onclick: (e) => openFix(e.currentTarget.closest("li"), a) }, a.renewBill || KINDS[a.it.kind].renew || KINDS[a.it.kind].renewAdult ? "חידשתי" : "טופל") : a.link ? h("a", { class: "rowbtn link", href: a.link, target: "_blank", rel: "noopener" }, "לשיר") : null;
+    const btn = a.kit ? h("button", { class: "rowbtn", type: "button", onclick: () => { state.kit.checks[a.kit.id] = today; save(); render(); toast("סומן: נבדק היום"); } }, "בדקתי") : a.it ? h("button", { class: "rowbtn", type: "button", onclick: (e) => openFix(e.currentTarget.closest("li"), a) }, a.renewBill || KINDS[a.it.kind].renew || KINDS[a.it.kind].renewAdult ? "חידשתי" : "טופל") : a.link ? h("a", { class: "rowbtn link", href: a.link, target: "_blank", rel: "noopener" }, a.ic === "🎂" ? "לשיר" : "פרטים") : null;
     ul.append(rowEl({ ...a, action: btn }));
   }
   renderVac(v);
@@ -533,7 +627,7 @@ function openFix(li, a) {
     const base = a.renewBill ? it.end : it.date;
     const inp = h("input", { type: "date", id: "fix-" + it.id, value: addMonths(base < today ? today : base, months), "aria-label": "התאריך החדש" });
     box.append(h("div", { class: "line" }, h("span", {}, a.renewBill ? "חידוש עד:" : "בתוקף עד:"), inp,
-      h("button", { class: "btn small", type: "button", onclick: () => { if (!isDay(inp.value)) return; if (a.renewBill) it.end = inp.value; else it.date = inp.value; save(); render(); toast("מעולה, עודכן"); } }, "שמירה")),
+      h("button", { class: "btn small", type: "button", onclick: () => { if (!isDay(inp.value)) return; if (a.renewBill) it.end = inp.value; else it.date = inp.value; state.log.push({ d: today, k: "renew", t: titleOf(it) }); save(); render(); toast("מעולה, עודכן"); } }, "שמירה")),
       h("span", { class: "fine" }, a.renewBill ? "אם מצאתם הצעה זולה יותר, אפשר לעדכן גם את הסכום בבית ורכב." : "הצענו את התאריך הרגיל. אפשר לשנות לפי מה שכתוב במסמך."));
   } else {
     box.append(h("div", { class: "line" }, h("span", {}, "להסיר מהרשימה?"),
@@ -552,11 +646,20 @@ function renderVac(v) {
   c.append(h("div", { class: "kids" }, v.kids.map((p) => h("span", { class: "pill" }, p.name + " · " + LEVELS[p.school]))));
   const shown = v.list.slice(0, 14);
   const strip = h("div", { class: "strip", role: "list" });
-  for (const x of shown) strip.append(h("div", { class: "dayc" + (x.cover ? " cover" : "") + (!isWorkday(x.d) ? " off" : ""), role: "listitem", title: x.home.map((p) => p.name).join(", ") }, h("span", {}, DAYS[wd(x.d)]), h("b", { class: "num" }, parse(x.d).getUTCDate())));
+  const helpers = [...state.people.filter((p) => p.kind === "adult").map((p) => p.name), "סבא וסבתא", "קייטנה"];
+  for (const x of shown) {
+    if (x.cover) {
+      const who = state.cover[x.d];
+      strip.append(h("button", { class: "dayc cover" + (who ? " done" : ""), type: "button", role: "listitem", "aria-label": DAYS[wd(x.d)] + " " + short(x.d) + ": " + (who || "עוד לא סודר"), onclick: () => { const i = helpers.indexOf(state.cover[x.d]); if (i + 1 >= helpers.length) delete state.cover[x.d]; else state.cover[x.d] = helpers[i + 1]; save(); renderVac(nextVacation()); } },
+        h("span", {}, DAYS[wd(x.d)]), h("b", { class: "num" }, parse(x.d).getUTCDate()), h("span", { class: "who" }, who || "מי?")));
+    } else strip.append(h("div", { class: "dayc" + (!isWorkday(x.d) ? " off" : ""), role: "listitem" }, h("span", {}, DAYS[wd(x.d)]), h("b", { class: "num" }, parse(x.d).getUTCDate())));
+  }
   c.append(strip);
-  c.append(h("div", { class: "legend" }, h("span", {}, h("i", {}), "יום עבודה שהקטנים בבית"), h("span", {}, h("i", { class: "w" }), "סוף שבוע או חג")));
-  c.append(h("p", { style: "margin:0;font-weight:600" }, v.cover ? v.cover + " ימי עבודה צריך לסדר למי שבבית" + (v.list.length > 14 ? " (בחופשה כולה)" : "") + "." : "אין ימי עבודה לכסות: הכול בסוף שבוע או בחג."));
-  c.append(h("div", { class: "btns" }, h("a", { class: "btn small", href: "https://go.hania360.com/", target: "_blank", rel: "noopener" }, "לתכנן טיול בחופש"), h("button", { class: "btn small sec2", type: "button", onclick: () => go("year") }, "כל החופשות")));
+  const coverDays = v.list.filter((x) => x.cover), done = coverDays.filter((x) => state.cover[x.d]).length;
+  c.append(h("div", { class: "legend" }, h("span", {}, h("i", {}), "צריך לסדר"), h("span", {}, h("i", { style: "background:var(--ok)" }), "סודר"), h("span", {}, h("i", { class: "w" }), "סוף שבוע או חג")));
+  c.append(h("p", { style: "margin:0;font-weight:600" }, !v.cover ? "אין ימי עבודה לכסות: הכול בסוף שבוע או בחג." : done === v.cover ? "כל " + v.cover + " הימים מסודרים 👌" : (v.cover - done) + " מתוך " + v.cover + " ימי עבודה עוד לא סודרו. לוחצים על יום ובוחרים מי עם הילדים."));
+  const planText = ["🏖️ " + vacTitle(v.name) + ": מי עם הילדים", "", ...coverDays.map((x) => DAYS[wd(x.d)] + " " + short(x.d).slice(0, -3) + " · " + (state.cover[x.d] || "עוד לא סודר")), "", "HaniaHome · home.hania360.com"].join("\n");
+  c.append(h("div", { class: "btns" }, v.cover ? h("a", { class: "btn small", href: "https://wa.me/?text=" + encodeURIComponent(planText), target: "_blank", rel: "noopener" }, "לשלוח את החלוקה") : null, h("a", { class: "btn small sec2", href: "https://go.hania360.com/", target: "_blank", rel: "noopener" }, "טיול בחופש"), h("button", { class: "btn small sec2", type: "button", onclick: () => go("year") }, "כל החופשות")));
 }
 function renderTrip() {
   const out = $("tripOut").value, back = $("tripBack").value || out, ul = $("tripRes"); ul.textContent = "";
@@ -585,10 +688,82 @@ function renderFamily() {
         h("button", { class: "tag", type: "button", style: "border:1px dashed var(--line);background:none", onclick: () => openItem({ kind: "passport", person: p.id }) }, "+ מסמך")));
     box.append(card);
   });
+  const ms = $("milestones"); ms.textContent = "";
+  const kids = kidsOf();
+  if (!kids.length) ms.append(h("p", { class: "muted", style: "margin:0" }, "מוסיפים ילד עם תאריך לידה, ורואים מה מחכה לו: רישום לגן ולכיתה א׳, בר או בת מצווה לפי התאריך העברי, תעודת זהות ועוד."));
+  for (const p of kids) {
+    const list = milestonesFor(p).slice(0, 3);
+    ms.append(h("div", { class: "sec", style: "gap:6px" }, h("b", {}, p.name),
+      list.length ? h("ul", { class: "ms" }, list.map((m) => h("li", {}, h("span", { class: "md num" }, m.d.slice(0, 4)), h("span", {}, h("b", {}, m.ic + " " + m.t), h("small", {}, whenTxt(days(m.d)) + " · " + short(m.d) + " · " + m.s))))) : h("p", { class: "fine", style: "margin:0" }, p.birth ? "אין שלבים קרובים." : "מוסיפים תאריך לידה בעריכה.")));
+    if (p.birth && !p.gender) ms.append(h("button", { class: "tag", type: "button", style: "border:1px dashed var(--line);background:none;justify-self:start", onclick: () => openPerson(p) }, "בן או בת? בשביל תאריך בר/בת המצווה"));
+  }
+  renderKit();
   const bd = $("bdays"); bd.textContent = "";
   const list = state.people.map((p) => ({ p, b: nextBirthday(p) })).filter((x) => x.b).sort((a, b) => a.b.d.localeCompare(b.b.d));
   if (!list.length) bd.append(h("li", { class: "empty" }, "מוסיפים תאריך לידה, וימי ההולדת יופיעו כאן."));
   for (const { p, b } of list) bd.append(rowEl({ n: days(b.d), lvl: "info", ic: "🎂", t: p.name + " · " + b.age, s: long(b.d), action: h("a", { class: "rowbtn link", href: "https://music.hania360.com/", target: "_blank", rel: "noopener" }, "השיר") }));
+}
+function renderKit() {
+  const c = $("kitCard"); c.textContent = "";
+  const k = state.kit;
+  c.append(h("div", { class: "sechead" }, h("h2", {}, "תיק חירום משפחתי"), h("button", { class: "ghost", type: "button", onclick: shareKit }, "לשלוח לסבים")));
+  c.append(h("p", { class: "fine", style: "margin:0" }, "נשמר בטלפון ונפתח גם בלי אינטרנט. רשימת הציוד לפי המלצות פיקוד העורף."));
+  const kids = kidsOf();
+  if (kids.length) c.append(h("b", {}, "מי אוסף את מי"), h("div", { class: "inl" }, kids.map((p) => { const i = h("input", { id: "pick-" + p.id, value: k.pickup[p.id] || "", placeholder: p.name + ": מי אוסף?", "aria-label": "מי אוסף את " + p.name }); i.addEventListener("change", () => { k.pickup[p.id] = i.value.trim().slice(0, 40); save(); }); return i; })));
+  const meet = h("input", { id: "kitMeet", value: k.meet || "", placeholder: "למשל: אצל סבתא", "aria-label": "נקודת מפגש" });
+  meet.addEventListener("change", () => { k.meet = meet.value.trim().slice(0, 60); save(); });
+  c.append(h("b", {}, "נקודת מפגש אם אין קשר"), h("div", { class: "inl" }, meet));
+  c.append(h("b", {}, "טלפונים חשובים"));
+  const list = h("div", { class: "contacts" });
+  k.contacts.forEach((ct, i) => list.append(h("div", { class: "c" }, h("span", {}, ct.name + " · ", h("bdi", {}, ct.phone)), h("button", { class: "rowbtn", type: "button", "aria-label": "הסרת " + ct.name, onclick: () => { k.contacts.splice(i, 1); save(); renderKit(); } }, "×"))));
+  const cn = h("input", { id: "ctName", placeholder: "שם", maxlength: "30", "aria-label": "שם" }), cp = h("input", { id: "ctPhone", placeholder: "טלפון", inputmode: "tel", maxlength: "20", dir: "ltr", "aria-label": "טלפון" });
+  list.append(h("form", { class: "inl", onsubmit: (e) => { e.preventDefault(); if (!cn.value.trim() || !cp.value.trim()) return; k.contacts.push({ name: cn.value.trim(), phone: cp.value.trim() }); save(); renderKit(); } }, cn, cp, h("button", { class: "btn small sec2", type: "submit" }, "+")));
+  c.append(list);
+  c.append(h("b", {}, "ציוד בממ״ד"));
+  c.append(h("ul", { class: "kit" }, KIT.map((it) => {
+    const at = k.checks[it.id], due = kitDue(it), late = due && due <= today;
+    const cb = h("input", { type: "checkbox", id: "kit-" + it.id, checked: !!at && !late });
+    cb.addEventListener("change", () => { if (cb.checked) k.checks[it.id] = today; else delete k.checks[it.id]; save(); render(); });
+    return h("li", {}, cb, h("label", { for: "kit-" + it.id }, it.t, h("small", { class: late ? "due" : "" }, at ? (late ? "הגיע הזמן לבדוק שוב (נבדק " + short(at) + ")" : "נבדק " + short(at) + " · שוב ב־" + short(due)) : "לבדוק כל " + (it.every === 12 ? "שנה" : it.every + " חודשים"))));
+  })));
+  c.append(h("a", { class: "link fine", href: "https://www.oref.org.il/", target: "_blank", rel: "noopener" }, "ההנחיות המלאות באתר פיקוד העורף"));
+}
+function kitText() {
+  const k = state.kit, lines = ["🎒 תיק חירום · " + (state.family || "המשפחה"), ""];
+  const pick = kidsOf().filter((p) => k.pickup[p.id]).map((p) => "• " + p.name + ": " + k.pickup[p.id]);
+  if (pick.length) lines.push("מי אוסף את מי:", ...pick, "");
+  if (k.meet) lines.push("נקודת מפגש אם אין קשר: " + k.meet, "");
+  if (k.contacts.length) lines.push("טלפונים:", ...k.contacts.map((c) => "• " + c.name + ": " + c.phone), "");
+  lines.push("HaniaHome · home.hania360.com");
+  return lines.join("\n");
+}
+function shareKit() {
+  const text = kitText();
+  sheet("תיק החירום לשליחה", h("div", { class: "sec" }, h("textarea", { id: "kitText", rows: "10", readonly: true, style: "width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg);font:inherit;resize:vertical" }, text),
+    h("div", { class: "btns" }, h("button", { class: "btn", type: "button", onclick: () => { (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast("הועתק"), () => { $("kitText").select(); toast("מסמנים ומעתיקים"); }); } }, "העתקה"), h("a", { class: "btn sec2", href: "https://wa.me/?text=" + encodeURIComponent(text), target: "_blank", rel: "noopener" }, "פתיחה בוואטסאפ"))));
+}
+function renderPerks() {
+  const ul = $("perks"); ul.textContent = "";
+  const kids = kidsOf(), out = [];
+  if (kids.length) out.push({ ic: "🧾", t: "נקודות זיכוי במס על הילדים", s: "הורים לילדים עד גיל 18 זכאים לנקודות זיכוי. בודקים שהן מעודכנות בטופס 101 אצל המעסיק", link: KZ + "נקודות_זיכוי_ממס_הכנסה_להורה_לילד_עד_גיל_18" });
+  if (kids.length) out.push({ ic: "💰", t: "חיסכון לכל ילד", s: "בודקים באיזו קופה ובאיזה מסלול הכסף של כל ילד. מי שלא מושך עד גיל 21 מקבל 568 ₪", link: KZ + "משיכת_כספים_מתוכנית_%22חיסכון_לכל_ילד%22" });
+  if (kids.some((p) => p.school === "maon")) out.push({ ic: "🧸", t: "מעון יום מוכר", s: "במעונות בפיקוח הממשלה אפשר לקבל הנחה בשכר הלימוד. בודקים זכאות ורישום", link: KZ + "רישום_למעון_יום_מוכר" });
+  $("perksSec").hidden = !out.length;
+  for (const o of out) ul.append(rowEl({ ...o, lvl: "info", whenText: "", action: h("a", { class: "rowbtn link", href: o.link, target: "_blank", rel: "noopener" }, "לבדוק") }));
+}
+function renderRecap() {
+  const c = $("recap"); c.textContent = "";
+  const y = today.slice(0, 4), jan = y + "-01-01", bills = state.items.filter((i) => i.kind === "bill");
+  const paid = bills.reduce((s, b) => s + chargesBetween(b, jan, today).length * charge(b), 0);
+  const saved = state.log.filter((l) => l.k === "save" && l.d >= jan).reduce((s, l) => s + l.v, 0);
+  const renewed = state.log.filter((l) => l.k === "renew" && l.d >= jan).length;
+  const bdays = state.people.filter((p) => p.birth && p.birth.slice(5) <= today.slice(5)).length;
+  const vac = new Set(); for (const p of kidsOf()) for (const v of vacsFor(p)) for (let d = v.from < jan ? jan : v.from; d <= v.to && d <= today; d = addDays(d, 1)) if (isWorkday(d)) vac.add(d);
+  c.append(h("h2", {}, y + " שלנו, עד עכשיו"));
+  const tile = (v, l) => h("div", {}, h("b", {}, v), h("small", {}, l));
+  c.append(h("div", { class: "grid" }, tile(ils(paid), "שילמנו על הבית"), tile(ils(saved), "חסכנו בחידושים, לשנה"), tile(String(bdays), "ימי הולדת חגגנו"), tile(String(renewed), "חידשנו בזמן"), vac.size ? tile(String(vac.size), "ימי חופש של הילדים") : null));
+  const text = ["📊 " + y + " של " + (state.family || "המשפחה") + " עד עכשיו", "", "🏠 שילמנו על הבית: " + ils(paid), saved ? "💚 חסכנו בחידושים: " + ils(saved) + " לשנה" : null, "🎂 ימי הולדת: " + bdays, "✅ חידשנו בזמן: " + renewed, "", "HaniaHome · home.hania360.com"].filter((l) => l !== null).join("\n");
+  c.append(h("p", { class: "fine", style: "margin:0;color:inherit;opacity:.75" }, "לפי החשבונות והתאריכים שברשימה."), h("div", { class: "btns" }, h("a", { class: "btn small", href: "https://wa.me/?text=" + encodeURIComponent(text), target: "_blank", rel: "noopener" }, "לשתף")));
 }
 function renderHome() {
   const bills = state.items.filter((i) => i.kind === "bill");
@@ -615,7 +790,7 @@ function renderHome() {
   fill("misc", "misc", "אחריות למכשירים ותזכורות חד־פעמיות.");
 }
 let filter = "all";
-const FILTERS = [["all", "הכול"], ["vac", "חופשות"], ["docs", "מסמכים"], ["car", "רכב"], ["bday", "ימי הולדת"], ["bills", "חשבונות"]];
+const FILTERS = [["all", "הכול"], ["vac", "חופשות"], ["kids", "ילדים"], ["docs", "מסמכים"], ["car", "רכב"], ["bday", "ימי הולדת"], ["bills", "חשבונות"]];
 function yearEvents() {
   const end = addMonths(today, 12), ev = [];
   for (const it of state.items) {
@@ -627,12 +802,14 @@ function yearEvents() {
     if (it.date >= addDays(today, -30) && it.date <= end) ev.push({ d: it.date, t: titleOf(it), s: KINDS[it.kind].group === "docs" ? "פג תוקף" : KINDS[it.kind].label, g: KINDS[it.kind].group === "docs" ? "docs" : KINDS[it.kind].group === "car" ? "car" : "docs", ic: KINDS[it.kind].ic });
   }
   for (const p of state.people) { const b = nextBirthday(p); if (b && b.d <= end) ev.push({ d: b.d, t: "יום הולדת " + b.age + " ל" + p.name, g: "bday", ic: "🎂", cls: "bday" }); }
+  for (const p of kidsOf()) for (const m of milestonesFor(p)) if (m.d <= end) ev.push({ d: m.d, t: m.t, s: m.s, g: "kids", ic: m.ic, cls: "bday" });
   const seen = new Map();
   for (const p of kidsOf()) for (const v of vacsFor(p)) if (v.to >= today && v.from <= end) { const k = v.name + v.from; if (!seen.has(k)) seen.set(k, { d: v.from < today ? today : v.from, t: vacTitle(v.name), to: v.to, who: [], g: "vac", ic: "🏖️", cls: "vac" }); seen.get(k).who.push(p.name); }
   for (const e of seen.values()) { const len = days(e.to) - days(e.d) + 1; e.s = e.who.join(", ") + " · עד " + short(e.to) + (len > 1 ? " · " + len + " ימים" : ""); ev.push(e); }
   return ev.sort((a, b) => a.d.localeCompare(b.d));
 }
 function renderYear() {
+  renderRecap();
   const f = $("filters"); f.textContent = "";
   for (const [id, n] of FILTERS) f.append(h("button", { class: "chip", type: "button", "aria-pressed": String(filter === id), onclick: () => { filter = id; renderYear(); } }, n));
   const tl = $("timeline"); tl.textContent = "";
@@ -690,8 +867,10 @@ function openItem(it) {
       rec.freq = Number(freq.value); rec.cat = cat.value; if (rec.freq === 12 && Number(inst.value) > 1) rec.inst = Number(inst.value);
       if (isDay(end.value)) rec.end = end.value;
     }
+    let msg = isNew ? "נוסף" : "נשמר";
+    if (!isNew && rec.kind === "bill" && it.kind === "bill") { const was = monthly(it) * 12, now = monthly(rec) * 12; if (now < was - 1) { state.log.push({ d: today, k: "save", t: rec.title, v: Math.round(was - now) }); msg = "חסכתם " + ils(was - now) + " בשנה 👏"; } }
     if (isNew) state.items.push({ id: uid(), ...rec }); else { const t = state.items.find((x) => x.id === it.id); for (const key of ["title", "person", "amount", "freq", "inst", "cat", "end"]) delete t[key]; Object.assign(t, rec); }
-    save(); closeSheet(); render(); toast(isNew ? "נוסף" : "נשמר");
+    save(); closeSheet(); render(); toast(msg);
   } }, field("מה זה", kindSel), fTitle, fPerson, fCat, fAmt, fFreq, fInst, fDate, fEnd, err, h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), del));
   function showErr(t) { err.textContent = t; err.hidden = false; }
   sheet(isNew ? "להוסיף" : "עריכה", form); sync();
@@ -703,7 +882,9 @@ function openPerson(p, kind) {
   const birth = h("input", { id: "pBirth", type: "date", value: cur.birth || "" });
   const school = h("select", { id: "pSchool" }, Object.entries(LEVELS).map(([v, n]) => h("option", { value: v, selected: (cur.school || "none") === v }, n)));
   const fSchool = field("מסגרת (בשביל לוח החופשות)", school);
-  const sync = () => { fSchool.hidden = kindSel.value !== "child"; };
+  const gender = h("select", { id: "pGender" }, h("option", { value: "", selected: !cur.gender }, "לא לציין"), h("option", { value: "boy", selected: cur.gender === "boy" }, "בן"), h("option", { value: "girl", selected: cur.gender === "girl" }, "בת"));
+  const fGender = field("בן או בת", gender);
+  const sync = () => { fSchool.hidden = fGender.hidden = kindSel.value !== "child"; };
   kindSel.addEventListener("change", sync);
   const err = h("p", { class: "err", hidden: true });
   const del = isNew ? null : h("button", { class: "btn danger", type: "button", onclick: (e) => { if (e.currentTarget.dataset.armed) { state.people = state.people.filter((x) => x.id !== p.id); state.items = state.items.filter((x) => x.person !== p.id); save(); closeSheet(); render(); } else { e.currentTarget.dataset.armed = "1"; e.currentTarget.textContent = "ללחוץ שוב (כולל המסמכים שלו)"; } } }, "הסרה");
@@ -711,11 +892,11 @@ function openPerson(p, kind) {
   const form = h("form", { novalidate: true, onsubmit: (e) => {
     e.preventDefault();
     const n = name.value.trim().slice(0, 24); if (!n) { err.textContent = "כותבים שם."; err.hidden = false; return; }
-    const rec = { name: n, kind: kindSel.value, birth: isDay(birth.value) ? birth.value : "", school: kindSel.value === "child" ? school.value : undefined };
+    const rec = { name: n, kind: kindSel.value, birth: isDay(birth.value) ? birth.value : "", school: kindSel.value === "child" ? school.value : undefined, gender: kindSel.value === "child" ? gender.value : undefined };
     if (fam.value.trim()) state.family = fam.value.trim().slice(0, 30);
     if (isNew) state.people.push({ id: uid(), ...rec }); else Object.assign(state.people.find((x) => x.id === p.id), rec);
     save(); closeSheet(); render(); toast(isNew ? n + " נוסף/ה" : "נשמר");
-  } }, field("שם", name), h("div", { class: "two" }, field("מי", kindSel), field("תאריך לידה", birth)), fSchool, isNew && !state.people.length || !state.family ? field("שם המשפחה (לכותרת)", fam) : null, err, h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), del));
+  } }, field("שם", name), h("div", { class: "two" }, field("מי", kindSel), field("תאריך לידה", birth)), h("div", { class: "two" }, fSchool, fGender), isNew && !state.people.length || !state.family ? field("שם המשפחה (לכותרת)", fam) : null, err, h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), del));
   sheet(isNew ? "בן משפחה חדש" : "עריכה", form); sync();
 }
 
@@ -809,7 +990,7 @@ $("addPerson").addEventListener("click", () => openPerson(null));
 let armed = false;
 $("startOwn").addEventListener("click", (e) => {
   if (!armed) { armed = true; e.currentTarget.textContent = "ללחוץ שוב: הדוגמה תימחק"; return; }
-  state = { demo: false, family: "", people: [], items: [] }; save(); render(); go("family"); openPerson(null, "adult");
+  state = { demo: false, family: "", people: [], items: [], cover: {}, log: [], kit: { checks: {}, contacts: [], pickup: {}, meet: "" } }; save(); render(); go("family"); openPerson(null, "adult");
 });
 let tt;
 function toast(t) { const x = $("toast"); x.textContent = t; x.hidden = false; clearTimeout(tt); tt = setTimeout(() => { x.hidden = true; }, 2400); }
@@ -822,7 +1003,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet
 
 function render() {
   $("demoBar").hidden = !state.demo;
-  renderNow(); renderFamily(); renderHome(); renderYear();
+  renderNow(); renderPerks(); renderFamily(); renderHome(); renderYear();
 }
 render();
 let start = "now"; try { start = sessionStorage.getItem(KEY + "-tab") || "now"; } catch {}
