@@ -21,6 +21,22 @@
   --brand:#8E78FF; --brand-soft:#2C2550; --on-brand:#120E24;
   --late:#FF7A66; --late-soft:#3A1E1C; --soon:#FFB547; --soon-soft:#3A2C14; --ok:#3DD3A4; --ok-soft:#14342B; --sky:#6DB4FF; --sky-soft:#172C44;
   --shadow:none; color-scheme:dark}
+/* Skins: day (light), warm (cozy dark), tech (neon glass). Without a choice the phone's light or dark setting decides. */
+:root[data-skin="day"]{
+  --bg:#F4F2FA; --surface:#FFFFFF; --sunk:#ECE8F6; --ink:#1E1A33; --muted:#686283; --line:#E1DCEE;
+  --brand:#4F36D6; --brand-soft:#E7E2FD; --on-brand:#FFFFFF;
+  --late:#D63C2A; --late-soft:#FCE6E2; --soon:#B86E00; --soon-soft:#FFF0D6; --ok:#0E8A69; --ok-soft:#DDF4EC; --sky:#1F74C9; --sky-soft:#E1EEFB;
+  --shadow:0 1px 2px rgba(30,26,51,.05),0 10px 28px -10px rgba(52,36,140,.22); color-scheme:light}
+:root[data-skin="warm"]{
+  --bg:#1A1613; --surface:#28201B; --sunk:#352A23; --ink:#FCEFD9; --muted:#CDBBA3; --line:#46372D;
+  --brand:#F5A524; --brand-soft:#3D2C14; --on-brand:#1A1208;
+  --late:#FF8C73; --late-soft:#3E211A; --soon:#FFC15C; --soon-soft:#3D2E14; --ok:#7BD9A8; --ok-soft:#1D3527; --sky:#7CC4FF; --sky-soft:#1E2C3A;
+  --shadow:0 10px 30px -14px rgba(0,0,0,.6); color-scheme:dark}
+:root[data-skin="tech"]{
+  --bg:#060A15; --surface:#0E1528; --sunk:#16203A; --ink:#EEF4FF; --muted:#93A3C0; --line:#24315A;
+  --brand:#38BDF8; --brand-soft:#0F2A44; --on-brand:#03111E;
+  --late:#FB7185; --late-soft:#3A1424; --soon:#FBBF24; --soon-soft:#352A0C; --ok:#34D399; --ok-soft:#0C2E26; --sky:#38BDF8; --sky-soft:#0D2238;
+  --shadow:0 0 0 1px rgba(56,189,248,.06),0 12px 30px -14px rgba(56,189,248,.28); color-scheme:dark}
 *{box-sizing:border-box}[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);direction:rtl;margin:0}
@@ -248,13 +264,45 @@ nav.tabs button[aria-selected="true"]{background:var(--brand-soft);color:var(--b
 .sheet{border-radius:28px 28px 0 0;box-shadow:0 -10px 40px -10px rgba(0,0,0,.3)}
 .scrim{background:rgba(14,10,36,.42);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .tl .t b{display:flex;align-items:center}
+/* tech: neon glass */
+:root[data-skin="tech"] body{background:radial-gradient(120% 55% at 100% 0%,rgba(99,102,241,.22),transparent 62%),radial-gradient(90% 45% at 0% 35%,rgba(56,189,248,.12),transparent 60%),var(--bg);background-attachment:fixed}
+:root[data-skin="tech"] .card,:root[data-skin="tech"] .row,:root[data-skin="tech"] .ring{background:rgba(14,21,40,.78);border-color:rgba(99,102,241,.32)}
+:root[data-skin="tech"] .scene{box-shadow:0 0 0 1px rgba(56,189,248,.45),0 0 34px -6px rgba(56,189,248,.5)}
+:root[data-skin="tech"] .ring .pg{filter:drop-shadow(0 0 4px var(--b))}
+:root[data-skin="tech"] .ring{box-shadow:0 0 22px -12px var(--b)}
+:root[data-skin="tech"] .row.late{border-color:rgba(251,113,133,.55);box-shadow:0 0 20px -10px rgba(251,113,133,.8)}
+:root[data-skin="tech"] .add{background:linear-gradient(140deg,#1E1B4B 0%,#0B2F52 100%);box-shadow:0 0 0 1px rgba(56,189,248,.4),0 0 30px -10px rgba(56,189,248,.55)}
+:root[data-skin="tech"] .addrow input{background:#0A1122;color:var(--ink);box-shadow:inset 0 0 0 1px rgba(56,189,248,.3)}
+:root[data-skin="tech"] .addrow button{background:#38BDF8;color:#03111E}
+:root[data-skin="tech"] nav.tabs{background:rgba(9,14,30,.82);border-color:rgba(56,189,248,.3)}
+:root[data-skin="tech"] nav.tabs button[aria-selected="true"]{background:rgba(56,189,248,.12);box-shadow:0 0 0 1px rgba(56,189,248,.55),0 0 18px -3px rgba(56,189,248,.6)}
+:root[data-skin="tech"] .ic{box-shadow:0 0 14px -4px var(--b),inset 0 1px 0 rgba(255,255,255,.3)}
+:root[data-skin="tech"] .recap{background:linear-gradient(140deg,#1E1B4B,#0B2F52);color:#EEF4FF}
+:root[data-skin="tech"] .recap .btn{background:#38BDF8;color:#03111E}
+/* warm: lamp light */
+:root[data-skin="warm"] body{background:radial-gradient(110% 50% at 100% 0%,rgba(245,165,36,.16),transparent 62%),var(--bg);background-attachment:fixed}
+:root[data-skin="warm"] .add{background:linear-gradient(140deg,#9A4A10 0%,#4A2108 100%);box-shadow:0 18px 40px -20px rgba(245,165,36,.5)}
+:root[data-skin="warm"] .addrow input{background:#1F1814;color:var(--ink)}
+:root[data-skin="warm"] .addrow button{background:#F5A524;color:#1A1208}
+:root[data-skin="warm"] .recap{background:linear-gradient(140deg,#5A2A0C,#2A1A10);color:#FCEFD9}
+:root[data-skin="warm"] .recap .btn{background:#F5A524;color:#1A1208}
+.skins{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.skin{border:2px solid var(--line);border-radius:18px;padding:10px;background:var(--surface);display:grid;gap:8px;text-align:right;font-weight:700}
+.skin[aria-pressed="true"]{border-color:var(--brand)}
+.skin i{display:block;height:58px;border-radius:12px}
+.skin small{font-weight:500;color:var(--muted);font-size:12.5px}
+.skin .sw-auto{background:linear-gradient(90deg,#F4F2FA 50%,#0E1528 50%)}
+.skin .sw-day{background:linear-gradient(160deg,#9ED6FF,#F4F2FA 60%);box-shadow:inset 0 0 0 1px #E1DCEE}
+.skin .sw-warm{background:radial-gradient(80% 90% at 100% 0%,#F5A524 0%,#5A2A0C 45%,#1A1613 100%)}
+.skin .sw-tech{background:radial-gradient(80% 90% at 100% 0%,#38BDF8 0%,#1E1B4B 45%,#060A15 100%);box-shadow:inset 0 0 0 1px rgba(56,189,248,.6),0 0 14px -4px #38BDF8}
+.topbtns{display:flex;gap:4px;align-items:center}
 @media (max-width:360px){.money b{font-size:20px}.bar{grid-template-columns:6em 1fr auto}}
 </style>
 
 <div class="wrap">
   <div class="topbar">
     <a class="brand" href="https://hania360.com/"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#4F36D6"/><path d="M14 32 32 16l18 16v16a2 2 0 0 1-2 2H16a2 2 0 0 1-2-2z" fill="#FFFFFF"/><rect x="27" y="36" width="10" height="14" rx="2" fill="#FFB020"/></svg><span>Hania<b>Home</b></span></a>
-    <button class="ghost" type="button" id="shareBtn">סיכום לוואטסאפ</button>
+    <div class="topbtns"><button class="ghost" type="button" id="skinBtn">עיצוב</button><button class="ghost" type="button" id="shareBtn">סיכום לוואטסאפ</button></div>
   </div>
   <div class="demo" id="demoBar" hidden><span>זאת משפחה לדוגמה, כדי לראות איך זה עובד.</span><button class="btn small" type="button" id="startOwn">להתחיל עם המשפחה שלי</button></div>
 
@@ -696,9 +744,12 @@ const svgIcon = (k) => '<svg viewBox="0 0 24 24" aria-hidden="true">' + (P[k] ||
 function iconEl(emo, cls) { const [k, t] = EMO[emo] || ["pin", "misc"]; const e = h("span", { class: cls + " t-" + t, "aria-hidden": "true" }); e.innerHTML = svgIcon(k); return e; }
 
 // ---- The scene: the house under today's sky -----------------------------------------
-function sceneSVG(hr) {
+function sceneSVG(hr, skin) {
+  const tech = skin === "tech";
+  if (tech) hr = 23; else if (skin === "warm" && hr >= 7 && hr < 17) hr = 18;
   const night = hr < 5 || hr >= 20, morning = hr >= 5 && hr < 10, evening = hr >= 17 && hr < 20;
-  const c = night ? { s1: "#0A0F35", s2: "#2E2A7A", far: "#252B66", near: "#171B48", body: "#38327A", roof: "#4C3FA0", win: "#FFD27A", tree: "#1E4A4A", sun: "#F3EEFF" }
+  const c = tech ? { s1: "#070B1E", s2: "#1E1B4B", far: "#121A3E", near: "#0A1029", body: "#7DD3FC", roof: "#38BDF8", win: "#FDE68A", tree: "#0F3B46", sun: "#C7D2FE" }
+    : night ? { s1: "#0A0F35", s2: "#2E2A7A", far: "#252B66", near: "#171B48", body: "#38327A", roof: "#4C3FA0", win: "#FFD27A", tree: "#1E4A4A", sun: "#F3EEFF" }
     : evening ? { s1: "#3C2F8F", s2: "#FF8A6B", far: "#6A4C9C", near: "#3F2F72", body: "#F3E6E0", roof: "#7A3E62", win: "#FFD98A", tree: "#2F6B5A", sun: "#FFD08A" }
     : morning ? { s1: "#5D7BEA", s2: "#FFC09A", far: "#86C98A", near: "#4FAE73", body: "#FFF6EC", roof: "#E2674A", win: "#BFE6FF", tree: "#2E8B63", sun: "#FFE4A3" }
     : { s1: "#2B6FD9", s2: "#9ED6FF", far: "#7CCB86", near: "#45AA6C", body: "#FFFFFF", roof: "#E85A42", win: "#BFE6FF", tree: "#2E8B63", sun: "#FFE07A" };
@@ -717,13 +768,13 @@ function sceneSVG(hr) {
     + '<path d="M0 222 C70 186 150 196 230 214 S350 190 400 202 V300 H0Z" fill="' + c.far + '"/>'
     + '<g transform="translate(8 26)"><rect x="296" y="208" width="5" height="26" rx="2" fill="#5B3A2A"/><circle cx="298" cy="200" r="15" fill="' + c.tree + '"/><circle cx="309" cy="209" r="11" fill="' + c.tree + '"/></g>'
     + '<g transform="translate(30 30)">'
-    + '<rect x="40" y="184" width="104" height="72" rx="5" fill="' + c.body + '"/>'
-    + '<path d="M30 190 L92 140 L154 190 Z" fill="' + c.roof + '" stroke="' + c.roof + '" stroke-width="6" stroke-linejoin="round"/>'
-    + '<rect x="118" y="148" width="13" height="26" rx="2" fill="' + c.roof + '"/>'
+    + (tech
+      ? '<rect x="40" y="184" width="104" height="72" rx="5" fill="#7DD3FC" fill-opacity=".10" stroke="#7DD3FC" stroke-width="1.6"/><path d="M30 190 L92 140 L154 190 Z" fill="#38BDF8" fill-opacity=".16" stroke="#7DD3FC" stroke-width="1.6" stroke-linejoin="round"/><rect x="118" y="148" width="13" height="26" rx="2" fill="#38BDF8" fill-opacity=".14" stroke="#7DD3FC" stroke-width="1.4"/><rect x="40" y="184" width="104" height="72" rx="5" fill="none" stroke="#38BDF8" stroke-width="5" opacity=".18"/>'
+      : '<rect x="40" y="184" width="104" height="72" rx="5" fill="' + c.body + '"/><path d="M30 190 L92 140 L154 190 Z" fill="' + c.roof + '" stroke="' + c.roof + '" stroke-width="6" stroke-linejoin="round"/><rect x="118" y="148" width="13" height="26" rx="2" fill="' + c.roof + '"/>')
     + (night || morning || evening ? '<g class="smoke" fill="#FFFFFF" opacity=".6"><circle cx="124" cy="144" r="5"/><circle cx="124" cy="144" r="5"/><circle cx="124" cy="144" r="5"/></g>' : "")
     + '<circle cx="92" cy="168" r="8" fill="' + c.win + '"/>'
     + '<rect x="52" y="200" width="22" height="20" rx="3" fill="' + c.win + '"/><rect x="110" y="200" width="22" height="20" rx="3" fill="' + c.win + '"/>'
-    + '<rect x="81" y="214" width="22" height="42" rx="4" fill="' + c.roof + '"/><circle cx="98" cy="236" r="1.8" fill="#FFD27A"/>'
+    + '<rect x="81" y="214" width="22" height="42" rx="4" fill="' + c.roof + '"' + (tech ? ' fill-opacity=".25" stroke="#7DD3FC" stroke-width="1.4"' : "") + '/><circle cx="98" cy="236" r="1.8" fill="#FFD27A"/>'
     + (lit ? '<rect x="52" y="200" width="22" height="20" rx="3" fill="#FFE7A8" opacity=".35"/>' : "") + '</g>'
     + '<path d="M0 252 C90 236 200 244 286 256 S380 246 400 250 V300 H0Z" fill="' + c.near + '"/>'
     + '<rect width="400" height="300" fill="url(#shade)"/></svg>';
@@ -752,8 +803,8 @@ function renderNow() {
   const hr = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jerusalem", hour: "numeric", hour12: false }).format(new Date()));
   $("hello").textContent = (hr < 5 ? "לילה טוב" : hr < 12 ? "בוקר טוב" : hr < 17 ? "צהריים טובים" : hr < 21 ? "ערב טוב" : "לילה טוב") + " · " + DAYS[wd(today)] + " " + short(today);
   $("famName").textContent = state.family || "הבית שלנו";
-  const sc = $("scene"), old = sc.querySelector("svg.bg"), hrKey = hr < 5 || hr >= 20 ? "n" : hr < 10 ? "m" : hr < 17 ? "d" : "e";
-  if (!old || old.dataset.k !== hrKey) { if (old) old.remove(); sc.insertAdjacentHTML("afterbegin", sceneSVG(hr)); sc.querySelector("svg.bg").dataset.k = hrKey; }
+  const sc = $("scene"), old = sc.querySelector("svg.bg"), hrKey = (hr < 5 || hr >= 20 ? "n" : hr < 10 ? "m" : hr < 17 ? "d" : "e") + skinNow();
+  if (!old || old.dataset.k !== hrKey) { if (old) old.remove(); sc.insertAdjacentHTML("afterbegin", sceneSVG(hr, skinNow())); sc.querySelector("svg.bg").dataset.k = hrKey; }
   const att = attention(), urgent = att.filter((a) => a.lvl === "late"), soon = att.filter((a) => a.lvl === "soon");
   const pulse = $("pulse"); pulse.textContent = "";
   if (!state.people.length && !state.items.length) pulse.append("נתחיל ממי שגר בבית. ", h("mark", { class: "ok" }, "לוחצים על ״משפחה״ למטה"));
@@ -1190,6 +1241,22 @@ $("icsBtn").addEventListener("click", () => {
   out.push("END:VCALENDAR");
   const a = h("a", { href: URL.createObjectURL(new Blob([out.filter(Boolean).join("\r\n")], { type: "text/calendar" })), download: "haniahome.ics" }); document.body.append(a); a.click(); a.remove();
   toast("נוצר קובץ יומן. פותחים אותו כדי להוסיף");
+});
+
+// ---- Design: day, warm, tech, or follow the phone -------------------------------------
+const SKINS = [["auto", "אוטומטי", "בהיר ביום, כהה לפי הטלפון"], ["day", "יום", "בהיר וקריא, גם בשמש"], ["warm", "חם", "כהה וביתי, אור של מנורה"], ["tech", "הייטק", "זכוכית כהה וניאון"]];
+let skin = "auto"; try { skin = localStorage.getItem(KEY + "-skin") || "auto"; } catch {}
+const skinNow = () => (skin !== "auto" ? skin : matchMedia("(prefers-color-scheme: dark)").matches ? "tech" : "day");
+function applySkin() {
+  if (skin === "auto") document.documentElement.removeAttribute("data-skin"); else document.documentElement.setAttribute("data-skin", skin);
+  if (skin === "auto" && matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.setAttribute("data-skin", "tech");
+  const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", { day: "#4F36D6", warm: "#1A1613", tech: "#060A15" }[skinNow()]);
+}
+applySkin();
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (skin === "auto") { applySkin(); render(); } }); } catch {}
+$("skinBtn").addEventListener("click", () => {
+  const grid = h("div", { class: "skins" }, SKINS.map(([id, n, d]) => h("button", { class: "skin", type: "button", "aria-pressed": String(skin === id), onclick: () => { skin = id; try { localStorage.setItem(KEY + "-skin", id); } catch {} applySkin(); closeSheet(); render(); toast("עיצוב: " + n); } }, h("i", { class: "sw-" + id }), n, h("small", {}, d))));
+  sheet("העיצוב של האפליקציה", grid);
 });
 
 // ---- Tabs, demo, toast ------------------------------------------------------------------
