@@ -191,6 +191,12 @@ nav.tabs button[aria-selected="true"]{color:var(--brand)}
 .recap .grid small{opacity:.75;font-size:13px}
 .recap .btn{background:var(--surface);color:var(--ink)}
 .perks{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+details.more{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--bg)}
+details.more summary{font-weight:700;cursor:pointer}
+details.more[open]{display:grid;gap:10px}
+details.more .note{font-size:12.5px;color:var(--muted);margin:0}
+.chk:not([hidden]){display:flex!important;gap:8px;align-items:center;font-weight:600;color:var(--ink)!important}
+.chk input{width:20px!important;height:20px;flex:none}
 .toast{position:fixed;inset-inline:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--surface);border-radius:12px;padding:12px 14px;font-weight:600;text-align:center;max-width:528px;margin:0 auto}
 @media (prefers-reduced-motion:no-preference){.row,.card,.month{animation:rise .35s ease both}@keyframes rise{from{transform:translateY(6px);opacity:.4}}}
 @media (max-width:360px){.money b{font-size:20px}.bar{grid-template-columns:6em 1fr auto}}
@@ -390,6 +396,48 @@ function milestonesFor(p) {
   return out.sort((a, b) => a.d.localeCompare(b.d));
 }
 
+// ---- Tax credit points from the person's own details (Kol-Zchut, 2026 values) ----------------
+const POINT = 2904; // one credit point a year, 2026
+const RESERVE = [[110, 4], [105, 3.75], [100, 3.5], [95, 3.25], [90, 3], [85, 2.75], [80, 2.5], [75, 2.25], [70, 2], [65, 1.75], [60, 1.5], [55, 1.25], [50, 1], [40, 0.75], [30, 0.5]];
+const KZP = {
+  ba: KZ + "נקודות_זיכוי_ממס_הכנסה_בגין_תואר_ראשון", ma: KZ + "נקודות_זיכוי_ממס_הכנסה_בגין_תואר_שני",
+  army: KZ + "נקודות_זיכוי_ממס_הכנסה_לחיילים_משוחררים_ומסיימי_שירות_לאומי-אזרחי", reserve: KZ + "נקודות_זיכוי_ממס_הכנסה_ללוחמי_מילואים",
+  oleh: KZ + "נקודות_זיכוי_ממס_הכנסה_לעולה_חדש", single: KZ + "נקודות_זיכוי_ממס_הכנסה_ל%22הורה_אחד%22_עבור_גידול_ילדיו",
+  kidDis: KZ + "נקודות_זיכוי_ממס_הכנסה_בעד_ילד_או_בוגר_עם_מוגבלות", dis: "https://www.kolzchut.org.il/w/he/index.php?search=" + encodeURIComponent("פטור ממס הכנסה לנכים"),
+};
+const yr = Number(today.slice(0, 4));
+const perYear = (pts) => "בערך " + ils(pts * POINT) + " בשנה";
+/** What a grown-up in the family may be entitled to, from what they told us about themselves. */
+function perksFor(p) {
+  const f = p.profile || {}, out = [], name = p.name;
+  const yearsOpen = (from, to) => (yr >= from && yr <= to ? "now" : yr > to && yr - to <= 6 ? "back" : yr < from ? "later" : null);
+  // Degrees: graduates from 2023 get a point a year for the years of study (up to 3); a master's gives half a point for 2 years.
+  const gy = Number(f.gradYear) || 0;
+  if ((f.degree === "ba" || f.degree === "both") && gy >= 2014) {
+    const n = gy >= 2023 ? Math.min(3, Math.max(1, Number(f.studyYears) || 3)) : 1, to = gy + (gy >= 2023 ? n : 2), st = yearsOpen(gy + 1, to);
+    if (st) out.push({ ic: "🎓", t: name + ": נקודת זיכוי על תואר ראשון", s: st === "now" ? "נקודה אחת בשנה עד " + to + " · " + perYear(1) : st === "later" ? "מתחיל ב־" + (gy + 1) : "אם לא קיבלת, אפשר לבקש החזר עד 6 שנים אחורה", link: KZP.ba, st });
+  }
+  if ((f.degree === "ma" || f.degree === "both") && gy >= 2014) {
+    const to = gy + 2, st = yearsOpen(gy + 1, to);
+    if (st) out.push({ ic: "🎓", t: name + ": חצי נקודה על תואר שני", s: st === "now" ? (gy >= 2023 ? "בשנתיים שאחרי סיום הלימודים, עד " + to : "לשנה אחת, באחת משתי השנים שאחרי הסיום") + " · " + perYear(0.5) : st === "later" ? "מתחיל ב־" + (gy + 1) : "אם לא קיבלת, אפשר לבקש החזר עד 6 שנים אחורה", link: KZP.ma, st });
+  }
+  // Army or national service: 1 or 2 points for 36 months after the month of release.
+  if (f.service && isDay(f.release || "") && Number(f.months) >= 12) {
+    const m = Number(f.months), full = f.service === "national" ? m >= 24 : p.gender === "girl" ? m >= 22 : m >= 23, pts = full ? 2 : 1;
+    const from = addMonths(f.release.slice(0, 8) + "01", 1), to = addDays(addMonths(from, 36), -1), st = today < from ? "later" : today <= to ? "now" : yr - Number(to.slice(0, 4)) <= 6 ? "back" : null;
+    if (st) out.push({ ic: "🎖️", t: name + ": " + pts + " נקודות זיכוי לחייל משוחרר", s: st === "now" ? "עד " + short(to) + " · " + perYear(pts) : st === "later" ? "מתחיל ב־" + short(from) : "אם לא קיבלת, אפשר לבקש החזר עד 6 שנים אחורה", link: KZP.army, st });
+  }
+  // Combat reservists: points next year by the days served (2025 and 2026 tables).
+  const rd = Number(f.reserveDays) || 0, ry = yr - 1;
+  if (f.combat && rd >= 30 && (ry === 2025 || ry === 2026)) { const pts = RESERVE.find(([d]) => rd >= d)[1]; out.push({ ic: "🪖", t: name + ": " + pts + " נקודות זיכוי ללוחם מילואים", s: "על " + rd + " ימים ב־" + ry + ", לשנת המס " + yr + " · " + perYear(pts) + ". צריך אישור מצה״ל (1111, שלוחה 4)", link: KZP.reserve, st: "now" }); }
+  else if (f.combat && rd >= 20 && ry >= 2027) out.push({ ic: "🪖", t: name + ": נקודות זיכוי ללוחם מילואים", s: "מ־2027 מספיקים 20 ימים בשנה. הכמות לפי מספר הימים", link: KZP.reserve, st: "now" });
+  // New immigrants: 54 months from aliyah (from 2022), 42 before.
+  if (isDay(f.aliyah || "")) { const to = addMonths(f.aliyah, f.aliyah >= "2022-01-01" ? 54 : 42), st = today <= to ? "now" : yr - Number(to.slice(0, 4)) <= 6 ? "back" : null; if (st) out.push({ ic: "🧳", t: name + ": נקודות זיכוי לעולה חדש", s: st === "now" ? "עד " + short(to) + ", בכמות שמשתנה לפי הזמן מהעלייה" : "אם לא קיבלת, אפשר לבקש החזר עד 6 שנים אחורה", link: KZP.oleh, st }); }
+  if (f.single && kidsOf().length) out.push({ ic: "🫶", t: name + ": נקודות זיכוי להורה יחיד", s: "נקודות נוספות על גידול הילדים לבד", link: KZP.single, st: "now" });
+  if (f.disability) out.push({ ic: "♿", t: name + ": הטבות מס בגלל נכות או עיוורון", s: "בנכות רפואית גבוהה או בעיוורון ייתכן פטור ממס הכנסה. בודקים את התנאים", link: KZP.dis, st: "now" });
+  return out;
+}
+
 // ---- Emergency kit (Home Front Command's list) ----------------------------------------
 const KIT = [
   { id: "water", t: "מים לכל בני הבית ל־3 ימים לפחות", short: "להחליף מים", every: 3 },
@@ -411,8 +459,8 @@ function sample() {
   return {
     demo: true, family: "משפחת לוי",
     people: [
-      { id: P.dani, name: "דני", kind: "adult", birth: y(40) + "-03-14" },
-      { id: P.michal, name: "מיכל", kind: "adult", birth: y(38) + d(16).slice(4) },
+      { id: P.dani, name: "דני", kind: "adult", birth: y(40) + "-03-14", gender: "boy", profile: { degree: "ma", gradYear: yr - 1, combat: true, reserveDays: 64 } },
+      { id: P.michal, name: "מיכל", kind: "adult", birth: y(38) + d(16).slice(4), gender: "girl" },
       { id: P.noa, name: "נועה", kind: "child", birth: y(10) + "-05-20", school: "yesodi", gender: "girl" },
       { id: P.yoav, name: "יואב", kind: "child", birth: y(5) + d(4).slice(4), school: "gan", gender: "boy" },
       { id: P.tamar, name: "תמר", kind: "child", birth: y(2) + "-02-10", school: "maon", gender: "girl" },
@@ -747,9 +795,13 @@ function renderPerks() {
   const kids = kidsOf(), out = [];
   if (kids.length) out.push({ ic: "🧾", t: "נקודות זיכוי במס על הילדים", s: "הורים לילדים עד גיל 18 זכאים לנקודות זיכוי. בודקים שהן מעודכנות בטופס 101 אצל המעסיק", link: KZ + "נקודות_זיכוי_ממס_הכנסה_להורה_לילד_עד_גיל_18" });
   if (kids.length) out.push({ ic: "💰", t: "חיסכון לכל ילד", s: "בודקים באיזו קופה ובאיזה מסלול הכסף של כל ילד. מי שלא מושך עד גיל 21 מקבל 568 ₪", link: KZ + "משיכת_כספים_מתוכנית_%22חיסכון_לכל_ילד%22" });
+  for (const p of state.people.filter((x) => x.kind === "adult")) out.push(...perksFor(p));
+  const dk = kids.filter((p) => p.disability);
+  if (dk.length) out.push({ ic: "💙", t: "2 נקודות זיכוי על " + dk.map((p) => p.name).join(" ו") , s: "להורה של ילד עם מוגבלות, על כל ילד · " + perYear(2), link: KZP.kidDis });
   if (kids.some((p) => p.school === "maon")) out.push({ ic: "🧸", t: "מעון יום מוכר", s: "במעונות בפיקוח הממשלה אפשר לקבל הנחה בשכר הלימוד. בודקים זכאות ורישום", link: KZ + "רישום_למעון_יום_מוכר" });
-  $("perksSec").hidden = !out.length;
-  for (const o of out) ul.append(rowEl({ ...o, lvl: "info", whenText: "", action: h("a", { class: "rowbtn link", href: o.link, target: "_blank", rel: "noopener" }, "לבדוק") }));
+  $("perksSec").hidden = !out.length && !state.people.some((p) => p.kind === "adult");
+  if (state.people.some((p) => p.kind === "adult" && !p.profile)) out.push({ ic: "✨", t: "יש לכם תואר, שחרור מהצבא או מילואים?", s: "מוסיפים פרטים בעריכה של כל מבוגר, ובודקים אם מגיעות לכם נקודות זיכוי", action: "פרטים" });
+  for (const o of out) ul.append(rowEl({ ...o, lvl: o.st === "back" ? "soon" : "info", whenText: "", action: o.action ? h("button", { class: "rowbtn", type: "button", onclick: () => { const p = state.people.find((x) => x.kind === "adult" && !x.profile); go("family"); openPerson(p, null, true); } }, o.action) : h("a", { class: "rowbtn link", href: o.link, target: "_blank", rel: "noopener" }, "לבדוק") }));
 }
 function renderRecap() {
   const c = $("recap"); c.textContent = "";
@@ -875,7 +927,7 @@ function openItem(it) {
   function showErr(t) { err.textContent = t; err.hidden = false; }
   sheet(isNew ? "להוסיף" : "עריכה", form); sync();
 }
-function openPerson(p, kind) {
+function openPerson(p, kind, openMore) {
   const isNew = !p, cur = p || { kind: kind || "adult" };
   const name = h("input", { id: "pName", maxlength: "24", value: cur.name || "", placeholder: "שם" });
   const kindSel = h("select", { id: "pKind" }, h("option", { value: "adult", selected: cur.kind === "adult" }, "מבוגר"), h("option", { value: "child", selected: cur.kind === "child" }, "ילד/ה"));
@@ -883,8 +935,34 @@ function openPerson(p, kind) {
   const school = h("select", { id: "pSchool" }, Object.entries(LEVELS).map(([v, n]) => h("option", { value: v, selected: (cur.school || "none") === v }, n)));
   const fSchool = field("מסגרת (בשביל לוח החופשות)", school);
   const gender = h("select", { id: "pGender" }, h("option", { value: "", selected: !cur.gender }, "לא לציין"), h("option", { value: "boy", selected: cur.gender === "boy" }, "בן"), h("option", { value: "girl", selected: cur.gender === "girl" }, "בת"));
-  const fGender = field("בן או בת", gender);
-  const sync = () => { fSchool.hidden = fGender.hidden = kindSel.value !== "child"; };
+  const fGender = field("מין", gender);
+  const pf = Object.assign({}, cur.profile || {});
+  const sel = (id, val, opts) => h("select", { id }, opts.map(([v, n]) => h("option", { value: v, selected: (val || "") === v }, n)));
+  const degree = sel("fDeg", pf.degree, [["", "בלי תואר"], ["ba", "תואר ראשון"], ["ma", "תואר שני"], ["both", "ראשון ושני"]]);
+  const gradYear = h("input", { id: "fGrad", type: "number", min: "1980", max: String(yr + 6), placeholder: "למשל " + (yr - 1), value: pf.gradYear || "" });
+  const studyYears = sel("fStudy", String(pf.studyYears || 3), [["1", "שנה"], ["2", "שנתיים"], ["3", "3 שנים או יותר"]]);
+  const service = sel("fSvc", pf.service, [["", "לא שירתי"], ["army", "צבא"], ["national", "שירות לאומי או אזרחי"]]);
+  const release = h("input", { id: "fRel", type: "date", value: pf.release || "" });
+  const months = h("input", { id: "fMonths", type: "number", min: "0", max: "48", placeholder: "חודשים", value: pf.months || "" });
+  const combat = h("input", { id: "fCombat", type: "checkbox", checked: !!pf.combat });
+  const reserveDays = h("input", { id: "fRes", type: "number", min: "0", max: "366", placeholder: "ימים ב־" + (yr - 1), value: pf.reserveDays || "" });
+  const aliyah = h("input", { id: "fAliyah", type: "date", value: pf.aliyah || "" });
+  const single = h("input", { id: "fSingle", type: "checkbox", checked: !!pf.single });
+  const disability = h("input", { id: "fDis", type: "checkbox", checked: !!pf.disability });
+  const kidDis = h("input", { id: "fKidDis", type: "checkbox", checked: !!cur.disability });
+  const more = h("details", { class: "more", open: !!openMore || !!cur.profile },
+    h("summary", {}, "פרטים שמזכים בהטבות (לא חובה)"),
+    h("p", { class: "note" }, "בשביל ״מה מגיע לכם״. נשמר רק בטלפון הזה, לא נשלח לשום מקום."),
+    h("div", { class: "two" }, field("השכלה", degree), field("שנת סיום התואר", gradYear)),
+    field("כמה שנים למדת לתואר הראשון", studyYears),
+    h("div", { class: "two" }, field("שירות", service), field("משך השירות (חודשים)", months)),
+    field("תאריך השחרור", release),
+    h("label", { class: "chk" }, combat, "לוחם/ת מילואים"), field("ימי מילואים בשנה שעברה", reserveDays),
+    field("תאריך עלייה (לעולים)", aliyah),
+    h("label", { class: "chk" }, single, "הורה יחיד/ה"),
+    h("label", { class: "chk" }, disability, "נכות רפואית או עיוורון"));
+  const fKidDis = h("label", { class: "chk" }, kidDis, "ילד/ה עם מוגבלות (בשביל נקודות זיכוי להורים)");
+  const sync = () => { const child = kindSel.value === "child"; fSchool.hidden = !child; more.hidden = child; fKidDis.hidden = !child; };
   kindSel.addEventListener("change", sync);
   const err = h("p", { class: "err", hidden: true });
   const del = isNew ? null : h("button", { class: "btn danger", type: "button", onclick: (e) => { if (e.currentTarget.dataset.armed) { state.people = state.people.filter((x) => x.id !== p.id); state.items = state.items.filter((x) => x.person !== p.id); save(); closeSheet(); render(); } else { e.currentTarget.dataset.armed = "1"; e.currentTarget.textContent = "ללחוץ שוב (כולל המסמכים שלו)"; } } }, "הסרה");
@@ -892,11 +970,16 @@ function openPerson(p, kind) {
   const form = h("form", { novalidate: true, onsubmit: (e) => {
     e.preventDefault();
     const n = name.value.trim().slice(0, 24); if (!n) { err.textContent = "כותבים שם."; err.hidden = false; return; }
-    const rec = { name: n, kind: kindSel.value, birth: isDay(birth.value) ? birth.value : "", school: kindSel.value === "child" ? school.value : undefined, gender: kindSel.value === "child" ? gender.value : undefined };
+    const rec = { name: n, kind: kindSel.value, birth: isDay(birth.value) ? birth.value : "", school: kindSel.value === "child" ? school.value : undefined, gender: gender.value || undefined };
+    if (kindSel.value === "child") { rec.disability = kidDis.checked || undefined; rec.profile = undefined; }
+    else {
+      const prof = { degree: degree.value || undefined, gradYear: Number(gradYear.value) || undefined, studyYears: Number(studyYears.value) || undefined, service: service.value || undefined, release: isDay(release.value) ? release.value : undefined, months: Number(months.value) || undefined, combat: combat.checked || undefined, reserveDays: Number(reserveDays.value) || undefined, aliyah: isDay(aliyah.value) ? aliyah.value : undefined, single: single.checked || undefined, disability: disability.checked || undefined };
+      rec.profile = Object.values(prof).some((v) => v !== undefined) ? JSON.parse(JSON.stringify(prof)) : (cur.profile ? {} : undefined);
+    }
     if (fam.value.trim()) state.family = fam.value.trim().slice(0, 30);
     if (isNew) state.people.push({ id: uid(), ...rec }); else Object.assign(state.people.find((x) => x.id === p.id), rec);
     save(); closeSheet(); render(); toast(isNew ? n + " נוסף/ה" : "נשמר");
-  } }, field("שם", name), h("div", { class: "two" }, field("מי", kindSel), field("תאריך לידה", birth)), h("div", { class: "two" }, fSchool, fGender), isNew && !state.people.length || !state.family ? field("שם המשפחה (לכותרת)", fam) : null, err, h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), del));
+  } }, field("שם", name), h("div", { class: "two" }, field("מי", kindSel), field("תאריך לידה", birth)), h("div", { class: "two" }, fSchool, fGender), fKidDis, more, isNew && !state.people.length || !state.family ? field("שם המשפחה (לכותרת)", fam) : null, err, h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), del));
   sheet(isNew ? "בן משפחה חדש" : "עריכה", form); sync();
 }
 
