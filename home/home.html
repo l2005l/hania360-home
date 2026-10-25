@@ -296,6 +296,32 @@ nav.tabs button[aria-selected="true"]{background:var(--brand-soft);color:var(--b
 .skin .sw-warm{background:radial-gradient(80% 90% at 100% 0%,#F5A524 0%,#5A2A0C 45%,#1A1613 100%)}
 .skin .sw-tech{background:radial-gradient(80% 90% at 100% 0%,#38BDF8 0%,#1E1B4B 45%,#060A15 100%);box-shadow:inset 0 0 0 1px rgba(56,189,248,.6),0 0 14px -4px #38BDF8}
 .topbtns{display:flex;gap:4px;align-items:center}
+/* Family voices */
+.voices .vq{background:var(--brand-soft);border-radius:16px;padding:14px;display:grid;gap:6px}
+.voices .vq small{color:var(--brand);font-weight:700;font-size:12.5px;letter-spacing:.02em}
+.voices .vq b{font-size:18px;line-height:1.45}
+.voices .vq .ghost{justify-self:start;padding:2px 0}
+.voices .vwho{display:grid;gap:5px;font-size:13px;color:var(--muted)}
+.voices .vwho input{border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:12px;padding:11px 12px;font:inherit;font-size:16px}
+.vrec{display:flex;align-items:center;gap:14px}
+.vmic{flex:none;width:68px;height:68px;border-radius:50%;border:0;background:var(--late);color:#fff;font-size:28px;display:grid;place-items:center;box-shadow:0 10px 26px -10px var(--late)}
+.vmic.on{animation:vpulse 1.4s ease-in-out infinite}
+.vmic.on::after{content:"";width:22px;height:22px;border-radius:5px;background:#fff}
+@keyframes vpulse{50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--late) 18%,transparent)}}
+.vrec .vinfo{display:grid;gap:6px;flex:1;min-width:0}
+.vrec .vinfo b{font-size:15px}
+.vlevel{height:6px;border-radius:9px;background:var(--sunk);overflow:hidden}.vlevel i{display:block;height:100%;width:0;background:var(--ok);transition:width .08s}
+.vlive{font-size:13px;color:var(--muted);min-height:1em}
+.vchk{display:flex;gap:8px;align-items:center;font-size:13.5px;color:var(--muted)}
+.vgroup{display:grid;gap:8px}
+.vgroup>b{font-size:15px}
+.vitem{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.vplay{width:44px;height:44px;border-radius:50%;border:0;background:var(--brand);color:var(--on-brand);font-size:17px;grid-row:span 2}
+.vitem .vm{display:grid;gap:2px;min-width:0}.vitem .vm b{font-size:14.5px;line-height:1.4}.vitem .vm small{color:var(--muted);font-size:12.5px}
+.vitem .vt{grid-column:1/-1;font-size:13.5px;line-height:1.55;color:var(--ink);background:var(--sunk);border-radius:11px;padding:8px 10px;white-space:pre-wrap}
+.vitem .vbtns{grid-column:2;display:flex;gap:6px;flex-wrap:wrap}
+.vbook{display:flex;gap:8px;flex-wrap:wrap}
+textarea.vedit{width:100%;min-height:160px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:12px;padding:10px;font:inherit;font-size:16px;line-height:1.55}
 @media (max-width:360px){.money b{font-size:20px}.bar{grid-template-columns:6em 1fr auto}}
 </style>
 
@@ -340,6 +366,7 @@ nav.tabs button[aria-selected="true"]{background:var(--brand-soft);color:var(--b
     <div class="people" id="people"></div>
     <div class="sec"><div class="sechead"><h2>השלבים הבאים של הילדים</h2><small>מחושב מתאריך הלידה</small></div><div class="card" id="milestones"></div></div>
     <div class="sec"><div class="sechead"><h2>ימי הולדת</h2><small>לפי הסדר</small></div><ul class="rows" id="bdays"></ul></div>
+    <div class="card voices" id="voiceCard"></div>
     <div class="card" id="kitCard"></div>
   </section>
 
@@ -592,7 +619,7 @@ function sample() {
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { state = null; }
 if (!state || !Array.isArray(state.people) || !Array.isArray(state.items)) state = sample();
-state.cover = state.cover || {}; state.log = state.log || [];
+state.cover = state.cover || {}; state.log = state.log || []; state.voices = Array.isArray(state.voices) ? state.voices : [];
 state.kit = Object.assign({ checks: {}, contacts: [], pickup: {}, meet: "" }, state.kit || {});
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 const personOf = (id) => state.people.find((p) => p.id === id);
@@ -701,6 +728,7 @@ function attention() {
   for (const p of state.people) { const b = nextBirthday(p); if (b && days(b.d) <= 7) out.push({ n: days(b.d), lvl: "info", ic: "🎂", t: "יום הולדת " + b.age + " ל" + p.name, s: "השיר שהיה מספר 1 כשנולד/ה, ב־HaniaMusic", link: "https://music.hania360.com/" }); }
   for (const p of kidsOf()) for (const m of milestonesFor(p)) { const n = days(m.d); if (n <= m.lead) out.push({ n, lvl: n <= 14 ? "soon" : "info", ic: m.ic, t: m.t, s: m.s, link: m.link }); }
   if (Object.keys(state.kit.checks).length) for (const k of KIT) { const due = kitDue(k); if (due && due <= addDays(today, 7)) out.push({ n: days(due), lvl: "soon", ic: "🎒", t: "תיק חירום: " + k.short, s: "הגיע הזמן לבדוק", kit: k }); }
+  if (state.voices.length && !state.voices.some((x) => days(x.d) > -7)) out.push({ n: 0, lvl: "info", ic: "🎙️", t: "שאלת השבוע: " + weekQ(), s: "דקה אחת בקול של " + state.voices[state.voices.length - 1].who + ", לספר המשפחה", voice: true });
   const v = nextVacation();
   if (v && !v.none && days(v.from) <= 21) out.push({ n: days(v.from), lvl: v.cover ? "soon" : "info", ic: "🏖️", t: vacTitle(v.name), s: v.cover ? v.cover + " ימי עבודה שהילדים בבית" : "בלי ימי עבודה לכסות" });
   return out.sort((a, b) => a.n - b.n);
@@ -836,7 +864,7 @@ function renderNow() {
   $("attnCount").textContent = att.length ? att.length + " פריטים" : "";
   if (!att.length) ul.append(h("li", { class: "empty" }, "אין כלום שמחכה. מה שיתקרב יופיע כאן."));
   for (const a of att) {
-    const btn = a.kit ? h("button", { class: "rowbtn", type: "button", onclick: () => { state.kit.checks[a.kit.id] = today; save(); render(); toast("סומן: נבדק היום"); } }, "בדקתי") : a.it ? h("button", { class: "rowbtn", type: "button", onclick: (e) => openFix(e.currentTarget.closest("li"), a) }, a.renewBill || KINDS[a.it.kind].renew || KINDS[a.it.kind].renewAdult ? "חידשתי" : "טופל") : a.link ? h("a", { class: "rowbtn link", href: a.link, target: "_blank", rel: "noopener" }, a.ic === "🎂" ? "לשיר" : "פרטים") : null;
+    const btn = a.voice ? h("button", { class: "rowbtn", type: "button", onclick: () => { go("family"); setTimeout(() => $("voiceCard").scrollIntoView({ behavior: "smooth", block: "start" }), 60); } }, "להקליט") : a.kit ? h("button", { class: "rowbtn", type: "button", onclick: () => { state.kit.checks[a.kit.id] = today; save(); render(); toast("סומן: נבדק היום"); } }, "בדקתי") : a.it ? h("button", { class: "rowbtn", type: "button", onclick: (e) => openFix(e.currentTarget.closest("li"), a) }, a.renewBill || KINDS[a.it.kind].renew || KINDS[a.it.kind].renewAdult ? "חידשתי" : "טופל") : a.link ? h("a", { class: "rowbtn link", href: a.link, target: "_blank", rel: "noopener" }, a.ic === "🎂" ? "לשיר" : "פרטים") : null;
     ul.append(rowEl({ ...a, action: btn }));
   }
   renderVac(v);
@@ -933,6 +961,7 @@ function renderFamily() {
       list.length ? h("ul", { class: "ms" }, list.map((m) => h("li", {}, h("span", { class: "md num" }, m.d.slice(0, 4)), h("span", {}, h("b", {}, iconEl(m.ic, "mi"), m.t), h("small", {}, whenTxt(days(m.d)) + " · " + short(m.d) + " · " + m.s))))) : h("p", { class: "fine", style: "margin:0" }, p.birth ? "אין שלבים קרובים." : "מוסיפים תאריך לידה בעריכה.")));
     if (p.birth && !p.gender) ms.append(h("button", { class: "tag", type: "button", style: "border:1px dashed var(--line);background:none;justify-self:start", onclick: () => openPerson(p) }, "בן או בת? בשביל תאריך בר/בת המצווה"));
   }
+  renderVoices();
   renderKit();
   const bd = $("bdays"); bd.textContent = "";
   const list = state.people.map((p) => ({ p, b: nextBirthday(p) })).filter((x) => x.b).sort((a, b) => a.b.d.localeCompare(b.b.d));
@@ -1062,6 +1091,190 @@ function renderYear() {
     const d = parse(e.d);
     ul.append(h("li", {}, h("span", { class: "d num" }, h("b", {}, d.getUTCDate()), h("small", {}, DAYS[d.getUTCDay()])), h("span", { class: "t " + (e.cls || "") }, h("b", {}, iconEl(e.ic, "mi"), e.t), e.s ? h("small", {}, e.s) : null)));
   }
+}
+
+// ---- Family voices: one question a week, answered in the voice of the people we love ----------
+// Recordings stay on this phone (IndexedDB); the list itself lives with the rest of the home.
+const QUESTIONS = [
+  "איך הכרתם? מה הדבר הראשון ששמת לב אליו?", "איך נראה הבית שגדלת בו? תאר/י חדר אחד.", "מה אכלתם בשישי בערב כשהיית ילד/ה?",
+  "מה הייתה העבודה הראשונה שלך, וכמה הרווחת?", "ספר/י על חבר/ה הכי טוב/ה מהילדות.", "מה המעשה הכי שובב שעשית בבית הספר?",
+  "איך קיבלתם את השם של המשפחה? מאיפה היא הגיעה?", "מה זוכרים מהיום שנולד הילד הראשון?", "איזה שיר מחזיר אותך הכי רחוק אחורה, ולמה?",
+  "מה השתנה הכי הרבה בארץ מאז שהיית צעיר/ה?", "ספר/י על חג אחד שלא שוכחים.", "מה העצה הכי טובה שקיבלת מההורים שלך?",
+  "מה היית אומר/ת לעצמך בגיל 18?", "איך נראתה החתונה? מה השתבש?", "מה המתכון שכל המשפחה צריכה לדעת, ואיך מכינים אותו?",
+  "איפה היית במלחמה או ברגע היסטורי שזוכרים?", "מי היה המורה שהכי השפיע עליך?", "מה החלום שעוד לא הגשמת?",
+  "מה הצחיק אותך הכי הרבה בחיים?", "איך הייתה הנסיעה הראשונה לחוץ לארץ?", "ספר/י על סבא וסבתא שלך. מה זוכרים מהם?",
+  "מה היה המשחק האהוב בשכונה?", "מה הדבר שהכי קשה היה לך, ואיך עברת אותו?", "איזה חפץ בבית הכי יקר לך, ולמה?",
+  "איך נראה יום רגיל כשהיית בגיל של הנכדים?", "מה הדבר שאתה/את הכי גאה בו?", "איזו מסורת משפחתית חשוב לך שנמשיך?",
+  "מה היה הצבא או השירות בשבילך?", "ספר/י על המקום הכי יפה שראית.", "מה הייתה המכונית או האופניים הראשונים?",
+  "איך הייתם מתקשרים לפני שהיו טלפונים ניידים?", "מי בישל הכי טוב במשפחה, ומה?", "מה תמיד רצית לספר לנו ולא יצא?",
+  "איזה ספר או סרט שינה לך משהו?", "מה המילה או הביטוי שרק במשפחה שלנו אומרים?", "מה אתה/את מאחל/ת לנכדים?"];
+let qShift = 0;
+const weekNo = () => Math.floor((parse(today).getTime() / DAY + 3) / 7);
+const weekQ = () => QUESTIONS[(((weekNo() + qShift) % QUESTIONS.length) + QUESTIONS.length) % QUESTIONS.length];
+const VDB = "haniahome-voices";
+const vstore = (mode, fn) => new Promise((res, rej) => {
+  const r = indexedDB.open(VDB, 1);
+  r.onupgradeneeded = () => r.result.createObjectStore("a");
+  r.onerror = () => rej(r.error);
+  r.onsuccess = () => { const t = r.result.transaction("a", mode), q = fn(t.objectStore("a")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); };
+});
+const vput = (id, blob) => vstore("readwrite", (o) => o.put(blob, id));
+const vget = (id) => vstore("readonly", (o) => o.get(id));
+const vdel = (id) => vstore("readwrite", (o) => o.delete(id));
+const mmss = (sec) => Math.floor(sec / 60) + ":" + String(Math.round(sec % 60)).padStart(2, "0");
+const canRecord = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder && window.indexedDB);
+const SRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const MAX_SEC = 300;
+let rec = null, playing = null, whoDraft = "";
+
+function renderVoices() {
+  const c = $("voiceCard"); if (!c || rec) return;
+  c.textContent = "";
+  const vs = state.voices;
+  c.append(h("div", { class: "sechead" }, h("h2", {}, "קולות המשפחה"), vs.length ? h("small", {}, vs.length + " הקלטות · " + mmss(vs.reduce((s, v) => s + v.dur, 0))) : h("small", {}, "סיפור אחד בשבוע")));
+  if (!vs.length) c.append(h("p", { class: "muted", style: "margin:0;line-height:1.6" }, "פעם בשבוע שואלים את סבא, סבתא או ההורים שאלה אחת ומקליטים את התשובה. עם השנים נבנה ספר משפחתי, בקול שלהם."));
+  c.append(h("div", { class: "vq" }, h("small", {}, "שאלת השבוע"), h("b", {}, weekQ()), h("button", { class: "ghost", type: "button", onclick: () => { qShift++; renderVoices(); } }, "שאלה אחרת ←")));
+  if (!canRecord()) { c.append(h("p", { class: "fine", style: "margin:0" }, "הדפדפן הזה לא מאפשר הקלטה. אפשר לפתוח את HaniaHome בכרום או בספארי בטלפון.")); }
+  else {
+    const names = [...new Set([...vs.map((v) => v.who), ...state.people.filter((p) => p.kind === "adult").map((p) => p.name), "סבא", "סבתא"])];
+    const who = h("input", { id: "vWho", list: "vWhoList", maxlength: "30", placeholder: "למשל: סבתא רינה", value: whoDraft, oninput: (e) => { whoDraft = e.target.value; } });
+    c.append(h("label", { class: "vwho" }, "מי מספר/ת?", who, h("datalist", { id: "vWhoList" }, names.map((n) => h("option", { value: n })))));
+    c.append(h("div", { class: "vrec" }, h("button", { class: "vmic", id: "vMic", type: "button", "aria-label": "להתחיל הקלטה", onclick: () => (rec ? stopRec() : startRec()) }, "🎙"),
+      h("span", { class: "vinfo" }, h("b", { id: "vState" }, "ללחוץ ולהתחיל לספר"), h("span", { class: "vlevel" }, h("i", { id: "vLevel" })), h("span", { class: "vlive", id: "vLive" }, "עד 5 דקות. מניחים את הטלפון קרוב, בחדר שקט."))));
+    if (SRec) c.append(h("label", { class: "vchk" }, h("input", { type: "checkbox", id: "vText", checked: localStorage.getItem(KEY + "-vtext") === "1", onchange: (e) => { try { localStorage.setItem(KEY + "-vtext", e.target.checked ? "1" : "0"); } catch {} } }), "לנסות לכתוב את הדברים תוך כדי הקלטה (ניסיוני)"));
+  }
+  if (!vs.length) return;
+  const groups = {};
+  for (const v of vs) (groups[v.who] = groups[v.who] || []).push(v);
+  for (const [who, list] of Object.entries(groups)) {
+    c.append(h("div", { class: "vgroup" }, h("b", {}, who + " · " + list.length), list.slice().reverse().map((v) => voiceItem(v))));
+  }
+  c.append(h("div", { class: "vbook" }, h("button", { class: "btn small", type: "button", onclick: exportBook }, "📖 ספר הקולות"), h("span", { class: "fine", style: "align-self:center" }, "קובץ אחד עם כל ההקלטות, לשלוח למשפחה")));
+  c.append(h("p", { class: "fine", style: "margin:0" }, "ההקלטות נשמרות רק בטלפון הזה. כדאי להוריד את ספר הקולות מדי פעם, כגיבוי."));
+}
+
+function voiceItem(v) {
+  const on = playing && playing.id === v.id;
+  return h("div", { class: "vitem" },
+    h("button", { class: "vplay", type: "button", "aria-label": on ? "עצירה" : "השמעה", onclick: () => play(v) }, on ? "⏸" : "▶"),
+    h("span", { class: "vm" }, h("b", {}, v.q), h("small", {}, short(v.d) + " · " + mmss(v.dur))),
+    h("span", { class: "vbtns" },
+      h("button", { class: "rowbtn", type: "button", onclick: () => editText(v) }, v.text ? "עריכת טקסט" : "+ טקסט"),
+      h("button", { class: "rowbtn", type: "button", onclick: () => shareVoice(v) }, "שיתוף"),
+      h("button", { class: "rowbtn", type: "button", onclick: (e) => { if (!e.currentTarget.dataset.armed) { e.currentTarget.dataset.armed = "1"; e.currentTarget.textContent = "ללחוץ שוב למחיקה"; return; } state.voices = state.voices.filter((x) => x.id !== v.id); save(); vdel(v.id).catch(() => {}); renderVoices(); toast("ההקלטה נמחקה"); } }, "מחיקה")),
+    v.text ? h("div", { class: "vt" }, v.text) : null);
+}
+
+let starting = false;
+async function startRec() {
+  if (starting || rec) return;
+  starting = true;
+  try { await startRecInner(); } finally { starting = false; }
+}
+async function startRecInner() {
+  const whoIn = $("vWho"), who = whoIn.value.trim();
+  if (!who) { toast("כותבים קודם מי מספר/ת"); whoIn.focus(); return; }
+  if (playing) stopPlay();
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+  catch { toast("צריך לאשר גישה למיקרופון"); return; }
+  const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find((m) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
+  let mr;
+  try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 40000 } : undefined); }
+  catch { stream.getTracks().forEach((t) => t.stop()); toast("לא ניתן להקליט בטלפון הזה"); return; }
+  rec = { mr, stream, chunks: [], t0: Date.now(), who, q: weekQ(), text: "" };
+  mr.ondataavailable = (e) => { if (e.data && e.data.size) rec.chunks.push(e.data); };
+  mr.onstop = finishRec;
+  mr.start(1000);
+  const mic = $("vMic"); mic.classList.add("on"); mic.textContent = ""; mic.setAttribute("aria-label", "לסיים הקלטה");
+  whoIn.disabled = true; $("vLive").textContent = "מקליט… לוחצים שוב כדי לסיים.";
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(), an = ctx.createAnalyser();
+    an.fftSize = 512; ctx.createMediaStreamSource(stream).connect(an); rec.ctx = ctx;
+    const buf = new Uint8Array(an.fftSize);
+    const loop = () => { if (!rec || rec.ctx !== ctx) return; an.getByteTimeDomainData(buf); let m = 0; for (const x of buf) m = Math.max(m, Math.abs(x - 128)); $("vLevel").style.width = Math.min(100, (m / 70) * 100) + "%"; requestAnimationFrame(loop); };
+    loop();
+  } catch {}
+  rec.timer = setInterval(() => { const sec = (Date.now() - rec.t0) / 1000; $("vState").textContent = "⏺ " + mmss(sec) + " · " + rec.who; if (sec >= MAX_SEC) stopRec(); }, 300);
+  if (SRec && $("vText") && $("vText").checked) startSR();
+}
+function startSR() {
+  const sr = new SRec(); sr.lang = "he-IL"; sr.continuous = true; sr.interimResults = false;
+  sr.onresult = (e) => { if (!rec) return; for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) rec.text += (rec.text ? " " : "") + e.results[i][0].transcript.trim(); $("vLive").textContent = "…" + rec.text.slice(-120); };
+  sr.onerror = (e) => { if (rec && /not-allowed|audio-capture|service-not-allowed|language-not-supported/.test(e.error)) { rec.sr = null; $("vLive").textContent = "הכתיבה לא זמינה כאן, ההקלטה ממשיכה."; } };
+  sr.onend = () => { if (rec && rec.sr === sr) try { sr.start(); } catch {} };
+  rec.sr = sr; try { sr.start(); } catch { rec.sr = null; }
+}
+function stopRec() {
+  if (!rec || rec.stopping) return;
+  rec.stopping = true; clearInterval(rec.timer);
+  $("vState").textContent = "שומר…";
+  const sr = rec.sr; rec.sr = null;
+  if (sr) { try { sr.stop(); } catch {} setTimeout(() => { try { rec.mr.stop(); } catch {} }, 700); }
+  else try { rec.mr.stop(); } catch {}
+}
+async function finishRec() {
+  const r = rec; if (!r) return;
+  r.stream.getTracks().forEach((t) => t.stop());
+  try { r.ctx && r.ctx.close(); } catch {}
+  const dur = Math.round((Date.now() - r.t0) / 1000);
+  const blob = new Blob(r.chunks, { type: (r.mr.mimeType || "audio/webm").split(";")[0] });
+  rec = null;
+  if (dur < 2 || blob.size < 500) { toast("ההקלטה קצרה מדי"); renderVoices(); return; }
+  const v = { id: uid(), who: r.who, q: r.q, d: today, dur, mime: blob.type, size: blob.size, text: r.text.trim() };
+  try { await vput(v.id, blob); } catch { toast("אין מקום לשמור את ההקלטה בטלפון"); renderVoices(); return; }
+  state.voices.push(v); save(); whoDraft = r.who; qShift++;
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+  renderVoices(); render(); toast("נשמר בספר הקולות ✓");
+}
+
+function stopPlay() { if (!playing) return; playing.audio.pause(); URL.revokeObjectURL(playing.url); playing = null; }
+async function play(v) {
+  const same = playing && playing.id === v.id;
+  stopPlay(); if (same) { renderVoices(); return; }
+  let blob; try { blob = await vget(v.id); } catch {}
+  if (!blob) { toast("ההקלטה לא נמצאת בטלפון הזה"); return; }
+  const url = URL.createObjectURL(blob), audio = new Audio(url);
+  playing = { id: v.id, audio, url };
+  audio.onended = () => { stopPlay(); renderVoices(); };
+  audio.play().catch(() => { stopPlay(); renderVoices(); toast("לא ניתן להשמיע"); });
+  renderVoices();
+}
+const extOf = (mime) => (/mp4|m4a|aac/.test(mime) ? "m4a" : /ogg/.test(mime) ? "ogg" : "webm");
+async function shareVoice(v) {
+  const blob = await vget(v.id).catch(() => null);
+  if (!blob) { toast("ההקלטה לא נמצאת בטלפון הזה"); return; }
+  const file = new File([blob], v.who + " - " + v.d + "." + extOf(blob.type), { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: v.who, text: v.q }); } catch {} return; }
+  download(file, file.name);
+}
+function download(blob, name) { const a = h("a", { href: URL.createObjectURL(blob), download: name }); document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+function editText(v) {
+  const ta = h("textarea", { class: "vedit", maxlength: "6000", placeholder: "מה סופר בהקלטה, במילים. אפשר גם תקציר קצר." }); ta.value = v.text || "";
+  sheet("הטקסט של ההקלטה", h("form", { class: "sec", onsubmit: (e) => { e.preventDefault(); v.text = ta.value.trim(); save(); closeSheet(); renderVoices(); toast("נשמר"); } },
+    h("p", { class: "fine", style: "margin:0" }, v.who + " · " + v.q), ta, h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"))));
+}
+const toData = (blob) => new Promise((res) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = () => res(null); f.readAsDataURL(blob); });
+async function exportBook() {
+  toast("מכין את הספר…");
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const title = "ספר הקולות" + (state.family ? " של " + state.family : "");
+  const groups = {};
+  for (const v of state.voices) (groups[v.who] = groups[v.who] || []).push(v);
+  let body = "", missing = 0;
+  for (const [who, list] of Object.entries(groups)) {
+    body += "<h2>" + esc(who) + "</h2>";
+    for (const v of list) {
+      const blob = await vget(v.id).catch(() => null), src = blob ? await toData(blob) : null;
+      if (!src) missing++;
+      body += '<article><h3>' + esc(v.q) + '</h3><p class="d">' + esc(long(v.d)) + " · " + mmss(v.dur) + "</p>" + (src ? '<audio controls preload="none" src="' + src + '"></audio>' : "<p>(ההקלטה חסרה)</p>") + (v.text ? "<p>" + esc(v.text).replace(/\n/g, "<br>") + "</p>" : "") + "</article>";
+    }
+  }
+  const html = '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(title) + '</title><style>body{font-family:system-ui,sans-serif;max-width:680px;margin:0 auto;padding:24px 16px;background:#FBF8F3;color:#2A2420;line-height:1.6}h1{font-size:30px;margin:0 0 4px}h2{margin:32px 0 8px;font-size:22px;border-bottom:2px solid #E7DCCB;padding-bottom:4px}article{background:#fff;border:1px solid #EDE3D5;border-radius:16px;padding:14px 16px;margin:12px 0}h3{margin:0;font-size:17px}.d{color:#8A7B6C;font-size:13px;margin:2px 0 8px}audio{width:100%}footer{color:#8A7B6C;font-size:13px;margin-top:32px}</style></head><body><h1>' + esc(title) + "</h1><p>" + state.voices.length + " הקלטות · נוצר ב־" + esc(long(today)) + "</p>" + body + "<footer>נוצר ב־HaniaHome · home.hania360.com</footer></body></html>";
+  const file = new File([html], title.replace(/[\\/:*?"<>|]/g, "") + ".html", { type: "text/html" });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); } catch {} }
+  else download(file, file.name);
+  if (missing) toast(missing + " הקלטות לא נמצאו בטלפון הזה");
 }
 
 // ---- Sheets: add or edit ---------------------------------------------------------
@@ -1277,7 +1490,7 @@ $("addPerson").addEventListener("click", () => openPerson(null));
 let armed = false;
 $("startOwn").addEventListener("click", (e) => {
   if (!armed) { armed = true; e.currentTarget.textContent = "ללחוץ שוב: הדוגמה תימחק"; return; }
-  state = { demo: false, family: "", people: [], items: [], cover: {}, log: [], kit: { checks: {}, contacts: [], pickup: {}, meet: "" } }; save(); render(); go("family"); openPerson(null, "adult");
+  state = { demo: false, family: "", people: [], items: [], cover: {}, log: [], voices: state.voices || [], kit: { checks: {}, contacts: [], pickup: {}, meet: "" } }; save(); render(); go("family"); openPerson(null, "adult");
 });
 let tt;
 function toast(t) { const x = $("toast"); x.textContent = t; x.hidden = false; clearTimeout(tt); tt = setTimeout(() => { x.hidden = true; }, 2400); }
