@@ -746,9 +746,12 @@ function iconEl(emo, cls) { const [k, t] = EMO[emo] || ["pin", "misc"]; const e 
 // ---- The scene: the house under today's sky -----------------------------------------
 function sceneSVG(hr, skin) {
   const tech = skin === "tech";
-  if (tech) hr = 23; else if (skin === "warm" && hr >= 7 && hr < 17) hr = 18;
+  // Every skin follows the real time of day; the tech skin gets its own neon version of each.
   const night = hr < 5 || hr >= 20, morning = hr >= 5 && hr < 10, evening = hr >= 17 && hr < 20;
-  const c = tech ? { s1: "#070B1E", s2: "#1E1B4B", far: "#121A3E", near: "#0A1029", body: "#7DD3FC", roof: "#38BDF8", win: "#FDE68A", tree: "#0F3B46", sun: "#C7D2FE" }
+  const c = tech ? (night ? { s1: "#070B1E", s2: "#1E1B4B", far: "#121A3E", near: "#0A1029", body: "#7DD3FC", roof: "#38BDF8", win: "#FDE68A", tree: "#0F3B46", sun: "#C7D2FE" }
+      : morning ? { s1: "#1B2A6B", s2: "#F59EBB", far: "#2A3A7A", near: "#16225A", body: "#7DD3FC", roof: "#38BDF8", win: "#FDE68A", tree: "#1C5A63", sun: "#FFD3A8" }
+      : evening ? { s1: "#1E1B4B", s2: "#C2417A", far: "#2B2260", near: "#170F3E", body: "#7DD3FC", roof: "#38BDF8", win: "#FDE68A", tree: "#1A4A55", sun: "#FFB38A" }
+      : { s1: "#0B3A82", s2: "#38BDF8", far: "#1D4E8F", near: "#123B73", body: "#E0F2FE", roof: "#38BDF8", win: "#FDE68A", tree: "#1C6A6E", sun: "#FDF3C4" })
     : night ? { s1: "#0A0F35", s2: "#2E2A7A", far: "#252B66", near: "#171B48", body: "#38327A", roof: "#4C3FA0", win: "#FFD27A", tree: "#1E4A4A", sun: "#F3EEFF" }
     : evening ? { s1: "#3C2F8F", s2: "#FF8A6B", far: "#6A4C9C", near: "#3F2F72", body: "#F3E6E0", roof: "#7A3E62", win: "#FFD98A", tree: "#2F6B5A", sun: "#FFD08A" }
     : morning ? { s1: "#5D7BEA", s2: "#FFC09A", far: "#86C98A", near: "#4FAE73", body: "#FFF6EC", roof: "#E2674A", win: "#BFE6FF", tree: "#2E8B63", sun: "#FFE4A3" }
@@ -756,7 +759,7 @@ function sceneSVG(hr, skin) {
   const sunX = night ? 58 : morning ? 40 : evening ? 44 : 62, sunY = night ? 52 : morning ? 96 : evening ? 104 : 48;
   let stars = "";
   if (night) for (let i = 0; i < 26; i++) { const x = (i * 97) % 400, y = 12 + ((i * 53) % 120), r = (i % 3) * 0.35 + 0.7; stars += '<circle class="twinkle" style="animation-delay:' + (i % 7) * 0.4 + 's" cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#FFFFFF" opacity=".85"/>'; }
-  const clouds = night ? "" : '<g class="cloud" fill="#FFFFFF" opacity=".88"><ellipse cx="120" cy="96" rx="34" ry="11"/><ellipse cx="140" cy="88" rx="20" ry="12"/><ellipse cx="106" cy="90" rx="14" ry="9"/></g><g class="cloud c2" fill="#FFFFFF" opacity=".7"><ellipse cx="210" cy="44" rx="28" ry="8"/><ellipse cx="226" cy="38" rx="15" ry="9"/></g>';
+  const clouds = night ? "" : '<g class="cloud" fill="' + (tech ? "#BAE6FD" : "#FFFFFF") + '" opacity="' + (tech ? ".35" : ".88") + '"><ellipse cx="120" cy="96" rx="34" ry="11"/><ellipse cx="140" cy="88" rx="20" ry="12"/><ellipse cx="106" cy="90" rx="14" ry="9"/></g><g class="cloud c2" fill="#FFFFFF" opacity=".7"><ellipse cx="210" cy="44" rx="28" ry="8"/><ellipse cx="226" cy="38" rx="15" ry="9"/></g>';
   const lit = night || evening;
   return '<svg class="bg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><defs>'
     + '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c.s1 + '"/><stop offset="1" stop-color="' + c.s2 + '"/></linearGradient>'
