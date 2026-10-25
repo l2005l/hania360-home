@@ -52,7 +52,7 @@ button{cursor:pointer}
 h1,h2,h3{margin:0;text-wrap:balance}
 h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,8vw,36px);line-height:1.15}
 h2{font-size:18px;font-weight:700}
-.sec{display:grid;gap:10px}
+.sec{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .sechead small{color:var(--muted);font-size:13px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;display:grid;gap:12px;min-width:0}
@@ -76,7 +76,7 @@ h2{font-size:18px;font-weight:700}
 .dot.soon{background:var(--soon)}.dot.late{background:var(--late)}.dot.none{background:var(--line)}
 
 /* smart add */
-.add{background:var(--brand);color:var(--on-brand);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.add{background:var(--brand);color:var(--on-brand);border-radius:var(--r);padding:14px;display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .add label{font-weight:700;font-size:15px}
 .addrow{display:flex;gap:8px}
 .addrow input{flex:1;min-width:0;border:0;border-radius:12px;padding:12px 14px;background:var(--surface);color:var(--ink)}
@@ -125,7 +125,7 @@ h2{font-size:18px;font-weight:700}
 /* trip */
 .trip .line{display:flex;gap:8px;flex-wrap:wrap}
 .trip label{display:grid;gap:4px;font-size:13px;font-weight:600;color:var(--muted);flex:1;min-width:130px}
-.trip input{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--bg)}
+.trip input{border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--bg);min-width:0;width:100%;color:var(--ink)}
 
 /* people */
 .people{display:grid;gap:10px}
@@ -321,6 +321,37 @@ nav.tabs button[aria-selected="true"]{background:var(--brand-soft);color:var(--b
 .vitem .vt{grid-column:1/-1;font-size:13.5px;line-height:1.55;color:var(--ink);background:var(--sunk);border-radius:11px;padding:8px 10px;white-space:pre-wrap}
 .vitem .vbtns{grid-column:2;display:flex;gap:6px;flex-wrap:wrap}
 .vbook{display:flex;gap:8px;flex-wrap:wrap}
+/* Storage boxes */
+.boxes .bsearch{border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:12px;padding:11px 12px;font:inherit;font-size:16px;width:100%}
+.bx{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:var(--surface);text-align:right;width:100%;color:var(--ink);font:inherit}
+.bx .bn{width:44px;height:44px;border-radius:12px;background:var(--sky-soft);color:var(--sky);display:grid;place-items:center;font-weight:800;font-size:17px;overflow:hidden}
+.bx .bn img{width:100%;height:100%;object-fit:cover}
+.bx .rmain{display:grid;gap:2px;min-width:0}.bx .rmain small{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bx mark{background:var(--soon-soft);color:var(--ink);border-radius:5px;padding:0 3px}
+.bphoto{width:100%;max-height:240px;object-fit:cover;border-radius:14px}
+/* Kid wallet */
+.wkid{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+.wtop{display:flex;align-items:center;gap:12px}
+.wtop .rmain{display:grid;gap:2px;flex:1}.wtop small{color:var(--muted);font-size:12.5px}
+.wbal{font-size:26px;font-weight:800}
+.wgoal{display:grid;gap:5px;font-size:13.5px}
+.wgoal .tr{height:12px;border-radius:9px;background:var(--sunk);overflow:hidden}.wgoal .tr i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--sky));border-radius:9px}
+.wbtns{display:flex;gap:6px;flex-wrap:wrap}
+.wtx{display:grid;gap:4px;margin:0;padding:0;list-style:none;font-size:13.5px}.wtx li{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}.wtx .p{color:var(--ok);font-weight:700}.wtx .m{color:var(--late);font-weight:700}
+.kidview{display:grid;gap:14px;text-align:center;padding:8px 0 4px}
+.kidview .big{font-size:56px;font-weight:900;line-height:1}
+.kidview .jar{font-size:64px;line-height:1}
+.kidview .tr{height:22px;border-radius:12px;background:var(--sunk);overflow:hidden}.kidview .tr i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),var(--sky))}
+/* No-screens day */
+.off .ochips{display:flex;gap:6px;flex-wrap:wrap}
+.off .ochips button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:6px 12px;font-size:13.5px;font-weight:600}
+.off .ochips button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.oidea{display:grid;gap:8px;padding:16px;border-radius:18px;background:linear-gradient(140deg,var(--ok-soft),var(--sky-soft))}
+.oidea .oic{font-size:38px;line-height:1}
+.oidea b{font-size:19px}
+.oidea p{margin:0;line-height:1.6}
+.oidea ul{margin:0;padding-inline-start:18px;font-size:14px;line-height:1.7}
+.owx{font-size:13.5px;color:var(--muted)}
 textarea.vedit{width:100%;min-height:160px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:12px;padding:10px;font:inherit;font-size:16px;line-height:1.55}
 @media (max-width:360px){.money b{font-size:20px}.bar{grid-template-columns:6em 1fr auto}}
 </style>
@@ -357,6 +388,7 @@ textarea.vedit{width:100%;min-height:160px;border:1px solid var(--line);backgrou
       <ul class="rows" id="tripRes"></ul>
     </div>
     <div class="sec"><div class="sechead"><h2>השבוע</h2><small>7 הימים הקרובים</small></div><ul class="rows" id="week"></ul></div>
+    <div class="card off" id="offCard"></div>
     <div class="sec" id="perksSec"><div class="sechead"><h2>מה מגיע לכם</h2><small>לפי ההרכב של המשפחה</small></div><ul class="perks" id="perks"></ul><p class="fine" style="margin:0">מידע כללי מ״כל זכות״, לא ייעוץ. את הזכאות המדויקת בודקים בקישור.</p></div>
   </section>
 
@@ -366,6 +398,7 @@ textarea.vedit{width:100%;min-height:160px;border:1px solid var(--line);backgrou
     <div class="people" id="people"></div>
     <div class="sec"><div class="sechead"><h2>השלבים הבאים של הילדים</h2><small>מחושב מתאריך הלידה</small></div><div class="card" id="milestones"></div></div>
     <div class="sec"><div class="sechead"><h2>ימי הולדת</h2><small>לפי הסדר</small></div><ul class="rows" id="bdays"></ul></div>
+    <div class="card wallet" id="walletCard"></div>
     <div class="card voices" id="voiceCard"></div>
     <div class="card" id="kitCard"></div>
   </section>
@@ -380,6 +413,7 @@ textarea.vedit{width:100%;min-height:160px;border:1px solid var(--line);backgrou
     <div class="sec"><div class="sechead"><h2>חשבונות ומנויים</h2><small id="billCount"></small></div><ul class="rows" id="bills"></ul></div>
     <div class="sec"><div class="sechead"><h2>הרכב</h2><button class="btn small sec2" type="button" data-add="test">+ לרכב</button></div><ul class="rows" id="car"></ul></div>
     <div class="sec"><div class="sechead"><h2>אחריות ותזכורות</h2><button class="btn small sec2" type="button" data-add="warranty">+ אחריות</button></div><ul class="rows" id="misc"></ul></div>
+    <div class="card boxes" id="boxCard"></div>
   </section>
 
   <!-- YEAR -->
@@ -611,6 +645,12 @@ function sample() {
       { id: uid(), kind: "bill", title: "חוג כדורגל", cat: "kids", amount: 280, freq: 1, date: d(1) },
     ],
     cover: {},
+    boxes: [
+      { id: uid(), no: 1, name: "חגים", where: "מחסן", items: "חנוכייה\nקישוטי חנוכה\nסביבונים\nתחפושות פורים\nקערת סדר", d: d(-60) },
+      { id: uid(), no: 2, name: "חורף", where: "בוידעם", items: "מעילים של נועה\nמגפיים\nשמיכות פוך\nמפזר חום", d: d(-60) },
+      { id: uid(), no: 3, name: "", where: "מחסן", items: "אוהל\nשקי שינה\nצידנית\nפנסים", d: d(-30) },
+    ],
+    wallets: { [P.noa]: { weekly: 20, start: d(-27), paid: d(-6), goal: { t: "אופניים חדשים", amt: 400 }, tx: [{ id: uid(), d: d(-27), v: 150, t: "יתרת פתיחה" }, { id: uid(), d: d(-20), v: 20, t: "דמי כיס" }, { id: uid(), d: d(-13), v: 20, t: "דמי כיס" }, { id: uid(), d: d(-9), v: -12, t: "גלידה" }, { id: uid(), d: d(-6), v: 20, t: "דמי כיס" }, { id: uid(), d: d(-2), v: 50, t: "מתנה מסבתא" }] } },
     kit: { checks: { water: addMonths(today, -3), light: addMonths(today, -2), aid: addMonths(today, -1) }, contacts: [{ name: "סבתא רינה", phone: "050-0000000" }, { name: "רופאת הילדים", phone: "03-0000000" }], pickup: {}, meet: "בבית של סבתא רינה" },
     log: [{ d: addDays(today, -40), k: "save", t: "סלולר", v: 960 }, { d: addDays(today, -40), k: "renew", t: "ביטוח רכב" }],
   };
@@ -620,6 +660,7 @@ let state;
 try { state = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { state = null; }
 if (!state || !Array.isArray(state.people) || !Array.isArray(state.items)) state = sample();
 state.cover = state.cover || {}; state.log = state.log || []; state.voices = Array.isArray(state.voices) ? state.voices : [];
+state.boxes = Array.isArray(state.boxes) ? state.boxes : []; state.wallets = state.wallets || {}; state.off = state.off || { dur: 2, cost: 1 };
 state.kit = Object.assign({ checks: {}, contacts: [], pickup: {}, meet: "" }, state.kit || {});
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 const personOf = (id) => state.people.find((p) => p.id === id);
@@ -961,6 +1002,7 @@ function renderFamily() {
       list.length ? h("ul", { class: "ms" }, list.map((m) => h("li", {}, h("span", { class: "md num" }, m.d.slice(0, 4)), h("span", {}, h("b", {}, iconEl(m.ic, "mi"), m.t), h("small", {}, whenTxt(days(m.d)) + " · " + short(m.d) + " · " + m.s))))) : h("p", { class: "fine", style: "margin:0" }, p.birth ? "אין שלבים קרובים." : "מוסיפים תאריך לידה בעריכה.")));
     if (p.birth && !p.gender) ms.append(h("button", { class: "tag", type: "button", style: "border:1px dashed var(--line);background:none;justify-self:start", onclick: () => openPerson(p) }, "בן או בת? בשביל תאריך בר/בת המצווה"));
   }
+  renderWallets();
   renderVoices();
   renderKit();
   const bd = $("bdays"); bd.textContent = "";
@@ -1277,6 +1319,213 @@ async function exportBook() {
   if (missing) toast(missing + " הקלטות לא נמצאו בטלפון הזה");
 }
 
+// ---- Storage boxes: what is in which box, found by searching ------------------------------------
+const WHERE = ["מחסן", "בוידעם", "ארון בחדר השינה", "מרפסת שירות", "חניה", "מתחת למיטה", "אצל סבא וסבתא"];
+let boxQ = "";
+const norm = (t) => String(t || "").replace(/[֑-ׇ]/g, "").toLowerCase().trim();
+function boxMatches(b, q) {
+  const words = norm(q).split(/\s+/).filter(Boolean).map((w) => w.replace(/^(ה|ו|ש|ב|ל)(?=.{3,})/, ""));
+  const items = String(b.items || "").split(/\n|,|،/).map((x) => x.trim()).filter(Boolean);
+  const hay = (t) => words.every((w) => norm(t).includes(w));
+  return { all: hay(b.name + " " + b.where + " " + items.join(" ")), hits: items.filter((i) => words.some((w) => norm(i).includes(w))) };
+}
+function renderBoxes() {
+  const c = $("boxCard"); if (!c) return;
+  c.textContent = "";
+  c.append(h("div", { class: "sechead" }, h("h2", {}, "מחסן הבית"), h("button", { class: "btn small sec2", type: "button", onclick: () => openBox(null) }, "+ ארגז")));
+  if (!state.boxes.length) { c.append(h("p", { class: "muted", style: "margin:0;line-height:1.6" }, "רושמים מה יש בכל ארגז, במחסן, בבוידעם או בארון. כותבים על הארגז את המספר שלו, ואחר כך פשוט מחפשים: ״קישוטים לחנוכה״, ״מעילים של נועה״.")); return; }
+  const q = h("input", { class: "bsearch", type: "search", placeholder: "מה מחפשים? למשל: קישוטי חנוכה", value: boxQ, oninput: (e) => { boxQ = e.target.value; list(); } });
+  const ul = h("div", { class: "sec", style: "gap:8px" });
+  c.append(q, ul);
+  function list() {
+    ul.textContent = "";
+    const shown = boxQ.trim() ? state.boxes.map((b) => ({ b, m: boxMatches(b, boxQ) })).filter((x) => x.m.all || x.m.hits.length) : state.boxes.map((b) => ({ b, m: null }));
+    if (!shown.length) { ul.append(h("div", { class: "empty" }, "לא נמצא. אולי זה עוד לא רשום באף ארגז?")); return; }
+    for (const { b, m } of shown) {
+      const n = h("span", { class: "bn" }, String(b.no));
+      if (b.photo) vget("box-" + b.id).then((blob) => { if (blob) { n.textContent = ""; n.append(h("img", { src: URL.createObjectURL(blob), alt: "" })); } }).catch(() => {});
+      const items = String(b.items || "").split(/\n|,/).map((x) => x.trim()).filter(Boolean);
+      const sub = m && m.hits.length ? h("small", {}, ...m.hits.slice(0, 3).flatMap((x, i) => [i ? " · " : "", h("mark", {}, x)])) : h("small", {}, b.where + " · " + (items.length ? items.slice(0, 4).join(", ") : "ריק"));
+      ul.append(h("button", { class: "bx", type: "button", onclick: () => openBox(b) }, n, h("span", { class: "rmain" }, h("b", {}, "ארגז " + b.no + (b.name ? " · " + b.name : "")), sub, m ? h("small", {}, "📍 " + b.where) : null), h("span", { class: "rowbtn" }, "פתיחה")));
+    }
+  }
+  list();
+  c.append(h("p", { class: "fine", style: "margin:0" }, state.boxes.length + " ארגזים · " + state.boxes.reduce((s, b) => s + String(b.items || "").split(/\n|,/).filter((x) => x.trim()).length, 0) + " דברים רשומים"));
+}
+function shrink(file) {
+  return new Promise((res) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 1100 / Math.max(img.width, img.height)), cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); cv.toBlob((b) => res(b), "image/jpeg", 0.72); };
+    img.onerror = () => { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+function openBox(b) {
+  const isNew = !b, cur = b ? { ...b } : { no: Math.max(0, ...state.boxes.map((x) => x.no)) + 1, where: state.boxes.length ? state.boxes[state.boxes.length - 1].where : "מחסן", name: "", items: "" };
+  const name = h("input", { maxlength: "40", value: cur.name, placeholder: "למשל: חנוכה ופורים" });
+  const where = h("input", { maxlength: "40", value: cur.where, list: "whereList" });
+  const items = h("textarea", { class: "vedit", style: "min-height:130px", placeholder: "דבר בכל שורה, או מופרד בפסיקים\nחנוכייה\nקישוטים\nתחפושות של הילדים" }); items.value = cur.items;
+  let photo = null;
+  const prev = h("img", { class: "bphoto", alt: "", hidden: true });
+  if (b && b.photo) vget("box-" + b.id).then((x) => { if (x) { prev.src = URL.createObjectURL(x); prev.hidden = false; } }).catch(() => {});
+  const pick = h("input", { type: "file", accept: "image/*", capture: "environment", hidden: true, onchange: async (e) => { const f = e.target.files[0]; if (!f) return; photo = await shrink(f); if (photo) { prev.src = URL.createObjectURL(photo); prev.hidden = false; } } });
+  const del = isNew ? null : h("button", { class: "btn danger", type: "button", onclick: (e) => { if (!e.currentTarget.dataset.armed) { e.currentTarget.dataset.armed = "1"; e.currentTarget.textContent = "ללחוץ שוב למחיקה"; return; } state.boxes = state.boxes.filter((x) => x.id !== b.id); vdel("box-" + b.id).catch(() => {}); save(); closeSheet(); renderBoxes(); } }, "מחיקה");
+  sheet(isNew ? "ארגז " + cur.no : "ארגז " + b.no, h("form", { class: "sec", onsubmit: async (e) => {
+    e.preventDefault();
+    const rec2 = { no: cur.no, name: name.value.trim(), where: where.value.trim() || "מחסן", items: items.value.trim(), d: today };
+    let id = b ? b.id : uid();
+    if (photo) { try { await vput("box-" + id, photo); rec2.photo = true; } catch { toast("לא היה מקום לשמור את התמונה"); } }
+    if (isNew) state.boxes.push({ id, ...rec2 }); else Object.assign(state.boxes.find((x) => x.id === b.id), rec2);
+    save(); closeSheet(); renderBoxes(); toast(isNew ? "נשמר. כותבים על הארגז: " + cur.no : "נשמר");
+  } },
+    isNew ? h("p", { class: "fine", style: "margin:0" }, "כותבים על הארגז בטוש את המספר " + cur.no + ", כדי למצוא אותו אחר כך.") : null,
+    h("div", { class: "two" }, field("שם (לא חובה)", name), field("איפה הוא", where)), h("datalist", { id: "whereList" }, WHERE.map((w) => h("option", { value: w }))),
+    field("מה יש בו", items), prev, pick,
+    h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), h("button", { class: "btn sec2", type: "button", onclick: () => pick.click() }, "📷 תמונה"), del)));
+}
+
+// ---- Kid wallet: pocket money on paper, a goal that fills up ------------------------------------
+function walletOf(p) { return state.wallets[p.id]; }
+function accrue(w) {
+  if (!w.weekly || !w.start) return false;
+  let changed = false;
+  let next = w.paid ? addDays(w.paid, 7) : w.start;
+  while (next <= today) { w.tx.push({ id: uid(), d: next, v: w.weekly, t: "דמי כיס" }); w.paid = next; next = addDays(next, 7); changed = true; }
+  return changed;
+}
+const balOf = (w) => w.tx.reduce((s, t) => s + t.v, 0);
+function renderWallets() {
+  const c = $("walletCard"); if (!c) return;
+  const kids = kidsOf();
+  c.hidden = !kids.length; c.textContent = "";
+  if (!kids.length) return;
+  let changed = false;
+  for (const p of kids) { const w = walletOf(p); if (w && accrue(w)) changed = true; }
+  if (changed) save();
+  c.append(h("div", { class: "sechead" }, h("h2", {}, "הארנק של הילדים"), h("small", {}, "בלי כסף אמיתי, רק רישום")));
+  for (const p of kids) {
+    const w = walletOf(p);
+    if (!w) { c.append(h("div", { class: "wkid" }, h("div", { class: "wtop" }, h("span", { class: "rmain" }, h("b", {}, p.name), h("small", {}, "דמי כיס, יעד לחיסכון, ומה נקנה"))), h("button", { class: "btn small", type: "button", style: "justify-self:start", onclick: () => openWallet(p) }, "לפתוח ארנק ל" + p.name))); continue; }
+    const bal = balOf(w), g = w.goal && w.goal.amt > 0 ? w.goal : null, frac = g ? Math.max(0, Math.min(1, bal / g.amt)) : 0;
+    const weeks = g && bal < g.amt && w.weekly > 0 ? Math.ceil((g.amt - bal) / w.weekly) : null;
+    const bar = h("span", { class: "tr" }, h("i")); bar.firstChild.style.width = frac * 100 + "%";
+    c.append(h("div", { class: "wkid" },
+      h("div", { class: "wtop" }, h("span", { class: "rmain" }, h("b", {}, p.name), h("small", {}, w.weekly ? ils(w.weekly) + " בשבוע, בכל יום " + DAYS[wd(w.start)] : "בלי דמי כיס קבועים")), h("span", { class: "wbal num" }, ils(bal))),
+      g ? h("div", { class: "wgoal" }, h("span", {}, "🎯 " + g.t + " · " + ils(Math.min(bal, g.amt)) + " מתוך " + ils(g.amt)), bar, h("small", { class: "muted" }, bal >= g.amt ? "🎉 יש מספיק! אפשר לקנות" : weeks ? "עוד " + weeks + " שבועות של דמי כיס" : "חסר " + ils(g.amt - bal))) : null,
+      h("div", { class: "wbtns" },
+        h("button", { class: "rowbtn", type: "button", onclick: () => openTx(p, 1) }, "+ קיבל/ה"),
+        h("button", { class: "rowbtn", type: "button", onclick: () => openTx(p, -1) }, "− קנה/תה"),
+        h("button", { class: "rowbtn", type: "button", onclick: () => kidView(p) }, "👀 מסך ל" + p.name),
+        h("button", { class: "rowbtn", type: "button", onclick: () => openWallet(p) }, "הגדרות")),
+      w.tx.length ? h("ul", { class: "wtx" }, w.tx.slice(-3).reverse().map((t) => h("li", {}, h("span", {}, t.t + " · " + short(t.d)), h("span", { class: "num " + (t.v >= 0 ? "p" : "m") }, (t.v >= 0 ? "+" : "−") + ils(Math.abs(t.v)))))) : null));
+  }
+}
+function openWallet(p) {
+  const w = walletOf(p) || { weekly: 0, start: "", tx: [], goal: null };
+  const weekly = h("input", { type: "number", inputmode: "decimal", min: "0", step: "1", value: w.weekly || "", placeholder: "0" });
+  const day = h("select", {}, DAYS.map((d, i) => h("option", { value: i, selected: w.start ? wd(w.start) === i : i === 5 }, "יום " + d)));
+  const gt = h("input", { maxlength: "40", value: w.goal ? w.goal.t : "", placeholder: "למשל: אופניים" });
+  const ga = h("input", { type: "number", inputmode: "decimal", min: "0", value: w.goal ? w.goal.amt : "", placeholder: "₪" });
+  const start = h("input", { type: "number", inputmode: "decimal", value: "", placeholder: "0" });
+  sheet("הארנק של " + p.name, h("form", { class: "sec", onsubmit: (e) => {
+    e.preventDefault();
+    const nw = state.wallets[p.id] || { tx: [] };
+    const wk = Math.max(0, Number(weekly.value) || 0), dIdx = Number(day.value);
+    let first = today; while (wd(first) !== dIdx) first = addDays(first, 1);
+    if (wk !== nw.weekly || !nw.start || wd(nw.start) !== dIdx) { nw.start = first; nw.paid = null; }
+    nw.weekly = wk;
+    nw.goal = gt.value.trim() && Number(ga.value) > 0 ? { t: gt.value.trim(), amt: Number(ga.value) } : null;
+    if (!walletOf(p) && Number(start.value)) nw.tx.push({ id: uid(), d: today, v: Number(start.value), t: "יתרת פתיחה" });
+    state.wallets[p.id] = nw; save(); closeSheet(); renderWallets(); toast("נשמר");
+  } },
+    h("div", { class: "two" }, field("דמי כיס בשבוע (₪)", weekly), field("באיזה יום", day)),
+    h("div", { class: "two" }, field("היעד", gt), field("כמה הוא עולה", ga)),
+    walletOf(p) ? null : field("כמה יש כבר בקופה (₪)", start),
+    h("p", { class: "fine", style: "margin:0" }, "הכסף עצמו נשאר אצלכם. כאן רק רושמים, כדי שהילד יראה את החיסכון גדל."),
+    h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "שמירה"), walletOf(p) ? h("button", { class: "btn danger", type: "button", onclick: (e) => { if (!e.currentTarget.dataset.armed) { e.currentTarget.dataset.armed = "1"; e.currentTarget.textContent = "ללחוץ שוב לסגירה"; return; } delete state.wallets[p.id]; save(); closeSheet(); renderWallets(); } }, "סגירת הארנק") : null)));
+}
+function openTx(p, sign) {
+  const v = h("input", { type: "number", inputmode: "decimal", min: "0", step: "0.5", placeholder: "₪" });
+  const t = h("input", { maxlength: "40", placeholder: sign > 0 ? "למשל: מתנה מסבתא" : "למשל: גלידה" });
+  const quick = sign > 0 ? ["מתנה", "עזרה בבית", "יום הולדת"] : ["ממתק", "צעצוע", "חטיף בבית הספר"];
+  sheet(sign > 0 ? p.name + " קיבל/ה" : p.name + " קנה/תה", h("form", { class: "sec", onsubmit: (e) => {
+    e.preventDefault();
+    const n = Number(v.value); if (!(n > 0)) { v.focus(); return; }
+    const w = state.wallets[p.id];
+    if (sign < 0 && n > balOf(w)) { toast("אין מספיק בארנק. אפשר לחכות לדמי הכיס הבאים"); return; }
+    w.tx.push({ id: uid(), d: today, v: sign * n, t: t.value.trim() || (sign > 0 ? "הכנסה" : "קנייה") }); save(); closeSheet(); renderWallets();
+    const g = w.goal; if (g && sign > 0 && balOf(w) >= g.amt && balOf(w) - n < g.amt) toast("🎉 " + p.name + " הגיע/ה ליעד: " + g.t); else toast("נרשם");
+  } }, h("div", { class: "two" }, field("כמה", v), field("על מה", t)), h("div", { class: "examples", style: "display:flex;gap:6px;flex-wrap:wrap" }, quick.map((x) => h("button", { class: "tag", type: "button", onclick: () => { t.value = x; } }, x))), h("div", { class: "btns" }, h("button", { class: "btn", type: "submit" }, "רישום"))));
+}
+function kidView(p) {
+  const w = walletOf(p), bal = balOf(w), g = w.goal;
+  const bar = h("span", { class: "tr" }, h("i")); if (g) bar.firstChild.style.width = Math.min(100, (bal / g.amt) * 100) + "%";
+  const weeks = g && bal < g.amt && w.weekly > 0 ? Math.ceil((g.amt - bal) / w.weekly) : null;
+  sheet("הארנק של " + p.name, h("div", { class: "kidview" },
+    h("div", { class: "jar" }, bal >= (g ? g.amt : Infinity) ? "🎉" : "🐷"), h("div", { class: "big num" }, ils(bal)), h("div", { class: "muted" }, "יש לך בקופה"),
+    g ? h("div", { class: "sec", style: "gap:8px" }, h("b", { style: "font-size:20px" }, "🎯 " + g.t), bar, h("div", {}, bal >= g.amt ? "יש מספיק כסף! 🥳" : "חסר עוד " + ils(g.amt - bal) + (weeks ? " · בערך " + weeks + " שבועות" : ""))) : h("div", { class: "muted" }, "אפשר לבחור יעד לחסוך אליו")));
+}
+
+// ---- No-screens day: one idea for today, by weather, ages and budget ---------------------------------
+// out: true outside, false inside, null either. cost: 0 free, 1 up to ~₪100, 2 more. dur: 1 hour, 2 half day, 3 full day.
+const OFF = [
+  ["🏕️", "פיקניק בפארק עם משחקי חצר", true, 2, 14, 0, 2, ["שמיכה", "פירות וכריכים", "כדור", "חבל קפיצה"], "כל אחד מביא משחק אחד שהוא אוהב."],
+  ["🔍", "חיפוש אוצרות בשכונה", true, 4, 12, 0, 1, ["רשימת דברים למצוא", "שקית", "עיפרון"], "עלה אדום, אבן חלקה, משהו בצורת לב, נוצה."],
+  ["🚲", "רכיבה על מסלול אופניים", true, 5, 16, 0, 2, ["אופניים וקסדות", "מים", "חטיף"], "מסלולי פארקים עירוניים מתאימים גם לקטנים."],
+  ["🏖️", "בניית עיר חול בים", true, 2, 14, 0, 3, ["דליים ואתים", "קרם הגנה", "כובעים", "צידנית"], "תחרות: מי בונה את המגדל הכי גבוה."],
+  ["🌿", "טיול קצר במסלול שמורה", true, 4, 99, 1, 2, ["נעליים סגורות", "2 ליטר מים לאדם", "כובע"], "רשות הטבע והגנים: מסלולים מעגליים של 1–3 ק״מ."],
+  ["🍓", "קטיף בחווה", true, 2, 99, 1, 2, ["כובע", "מים", "קופסה"], "בודקים לפני מה בעונה עכשיו."],
+  ["🦆", "להאכיל ברווזים ולצפות בציפורים", true, 2, 10, 0, 1, ["משקפת", "דף ציור"], "מציירים כל ציפור שראינו."],
+  ["⚽", "אולימפיאדה משפחתית בחצר", true, 4, 99, 0, 1, ["כדורים", "קונוסים או בקבוקים", "מדליות מקרטון"], "ריצת שקים, קליעה לסל, כפית וביצה."],
+  ["🛝", "סיבוב גני שעשועים: שלושה גנים בבוקר אחד", true, 2, 9, 0, 2, ["מים", "חטיף", "מגבונים"], "כל ילד בוחר גן אחד."],
+  ["📸", "צלם השכונה (מצלמה אחת, בלי מסך)", true, 7, 16, 0, 1, ["מצלמה ישנה או טלפון במצב טיסה", "רשימת נושאים"], "נושאים: דלתות, צללים, משהו ירוק."],
+  ["🏛️", "מוזיאון ילדים או מדע", false, 3, 14, 2, 2, ["בקבוק מים", "כרטיסים מראש"], "בהרבה מוזיאונים יש הנחה למשפחות."],
+  ["📚", "בוקר בספרייה העירונית", false, 2, 16, 0, 1, ["כרטיס ספרייה", "תיק לספרים"], "כל אחד בוחר ספר אחד שיקריאו לו."],
+  ["🍪", "אופים עוגיות ומחלקים לשכנים", false, 3, 99, 1, 2, ["קמח, חמאה, סוכר, ביצה", "קישוטים", "שקיות"], "מצרפים פתק ביד לכל שכן."],
+  ["🏰", "מבצר שמיכות בסלון", false, 2, 10, 0, 1, ["שמיכות וכריות", "פנס", "ספרים"], "בסוף: סיפור בתוך המבצר עם פנס."],
+  ["🎨", "תערוכת ציורים ביתית", false, 3, 12, 0, 1, ["דפים גדולים", "צבעים", "סלוטייפ", "כרטיסים מנייר"], "תולים במסדרון ומזמינים את סבא וסבתא."],
+  ["🧩", "יום משחקי קופסה וטורניר", false, 5, 99, 0, 2, ["משחקי קופסה", "דף ניקוד", "פרס קטן"], "כל משחק נותן נקודות, ומלך היום בוחר ארוחת ערב."],
+  ["🎭", "הצגה משפחתית", false, 4, 14, 0, 2, ["תחפושות מהארון", "סדין כווילון", "כרטיסים"], "כותבים יחד סיפור קצר, ומצלמים את ההצגה בסוף."],
+  ["🧪", "ניסויי מטבח", false, 4, 12, 0, 1, ["סודה לשתייה", "חומץ", "צבע מאכל", "בלונים"], "הר געש, בלון שמתנפח לבד, חלב צבעוני."],
+  ["🌱", "שותלים עציץ לכל ילד", null, 3, 12, 1, 1, ["עציצים", "אדמה", "שתילים או זרעים", "מדבקות לשמות"], "כל אחד אחראי להשקות את שלו כל יום."],
+  ["🧺", "שוק הפשפשים הביתי", false, 5, 14, 0, 2, ["צעצועים שלא משחקים בהם", "מדבקות מחיר", "קופה"], "הכסף שנאסף נכנס לארנק של הילדים."],
+  ["🧱", "תחרות בנייה: הגשר הכי חזק", false, 6, 99, 0, 1, ["קרטון", "דבק", "מספריים", "מטבעות למשקל"], "בודקים כמה מטבעות כל גשר מחזיק."],
+  ["🎳", "באולינג או החלקה על הקרח", false, 5, 99, 2, 1, ["גרביים", "מים"], "כדאי להגיע מוקדם בבוקר כשפחות עמוס."],
+  ["🍕", "כל אחד מכין פיצה משלו", false, 3, 99, 1, 1, ["בצק", "רוטב", "גבינה", "תוספות"], "ארוחת ערב שהילדים הכינו."],
+  ["🗺️", "טיול לעיר שלא הכרנו (ברכבת)", null, 5, 99, 2, 3, ["רב־קו", "מים וכריכים", "מפה מודפסת"], "נוסעים ברכבת, מטיילים במרכז, אוכלים במקום מקומי."],
+  ["⭐", "ערב כוכבים על הדשא", true, 4, 99, 0, 1, ["שמיכה", "פנס אדום", "שוקו חם"], "מחפשים את העגלה הגדולה ואת כוכב הצפון."],
+  ["✉️", "כותבים מכתבים אמיתיים לסבים", false, 4, 14, 0, 1, ["דפים ומעטפות", "בולים", "מדבקות"], "הולכים יחד לתיבת הדואר."],
+  ["🧘", "יוגה ומדיטציה לילדים בחוץ", true, 4, 12, 0, 1, ["מזרנים או מגבות", "מים"], "תנוחות של חיות: חתול, כלב, צפרדע."],
+  ["🎣", "דיג או שיט קיאקים באגם", true, 7, 99, 2, 2, ["כובע", "קרם הגנה", "בגדים להחלפה"], "יש אגמים ומקומות לשיט קיאקים בכל רחבי הארץ."],
+];
+let offShift = 0, wx = null, wxAt = 0;
+function wxFetch() {
+  if (Date.now() - wxAt < 30 * 60 * 1000) return;
+  wxAt = Date.now();
+  const loc = state.off.loc || { lat: 32.08, lon: 34.78, n: "מרכז הארץ" };
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=" + loc.lat + "&longitude=" + loc.lon + "&daily=temperature_2m_max,precipitation_probability_max,weather_code&timezone=Asia%2FJerusalem&forecast_days=1")
+    .then((r) => r.json()).then((d) => { if (!d.daily) return; wx = { t: Math.round(d.daily.temperature_2m_max[0]), rain: d.daily.precipitation_probability_max[0] || 0, code: d.daily.weather_code[0], n: loc.n }; renderOff(); }).catch(() => {});
+}
+function renderOff() {
+  const c = $("offCard"); if (!c) return;
+  wxFetch();
+  c.textContent = "";
+  const ages = kidsOf().map(ageOf).filter((a) => a != null);
+  const young = ages.length ? Math.min(...ages) : 5, old = ages.length ? Math.max(...ages) : 10;
+  const bad = wx && (wx.rain >= 50 || wx.t >= 34 || wx.t <= 9);
+  const fits = (a, strict) => a[3] <= young + (strict ? 0 : 1) && a[4] >= old && a[5] <= state.off.cost && a[6] <= state.off.dur && (!bad || a[2] !== true);
+  let pool = OFF.filter((a) => fits(a, true)); if (!pool.length) pool = OFF.filter((a) => fits(a, false)); if (!pool.length) pool = OFF.filter((a) => a[5] <= state.off.cost && (!bad || a[2] !== true));
+  const seed = Math.floor(parse(today).getTime() / DAY);
+  const a = pool.length ? pool[(((seed + offShift) % pool.length) + pool.length) % pool.length] : null;
+  const chip = (key, val, label) => h("button", { type: "button", "aria-pressed": String(state.off[key] === val), onclick: () => { state.off[key] = val; save(); offShift = 0; renderOff(); } }, label);
+  c.append(h("div", { class: "sechead" }, h("h2", {}, "יום בלי מסכים"), h("button", { class: "ghost", type: "button", onclick: () => { offShift++; renderOff(); } }, "רעיון אחר ←")));
+  c.append(h("div", { class: "ochips" }, chip("dur", 1, "שעה"), chip("dur", 2, "חצי יום"), chip("dur", 3, "יום שלם")), h("div", { class: "ochips" }, chip("cost", 0, "בחינם"), chip("cost", 1, "עד ₪100"), chip("cost", 2, "לא משנה")));
+  if (a) c.append(h("div", { class: "oidea" }, h("span", { class: "oic" }, a[0]), h("b", {}, a[1]), h("p", {}, a[8]), h("small", { class: "muted" }, (a[2] === true ? "בחוץ" : a[2] === false ? "בבית או במקום סגור" : "בחוץ או בפנים") + " · " + ["", "בערך שעה", "חצי יום", "יום שלם"][a[6]] + " · " + ["בחינם", "עלות קטנה", "עם כרטיסים"][a[5]]), h("b", { style: "font-size:14px" }, "מה לקחת"), h("ul", {}, a[7].map((g) => h("li", {}, g)))));
+  else c.append(h("div", { class: "empty" }, "לא מצאנו רעיון שמתאים. אפשר לשנות זמן או תקציב."));
+  c.append(h("div", { class: "owx" }, wx ? (bad ? "🌧️ " : "☀️ ") + wx.n + ": עד " + wx.t + "°, סיכוי לגשם " + wx.rain + "%" + (bad ? ". לכן הצענו משהו בפנים." : "") : "בודק מזג אוויר…", " ", h("button", { class: "ghost", type: "button", onclick: () => { if (!navigator.geolocation) return; navigator.geolocation.getCurrentPosition((pos) => { state.off.loc = { lat: +pos.coords.latitude.toFixed(2), lon: +pos.coords.longitude.toFixed(2), n: "אצלכם" }; save(); wxAt = 0; renderOff(); }, () => toast("לא קיבלנו מיקום")); } }, state.off.loc ? "" : "לפי המיקום שלי")));
+  if (ages.length) c.append(h("p", { class: "fine", style: "margin:0" }, "מותאם לגילאים " + young + (old !== young ? "–" + old : "")));
+}
+
 // ---- Sheets: add or edit ---------------------------------------------------------
 function closeSheet() { $("sheetHost").textContent = ""; }
 function sheet(title, body) {
@@ -1490,7 +1739,7 @@ $("addPerson").addEventListener("click", () => openPerson(null));
 let armed = false;
 $("startOwn").addEventListener("click", (e) => {
   if (!armed) { armed = true; e.currentTarget.textContent = "ללחוץ שוב: הדוגמה תימחק"; return; }
-  state = { demo: false, family: "", people: [], items: [], cover: {}, log: [], voices: state.voices || [], kit: { checks: {}, contacts: [], pickup: {}, meet: "" } }; save(); render(); go("family"); openPerson(null, "adult");
+  state = { demo: false, family: "", people: [], items: [], cover: {}, log: [], voices: state.voices || [], boxes: state.boxes || [], wallets: {}, off: state.off, kit: { checks: {}, contacts: [], pickup: {}, meet: "" } }; save(); render(); go("family"); openPerson(null, "adult");
 });
 let tt;
 function toast(t) { const x = $("toast"); x.textContent = t; x.hidden = false; clearTimeout(tt); tt = setTimeout(() => { x.hidden = true; }, 2400); }
@@ -1503,7 +1752,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet
 
 function render() {
   $("demoBar").hidden = !state.demo;
-  renderNow(); renderPerks(); renderFamily(); renderHome(); renderYear();
+  renderNow(); renderPerks(); renderFamily(); renderHome(); renderBoxes(); renderOff(); renderYear();
 }
 render();
 let start = "now"; try { start = sessionStorage.getItem(KEY + "-tab") || "now"; } catch {}
