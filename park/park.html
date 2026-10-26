@@ -66,6 +66,10 @@ header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
 .pay a,.pay button{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:12px;font:inherit;font-weight:700;text-decoration:none;border:2px solid var(--line);background:var(--road);color:var(--ink);cursor:pointer}
 .pango-on{background:var(--warn-soft);border:2px solid var(--amber);border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center;font-weight:600}
 .pango-on button{margin-inline-start:auto}
+.remind{display:grid;gap:8px;padding:12px;border-radius:14px;border:2px dashed var(--line)}
+.steps{margin:0;padding-inline-start:20px;display:grid;gap:6px;font-size:14.5px;line-height:1.55}
+.steps code,.fine code{background:var(--road);border-radius:6px;padding:1px 6px}
+.ios summary{cursor:pointer;list-style:none}.ios summary::-webkit-details-marker{display:none}
 .deals{display:grid;gap:8px}
 .deal{display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--line);border-radius:16px;text-decoration:none;color:var(--ink);background:var(--road)}
 .deal b{display:block}.deal small{color:var(--muted)}
@@ -147,8 +151,29 @@ header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
       <a href="https://www.cellopark.co.il/" target="_blank" rel="noopener" id="cello">📱 סלופארק</a>
     </div>
     <div class="pango-on" id="payOn" hidden><span>⏱️ <span id="payTxt">הפעלת תשלום בחניה</span></span><button class="chip" type="button" id="payOff">עצרתי</button></div>
-    <p class="fine">כשלוחצים על פנגו או סלופארק, HaniaPark זוכר שהפעלתם תשלום. כשחוזרים לרכב ופותחים את האפליקציה, תקפוץ תזכורת לעצור אותו.</p>
+    <div class="remind" id="remind" hidden>
+      <b>⏰ תזכורת לטלפון, גם כשהאפליקציה סגורה</b>
+      <div class="row" id="rmChips"></div>
+      <small class="fine" id="rmNote"></small>
+    </div>
+    <p class="fine">כשלוחצים על פנגו או סלופארק, HaniaPark זוכר שהפעלתם תשלום, ושולח התראה לטלפון אחרי הזמן שבחרתם, ואז כל שעה, עד שלוחצים ״עצרתי״.</p>
   </section>
+
+  <details class="card ios" id="iosCard" hidden>
+    <summary><h2 style="display:inline">🔵 באייפון: התראה כשנכנסים לרכב</h2></summary>
+    <p class="fine" style="font-size:14px">אוטומציה באפליקציית ״קיצורים״ של אייפון: כשהטלפון מתחבר ל־Bluetooth או ל־CarPlay של הרכב, היא בודקת אם התשלום עדיין פעיל, ואם כן מקפיצה התראה. מגדירים פעם אחת.</p>
+    <ol class="steps">
+      <li>פותחים את <b>קיצורים</b> ← לשונית <b>אוטומציה</b> ← <b>+</b> (אוטומציה חדשה).</li>
+      <li>בוחרים <b>Bluetooth</b> (או <b>CarPlay</b>), בוחרים את הרכב, ומסמנים <b>מתחבר</b>.</li>
+      <li>בוחרים <b>להפעיל מיד</b>, ואז <b>אוטומציה ריקה חדשה</b>.</li>
+      <li>מוסיפים פעולה <b>קבלת תוכן של URL</b>, ומדביקים בה את הקישור האישי שלכם (למטה).</li>
+      <li>מוסיפים פעולה <b>אם</b>: ״תוכן ה־URL״ <b>מכיל</b> <code>פעיל</code>.</li>
+      <li>בתוך ה״אם״ מוסיפים פעולה <b>הצגת הודעה</b> עם הטקסט: <code>פנגו עדיין פעיל! לעצור</code>. שומרים.</li>
+    </ol>
+    <label class="field">הקישור האישי שלכם (לא לשתף)<input id="iosLink" readonly dir="ltr"></label>
+    <button class="chip" type="button" id="iosCopy">העתקת הקישור</button>
+    <p class="fine">שמות הכפתורים יכולים להשתנות מעט בין גרסאות iOS.</p>
+  </details>
 
   <section class="card">
     <h2>לרכב, במבצע</h2>
@@ -273,6 +298,7 @@ header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
   function leave() {
     if (!S.car) return;
     var c = Object.assign({}, S.car); delete c.photo; S.hist.unshift(c); S.hist = S.hist.slice(0, 20);
+    if (S.pay) stopPay();
     S.car = null; S.timer = null; S.pay = null; save();
     if (map) { map.remove(); map = null; carMark = meMark = null; updateDist.fitted = false; }
     render(); toast("נסיעה טובה 🚗");
@@ -338,11 +364,56 @@ header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
   }
 
   // ---- paid parking: remember it, and remind to stop it back at the car ------------------------
-  function markPay(app) { S.pay = { app: app, at: Date.now() }; S.wasAway = false; save(); renderPay(); }
+  function markPay(app) { S.pay = { app: app, at: Date.now(), first: S.rmFirst || 60, push: !!S.pushOk }; S.wasAway = false; save(); renderPay(); syncPay(); }
   $("pango").addEventListener("click", function () { markPay("פנגו"); });
   $("cello").addEventListener("click", function () { markPay("סלופארק"); });
-  $("payOff").addEventListener("click", function () { S.pay = null; save(); renderPay(); toast("מעולה, התשלום נעצר"); });
-  function renderPay() { var p = S.pay; $("payOn").hidden = !p; if (p) $("payTxt").textContent = p.app + " פעיל מ־" + hm(p.at) + " (" + ago(p.at) + ")"; }
+  $("payOff").addEventListener("click", function () { S.pay = null; save(); renderPay(); stopPay(); toast("מעולה, התשלום נעצר"); });
+  function renderPay() {
+    var p = S.pay; $("payOn").hidden = !p; $("remind").hidden = !p;
+    if (!p) return;
+    $("payTxt").textContent = p.app + " פעיל מ־" + hm(p.at) + " (" + ago(p.at) + ")";
+    $("rmChips").replaceChildren.apply($("rmChips"), [30, 60, 120].map(function (m) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = "אחרי " + (m < 60 ? m + " דק׳" : m === 60 ? "שעה" : "שעתיים");
+      b.setAttribute("aria-pressed", String(p.first === m && !!p.push)); b.addEventListener("click", function () { S.rmFirst = m; p.first = m; save(); enablePush(); });
+      return b;
+    }));
+    $("rmNote").textContent = p.push ? "✓ תקפוץ התראה ב־" + hm(p.at + p.first * 60000) + ", ואז כל שעה עד שעוצרים." : pushNote();
+  }
+
+  // ---- reminders on the phone (Web Push), and the record an iPhone Shortcut can check ------------
+  var DEV = (function () { var d = null; try { d = localStorage.getItem("haniapark-device"); } catch (e) {} if (!d || !/^[A-Za-z0-9_-]{16,40}$/.test(d)) { d = Array.from(crypto.getRandomValues(new Uint8Array(18)), function (x) { return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789_-"[x % 62]; }).join(""); try { localStorage.setItem("haniapark-device", d); } catch (e) {} } return d; })();
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  function pushNote() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaPark למסך הבית (שיתוף ← הוספה למסך הבית), ואז ההתראות עובדות." : "הדפדפן הזה לא תומך בהתראות.";
+    if ("Notification" in window && Notification.permission === "denied") return "ההתראות חסומות. מאשרים אותן בהגדרות של הדפדפן.";
+    return "בוחרים מתי להזכיר, ומאשרים התראות.";
+  }
+  function api(path, body) { return fetch("/api/park/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
+  function currentSub() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return Promise.resolve(null);
+    return navigator.serviceWorker.ready.then(function (r) { return r.pushManager.getSubscription(); }).catch(function () { return null; });
+  }
+  function syncPay() {
+    var p = S.pay; if (!p) return Promise.resolve();
+    return currentSub().then(function (sub) {
+      return api("pay", { d: DEV, app: p.app, at: p.at, first: p.first || 60, every: 60, sub: sub && p.push ? sub.toJSON() : null }).then(function (j) { if (S.pay) { S.pay.push = !!j.push; save(); renderPay(); } });
+    }).catch(function () {});
+  }
+  function enablePush() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) { toast(pushNote()); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { renderPay(); toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+      return Promise.all([navigator.serviceWorker.ready, api("key")]).then(function (x) {
+        var reg = x[0], key = x[1].key, raw = atob(key.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((key.length + 3) % 4)), arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return reg.pushManager.getSubscription().then(function (s) { return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); });
+      }).then(function () { S.pushOk = true; if (S.pay) S.pay.push = true; save(); return syncPay(); }).then(function () { toast("⏰ התזכורת מוגדרת"); });
+    }).catch(function () { toast("לא הצלחנו להפעיל התראות"); });
+  }
+  function stopPay() { api("stop", { d: DEV }).catch(function () {}); }
+  $("iosCard").hidden = !IOS;
+  $("iosLink").value = location.origin + "/api/park/active?d=" + DEV;
+  $("iosCopy").addEventListener("click", function () { var v = $("iosLink").value; try { navigator.clipboard.writeText(v).then(function () { toast("הקישור הועתק"); }, function () { $("iosLink").select(); }); } catch (e) { $("iosLink").select(); } });
   var asked = false, reopened = false;
   function checkArrival(d) {
     var c = S.car; if (!c || !S.pay || asked || !me) return;
@@ -361,7 +432,7 @@ header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
     host.querySelector('[data-k="done"]').textContent = leaving ? "עצרתי, יוצאים" : "כבר עצרתי";
     function close() { host.textContent = ""; }
     a.addEventListener("click", function () { setTimeout(close, 300); });
-    host.querySelector('[data-k="done"]').addEventListener("click", function () { S.pay = null; save(); close(); renderPay(); if (leaving) leave(); else toast("מעולה 👍"); });
+    host.querySelector('[data-k="done"]').addEventListener("click", function () { S.pay = null; save(); stopPay(); close(); renderPay(); if (leaving) leave(); else toast("מעולה 👍"); });
     host.querySelector('[data-k="later"]').addEventListener("click", function () { close(); asked = false; S.wasAway = false; save(); });
     host.querySelector(".scrim").addEventListener("click", close);
   }
@@ -369,6 +440,9 @@ header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
   showShared();
+  // Opened from the reminder: ask about the paid parking right away. Stopped from the notification: forget it here too.
+  if (location.hash === "#paid") { history.replaceState(null, "", location.pathname); if (S.pay) setTimeout(function () { arrivalSheet(false); }, 300); }
+  if (S.pay) fetch("/api/park/active?d=" + DEV).then(function (r) { return r.text(); }).then(function (t) { if (t === "לא" && S.pay && S.pay.push) { S.pay = null; save(); renderPay(); } }).catch(function () {});
   render();
 })();
 </script>
