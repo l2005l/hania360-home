@@ -3,11 +3,15 @@
   "name": "hania360-home",
   "main": "worker.js",
   "compatibility_date": "2026-09-30",
+  // HaniaQuiz: one Durable Object per game room (quiz/room.js).
+  "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }],
   "env": {
     // Staging: its own workers.dev address, never indexed by search engines.
     "staging": {
       "name": "hania360-home-staging",
-      "vars": { "ENVIRONMENT": "staging" }
+      "vars": { "ENVIRONMENT": "staging" },
+      "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }] }
     }
   }
 }
