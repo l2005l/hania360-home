@@ -1,0 +1,374 @@
+<title>HaniaPark</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Layout: an Israeli parking sign. One blue "P" card holds the car's spot; actions under it, then the timer, deals and history. */
+:root{
+  --sign:#1446C8; --sign-deep:#0B2C86; --white:#FFFFFF; --road:#F1F4FA; --ink:#14203B; --muted:#5D6B86; --line:#D9E0EE;
+  --kerb-red:#E63946; --kerb-white:#FFFFFF; --amber:#FFB703; --ok:#1F9D6B; --ok-soft:#E3F6EE; --warn-soft:#FFF4D9; --card:#FFFFFF;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--road:#0C1428;--card:#141E36;--ink:#EAF0FF;--muted:#9BA9C6;--line:#26345A;--ok-soft:#0E2C22;--warn-soft:#33270A;color-scheme:dark}}
+:root[data-theme="dark"]{--road:#0C1428;--card:#141E36;--ink:#EAF0FF;--muted:#9BA9C6;--line:#26345A;--ok-soft:#0E2C22;--warn-soft:#33270A;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--road);color:var(--ink)}
+body{direction:rtl;font-family:var(--font);font-size:16px;line-height:1.5;margin:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+.wrap{max-width:560px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{width:40px;height:40px;border-radius:10px;background:var(--sign);border:3px solid var(--white);box-shadow:0 0 0 2px var(--sign);display:grid;place-items:center;color:var(--white);font-weight:800;font-size:24px;flex:none}
+header b{font-weight:800;font-size:24px;letter-spacing:-.01em}
+header b span{color:var(--sign)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header b span{color:#7FA4FF}}
+header small{margin-inline-start:auto;color:var(--muted);font-size:13px}
+/* the sign */
+.sign{background:var(--sign);color:var(--white);border-radius:22px;padding:18px;display:grid;gap:12px;position:relative;overflow:hidden;box-shadow:0 0 0 4px var(--white),0 0 0 6px var(--sign),0 18px 36px -18px rgba(11,44,134,.7);margin:6px}
+.sign::after{content:"P";position:absolute;inset-inline-start:-14px;bottom:-60px;font-size:220px;font-weight:800;line-height:1;opacity:.08;pointer-events:none}
+.sign .eyebrow{font-size:13px;font-weight:700;letter-spacing:.06em;opacity:.8}
+.sign h1{margin:0;font-size:clamp(26px,7.5vw,34px);font-weight:800;line-height:1.15;text-wrap:balance}
+.sign p{margin:0;opacity:.9}
+.big{appearance:none;border:0;border-radius:18px;background:var(--white);color:var(--sign-deep);font:inherit;font-weight:800;font-size:22px;padding:16px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.18)}
+.big:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.big:disabled{opacity:.7}
+.big i{font-style:normal;width:34px;height:34px;border-radius:8px;background:var(--sign);color:var(--white);display:grid;place-items:center;font-size:20px}
+.facts{display:flex;gap:8px;flex-wrap:wrap}
+.facts span{background:rgba(255,255,255,.16);border-radius:99px;padding:4px 12px;font-size:14px;font-weight:500}
+.dist{font-size:clamp(40px,12vw,56px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.dist small{font-size:18px;font-weight:500;opacity:.85}
+.arrow{width:56px;height:56px;border-radius:50%;background:var(--white);display:grid;place-items:center;transition:transform .3s;flex:none}
+.arrow svg{width:30px;height:30px}
+.distrow{display:flex;align-items:center;gap:14px}
+#map{height:220px;border-radius:16px;overflow:hidden;border:3px solid var(--white);background:#dfe6f3;z-index:0}
+.photo{width:100%;max-height:220px;object-fit:cover;border-radius:14px;border:3px solid var(--white)}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.act{appearance:none;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:10px 6px;font:inherit;font-weight:700;font-size:14px;display:grid;justify-items:center;gap:4px;cursor:pointer;text-decoration:none;text-align:center;min-height:76px;align-content:center}
+.act b{font-size:24px;line-height:1}
+.act:focus-visible,.big:focus-visible,.chip:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:12px}
+.card h2{margin:0;font-size:19px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card h2 small{font-size:13px;color:var(--muted);font-weight:500}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{appearance:none;border:2px solid var(--line);background:var(--road);color:var(--ink);border-radius:12px;padding:8px 12px;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--sign);border-color:var(--sign);color:var(--white)}
+.field{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+.field input{border:2px solid var(--line);background:var(--road);color:var(--ink);border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;min-width:0;width:100%}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+/* kerb stripes: the timer */
+.timer{display:grid;gap:10px}
+.clock{display:flex;align-items:baseline;gap:10px}
+.clock b{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.clock span{color:var(--muted)}
+.kerb{height:14px;border-radius:7px;background:repeating-linear-gradient(90deg,var(--kerb-red) 0 22px,var(--kerb-white) 22px 44px);border:2px solid var(--ink);overflow:hidden;position:relative}
+.kerb i{position:absolute;inset-block:0;inset-inline-start:0;background:var(--ink);opacity:.82;transition:width 1s linear}
+.timer.late .clock b{color:var(--kerb-red)}
+.pay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.pay a,.pay button{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;padding:12px;font:inherit;font-weight:700;text-decoration:none;border:2px solid var(--line);background:var(--road);color:var(--ink);cursor:pointer}
+.pango-on{background:var(--warn-soft);border:2px solid var(--amber);border-radius:14px;padding:10px 12px;display:flex;gap:10px;align-items:center;font-weight:600}
+.pango-on button{margin-inline-start:auto}
+.deals{display:grid;gap:8px}
+.deal{display:flex;align-items:center;gap:12px;padding:12px;border:2px solid var(--line);border-radius:16px;text-decoration:none;color:var(--ink);background:var(--road)}
+.deal b{display:block}.deal small{color:var(--muted)}
+.deal .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--card);flex:none}
+.deal .go{margin-inline-start:auto;color:var(--sign);font-weight:800}
+.hist{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.hist li{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14.5px}
+.hist li:first-child{border-top:0}
+.hist small{color:var(--muted)}
+.hist a{margin-inline-start:auto;color:var(--sign);font-weight:700;text-decoration:none}
+.fine{font-size:12.5px;color:var(--muted);margin:0}
+.ghost{appearance:none;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:4px}
+/* arrival sheet */
+.sheet{position:fixed;inset:auto 0 0 0;z-index:30;background:var(--card);color:var(--ink);border-radius:24px 24px 0 0;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-shadow:0 -20px 50px rgba(0,0,0,.35);display:grid;gap:12px;max-width:600px;margin:0 auto;animation:up .35s ease-out}
+.scrim{position:fixed;inset:0;background:rgba(10,20,40,.55);z-index:29}
+.sheet h2{margin:0;font-size:24px;font-weight:800}
+.sheet .btns{display:grid;gap:8px}
+.sheet .btns .big{background:var(--amber);color:#1a1300;box-shadow:none;text-decoration:none}
+.sheet .btns .chip{text-align:center}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--road);padding:10px 16px;border-radius:12px;font-weight:600;z-index:40;max-width:90%}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}.arrow{transition:none}}
+.leaflet-container{font-family:var(--font)}
+</style>
+
+<div class="wrap">
+  <header><span class="logo" aria-hidden="true">P</span><b>Hania<span>Park</span></b><small id="hdrNote"></small></header>
+
+  <!-- shared spot from a link -->
+  <section class="sign" id="shared" hidden>
+    <span class="eyebrow">שלחו לך מיקום חניה</span>
+    <h1 id="shTitle">הרכב חונה כאן</h1>
+    <div class="facts" id="shFacts"></div>
+    <div id="shMap" style="height:220px;border-radius:16px;overflow:hidden;border:3px solid #fff"></div>
+    <div class="acts" style="grid-template-columns:repeat(2,minmax(0,1fr))"><a class="act" id="shWalk" target="_blank" rel="noopener"><b>🚶</b>ניווט ברגל</a><a class="act" id="shWaze" target="_blank" rel="noopener"><b>🚙</b>Waze</a></div>
+    <button class="big" type="button" id="shSave"><i>P</i>לשמור כחניה שלי</button>
+  </section>
+
+  <!-- not parked -->
+  <section class="sign" id="empty">
+    <span class="eyebrow">איפה החניתי?</span>
+    <h1>לוחצים כשמחנים, ומוצאים את הרכב בלי לחפש</h1>
+    <button class="big" type="button" id="parkBtn"><i>P</i>חניתי כאן</button>
+    <p class="fine" style="color:rgba(255,255,255,.8)">המיקום נשמר רק בטלפון הזה. בחניון תת־קרקעי אין GPS: לוחצים לפני שיורדים, ומוסיפים קומה ועמוד.</p>
+  </section>
+
+  <!-- parked -->
+  <section class="sign" id="parked" hidden>
+    <span class="eyebrow" id="pkSince"></span>
+    <div class="distrow"><div class="arrow" id="arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 20 21 12 16 4 21Z" fill="#1446C8"/></svg></div><div><div class="dist" id="dist">—</div><small id="distNote" style="opacity:.85">מחפש את המיקום שלך…</small></div></div>
+    <div class="facts" id="pkFacts"></div>
+    <div id="map" role="img" aria-label="מפה עם מיקום הרכב"></div>
+    <img class="photo" id="pkPhoto" alt="התמונה שצילמת ליד הרכב" hidden>
+  </section>
+
+  <div class="acts" id="pkActs" hidden>
+    <a class="act" id="walk" target="_blank" rel="noopener"><b>🚶</b>ניווט ברגל</a>
+    <a class="act" id="waze" target="_blank" rel="noopener"><b>🚙</b>Waze</a>
+    <button class="act" type="button" id="share"><b>📤</b>שיתוף</button>
+  </div>
+
+  <section class="card" id="details" hidden>
+    <h2>פרטים שיעזרו למצוא <small>לא חובה</small></h2>
+    <div class="two"><label class="field">קומה<input id="floor" maxlength="6" placeholder="-2"></label><label class="field">עמוד / צבע / אזור<input id="spot" maxlength="24" placeholder="C14, כחול"></label></div>
+    <label class="field">הערה<input id="note" maxlength="60" placeholder="ליד הכניסה לקניון"></label>
+    <div class="row"><button class="chip" type="button" id="photoBtn">📷 תמונה של המקום</button><input type="file" id="photoIn" accept="image/*" capture="environment" hidden><button class="chip" type="button" id="leave">🚗 יצאתי מהחניה</button></div>
+  </section>
+
+  <section class="card timer" id="timerCard" hidden>
+    <h2>זמן חניה <small id="tmUntil"></small></h2>
+    <div class="row" id="tmChips"></div>
+    <div id="tmRun" hidden>
+      <div class="clock"><b id="tmLeft">0:00</b><span id="tmTxt">נשארו</span></div>
+      <div class="kerb" aria-hidden="true"><i id="tmBar"></i></div>
+      <div class="row" style="margin-top:8px"><button class="chip" type="button" id="tmIcs">📅 תזכורת ביומן</button><button class="chip" type="button" id="tmStop">ביטול הטיימר</button></div>
+    </div>
+    <div class="pay">
+      <a href="https://www.pango.co.il/" target="_blank" rel="noopener" id="pango">🅿️ פנגו</a>
+      <a href="https://www.cellopark.co.il/" target="_blank" rel="noopener" id="cello">📱 סלופארק</a>
+    </div>
+    <div class="pango-on" id="payOn" hidden><span>⏱️ <span id="payTxt">הפעלת תשלום בחניה</span></span><button class="chip" type="button" id="payOff">עצרתי</button></div>
+    <p class="fine">כשלוחצים על פנגו או סלופארק, HaniaPark זוכר שהפעלתם תשלום. כשחוזרים לרכב ופותחים את האפליקציה, תקפוץ תזכורת לעצור אותו.</p>
+  </section>
+
+  <section class="card">
+    <h2>לרכב, במבצע</h2>
+    <div class="deals">
+      <a class="deal" href="https://save.hania360.com/" target="_blank" rel="noopener"><span class="ic">⛽</span><span><b>הנחות דלק לפי הכרטיסים שלך</b><small>HaniaSave בודק איזה כרטיס או מועדון נותן הכי הרבה לליטר</small></span><span class="go">←</span></a>
+      <a class="deal" href="https://save.hania360.com/services/car" target="_blank" rel="noopener"><span class="ic">🛡️</span><span><b>הטבות בביטוח רכב</b><small>מה מגיע לכם מהכרטיסים והמועדונים לפני שמחדשים</small></span><span class="go">←</span></a>
+      <a class="deal" href="https://home.hania360.com/#home" target="_blank" rel="noopener"><span class="ic">🔧</span><span><b>טסט, ביטוח וטיפול בזמן</b><small>HaniaHome מזכיר לפני שהם מגיעים</small></span><span class="go">←</span></a>
+    </div>
+    <p class="fine">חלק מהקישורים הם קישורי שותפים של Hania360, בלי תוספת מחיר.</p>
+  </section>
+
+  <section class="card">
+    <h2>חניות אחרונות</h2>
+    <ul class="hist" id="hist"></ul>
+  </section>
+</div>
+<div id="sheetHost"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var KEY = "haniapark-v1", $ = function (id) { return document.getElementById(id); };
+  var S; try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || { car: null, hist: [] };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast("אין מקום לשמור. נסו בלי תמונה."); } }
+  var me = null, watchId = null, map = null, carMark = null, meMark = null, heading = null;
+
+  function toast(t) { var x = document.createElement("div"); x.className = "toast"; x.textContent = t; document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  function km(a, b) { var R = 6371000, x = (b.lat - a.lat) * Math.PI / 180, y = (b.lon - a.lon) * Math.PI / 180, h = Math.sin(x / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(y / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
+  function bearing(a, b) { var f1 = a.lat * Math.PI / 180, f2 = b.lat * Math.PI / 180, dl = (b.lon - a.lon) * Math.PI / 180; return (Math.atan2(Math.sin(dl) * Math.cos(f2), Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl)) * 180 / Math.PI + 360) % 360; }
+  function hm(t) { return new Date(t).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); }
+  function ago(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? "עכשיו" : m < 60 ? "לפני " + m + " דק׳" : m < 1440 ? "לפני " + Math.floor(m / 60) + " שע׳ ו־" + (m % 60) + " דק׳" : "לפני " + Math.floor(m / 1440) + " ימים"; }
+  var links = function (c) { return { walk: "https://www.google.com/maps/dir/?api=1&destination=" + c.lat + "," + c.lon + "&travelmode=walking", waze: "https://waze.com/ul?ll=" + c.lat + "," + c.lon + "&navigate=yes" }; };
+  function shareUrl(c) {
+    var q = [c.lat.toFixed(6), c.lon.toFixed(6), Math.round(c.at / 1000), encodeURIComponent([c.floor || "", c.spot || "", c.note || ""].join("|"))].join(",");
+    return location.origin + location.pathname + "#at=" + q;
+  }
+
+  // ---- map -------------------------------------------------------------------------
+  function makeMap(el, c) {
+    if (!window.L) { el.hidden = true; return null; }
+    var m = L.map(el, { zoomControl: false, attributionControl: true }).setView([c.lat, c.lon], 17);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(m);
+    L.marker([c.lat, c.lon], { icon: L.divIcon({ className: "", html: '<div style="width:34px;height:34px;border-radius:8px;background:#1446C8;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);color:#fff;font:800 20px Rubik,sans-serif;display:grid;place-items:center">P</div>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(m);
+    return m;
+  }
+
+  // ---- render -------------------------------------------------------------------------
+  function render() {
+    var c = S.car;
+    $("empty").hidden = !!c || !$("shared").hidden; $("parked").hidden = !c; $("pkActs").hidden = !c; $("details").hidden = !c; $("timerCard").hidden = !c;
+    renderHist();
+    if (!c) { stopWatch(); return; }
+    $("pkSince").textContent = "חנית " + ago(c.at) + " · " + hm(c.at);
+    var facts = [];
+    if (c.floor) facts.push("קומה \u2066" + c.floor + "\u2069");
+    if (c.spot) facts.push(c.spot);
+    if (c.note) facts.push(c.note);
+    if (c.acc) facts.push("דיוק " + Math.round(c.acc) + " מ׳");
+    $("pkFacts").replaceChildren.apply($("pkFacts"), facts.map(function (f) { var s = document.createElement("span"); s.textContent = f; return s; }));
+    $("floor").value = c.floor || ""; $("spot").value = c.spot || ""; $("note").value = c.note || "";
+    var l = links(c); $("walk").href = l.walk; $("waze").href = l.waze;
+    if (c.photo) { $("pkPhoto").src = c.photo; $("pkPhoto").hidden = false; } else $("pkPhoto").hidden = true;
+    if (!map) { map = makeMap($("map"), c); }
+    renderTimer(); renderPay(); startWatch(); updateDist();
+  }
+  function renderHist() {
+    var ul = $("hist"); ul.textContent = "";
+    if (!S.hist.length) { var li = document.createElement("li"); li.innerHTML = "<small>החניות שלך יופיעו כאן</small>"; ul.append(li); return; }
+    S.hist.slice(0, 8).forEach(function (h) {
+      var li = document.createElement("li"), t = document.createElement("span"), a = document.createElement("a");
+      t.innerHTML = "<b></b><br><small></small>"; t.querySelector("b").textContent = new Date(h.at).toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "numeric" }) + " · " + hm(h.at);
+      t.querySelector("small").textContent = [h.floor ? "קומה " + h.floor : "", h.spot, h.note].filter(Boolean).join(" · ") || "בלי פרטים";
+      a.href = "https://www.google.com/maps/search/?api=1&query=" + h.lat + "," + h.lon; a.target = "_blank"; a.rel = "noopener"; a.textContent = "במפה";
+      li.append(t, a); ul.append(li);
+    });
+  }
+
+  // ---- where am I, how far is the car --------------------------------------------------
+  function startWatch() {
+    if (watchId != null || !navigator.geolocation) return;
+    watchId = navigator.geolocation.watchPosition(function (p) { me = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, at: Date.now() }; updateDist(); }, function () { $("distNote").textContent = "אין גישה למיקום. אפשר לנווט עם הכפתורים."; }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }
+  function stopWatch() { if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; } }
+  function updateDist() {
+    var c = S.car; if (!c || !me) return;
+    var d = km(me, c), b = bearing(me, c);
+    $("dist").innerHTML = d < 1000 ? Math.round(d) + "<small> מ׳</small>" : (d / 1000).toFixed(1) + "<small> ק״מ</small>";
+    $("distNote").textContent = d < Math.max(25, (me.acc || 0) + (c.acc || 0)) ? "אתם ליד הרכב 🎉" : "עד הרכב, בקו אווירי";
+    $("arrow").style.transform = "rotate(" + ((b - (heading || 0)) % 360) + "deg)";
+    if (map) {
+      if (!meMark) meMark = L.circleMarker([me.lat, me.lon], { radius: 8, color: "#fff", weight: 3, fillColor: "#FFB703", fillOpacity: 1 }).addTo(map); else meMark.setLatLng([me.lat, me.lon]);
+      if (!updateDist.fitted && d < 3000) { map.fitBounds([[me.lat, me.lon], [c.lat, c.lon]], { padding: [30, 30], maxZoom: 18 }); updateDist.fitted = true; }
+    }
+    checkArrival(d);
+  }
+  addEventListener("deviceorientationabsolute", function (e) { if (e.alpha != null) { heading = 360 - e.alpha; updateDist(); } });
+
+  // ---- park -------------------------------------------------------------------------
+  $("parkBtn").addEventListener("click", function () {
+    if (!navigator.geolocation) { toast("בטלפון הזה אין מיקום"); return; }
+    var b = $("parkBtn"); b.disabled = true; b.lastChild.textContent = "מאתר…";
+    navigator.geolocation.getCurrentPosition(function (p) {
+      S.car = { lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy, at: Date.now() };
+      save(); b.disabled = false; b.lastChild.textContent = "חניתי כאן"; render(); toast("נשמר 🅿️");
+      if (navigator.vibrate) try { navigator.vibrate(40); } catch (e) {}
+    }, function () { b.disabled = false; b.lastChild.textContent = "חניתי כאן"; toast("צריך לאשר גישה למיקום"); }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  });
+  ["floor", "spot", "note"].forEach(function (k) { $(k).addEventListener("change", function () { if (!S.car) return; S.car[k] = $(k).value.trim(); save(); render(); }); });
+  $("photoBtn").addEventListener("click", function () { $("photoIn").click(); });
+  $("photoIn").addEventListener("change", function (e) {
+    var f = e.target.files[0]; if (!f || !S.car) return;
+    var img = new Image(), url = URL.createObjectURL(f);
+    img.onload = function () { var k = Math.min(1, 900 / Math.max(img.width, img.height)), cv = document.createElement("canvas"); cv.width = img.width * k; cv.height = img.height * k; cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); S.car.photo = cv.toDataURL("image/jpeg", 0.62); URL.revokeObjectURL(url); save(); render(); };
+    img.src = url;
+  });
+  $("leave").addEventListener("click", function () {
+    if (S.pay) { arrivalSheet(true); return; }
+    leave();
+  });
+  function leave() {
+    if (!S.car) return;
+    var c = Object.assign({}, S.car); delete c.photo; S.hist.unshift(c); S.hist = S.hist.slice(0, 20);
+    S.car = null; S.timer = null; S.pay = null; save();
+    if (map) { map.remove(); map = null; carMark = meMark = null; updateDist.fitted = false; }
+    render(); toast("נסיעה טובה 🚗");
+  }
+
+  // ---- share ------------------------------------------------------------------------
+  $("share").addEventListener("click", function () {
+    var c = S.car; if (!c) return;
+    var url = shareUrl(c), text = "🅿️ הרכב חונה כאן" + (c.floor ? ", קומה " + c.floor : "") + (c.spot ? ", " + c.spot : "") + ": " + url;
+    if (navigator.share) { navigator.share({ title: "איפה הרכב", text: text }).catch(function () {}); return; }
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  });
+  function showShared() {
+    var m = location.hash.match(/^#at=([-\d.]+),([-\d.]+),(\d+),?(.*)$/); if (!m) return false;
+    var parts = decodeURIComponent(m[4] || "").split("|"), c = { lat: +m[1], lon: +m[2], at: +m[3] * 1000, floor: parts[0] || "", spot: parts[1] || "", note: parts[2] || "" };
+    if (!(Math.abs(c.lat) <= 90 && Math.abs(c.lon) <= 180)) return false;
+    $("shared").hidden = false;
+    $("shTitle").textContent = "הרכב חונה כאן" + (c.at ? " מ־" + hm(c.at) : "");
+    var f = [c.floor ? "קומה \u2066" + c.floor + "\u2069" : "", c.spot, c.note, c.at ? ago(c.at) : ""].filter(Boolean);
+    $("shFacts").replaceChildren.apply($("shFacts"), f.map(function (t) { var s = document.createElement("span"); s.textContent = t; return s; }));
+    var l = links(c); $("shWalk").href = l.walk; $("shWaze").href = l.waze;
+    setTimeout(function () { makeMap($("shMap"), c); }, 50);
+    $("shSave").addEventListener("click", function () { S.car = Object.assign({ acc: 0 }, c); save(); history.replaceState(null, "", location.pathname); $("shared").hidden = true; render(); toast("נשמר כחניה שלך"); });
+    $("shared").after($("empty"));
+    return true;
+  }
+
+  // ---- timer ------------------------------------------------------------------------
+  var MINS = [30, 60, 120, 180];
+  function renderTimer() {
+    var t = S.timer, chips = $("tmChips");
+    chips.replaceChildren.apply(chips, MINS.map(function (m) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = m < 60 ? m + " דק׳" : m / 60 + " שע׳";
+      b.setAttribute("aria-pressed", String(!!t && t.mins === m));
+      b.addEventListener("click", function () { S.timer = { start: Date.now(), mins: m, warned: false }; save(); renderTimer(); toast("הטיימר רץ: " + b.textContent); askNotify(); });
+      return b;
+    }));
+    $("tmRun").hidden = !t; $("tmUntil").textContent = t ? "עד " + hm(t.start + t.mins * 60000) : "";
+    tick();
+  }
+  function tick() {
+    var t = S.timer; if (!t) return;
+    var end = t.start + t.mins * 60000, left = end - Date.now(), late = left < 0, a = Math.abs(left);
+    var h = Math.floor(a / 3600000), m = Math.floor(a / 60000) % 60, s = Math.floor(a / 1000) % 60;
+    $("tmLeft").textContent = (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
+    $("tmTxt").textContent = late ? "עבר הזמן!" : "נשארו";
+    $("timerCard").classList.toggle("late", late);
+    $("tmBar").style.width = Math.min(100, (1 - Math.max(0, left) / (t.mins * 60000)) * 100) + "%";
+    if (!t.warned && left < 10 * 60000) { t.warned = true; save(); notify("עוד 10 דקות נגמר זמן החניה", "כדאי לחזור לרכב או להאריך את התשלום"); }
+  }
+  setInterval(tick, 1000);
+  $("tmStop").addEventListener("click", function () { S.timer = null; save(); renderTimer(); });
+  $("tmIcs").addEventListener("click", function () {
+    var t = S.timer; if (!t) return;
+    var at = new Date(t.start + (t.mins - 10) * 60000), z = function (d) { return d.toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""); };
+    var ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Hania360//HaniaPark//HE", "BEGIN:VEVENT", "UID:park-" + t.start + "@hania360.com", "DTSTAMP:" + z(new Date()), "DTSTART:" + z(at), "DTEND:" + z(new Date(at.getTime() + 10 * 60000)), "SUMMARY:🅿️ עוד 10 דקות נגמרת החניה", "DESCRIPTION:" + (S.car ? links(S.car).walk : ""), "BEGIN:VALARM", "TRIGGER:PT0M", "ACTION:DISPLAY", "DESCRIPTION:זמן החניה נגמר בעוד 10 דקות", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = "parking.ics"; document.body.append(a); a.click(); setTimeout(function () { a.remove(); }, 1000);
+  });
+  function askNotify() { try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch (e) {} }
+  function notify(title, body) {
+    try { if ("Notification" in window && Notification.permission === "granted" && navigator.serviceWorker) { navigator.serviceWorker.ready.then(function (r) { r.showNotification(title, { body: body, icon: "/icons/icon-192.png", tag: "park", vibrate: [80, 60, 80] }); }); return; } } catch (e) {}
+    toast(title);
+  }
+
+  // ---- paid parking: remember it, and remind to stop it back at the car ------------------------
+  function markPay(app) { S.pay = { app: app, at: Date.now() }; S.wasAway = false; save(); renderPay(); }
+  $("pango").addEventListener("click", function () { markPay("פנגו"); });
+  $("cello").addEventListener("click", function () { markPay("סלופארק"); });
+  $("payOff").addEventListener("click", function () { S.pay = null; save(); renderPay(); toast("מעולה, התשלום נעצר"); });
+  function renderPay() { var p = S.pay; $("payOn").hidden = !p; if (p) $("payTxt").textContent = p.app + " פעיל מ־" + hm(p.at) + " (" + ago(p.at) + ")"; }
+  var asked = false, reopened = false;
+  function checkArrival(d) {
+    var c = S.car; if (!c || !S.pay || asked || !me) return;
+    // Back at the car: within 40 m (or the GPS error) after having walked away from it,
+    // or after opening the app again near the car at least 20 minutes after paying.
+    var near = d < Math.max(40, Math.min(80, (me.acc || 0) + (c.acc || 0)));
+    if (d > 120 && !S.wasAway) { S.wasAway = true; save(); }
+    if (near && (S.wasAway || (reopened && Date.now() - S.pay.at > 20 * 60000))) { asked = true; arrivalSheet(false); notify("חזרת לרכב 🚗", "לא לשכוח לעצור את " + S.pay.app); }
+  }
+  function arrivalSheet(leaving) {
+    var host = $("sheetHost"), app = S.pay.app, url = app === "פנגו" ? "https://www.pango.co.il/" : "https://www.cellopark.co.il/";
+    host.innerHTML = '<div class="scrim"></div><div class="sheet" role="dialog" aria-modal="true"><h2></h2><p class="fine" style="font-size:15px"></p><div class="btns"><a class="big" target="_blank" rel="noopener"></a><button class="chip" type="button" data-k="done"></button><button class="chip" type="button" data-k="later">עוד לא</button></div></div>';
+    host.querySelector("h2").textContent = leaving ? "רגע לפני שנוסעים" : "חזרת לרכב 🚗";
+    host.querySelector("p").textContent = "התשלום ב" + app + " פעיל מ־" + hm(S.pay.at) + ". עוצרים אותו עכשיו, כדי לא לשלם על זמן שלא חניתם.";
+    var a = host.querySelector("a"); a.href = url; a.textContent = "לעצור את " + app;
+    host.querySelector('[data-k="done"]').textContent = leaving ? "עצרתי, יוצאים" : "כבר עצרתי";
+    function close() { host.textContent = ""; }
+    a.addEventListener("click", function () { setTimeout(close, 300); });
+    host.querySelector('[data-k="done"]').addEventListener("click", function () { S.pay = null; save(); close(); renderPay(); if (leaving) leave(); else toast("מעולה 👍"); });
+    host.querySelector('[data-k="later"]').addEventListener("click", function () { close(); asked = false; S.wasAway = false; save(); });
+    host.querySelector(".scrim").addEventListener("click", close);
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && S.car) { asked = false; reopened = true; render(); } });
+
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
+  showShared();
+  render();
+})();
+</script>
