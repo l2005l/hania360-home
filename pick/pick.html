@@ -1,0 +1,281 @@
+<title>HaniaPick</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: one column like a game-show stage: wheels to pick, the big wheel, the answer, then the editor. Single sunny look. */
+:root{
+  --sun:#FFD93B; --sun-deep:#FFC300; --ink:#1D1A3A; --ink-soft:#4A4670; --paper:#FFFBEA; --card:#FFFFFF;
+  --tomato:#FF5A4E; --tangerine:#FF9F1C; --mint:#22C7B4; --grape:#8E5BE8; --bubble:#FF6FB5; --lime:#7ED957; --sky:#36A9FF;
+  --display:"Fredoka","Rubik","Arial Rounded MT Bold",system-ui,sans-serif;
+  --body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--sun);color:var(--ink)}
+body{direction:rtl;font-family:var(--body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px;
+  background-image:radial-gradient(circle at 12% 8%,rgba(255,255,255,.55) 0 60px,transparent 61px),radial-gradient(circle at 92% 22%,rgba(255,255,255,.35) 0 34px,transparent 35px),radial-gradient(circle,rgba(29,26,58,.07) 1.5px,transparent 2px);
+  background-size:auto,auto,22px 22px;overflow-x:hidden}
+.wrap{max-width:560px;margin:0 auto;display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:-.01em}
+.brand i{width:42px;height:42px;border-radius:14px;background:var(--ink);display:grid;place-items:center;transform:rotate(-8deg);box-shadow:3px 3px 0 var(--tomato)}
+.brand i svg{width:28px;height:28px}
+.brand b{color:var(--tomato)}
+.tag{font-family:var(--display);font-weight:600;font-size:13px;background:var(--ink);color:var(--sun);padding:5px 11px;border-radius:99px;transform:rotate(3deg)}
+.title{font-family:var(--display);font-weight:700;font-size:clamp(30px,9vw,42px);line-height:1.1;margin:4px 0 -6px;text-align:center;text-wrap:balance}
+.title span{display:inline-block;transform:rotate(-12deg)}
+.stage{position:relative;display:grid;place-items:center;padding-top:20px}
+.disc{position:relative;width:min(100%,440px);aspect-ratio:1;max-width:100%}
+.stage canvas{width:100%;height:100%;display:block;filter:drop-shadow(6px 8px 0 rgba(29,26,58,.9))}
+.pointer{position:absolute;top:2px;left:50%;width:44px;height:54px;margin-left:-22px;z-index:2;filter:drop-shadow(2px 3px 0 var(--ink))}
+.pointer.tick{animation:tick .12s ease-out}
+@keyframes tick{40%{transform:rotate(-14deg)}}
+.hub{position:absolute;width:21%;aspect-ratio:1;border-radius:50%;background:var(--ink);border:5px solid var(--paper);display:grid;place-items:center;color:var(--sun);font-family:var(--display);font-weight:700;font-size:clamp(14px,4vw,20px);z-index:1;cursor:pointer;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 4px var(--ink)}
+.spin{font-family:var(--display);font-weight:700;font-size:24px;border:3px solid var(--ink);background:var(--tomato);color:#fff;border-radius:22px;padding:14px 20px;width:100%;box-shadow:5px 6px 0 var(--ink);cursor:pointer;transition:transform .1s,box-shadow .1s;letter-spacing:.01em}
+.spin:active{transform:translate(3px,4px);box-shadow:2px 2px 0 var(--ink)}
+.spin:disabled{background:var(--ink-soft);cursor:default}
+.spin:focus-visible,.wheels button:focus-visible,.opt button:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+.result{border:3px solid var(--ink);border-radius:24px;background:var(--card);padding:16px 18px;display:grid;gap:4px;box-shadow:5px 6px 0 var(--ink);text-align:center;position:relative;overflow:hidden}
+.result small{font-family:var(--display);font-weight:600;color:var(--ink-soft);font-size:14px}
+.result strong{font-family:var(--display);font-weight:700;font-size:clamp(30px,9vw,44px);line-height:1.15;text-wrap:balance}
+.result.pop{animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{0%{transform:scale(.85) rotate(-2deg)}100%{transform:none}}
+.result .acts{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.chipbtn{font-family:var(--display);font-weight:600;font-size:14px;border:2px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:12px;padding:6px 12px;cursor:pointer}
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:24px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.panel h2{font-family:var(--display);font-weight:700;font-size:21px;margin:0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.panel h2 input{font:inherit;border:0;border-bottom:2px dashed var(--ink-soft);background:transparent;color:var(--ink);min-width:0;flex:1;padding:2px 0}
+.opts{display:grid;gap:7px;grid-template-columns:minmax(0,1fr)}
+.opt{display:flex;align-items:center;gap:8px;background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:6px 8px 6px 6px}
+.opt .dot{width:26px;height:26px;border-radius:9px;flex:none;border:2px solid var(--ink)}
+.opt input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:16px;color:var(--ink);padding:4px}
+.opt button{border:0;background:transparent;font-size:20px;line-height:1;color:var(--ink-soft);width:34px;height:34px;border-radius:10px;cursor:pointer}
+.opt.out{opacity:.45}.opt.out input{text-decoration:line-through}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1;min-width:0;border:2px solid var(--ink);border-radius:14px;padding:10px 12px;font:inherit;font-size:16px;background:var(--card);color:var(--ink)}
+.addrow button{font-family:var(--display);font-weight:600;border:2px solid var(--ink);background:var(--mint);color:var(--ink);border-radius:14px;padding:0 16px;font-size:16px;cursor:pointer}
+.toggle{display:flex;align-items:center;gap:10px;font-size:15px;cursor:pointer}
+.toggle input{width:22px;height:22px;accent-color:var(--grape)}
+.toggle small{display:block;color:var(--ink-soft);font-size:13px}
+.hist{display:flex;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none}
+.hist li{font-size:13.5px;background:var(--card);border:2px solid var(--ink);border-radius:99px;padding:3px 10px}
+.hist li span{color:var(--ink-soft)}
+.muted{color:var(--ink-soft);font-size:14px;margin:0}
+.danger{color:var(--tomato)!important;border-color:var(--tomato)!important}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:20;width:100%;height:100%}
+@media (prefers-reduced-motion:reduce){.result.pop,.pointer.tick{animation:none}}
+</style>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <div class="brand"><i><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12" fill="#FFD93B"/><path d="M16 16 L16 4 A12 12 0 0 1 26.4 10Z" fill="#FF5A4E"/><path d="M16 16 L26.4 10 A12 12 0 0 1 26.4 22Z" fill="#22C7B4"/><path d="M16 16 L26.4 22 A12 12 0 0 1 16 28Z" fill="#8E5BE8"/><path d="M16 16 L5.6 22 A12 12 0 0 1 5.6 10Z" fill="#36A9FF"/><circle cx="16" cy="16" r="3.4" fill="#1D1A3A"/></svg></i><span>Hania<b>Pick</b></span></div>
+    <span class="tag">אין יותר ויכוחים</span>
+  </header>
+
+  <h1 class="title">מי שוטף כלים? <span>🧽</span></h1>
+
+  <div class="stage">
+    <svg class="pointer" id="pointer" viewBox="0 0 44 54" aria-hidden="true"><path d="M22 52 L4 14 A20 20 0 1 1 40 14 Z" fill="#FF5A4E" stroke="#1D1A3A" stroke-width="3" stroke-linejoin="round"/><circle cx="22" cy="18" r="7" fill="#FFFBEA" stroke="#1D1A3A" stroke-width="3"/></svg>
+    <div class="disc"><canvas id="wheel" width="880" height="880" role="img" aria-label="גלגל המזל"></canvas>
+    <button class="hub" id="hub" type="button" aria-label="לסובב">GO</button></div>
+  </div>
+
+  <button class="spin" id="spin" type="button">סובבו! 🎉</button>
+
+  <section class="result" id="result" aria-live="polite">
+    <small id="resLabel">הגלגל מחכה לכם</small>
+    <strong id="resText">מי יתחיל?</strong>
+    <div class="acts" id="resActs" hidden>
+      <button class="chipbtn" type="button" id="again">עוד פעם</button>
+      <button class="chipbtn" type="button" id="copy">להעתיק לוואטסאפ</button>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="עריכת הגלגל">
+    <h2>מי בגלגל?<button class="chipbtn danger" type="button" id="clearAll" hidden>לנקות הכול</button></h2>
+    <form class="addrow" id="addForm"><input id="addIn" maxlength="20" placeholder="שם, למשל: נועה" aria-label="שם חדש" autocomplete="off"><button type="submit">הוספה</button></form>
+    <div class="opts" id="opts"></div>
+    <label class="toggle"><input type="checkbox" id="noRepeat"><span>תורנות הוגנת<small>מי שכבר שטף יוצא מהגלגל עד שכולם שטפו, ואז מתחילים סבב חדש.</small></span></label>
+    <label class="toggle"><input type="checkbox" id="sound" checked><span>צלילים</span></label>
+  </section>
+
+  <section class="panel" aria-label="מה יצא לאחרונה">
+    <h2>מי שטף לאחרונה</h2>
+    <ul class="hist" id="hist"></ul>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var COLORS = ["#FF5A4E", "#FF9F1C", "#FFD93B", "#7ED957", "#22C7B4", "#36A9FF", "#8E5BE8", "#FF6FB5"];
+  var INK = "#1D1A3A";
+  var KEY = "haniapick-dishes-v1";
+  var st;
+  try { st = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { st = null; }
+  if (!st || !Array.isArray(st.wheels) || !st.wheels.length) st = { cur: "dishes", wheels: [{ id: "dishes", name: "מי שוטף כלים?", opts: [], noRepeat: true, out: [], hist: [] }], sound: true };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  var $ = function (id) { return document.getElementById(id); };
+  function wheel() { return st.wheels.find(function (w) { return w.id === st.cur; }) || st.wheels[0]; }
+  function live(w) { var a = w.opts.filter(function (o) { return !(w.noRepeat && w.out.indexOf(o) >= 0); }); return a.length ? a : w.opts; }
+
+  // ---- drawing --------------------------------------------------------------------
+  var cv = $("wheel"), ctx = cv.getContext("2d"), R = cv.width / 2, angle = 0, spinning = false;
+  function draw() {
+    var w = wheel(), items = live(w), n = items.length;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.save(); ctx.translate(R, R);
+    ctx.beginPath(); ctx.arc(0, 0, R - 6, 0, Math.PI * 2); ctx.fillStyle = INK; ctx.fill();
+    if (!n) {
+      ctx.beginPath(); ctx.arc(0, 0, R - 22, 0, Math.PI * 2); ctx.fillStyle = "#FFFBEA"; ctx.fill();
+      ctx.setLineDash([22, 18]); ctx.lineWidth = 6; ctx.strokeStyle = "#4A4670";
+      for (var q = 0; q < 6; q++) { var aq = (q / 6) * Math.PI * 2 + angle; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(aq) * (R - 22), Math.sin(aq) * (R - 22)); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.fillStyle = "#4A4670"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.direction = "rtl";
+      ctx.font = "600 44px Fredoka, Rubik, sans-serif"; ctx.fillText("מוסיפים שמות", 0, -170); ctx.fillText("ומסובבים", 0, 175);
+      ctx.restore(); return;
+    }
+    var seg = (Math.PI * 2) / n;
+    for (var i = 0; i < n; i++) {
+      var a0 = angle + i * seg - Math.PI / 2 - seg / 2;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R - 22, a0, a0 + seg); ctx.closePath();
+      ctx.fillStyle = COLORS[(w.opts.indexOf(items[i]) + COLORS.length) % COLORS.length]; ctx.fill();
+      ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke();
+      // Labels on the left half are turned around so they never read upside down.
+      var mid = a0 + seg / 2, flip = Math.cos(mid) < 0;
+      ctx.save(); ctx.rotate(flip ? mid + Math.PI : mid);
+      ctx.direction = "rtl"; ctx.textAlign = flip ? "left" : "right"; ctx.textBaseline = "middle"; ctx.fillStyle = INK;
+      var size = Math.max(26, Math.min(46, 300 / Math.max(6, items[i].length) * (n > 8 ? 0.8 : 1)));
+      ctx.font = "600 " + size + "px Fredoka, Rubik, sans-serif";
+      var txt = items[i], max = R - 140;
+      while (ctx.measureText(txt).width > max && txt.length > 2) txt = txt.slice(0, -2) + "…";
+      ctx.fillText(txt, flip ? -(R - 50) : R - 50, 0);
+      ctx.restore();
+    }
+    // rim lights
+    for (var k = 0; k < 24; k++) { var t = (k / 24) * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(t) * (R - 14), Math.sin(t) * (R - 14), 6, 0, Math.PI * 2); ctx.fillStyle = k % 2 ? "#FFFBEA" : "#FFD93B"; ctx.fill(); }
+    ctx.restore();
+  }
+
+  // ---- sound (starts on the first tap) ------------------------------------------------
+  var ac = null;
+  function beep(freq, dur, type, vol) {
+    if (!st.sound) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || "square"; o.frequency.value = freq; g.gain.value = vol || 0.05;
+      g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+      o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + dur);
+    } catch (e) {}
+  }
+  function fanfare() { [523, 659, 784, 1046].forEach(function (f, i) { setTimeout(function () { beep(f, 0.22, "triangle", 0.08); }, i * 110); }); }
+
+  // ---- spin ------------------------------------------------------------------------
+  function spin() {
+    if (spinning) return;
+    var w = wheel(), items = live(w), n = items.length;
+    if (wheel().opts.length < 2) { say(wheel().opts.length ? "רק שם אחד בגלגל?" : "הגלגל ריק", "מוסיפים שמות למטה"); $("addIn").focus(); return; }
+    spinning = true; $("spin").disabled = true; $("resActs").hidden = true;
+    say("מסתובב…", "🤞");
+    var seg = (Math.PI * 2) / n, pick = Math.floor(Math.random() * n);
+    // The pointer is at the top: the picked segment ends centred under it.
+    var target = -pick * seg + (Math.random() - 0.5) * seg * 0.6;
+    var turns = 5 + Math.floor(Math.random() * 3);
+    var start = angle, end = start - (turns * Math.PI * 2 + (((start - target) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2));
+    var dur = matchMedia("(prefers-reduced-motion: reduce)").matches ? 900 : 4600, t0 = performance.now(), lastSeg = null;
+    function frame(now) {
+      var p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 4);
+      angle = start + (end - start) * e; draw();
+      var s = Math.floor(((-angle / seg) % n + n + 0.5) % n);
+      if (s !== lastSeg) { lastSeg = s; beep(900 + (1 - p) * 500, 0.03, "square", 0.03); var pt = $("pointer"); pt.classList.remove("tick"); void pt.getBoundingClientRect(); pt.classList.add("tick"); }
+      if (p < 1) requestAnimationFrame(frame); else done(items[pick]);
+    }
+    requestAnimationFrame(frame);
+  }
+  function done(val) {
+    var w = wheel();
+    spinning = false; $("spin").disabled = false;
+    if (w.noRepeat) { w.out.push(val); if (w.out.length >= w.opts.length) w.out = []; }
+    w.hist.unshift({ v: val, at: Date.now() }); w.hist = w.hist.slice(0, 12);
+    save();
+    say("היום שוטף/ת:", val + " 🧽", true);
+    $("resActs").hidden = false;
+    fanfare(); confetti(); try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
+    renderOpts(); renderHist(); draw();
+  }
+  function say(label, text, pop) {
+    $("resLabel").textContent = label; $("resText").textContent = text;
+    var r = $("result"); r.classList.remove("pop"); if (pop) { void r.offsetWidth; r.classList.add("pop"); }
+  }
+
+  // ---- confetti --------------------------------------------------------------------
+  var cf = $("confetti"), cc = cf.getContext("2d"), bits = [], running = false;
+  function confetti() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    cf.width = innerWidth * devicePixelRatio; cf.height = innerHeight * devicePixelRatio;
+    for (var i = 0; i < 140; i++) bits.push({ x: cf.width / 2, y: cf.height * 0.42, vx: (Math.random() - 0.5) * 26 * devicePixelRatio, vy: (-Math.random() * 22 - 6) * devicePixelRatio, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4, c: COLORS[i % COLORS.length], s: (6 + Math.random() * 8) * devicePixelRatio, life: 0 });
+    if (!running) { running = true; requestAnimationFrame(tickC); }
+  }
+  function tickC() {
+    cc.clearRect(0, 0, cf.width, cf.height);
+    bits = bits.filter(function (b) { return b.life < 160 && b.y < cf.height + 40; });
+    bits.forEach(function (b) { b.life++; b.vy += 0.6 * devicePixelRatio; b.vx *= 0.985; b.x += b.vx; b.y += b.vy; b.r += b.vr; cc.save(); cc.translate(b.x, b.y); cc.rotate(b.r); cc.fillStyle = b.c; cc.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); cc.restore(); });
+    if (bits.length) requestAnimationFrame(tickC); else { running = false; cc.clearRect(0, 0, cf.width, cf.height); }
+  }
+
+  // ---- UI -------------------------------------------------------------------------
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), attrs[k]); else if (k === "text") e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { if (c) e.append(c); });
+    return e;
+  }
+  function renderOpts() {
+    var w = wheel(), box = $("opts"); box.textContent = "";
+    $("noRepeat").checked = !!w.noRepeat; $("clearAll").hidden = !w.opts.length;
+    w.opts.forEach(function (o, i) {
+      var inp = el("input", { value: o, maxlength: "28", "aria-label": "אפשרות " + (i + 1) });
+      inp.addEventListener("change", function () { var v = inp.value.trim(); if (!v) { inp.value = o; return; } w.out = w.out.map(function (x) { return x === o ? v : x; }); w.opts[i] = v; save(); draw(); });
+      var dot = el("span", { class: "dot" }); dot.style.background = COLORS[i % COLORS.length];
+      box.append(el("div", { class: "opt" + (w.noRepeat && w.out.indexOf(o) >= 0 ? " out" : "") }, [dot, inp, el("button", { type: "button", "aria-label": "להסיר את " + o, text: "×", onclick: function () { if (spinning) return; w.opts.splice(i, 1); w.out = w.out.filter(function (x) { return x !== o; }); save(); renderOpts(); draw(); } })]));
+    });
+    if (w.noRepeat && w.out.length) box.append(el("p", { class: "muted", text: "כבר יצאו: " + w.out.join(", ") + ". כשכולם יוצאים הגלגל מתמלא מחדש." }));
+  }
+  function renderHist() {
+    var w = wheel(), ul = $("hist"); ul.textContent = "";
+    if (!w.hist.length) { ul.append(el("li", { text: "עוד לא סובבו" })); return; }
+    w.hist.forEach(function (h) { var d = new Date(h.at); ul.append(el("li", {}, [document.createTextNode(h.v + " "), el("span", { text: d.toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }) + " " + d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }) })])); });
+  }
+  function all() { renderOpts(); renderHist(); draw(); }
+
+  $("spin").addEventListener("click", spin);
+  $("hub").addEventListener("click", spin);
+  $("again").addEventListener("click", spin);
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault(); var v = $("addIn").value.trim(), w = wheel(); if (!v) return;
+    if (w.opts.indexOf(v) >= 0) { $("addIn").value = ""; return; }
+    if (w.opts.length >= 16) { say("מקסימום 16 שמות", "אפשר להסיר מישהו"); return; }
+    w.opts.push(v); $("addIn").value = ""; save(); renderOpts(); draw(); $("addIn").focus();
+    say(w.opts.length < 2 ? "עוד שם אחד ומסובבים" : w.opts.length + " בגלגל", w.opts.length < 2 ? v + " בפנים 👍" : "מוכנים לסובב!");
+  });
+
+  $("noRepeat").addEventListener("change", function () { var w = wheel(); w.noRepeat = $("noRepeat").checked; w.out = []; save(); renderOpts(); draw(); });
+  $("sound").checked = st.sound !== false;
+  $("sound").addEventListener("change", function () { st.sound = $("sound").checked; save(); });
+  $("clearAll").addEventListener("click", function (e) {
+    var b = e.currentTarget;
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "ללחוץ שוב"; setTimeout(function () { delete b.dataset.armed; b.textContent = "לנקות הכול"; }, 2500); return; }
+    var w = wheel(); w.opts = []; w.out = []; w.hist = []; save(); all(); say("הגלגל ריק", "מוסיפים שמות למטה");
+  });
+  $("copy").addEventListener("click", function () {
+    var t = "🎡 מי שוטף כלים היום? " + $("resText").textContent + " (הגלגל החליט, אין ערעורים)";
+    var ok = function () { $("copy").textContent = "הועתק ✓"; setTimeout(function () { $("copy").textContent = "להעתיק לוואטסאפ"; }, 1600); };
+    try { navigator.clipboard.writeText(t).then(ok, function () {}); } catch (e) {}
+  });
+  if (document.fonts && document.fonts.load) document.fonts.load("600 40px Fredoka").then(draw, draw);
+  all();
+  if (wheel().opts.length < 2) say("הגלגל ריק", "מוסיפים שמות למטה"); else say("הגלגל מחכה", "מי ישטוף היום?");
+})();
+</script>
