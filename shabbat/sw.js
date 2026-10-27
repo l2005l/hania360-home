@@ -1,6 +1,6 @@
 // HaniaShabbat offline: the page from the network when there is one, from the cache when not.
 // Candle-lighting reminders arrive as an empty push; the message waits on the server.
-const C = "haniashabbat-v1", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js", "/hebcal.js"];
+const C = "haniashabbat-v2", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js", "/hebcal.js", "/parasha.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(C).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", (e) => {
