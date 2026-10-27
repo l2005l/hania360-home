@@ -1,0 +1,221 @@
+<title>HaniaShabbat</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: a Friday evening. One candle card with this week's times, then the weeks ahead, then reminders. Warm dark, single look. */
+:root{
+  --night:#1A130E; --night-2:#251B14; --wax:#FFF4DF; --flame:#F7B548; --ember:#E8743B; --muted:#C9B497; --line:rgba(255,236,200,.14); --card:rgba(255,236,200,.05);
+  --display:"Frank Ruhl Libre","David","Times New Roman",serif; --body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--night);color:var(--wax)}
+body{direction:rtl;margin:0;font-family:var(--body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px;
+  background:radial-gradient(60% 40% at 50% 0%,rgba(247,181,72,.20),transparent 70%),var(--night);background-attachment:fixed}
+.wrap{max-width:560px;margin:0 auto;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{font-family:var(--display);font-weight:900;font-size:26px;display:flex;align-items:center;gap:8px}
+.logo b{color:var(--flame);font-weight:900}
+.logo svg{width:28px;height:28px}
+.city{margin-inline-start:auto;appearance:none;border:1px solid var(--line);background:var(--card);color:var(--wax);border-radius:99px;padding:6px 14px;font:inherit;font-weight:600;cursor:pointer}
+.candle{position:relative;overflow:hidden;border-radius:28px;padding:22px 20px;background:linear-gradient(170deg,var(--night-2),#120D09);border:1px solid var(--line);display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.flames{position:absolute;inset-block-start:16px;inset-inline-end:18px;display:flex;gap:16px}
+.flames span{width:16px;height:64px;border-radius:4px;background:linear-gradient(var(--wax),#E9D7B5);position:relative;margin-top:26px}
+.flames span::before{content:"";position:absolute;bottom:100%;left:50%;width:14px;height:24px;margin-left:-7px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:radial-gradient(circle at 50% 70%,#FFF8D0,var(--flame) 45%,var(--ember) 80%);box-shadow:0 0 22px 6px rgba(247,181,72,.45);animation:flick 2.4s ease-in-out infinite;transform-origin:50% 100%}
+.flames span:nth-child(2)::before{animation-delay:-1.1s}
+@keyframes flick{25%{transform:scale(1.06,.94) rotate(-2deg)}50%{transform:scale(.95,1.06) rotate(2deg)}75%{transform:scale(1.03,.97)}}
+.eyebrow{font-weight:700;font-size:13px;letter-spacing:.06em;color:var(--muted)}
+.parasha{font-family:var(--display);font-weight:900;font-size:clamp(30px,8.5vw,42px);line-height:1.1;margin:0;max-width:75%}
+.hdate{color:var(--muted);font-size:15px}
+.times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.time{border:1px solid var(--line);border-radius:18px;padding:12px 14px;background:rgba(0,0,0,.18)}
+.time small{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.time b{display:block;font-family:var(--display);font-weight:900;font-size:40px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--flame)}
+.time span{font-size:13px;color:var(--muted)}
+.count{font-size:15px;color:var(--wax);font-weight:600}
+.count b{color:var(--flame)}
+.chag{border-radius:14px;padding:8px 12px;background:rgba(232,116,59,.16);border:1px solid rgba(232,116,59,.4);font-weight:600;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.card h2{margin:0;font-family:var(--display);font-weight:700;font-size:22px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h2 small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:500}
+.weeks{display:grid;margin:0;padding:0;list-style:none}
+.weeks li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 14px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
+.weeks li:first-child{border-top:0}
+.weeks b{font-family:var(--display);font-weight:700;font-size:18px}
+.weeks small{grid-column:1;color:var(--muted);font-size:13px}
+.weeks .t{font-variant-numeric:tabular-nums;font-weight:700;color:var(--flame);text-align:left}
+.weeks .t i{display:block;font-style:normal;font-size:11px;color:var(--muted);font-weight:500;text-align:left}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--wax);border-radius:12px;padding:8px 12px;font:inherit;font-weight:600;font-size:14.5px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--flame);border-color:var(--flame);color:#2A1A08}
+.chip:focus-visible,.city:focus-visible{outline:3px solid var(--flame);outline-offset:2px}
+.fine{font-size:12.5px;color:var(--muted);margin:0}
+.fine a{color:var(--muted)}
+.ok{color:#9FE0B0}
+select,input{font:inherit;font-size:16px;border:1px solid var(--line);background:#120D09;color:var(--wax);border-radius:12px;padding:10px 12px;width:100%}
+.sheet{position:fixed;inset:auto 0 0 0;z-index:30;background:#21180F;border-radius:24px 24px 0 0;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:12px;max-width:600px;margin:0 auto;max-height:80vh;overflow:auto;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:29}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--wax);color:var(--night);padding:10px 16px;border-radius:12px;font-weight:600;z-index:40;max-width:90%}
+@media (prefers-reduced-motion:reduce){.flames span::before{animation:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="logo"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="7" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><rect x="16" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><path d="M9.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5zM18.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5z" fill="#F7B548"/></svg><span>Hania<b>Shabbat</b></span></div>
+    <button class="city" type="button" id="cityBtn">📍 …</button>
+  </header>
+
+  <section class="candle" aria-live="polite">
+    <div class="flames" aria-hidden="true"><span></span><span></span></div>
+    <span class="eyebrow" id="wkLabel">השבת הקרובה</span>
+    <h1 class="parasha" id="parasha">…</h1>
+    <span class="hdate" id="hdate"></span>
+    <div class="chag" id="chag" hidden></div>
+    <div class="times">
+      <div class="time"><small>🕯️ הדלקת נרות</small><b id="tCandles">--:--</b><span id="tCandlesDay"></span></div>
+      <div class="time"><small>✨ צאת שבת</small><b id="tHavdalah">--:--</b><span id="tHavdalahDay"></span></div>
+    </div>
+    <div class="count" id="count"></div>
+  </section>
+
+  <section class="card">
+    <h2>⏰ תזכורת לפני הדלקת נרות <small id="rmState"></small></h2>
+    <div class="chips" id="rmChips"></div>
+    <p class="fine" id="rmNote">התראה לטלפון לפני כל שבת וחג, גם כשהאפליקציה סגורה.</p>
+  </section>
+
+  <section class="card">
+    <h2>השבתות הבאות <small id="cityNote"></small></h2>
+    <ul class="weeks" id="weeks"></ul>
+  </section>
+
+  <section class="card">
+    <h2>הגדרות</h2>
+    <label class="fine" style="font-size:14px;display:grid;gap:6px">צאת שבת לפי
+      <select id="havMode"><option value="deg">צאת הכוכבים (כמקובל בלוחות)</option><option value="72">רבנו תם (72 דקות אחרי השקיעה)</option></select></label>
+    <p class="fine">הזמנים מחושבים לפי מיקום העיר, בעזרת <a href="https://www.hebcal.com/" target="_blank" rel="noopener">Hebcal</a> (CC BY 4.0). הדלקת נרות 18 דקות לפני השקיעה, בירושלים 40 ובחיפה 30. כדאי לבדוק מול לוח הקהילה שלכם.</p>
+  </section>
+</div>
+<div id="sheetHost"></div>
+
+<script src="/hebcal.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  // Israeli towns: name, latitude, longitude, candle-lighting minutes before sunset.
+  var CITIES = [["ירושלים", 31.778, 35.235, 40], ["תל אביב", 32.08, 34.78, 18], ["חיפה", 32.794, 34.99, 30], ["באר שבע", 31.252, 34.791, 18], ["נתיבות", 31.42, 34.59, 18], ["אשדוד", 31.804, 34.655, 18], ["אשקלון", 31.669, 34.574, 18], ["שדרות", 31.525, 34.596, 18], ["אופקים", 31.314, 34.62, 18], ["דימונה", 31.069, 35.034, 18], ["אילת", 29.557, 34.952, 18], ["בני ברק", 32.084, 34.834, 18], ["פתח תקווה", 32.087, 34.887, 18], ["רמת גן", 32.068, 34.824, 18], ["ראשון לציון", 31.964, 34.804, 18], ["חולון", 32.011, 34.775, 18], ["בת ים", 32.017, 34.75, 18], ["רחובות", 31.894, 34.811, 18], ["נס ציונה", 31.93, 34.799, 18], ["לוד", 31.951, 34.888, 18], ["רמלה", 31.928, 34.866, 18], ["מודיעין", 31.898, 35.01, 18], ["מודיעין עילית", 31.933, 35.043, 18], ["בית שמש", 31.747, 34.988, 18], ["ביתר עילית", 31.698, 35.115, 18], ["מעלה אדומים", 31.777, 35.298, 18], ["אריאל", 32.105, 35.171, 18], ["כפר סבא", 32.175, 34.907, 18], ["רעננה", 32.184, 34.871, 18], ["הרצליה", 32.166, 34.844, 18], ["נתניה", 32.33, 34.857, 18], ["חדרה", 32.434, 34.919, 18], ["זכרון יעקב", 32.571, 34.952, 30], ["קריית אתא", 32.806, 35.106, 18], ["עכו", 32.928, 35.077, 18], ["נהריה", 33.006, 35.098, 18], ["כרמיאל", 32.919, 35.296, 18], ["צפת", 32.965, 35.496, 18], ["טבריה", 32.795, 35.531, 18], ["עפולה", 32.607, 35.29, 18], ["נצרת עילית (נוף הגליל)", 32.709, 35.327, 18], ["קריית שמונה", 33.208, 35.571, 18], ["אלעד", 32.052, 34.952, 18], ["קריית גת", 31.61, 34.764, 18], ["יבנה", 31.878, 34.739, 18]];
+  var KEY = "haniashabbat-v1", S;
+  try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || { city: "ירושלים", hav: "deg", before: 0 };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function toast(t) { var x = document.createElement("div"); x.className = "toast"; x.textContent = t; document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  var HB = window.HB;
+  var hm = function (d) { return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" }); };
+  var day = function (d) { return d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Asia/Jerusalem" }); };
+  var strip = function (s) { return String(s).replace(/[֑-ׇ]/g, ""); };
+
+  function place() {
+    if (S.city === "__here" && S.here) return { name: "המיקום שלי", lat: S.here.lat, lon: S.here.lon, b: 18 };
+    var c = CITIES.find(function (x) { return x[0] === S.city; }) || CITIES[0];
+    return { name: c[0], lat: c[1], lon: c[2], b: c[3] };
+  }
+
+  // Candle lightings and their endings for the next ~10 weeks, Shabbat and festivals together.
+  function upcoming(weeks) {
+    var p = place(), loc = new HB.Location(p.lat, p.lon, true, "Asia/Jerusalem", p.name, "IL");
+    var start = new Date(Date.now() - 36 * 3600e3), end = new Date(Date.now() + weeks * 7 * 864e5);
+    var opts = { start: start, end: end, location: loc, candlelighting: true, sedrot: true, il: true, candleLightingMins: p.b };
+    if (S.hav === "72") opts.havdalahMins = 72; else opts.havdalahDeg = 8.5;
+    var ev = HB.HebrewCalendar.calendar(opts), out = [], cur = null;
+    ev.forEach(function (e) {
+      var f = e.getFlags(), desc = e.getDesc ? e.getDesc() : "";
+      if (f & HB.flags.LIGHT_CANDLES || /^Candle lighting/.test(desc)) {
+        if (!cur || cur.end) { cur = { candles: e.eventTime, label: [], end: null }; out.push(cur); }
+        else if (!cur.candles2) cur.candles2 = e.eventTime;
+      } else if (/^Havdalah/.test(desc)) { if (cur) cur.end = e.eventTime; }
+      else if (f & HB.flags.PARSHA_HASHAVUA) { if (cur && !cur.end) cur.parasha = strip(e.render("he")); }
+      else if (cur && !cur.end && (f & (HB.flags.CHAG | HB.flags.EREV | HB.flags.MAJOR_FAST))) cur.label.push(strip(e.render("he")));
+    });
+    return out.filter(function (w) { return w.end && w.end.getTime() > Date.now(); });
+  }
+
+  function render() {
+    var p = place(), list = upcoming(10), w = list[0];
+    $("cityBtn").textContent = "📍 " + p.name; $("cityNote").textContent = p.name;
+    if (!w) return;
+    var isChag = w.label.length && !w.parasha;
+    $("wkLabel").textContent = isChag ? "החג הקרוב" : "השבת הקרובה";
+    $("parasha").textContent = w.parasha ? w.parasha : w.label[0] || "שבת";
+    var hd = new HB.HDate(w.end); $("hdate").textContent = "שבת, " + strip(hd.renderGematriya ? hd.renderGematriya() : hd.render("he"));
+    $("chag").hidden = !w.label.length || isChag; $("chag").textContent = w.label.join(" · ");
+    $("tCandles").textContent = hm(w.candles); $("tCandlesDay").textContent = day(w.candles);
+    $("tHavdalah").textContent = hm(w.end); $("tHavdalahDay").textContent = day(w.end);
+    var now = Date.now(), left = w.candles - now;
+    $("count").innerHTML = "";
+    if (left > 0) { var d = Math.floor(left / 864e5), h = Math.floor(left / 36e5) % 24, m = Math.floor(left / 6e4) % 60; $("count").append("עוד ", el("b", (d ? (d === 1 ? "יום" : d + " ימים") + (h ? " ו־" + (h === 1 ? "שעה" : h + " שעות") : "") : h ? (h === 1 ? "שעה" : h + " שעות") + " ו־" + m + " דקות" : m + " דקות")), " להדלקת נרות"); }
+    else $("count").append(el("b", "שבת שלום 🕯️"), " · יוצאים ב־" + hm(w.end));
+    $("weeks").replaceChildren.apply($("weeks"), list.slice(1, 9).map(function (x) {
+      return el("li", null, [el("b", x.parasha || x.label[0] || "שבת"), el("span", { class: "t" }, [hm(x.candles), el("i", "הדלקה")]), el("span", { class: "t" }, [hm(x.end), el("i", "יציאה")]), el("small", day(x.candles) + (x.label.length && x.parasha ? " · " + x.label.join(", ") : ""))]);
+    }));
+    renderRemind(list);
+  }
+  function el(tag, a, kids) {
+    if (typeof a === "string") return Object.assign(document.createElement(tag), { textContent: a });
+    var e = document.createElement(tag); Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); });
+    (kids || []).forEach(function (k) { e.append(k); }); return e;
+  }
+
+  // ---- city ---------------------------------------------------------------------------
+  $("cityBtn").addEventListener("click", function () {
+    var host = $("sheetHost");
+    host.innerHTML = '<div class="scrim"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="בחירת עיר"><h2 style="margin:0;font-family:var(--display)">באיזו עיר?</h2><button class="chip" type="button" id="here">📍 לפי המיקום שלי</button><div class="chips" id="cityList"></div></div>';
+    var close = function () { host.textContent = ""; };
+    host.querySelector(".scrim").addEventListener("click", close);
+    $("cityList").replaceChildren.apply($("cityList"), CITIES.map(function (c) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(S.city === c[0]) }, [c[0]]); b.addEventListener("click", function () { S.city = c[0]; save(); close(); render(); resync(); }); return b; }));
+    $("here").addEventListener("click", function () {
+      if (!navigator.geolocation) return toast("אין מיקום בטלפון הזה");
+      navigator.geolocation.getCurrentPosition(function (pos) { S.city = "__here"; S.here = { lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3) }; save(); close(); render(); resync(); }, function () { toast("לא קיבלנו מיקום. בוחרים עיר מהרשימה."); }, { timeout: 12000 });
+    });
+  });
+  $("havMode").value = S.hav; $("havMode").addEventListener("change", function () { S.hav = $("havMode").value; save(); render(); resync(); });
+
+  // ---- reminders (Web Push) ----------------------------------------------------------------
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  function renderRemind() {
+    $("rmChips").replaceChildren.apply($("rmChips"), [[0, "בלי"], [30, "חצי שעה לפני"], [60, "שעה לפני"], [120, "שעתיים לפני"]].map(function (o) {
+      var b = el("button", { type: "button", class: "chip", "aria-pressed": String((S.before || 0) === o[0]) }, [o[1]]);
+      b.addEventListener("click", function () { setBefore(o[0]); }); return b;
+    }));
+    $("rmState").textContent = S.before ? "✓ פעיל" : "";
+    $("rmNote").textContent = !canPush ? (IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaShabbat למסך הבית (שיתוף ← הוספה למסך הבית), ואז אפשר להפעיל תזכורות." : "הדפדפן הזה לא תומך בהתראות.") : S.before ? "תגיע התראה " + (S.before === 60 ? "שעה" : S.before === 120 ? "שעתיים" : "חצי שעה") + " לפני כל הדלקת נרות, גם כשהאפליקציה סגורה." : "התראה לטלפון לפני כל שבת וחג, גם כשהאפליקציה סגורה.";
+  }
+  function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
+  function items() { return upcoming(10).map(function (w) { return { t: w.candles.getTime(), label: w.parasha ? "פרשת " + w.parasha.replace(/^פרשת\s*/, "") : (w.label[0] || "שבת") }; }); }
+  function getSub(create) {
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (s) {
+        if (s || !create) return s;
+        return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); });
+      });
+    });
+  }
+  function setBefore(min) {
+    if (!min) { S.before = 0; save(); renderRemind(); if (canPush) getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint }); }).catch(function () {}); toast("התזכורות כבויות"); return; }
+    if (!canPush) { toast($("rmNote").textContent); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+      return getSub(true).then(function (s) { return api("sub", { sub: s.toJSON(), before: min, city: place().name, items: items() }); }).then(function (j) {
+        if (!j.ok) throw new Error("x"); S.before = min; save(); renderRemind(); toast("🕯️ התזכורת מוגדרת");
+      });
+    }).catch(function () { toast("לא הצלחנו להפעיל תזכורות"); });
+  }
+  // Keeps the server's list of times fresh (city, Havdalah choice, the next weeks).
+  function resync() { if (!S.before || !canPush) return; getSub(false).then(function (s) { if (s) api("sub", { sub: s.toJSON(), before: S.before, city: place().name, items: items() }); }).catch(function () {}); }
+
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
+  render(); resync();
+  setInterval(render, 60000);
+})();
+</script>
