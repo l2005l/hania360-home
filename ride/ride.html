@@ -1,0 +1,303 @@
+<title>HaniaRide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<style>
+/* Layout: a school week on a fridge whiteboard. Today first, then the week grid of legs, then fairness and settings. */
+:root{
+  --board:#F2F5F4; --card:#FFFFFF; --ink:#13302B; --muted:#5E7571; --line:#D9E3E0; --bus:#FF8A1F; --bus-deep:#D96A00; --road:#13302B; --ok:#10AC84; --help:#EE5253; --soft:#E9F0EE;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--board:#0E1A18;--card:#152522;--ink:#E7F2EF;--muted:#9AB2AD;--line:#26403B;--soft:#1B2F2B;--road:#E7F2EF;color-scheme:dark}}
+:root[data-theme="dark"]{--board:#0E1A18;--card:#152522;--ink:#E7F2EF;--muted:#9AB2AD;--line:#26403B;--soft:#1B2F2B;--road:#E7F2EF;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--board);color:var(--ink)}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+.wrap{max-width:620px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:24px;letter-spacing:-.01em}
+.logo b{color:var(--bus)}
+.logo svg{width:34px;height:34px}
+header .act{margin-inline-start:auto}
+h1,h2{margin:0;text-wrap:balance}
+h1{font-size:clamp(24px,7vw,32px);font-weight:900;line-height:1.15}
+h2{font-size:19px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:8px}
+h2 small{font-size:13px;color:var(--muted);font-weight:500}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.muted{color:var(--muted)}.fine{font-size:13px;color:var(--muted);margin:0}
+.btn{appearance:none;border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:800;font-size:17px;background:var(--bus);color:#fff;cursor:pointer;box-shadow:0 4px 0 var(--bus-deep)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--bus-deep)}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:none;border:1.5px solid var(--line);font-size:14.5px;padding:8px 12px;font-weight:700}
+.btn:focus-visible,.cell:focus-visible,.chip:focus-visible{outline:3px solid var(--bus);outline-offset:2px}
+input,select{font:inherit;font-size:16px;border:1.5px solid var(--line);background:var(--board);color:var(--ink);border-radius:12px;padding:10px 12px;min-width:0;width:100%}
+textarea{font:inherit;font-size:16px;border:1.5px solid var(--line);background:var(--board);color:var(--ink);border-radius:12px;padding:10px 12px;width:100%;min-height:110px}
+label.f{display:grid;gap:5px;font-size:14px;font-weight:600;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{appearance:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+/* today */
+.today{background:var(--road);color:var(--board);border:0}
+.today .muted{color:color-mix(in srgb,var(--board) 70%,transparent)}
+.trow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--board) 10%,transparent)}
+.trow .t{font-weight:900;font-size:22px;font-variant-numeric:tabular-nums;min-width:62px}
+.trow .who{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px}
+.dot{width:14px;height:14px;border-radius:50%;flex:none}
+.me-badge{margin-inline-start:auto;background:var(--bus);color:#fff;border-radius:99px;padding:3px 10px;font-weight:800;font-size:13px}
+/* help */
+.helpbar{display:flex;align-items:center;gap:10px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--help) 12%,var(--card));border:1.5px solid color-mix(in srgb,var(--help) 50%,var(--line))}
+.helpbar span{flex:1;font-weight:600}
+/* week */
+.weeknav{display:flex;align-items:center;gap:8px}
+.weeknav b{flex:1;text-align:center;font-size:16px}
+.grid{display:grid;gap:6px}
+.day{display:grid;grid-template-columns:76px repeat(var(--legs),minmax(0,1fr));gap:6px;align-items:stretch}
+.day .d{display:grid;align-content:center;padding:6px 4px;border-radius:12px;font-weight:800;line-height:1.2}
+.day .d small{font-weight:500;color:var(--muted);font-size:12px}
+.day.today-row .d{background:var(--ink);color:var(--board)}.day.today-row .d small{color:inherit;opacity:.8}
+.day.off .cell{opacity:.35}
+.headrow{display:grid;grid-template-columns:76px repeat(var(--legs),minmax(0,1fr));gap:6px;font-size:12.5px;color:var(--muted);font-weight:700;text-align:center}
+.cell{appearance:none;border:1.5px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:8px 6px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;min-height:48px;display:grid;place-items:center;text-align:center;line-height:1.2;position:relative}
+.cell.set{border-style:solid;color:#fff;border-color:transparent}
+.cell.mine{box-shadow:0 0 0 3px var(--ink) inset}
+.cell .h{position:absolute;top:-6px;inset-inline-start:-4px;background:var(--help);color:#fff;border-radius:99px;font-size:11px;padding:1px 6px}
+.cell.none{border:0;cursor:default;opacity:.25}
+.stats{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:110px minmax(0,1fr) 30px;gap:8px;align-items:center;font-weight:700;font-size:14.5px}
+.bar .tr{height:12px;border-radius:8px;background:var(--soft);overflow:hidden}.bar .tr i{display:block;height:100%;border-radius:8px}
+.bar span:last-child{text-align:left;font-variant-numeric:tabular-nums}
+.legrow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:8px}
+.daypick{display:flex;gap:4px;flex-wrap:wrap}
+.daypick button{appearance:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;width:36px;height:34px;font:inherit;font-weight:700;cursor:pointer}
+.daypick button[aria-pressed="true"]{background:var(--ink);color:var(--board);border-color:var(--ink)}
+.famrow{display:flex;align-items:center;gap:8px}
+.famrow input{flex:1}
+.famrow button{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer}
+.sheet{position:fixed;inset:auto 0 0 0;z-index:30;background:var(--card);color:var(--ink);border-radius:22px 22px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:10px;max-width:620px;margin:0 auto;max-height:82vh;overflow:auto;box-shadow:0 -20px 50px rgba(0,0,0,.3)}
+.scrim{position:fixed;inset:0;background:rgba(10,20,18,.5);z-index:29}
+.pickf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pickf button{appearance:none;border:0;border-radius:14px;padding:14px 10px;font:inherit;font-weight:800;font-size:16px;color:#fff;cursor:pointer}
+.pickf button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--board);padding:10px 16px;border-radius:12px;font-weight:600;z-index:40;max-width:90%}
+.hero{text-align:center;display:grid;gap:8px;justify-items:center;padding:6px 0}
+.hero p{margin:0;max-width:460px}
+@media (max-width:420px){.day,.headrow{grid-template-columns:62px repeat(var(--legs),minmax(0,1fr))}.cell{font-size:13px}.bar{grid-template-columns:90px minmax(0,1fr) 26px}}
+</style>
+
+<div class="wrap">
+  <header><div class="logo"><svg viewBox="0 0 34 34" aria-hidden="true"><rect x="3" y="7" width="28" height="18" rx="5" fill="#FF8A1F"/><rect x="6" y="10" width="7" height="6" rx="1.5" fill="#fff"/><rect x="15" y="10" width="7" height="6" rx="1.5" fill="#fff"/><rect x="24" y="10" width="4" height="6" rx="1.5" fill="#fff"/><circle cx="10" cy="26" r="3.5" fill="#13302B"/><circle cx="24" cy="26" r="3.5" fill="#13302B"/></svg><span>Hania<b>Ride</b></span></div><button class="btn ghost act" type="button" id="shareBtn" hidden>📤 שיתוף</button></header>
+
+  <!-- create -->
+  <section id="vNew">
+    <div class="hero"><h1>תורנות הסעות, בלי בלגן בוואטסאפ</h1><p class="muted">לוח אחד לכל ההורים: מי מסיע מתי, חלוקה הוגנת בלחיצה, ובקשה למחליף שמגיעה לכולם.</p></div>
+    <form class="card" id="newForm">
+      <label class="f">שם הקבוצה<input id="nName" maxlength="40" placeholder="למשל: הסעות לגן רימון"></label>
+      <label class="f">המשפחות, שם בכל שורה<textarea id="nFams" placeholder="אבא של נועה&#10;אמא של יואב&#10;משפחת כהן"></textarea></label>
+      <div class="legrow"><label class="f">הלוך, בשעה<input id="nT0" type="time" value="07:30"></label><label class="f">חזור, בשעה<input id="nT1" type="time" value="13:00"></label></div>
+      <div class="chips"><label class="chip"><input type="checkbox" id="nFri" style="width:auto"> גם ביום שישי</label><label class="chip"><input type="checkbox" id="nNoBack" style="width:auto"> רק הלוך</label></div>
+      <button class="btn" type="submit" id="nGo">ליצור לוח 🚗</button>
+      <p class="fine" id="nErr" hidden></p>
+    </form>
+    <div class="card" id="mine" hidden><h2>הקבוצות שלי</h2><div class="chips" id="mineList"></div></div>
+  </section>
+
+  <!-- group -->
+  <section id="vGroup" hidden>
+    <div class="wrap" style="max-width:none">
+      <h1 id="gName"></h1>
+      <div class="card"><h2>מי אני? <small>כדי לסמן את הנסיעות שלך ולשלוח תזכורות</small></h2><div class="chips" id="meChips"></div></div>
+      <div class="card today" id="todayCard"></div>
+      <div id="helps" style="display:grid;gap:8px"></div>
+      <div class="card">
+        <div class="weeknav"><button class="btn ghost" type="button" id="prevW" aria-label="שבוע קודם">→</button><b id="weekLabel"></b><button class="btn ghost" type="button" id="nextW" aria-label="שבוע הבא">←</button></div>
+        <div class="headrow" id="headrow"></div>
+        <div class="grid" id="grid"></div>
+        <div class="chips"><button class="btn ghost" type="button" id="fill">⚖️ מילוי הוגן לשבוע</button><button class="btn ghost" type="button" id="waWeek">💬 לשלוח את השבוע</button><button class="btn ghost" type="button" id="clearW">ניקוי השבוע</button></div>
+        <p class="fine">לוחצים על משבצת כדי לבחור מי מסיע, לבקש מחליף או לסמן שאין הסעה.</p>
+      </div>
+      <div class="card"><h2>כמה כל אחד הסיע <small>4 השבועות האחרונים והשבוע</small></h2><div class="stats" id="stats"></div></div>
+      <details class="card"><summary style="cursor:pointer;font-weight:800">⚙️ הגדרות</summary>
+        <h2>תזכורות</h2>
+        <p class="fine" id="pushNote">בערב שלפני (ב־20:00) מגיעה התראה למי שמסיע מחר, וכשמישהו מבקש מחליף כולם מקבלים התראה.</p>
+        <button class="btn ghost" type="button" id="pushBtn">🔔 להפעיל תזכורות בטלפון הזה</button>
+        <h2>המשפחות</h2><div id="famEdit" style="display:grid;gap:6px"></div>
+        <form class="famrow" id="famAdd"><input id="famNew" maxlength="24" placeholder="משפחה חדשה"><button class="btn ghost" type="submit">הוספה</button></form>
+        <h2>הנסיעות</h2><div id="legEdit" style="display:grid;gap:10px"></div><button class="btn ghost" type="button" id="legSave">שמירת הנסיעות</button>
+        <label class="f">שם הקבוצה<input id="gNameEdit" maxlength="40"></label>
+        <p class="fine">כל מי שיש לו את הקישור רואה ומשנה את הלוח. שולחים אותו רק להורים בקבוצה.</p>
+      </details>
+    </div>
+  </section>
+</div>
+<div id="sheetHost"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), a[k]); else if (k === "text") e.textContent = a[k]; else if (k === "style") e.style.cssText = a[k]; else e.setAttribute(k, a[k]); }); (kids || []).forEach(function (c) { if (c != null) e.append(typeof c === "string" ? document.createTextNode(c) : c); }); return e; }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  var ls = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  var DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"], DS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+  var addDays = function (d, n) { return new Date(Date.parse(d + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10); };
+  var wd = function (d) { return new Date(d + "T12:00:00Z").getUTCDay(); };
+  var dm = function (d) { return +d.slice(8) + "." + +d.slice(5, 7); };
+  function api(path, body) { return fetch("/api/ride/" + path + (body ? "" : "?g=" + G), body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ g: G }, body)) } : {}).then(function (r) { return r.json(); }); }
+
+  // ---- create ---------------------------------------------------------------------------
+  $("newForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var fams = $("nFams").value.split(/\n|,/).map(function (s) { return s.trim(); }).filter(Boolean);
+    if (fams.length < 2) { $("nErr").hidden = false; $("nErr").textContent = "צריך לפחות שתי משפחות."; return; }
+    var days = $("nFri").checked ? [0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4];
+    var legs = [{ label: "הלוך", time: $("nT0").value, days: days }]; if (!$("nNoBack").checked) legs.push({ label: "חזור", time: $("nT1").value, days: days });
+    $("nGo").disabled = true;
+    fetch("/api/ride/new", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: $("nName").value, fams: fams, legs: legs }) }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.id) throw new Error("x");
+      remember(j.id, $("nName").value || "ההסעות שלנו"); location.hash = j.id; toast("הלוח מוכן, עם חלוקה הוגנת לשבוע הזה");
+    }).catch(function () { $("nGo").disabled = false; $("nErr").hidden = false; $("nErr").textContent = "משהו השתבש. בודקים שיש אינטרנט ומנסים שוב."; });
+  });
+  // The service worker reads the groups from here to find what a reminder is about.
+  function rememberForWorker(ids) { try { caches.open("ride-meta").then(function (c) { c.put("/ride-groups", new Response(JSON.stringify(ids))); }); } catch (e) {} }
+  function remember(id, name) { var m = []; try { m = JSON.parse(ls.get("ride-groups") || "[]"); } catch (e) {} m = m.filter(function (x) { return x.id !== id; }); m.unshift({ id: id, name: name }); ls.set("ride-groups", JSON.stringify(m.slice(0, 8))); rememberForWorker(m.slice(0, 8).map(function (x) { return x.id; })); }
+
+  // ---- group ---------------------------------------------------------------------------
+  var G = "", S = null, week = null, me = "";
+  function load() { return api("state").then(function (j) { if (j.error) { show("vNew"); toast("הקבוצה לא נמצאה"); return; } S = j; remember(G, j.name); if (!week) week = addDays(j.today, -wd(j.today)); render(); }); }
+  function op(body, msg) { return api("op", body).then(function (j) { if (j.error) { toast("לא נשמר"); return; } S = j; render(); if (msg) toast(msg); }).catch(function () { toast("אין חיבור כרגע"); }); }
+  function show(v) { $("vNew").hidden = v !== "vNew"; $("vGroup").hidden = v !== "vGroup"; $("shareBtn").hidden = v !== "vGroup"; }
+  function famDot(f) { return el("span", { class: "dot", style: "background:" + (S.fams[f] ? S.fams[f].color : "#999") }); }
+  function legOn(leg, d) { return leg.days.indexOf(wd(d)) >= 0; }
+
+  function render() {
+    show("vGroup");
+    $("gName").textContent = "🚗 " + S.name; if (document.activeElement !== $("gNameEdit")) $("gNameEdit").value = S.name;
+    me = ls.get("ride-me-" + G) || ""; if (me && !S.fams[me]) me = "";
+    $("meChips").replaceChildren.apply($("meChips"), Object.keys(S.fams).map(function (f) { return el("button", { type: "button", class: "chip", "aria-pressed": String(me === f), onclick: function () { ls.set("ride-me-" + G, me === f ? "" : f); render(); } }, [el("i", { style: "background:" + S.fams[f].color }), S.fams[f].name]); }));
+    renderToday(); renderHelps(); renderWeek(); renderStats(); renderSettings();
+  }
+  function renderToday() {
+    var c = $("todayCard"), now = new Date(), hhmm = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+    // After the last leg of the day, show tomorrow.
+    var day = S.today, legsToday = S.legs.filter(function (l) { return legOn(l, day); });
+    var lastTime = legsToday.length ? legsToday[legsToday.length - 1].time : "00:00";
+    if (!legsToday.length || hhmm > lastTime || S.off[day]) { day = addDays(day, 1); for (var n = 0; n < 21 && (!S.legs.some(function (l) { return legOn(l, day); }) || S.off[day]); n++) day = addDays(day, 1); }
+    var title = day === S.today ? "היום" : day === addDays(S.today, 1) ? "מחר" : "יום " + DAYS[wd(day)];
+    var rows = S.legs.filter(function (l) { return legOn(l, day); }).map(function (l) {
+      var f = S.plan[day + "|" + l.id];
+      return el("div", { class: "trow" }, [el("span", { class: "t", text: l.time }), el("span", { class: "muted", text: l.label }), el("span", { class: "who" }, f ? [famDot(f), S.fams[f].name] : ["❔ עוד לא נקבע"]), f && f === me ? el("span", { class: "me-badge", text: "את/ה!" }) : null]);
+    });
+    c.replaceChildren(el("h2", {}, [title + " · " + dm(day), el("small", { class: "muted", text: DAYS[wd(day)] })]), rows.length ? el("div", { style: "display:grid;gap:8px" }, rows) : el("p", { class: "muted", text: "אין הסעות" }));
+  }
+  function renderHelps() {
+    var list = Object.keys(S.help).filter(function (k) { return k.split("|")[0] >= S.today; }).sort();
+    $("helps").replaceChildren.apply($("helps"), list.map(function (k) {
+      var p = k.split("|"), leg = S.legs.find(function (l) { return l.id === p[1]; }) || { label: "", time: "" }, f = S.help[k];
+      var can = me && me !== f;
+      return el("div", { class: "helpbar" }, [el("span", { text: "🙋 " + (S.fams[f] ? S.fams[f].name : "") + " מחפש/ת מחליף: יום " + DAYS[wd(p[0])] + " " + dm(p[0]) + ", " + leg.label + " ב־" + leg.time }), can ? el("button", { class: "btn", type: "button", text: "אני מחליף/ה", onclick: function () { op({ op: "set", date: p[0], leg: p[1], fam: me }, "תודה! עודכן בלוח"); } }) : el("button", { class: "btn ghost", type: "button", text: me === f ? "ביטול הבקשה" : "לבחור מי", onclick: function () { if (me === f) op({ op: "help", date: p[0], leg: p[1] }); else openCell(p[0], S.legs.find(function (l) { return l.id === p[1]; })); } })]);
+    }));
+  }
+  function renderWeek() {
+    var legs = S.legs, days = [];
+    for (var i = 0; i < 7; i++) { var d = addDays(week, i); if (legs.some(function (l) { return legOn(l, d); })) days.push(d); }
+    $("weekLabel").textContent = dm(week) + " – " + dm(addDays(week, 6)) + (week === addDays(S.today, -wd(S.today)) ? " · השבוע" : "");
+    $("headrow").style.setProperty("--legs", legs.length);
+    $("headrow").replaceChildren.apply($("headrow"), [el("span")].concat(legs.map(function (l) { return el("span", { text: l.label + " " + l.time }); })));
+    $("grid").replaceChildren.apply($("grid"), days.map(function (d) {
+      var row = el("div", { class: "day" + (d === S.today ? " today-row" : "") + (S.off[d] ? " off" : "") });
+      row.style.setProperty("--legs", legs.length);
+      row.append(el("div", { class: "d" }, [DS[wd(d)] + " " + dm(d), el("small", { text: S.off[d] ? "אין הסעה" : DAYS[wd(d)] })]));
+      legs.forEach(function (l) {
+        if (!legOn(l, d)) { row.append(el("span", { class: "cell none", text: "–" })); return; }
+        var k = d + "|" + l.id, f = S.plan[k];
+        var b = el("button", { type: "button", class: "cell" + (f ? " set" : "") + (f && f === me ? " mine" : ""), "aria-label": DAYS[wd(d)] + " " + l.label + ": " + (f ? S.fams[f].name : "לא נקבע"), onclick: function () { openCell(d, l); } }, [f ? S.fams[f].name : "+", S.help[k] ? el("span", { class: "h", text: "מחליף?" }) : null]);
+        if (f) b.style.background = S.fams[f].color;
+        row.append(b);
+      });
+      return row;
+    }));
+  }
+  function openCell(d, l) {
+    var k = d + "|" + l.id, f = S.plan[k], host = $("sheetHost");
+    var close = function () { host.textContent = ""; };
+    var pick = el("div", { class: "pickf" }, Object.keys(S.fams).map(function (x) { var b = el("button", { type: "button", "aria-pressed": String(f === x), text: S.fams[x].name, onclick: function () { close(); op({ op: "set", date: d, leg: l.id, fam: x }); } }); b.style.background = S.fams[x].color; return b; }));
+    var sheet = el("div", { class: "sheet", role: "dialog", "aria-modal": "true" }, [
+      el("h2", {}, ["יום " + DAYS[wd(d)] + " " + dm(d) + " · " + l.label + " " + l.time, el("button", { class: "btn ghost", type: "button", text: "סגירה", onclick: close })]),
+      el("span", { class: "fine", text: "מי מסיע/ה?" }), pick,
+      f ? el("button", { class: "btn ghost", type: "button", text: S.help[k] ? "ביטול הבקשה למחליף" : "🙋 צריך/ה מחליף (כולם יקבלו התראה)", onclick: function () { close(); op({ op: "help", date: d, leg: l.id }, S.help[k] ? "הבקשה בוטלה" : "נשלח לכל ההורים"); } }) : null,
+      f ? el("button", { class: "btn ghost", type: "button", text: "לנקות את המשבצת", onclick: function () { close(); op({ op: "set", date: d, leg: l.id, fam: "" }); } }) : null,
+      el("button", { class: "btn ghost", type: "button", text: S.off[d] ? "יש הסעה ביום הזה" : "אין הסעה ביום הזה (חג, חופש)", onclick: function () { close(); op({ op: "off", date: d }); } }),
+    ]);
+    host.replaceChildren(el("div", { class: "scrim", onclick: close }), sheet);
+  }
+  function renderStats() {
+    var from = addDays(S.today, -28), to = addDays(week, 6), n = {}; Object.keys(S.fams).forEach(function (f) { n[f] = 0; });
+    Object.keys(S.plan).forEach(function (k) { var d = k.split("|")[0]; if (d >= from && d <= to && n[S.plan[k]] != null) n[S.plan[k]]++; });
+    var max = Math.max.apply(null, Object.values(n).concat([1]));
+    $("stats").replaceChildren.apply($("stats"), Object.keys(n).sort(function (a, b) { return n[b] - n[a]; }).map(function (f) { var i = el("i", { style: "width:" + (n[f] / max * 100) + "%;background:" + S.fams[f].color }); return el("div", { class: "bar" }, [el("span", { text: S.fams[f].name }), el("span", { class: "tr" }, [i]), el("span", { text: String(n[f]) })]); }));
+  }
+  function renderSettings() {
+    $("famEdit").replaceChildren.apply($("famEdit"), Object.keys(S.fams).map(function (f) {
+      var inp = el("input", { value: S.fams[f].name, maxlength: "24", "aria-label": "שם המשפחה" }); inp.addEventListener("change", function () { op({ op: "fam", id: f, name: inp.value }, "נשמר"); });
+      return el("div", { class: "famrow" }, [el("span", { class: "dot", style: "background:" + S.fams[f].color }), inp, el("button", { type: "button", "aria-label": "הסרה", text: "×", onclick: function (e) { var b = e.currentTarget; if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "בטוח?"; return; } op({ op: "fam", remove: f }, "הוסר"); } })]);
+    }));
+    $("legEdit").replaceChildren.apply($("legEdit"), S.legs.map(function (l, i) {
+      var days = el("div", { class: "daypick" }, [0, 1, 2, 3, 4, 5, 6].map(function (d) { return el("button", { type: "button", "aria-pressed": String(l.days.indexOf(d) >= 0), text: DS[d], onclick: function (e) { var b = e.currentTarget; b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true")); } }); }));
+      return el("div", { class: "card", style: "padding:10px", "data-leg": i }, [el("div", { class: "legrow" }, [el("input", { value: l.label, maxlength: "16", "data-k": "label", "aria-label": "שם הנסיעה" }), el("input", { type: "time", value: l.time, "data-k": "time", "aria-label": "שעה" })]), days]);
+    }));
+  }
+  $("legSave").addEventListener("click", function () {
+    var legs = Array.from($("legEdit").children).map(function (c) { return { label: c.querySelector('[data-k="label"]').value, time: c.querySelector('[data-k="time"]').value, days: Array.from(c.querySelectorAll(".daypick button")).map(function (b, d) { return b.getAttribute("aria-pressed") === "true" ? d : -1; }).filter(function (d) { return d >= 0; }) }; });
+    op({ op: "legs", legs: legs }, "הנסיעות נשמרו");
+  });
+  $("famAdd").addEventListener("submit", function (e) { e.preventDefault(); var v = $("famNew").value.trim(); if (!v) return; op({ op: "fam", name: v }, v + " נוסף/ה"); $("famNew").value = ""; });
+  $("gNameEdit").addEventListener("change", function () { op({ op: "name", name: $("gNameEdit").value }, "נשמר"); });
+  $("prevW").addEventListener("click", function () { week = addDays(week, -7); render(); });
+  $("nextW").addEventListener("click", function () { week = addDays(week, 7); render(); });
+  $("fill").addEventListener("click", function () { op({ op: "fill", week: week }, "השבוע מולא בצורה הוגנת ⚖️"); });
+  $("clearW").addEventListener("click", function (e) { var b = e.currentTarget; if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "בטוח? ללחוץ שוב"; return; } delete b.dataset.armed; b.textContent = "ניקוי השבוע"; op({ op: "clearweek", week: week }, "השבוע נוקה"); });
+  $("waWeek").addEventListener("click", function () {
+    var lines = ["🚗 " + S.name + " · שבוע " + dm(week) + "–" + dm(addDays(week, 6))];
+    for (var i = 0; i < 7; i++) { var d = addDays(week, i), parts = [];
+      S.legs.forEach(function (l) { if (!legOn(l, d)) return; var f = S.plan[d + "|" + l.id]; parts.push(l.label + " " + l.time + ": " + (f ? S.fams[f].name : "❔")); });
+      if (parts.length) lines.push("*" + DAYS[wd(d)] + " " + dm(d) + "*" + (S.off[d] ? " · אין הסעה" : "\n" + parts.join("\n")));
+    }
+    lines.push("", "הלוח המלא: " + location.origin + "/#" + G);
+    window.open("https://wa.me/?text=" + encodeURIComponent(lines.join("\n")), "_blank");
+  });
+  $("shareBtn").addEventListener("click", function () {
+    var text = "🚗 הצטרפו ללוח ההסעות \"" + S.name + "\": " + location.origin + "/#" + G;
+    if (navigator.share) navigator.share({ title: S.name, text: text }).catch(function () {}); else window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  });
+
+  // ---- reminders ---------------------------------------------------------------------------
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  $("pushBtn").addEventListener("click", function () {
+    if (!me) { toast("קודם בוחרים למעלה ״מי אני״"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) { toast(IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaRide למסך הבית" : "הדפדפן הזה לא תומך בהתראות"); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+      return Promise.all([navigator.serviceWorker.ready, api("key")]).then(function (x) {
+        var reg = x[0], k = x[1].key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+        return reg.pushManager.getSubscription().then(function (s) { return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); });
+      }).then(function (s) { return op({ op: "sub", sub: s.toJSON(), fam: me }, "🔔 התזכורות פעילות"); });
+    }).catch(function () { toast("לא הצלחנו להפעיל התראות"); });
+  });
+
+  // ---- route ---------------------------------------------------------------------------
+  function route() {
+    var h = location.hash.slice(1);
+    if (/^[A-Za-z0-9]{6,20}$/.test(h)) { if (h !== G) { G = h; week = null; } load(); return; }
+    G = ""; show("vNew");
+    var m = []; try { m = JSON.parse(ls.get("ride-groups") || "[]"); } catch (e) {}
+    $("mine").hidden = !m.length;
+    $("mineList").replaceChildren.apply($("mineList"), m.map(function (x) { return el("a", { class: "chip", href: "#" + x.id, text: "🚗 " + x.name }); }));
+  }
+  addEventListener("hashchange", route);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && G) load(); });
+  setInterval(function () { if (G && !document.hidden) load(); }, 60000);
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
+  route();
+})();
+</script>

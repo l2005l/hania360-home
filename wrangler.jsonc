@@ -4,14 +4,14 @@
   "main": "worker.js",
   "compatibility_date": "2026-09-30",
   // HaniaQuiz: one Durable Object per game room (quiz/room.js).
-  "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }, { "tag": "v2", "new_sqlite_classes": ["ParkHub"] }, { "tag": "v3", "new_sqlite_classes": ["ShabbatHub"] }, { "tag": "v4", "new_sqlite_classes": ["GiftGroup"] }],
+  "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }, { "tag": "v2", "new_sqlite_classes": ["ParkHub"] }, { "tag": "v3", "new_sqlite_classes": ["ShabbatHub"] }, { "tag": "v4", "new_sqlite_classes": ["GiftGroup"] }, { "tag": "v5", "new_sqlite_classes": ["RideGroup"] }],
   "env": {
     // Staging: its own workers.dev address, never indexed by search engines.
     "staging": {
       "name": "hania360-home-staging",
       "vars": { "ENVIRONMENT": "staging" },
-      "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }] }
+      "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }] }
     }
   }
 }
