@@ -39,6 +39,9 @@ header{display:flex;align-items:center;gap:10px}
 .card h2{margin:0;font-family:var(--display);font-weight:700;font-size:22px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .card h2 small{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:500}
 .weeks{display:grid;margin:0;padding:0;list-style:none}
+.torah .idea{border-radius:16px;padding:12px 14px;background:rgba(247,181,72,.10);border:1px solid rgba(247,181,72,.35)}
+.torah .idea b{color:var(--flame)}
+#savedCities .chip{padding:6px 12px}
 .weeks li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 14px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
 .weeks li:first-child{border-top:0}
 .weeks b{font-family:var(--display);font-weight:700;font-size:18px}
@@ -65,6 +68,8 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
     <button class="city" type="button" id="cityBtn">📍 …</button>
   </header>
 
+  <div class="chips" id="savedCities" hidden></div>
+
   <section class="candle" aria-live="polite">
     <div class="flames" aria-hidden="true"><span></span><span></span></div>
     <span class="eyebrow" id="wkLabel">השבת הקרובה</span>
@@ -76,6 +81,12 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
       <div class="time"><small>✨ צאת שבת</small><b id="tHavdalah">--:--</b><span id="tHavdalahDay"></span></div>
     </div>
     <div class="count" id="count"></div>
+  </section>
+
+  <section class="card torah" id="torah" hidden>
+    <h2>📖 <span id="tName"></span> <small id="tHaft"></small></h2>
+    <p id="tSum" style="margin:0;line-height:1.7"></p>
+    <div class="idea"><b>💬 לשולחן השבת</b><p id="tIdea" style="margin:4px 0 0;line-height:1.7"></p></div>
   </section>
 
   <section class="card">
@@ -91,6 +102,8 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
 
   <section class="card">
     <h2>הגדרות</h2>
+    <label class="fine" style="font-size:14px;display:grid;gap:6px">הנוסח שלכם (קובע את ההפטרה)
+      <select id="nusach"><option value="ashkenaz">אשכנז</option><option value="sefard">ספרד (חסידים)</option><option value="mizrach">עדות המזרח / ספרדים</option><option value="chabad">חב״ד</option></select></label>
     <label class="fine" style="font-size:14px;display:grid;gap:6px">צאת שבת לפי
       <select id="havMode"><option value="deg">צאת הכוכבים (כמקובל בלוחות)</option><option value="72">רבנו תם (72 דקות אחרי השקיעה)</option></select></label>
     <p class="fine">הזמנים מחושבים לפי מיקום העיר, בעזרת <a href="https://www.hebcal.com/" target="_blank" rel="noopener">Hebcal</a> (CC BY 4.0). הדלקת נרות 18 דקות לפני השקיעה, בירושלים 40 ובחיפה 30. כדאי לבדוק מול לוח הקהילה שלכם.</p>
@@ -99,6 +112,7 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
 <div id="sheetHost"></div>
 
 <script src="/hebcal.js"></script>
+<script src="/parasha.js"></script>
 <script>
 (function () {
   "use strict";
@@ -108,6 +122,7 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
   var KEY = "haniashabbat-v1", S;
   try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
   S = S || { city: "ירושלים", hav: "deg", before: 0 };
+  S.saved = Array.isArray(S.saved) ? S.saved : [S.city]; S.nusach = S.nusach || "ashkenaz";
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
   function toast(t) { var x = document.createElement("div"); x.className = "toast"; x.textContent = t; document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
   var HB = window.HB;
@@ -158,7 +173,7 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
     $("weeks").replaceChildren.apply($("weeks"), list.slice(1, 9).map(function (x) {
       return el("li", null, [el("b", x.parasha || x.label[0] || "שבת"), el("span", { class: "t" }, [hm(x.candles), el("i", "הדלקה")]), el("span", { class: "t" }, [hm(x.end), el("i", "יציאה")]), el("small", day(x.candles) + (x.label.length && x.parasha ? " · " + x.label.join(", ") : ""))]);
     }));
-    renderRemind(list);
+    renderRemind(list); renderSaved(); renderTorah(w);
   }
   function el(tag, a, kids) {
     if (typeof a === "string") return Object.assign(document.createElement(tag), { textContent: a });
@@ -166,16 +181,50 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
     (kids || []).forEach(function (k) { e.append(k); }); return e;
   }
 
+  // ---- city: the choice stays on this phone, and the last few towns are one tap away ------------
+  function pickCity(name) {
+    S.city = name; S.saved = [name].concat(S.saved.filter(function (x) { return x !== name; })).slice(0, 4); save(); render(); resync();
+  }
+  function renderSaved() {
+    var box = $("savedCities"), list = S.saved.filter(function (x) { return x === "__here" ? !!S.here : CITIES.some(function (c) { return c[0] === x; }); });
+    box.hidden = list.length < 2;
+    box.replaceChildren.apply(box, list.map(function (x) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(S.city === x) }, [x === "__here" ? "📍 המיקום שלי" : x]); b.addEventListener("click", function () { pickCity(x); }); return b; }));
+  }
+
+  // ---- this week's portion: a few words, a thought for the table, and the haftarah by custom ----------
+  var BOOKS = { "Joshua": "יהושע", "Judges": "שופטים", "I Samuel": "שמואל א", "II Samuel": "שמואל ב", "I Kings": "מלכים א", "II Kings": "מלכים ב", "Isaiah": "ישעיהו", "Jeremiah": "ירמיהו", "Ezekiel": "יחזקאל", "Hosea": "הושע", "Joel": "יואל", "Amos": "עמוס", "Obadiah": "עובדיה", "Jonah": "יונה", "Micah": "מיכה", "Nahum": "נחום", "Habakkuk": "חבקוק", "Zephaniah": "צפניה", "Haggai": "חגי", "Zechariah": "זכריה", "Malachi": "מלאכי" };
+  function hebRef(ref) {
+    return String(ref || "").split(/;\s*/).map(function (part) {
+      var m = part.match(/^((?:I{1,2}\s)?[A-Za-z]+)\s+(\d+):(\d+)(?:-(?:(\d+):)?(\d+))?/); if (!m) return part;
+      var g = HB.gematriya, b = BOOKS[m[1]] || m[1];
+      return b + " " + g(+m[2]) + " " + g(+m[3]) + (m[5] ? "–" + (m[4] ? g(+m[4]) + " " : "") + g(+m[5]) : "");
+    }).join("; ");
+  }
+  function renderTorah(w) {
+    var card = $("torah"), l = null;
+    try { l = HB.getLeyningOnDate(new HB.HDate(w.end), true); } catch (e) { l = null; }
+    var names = l && Array.isArray(l.parsha) ? l.parsha : [], info = names.map(function (n) { return (window.PARASHA || {})[n]; }).filter(Boolean);
+    if (!info.length) { card.hidden = true; return; }
+    card.hidden = false;
+    $("tName").textContent = "פרשת " + info.map(function (x) { return x[0]; }).join("–");
+    $("tSum").textContent = info.map(function (x) { return x[1]; }).join(" ");
+    $("tIdea").textContent = info[0][2];
+    var h = S.nusach === "mizrach" ? (l.sephardic || l.haftara) : S.nusach === "chabad" ? (l.chabad || l.haftara) : l.haftara;
+    $("tHaft").textContent = h ? "הפטרה: " + hebRef(h) : "";
+  }
+  $("nusach").value = S.nusach;
+  $("nusach").addEventListener("change", function () { S.nusach = $("nusach").value; save(); render(); });
+
   // ---- city ---------------------------------------------------------------------------
   $("cityBtn").addEventListener("click", function () {
     var host = $("sheetHost");
     host.innerHTML = '<div class="scrim"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="בחירת עיר"><h2 style="margin:0;font-family:var(--display)">באיזו עיר?</h2><button class="chip" type="button" id="here">📍 לפי המיקום שלי</button><div class="chips" id="cityList"></div></div>';
     var close = function () { host.textContent = ""; };
     host.querySelector(".scrim").addEventListener("click", close);
-    $("cityList").replaceChildren.apply($("cityList"), CITIES.map(function (c) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(S.city === c[0]) }, [c[0]]); b.addEventListener("click", function () { S.city = c[0]; save(); close(); render(); resync(); }); return b; }));
+    $("cityList").replaceChildren.apply($("cityList"), CITIES.map(function (c) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(S.city === c[0]) }, [c[0]]); b.addEventListener("click", function () { pickCity(c[0]); close(); }); return b; }));
     $("here").addEventListener("click", function () {
       if (!navigator.geolocation) return toast("אין מיקום בטלפון הזה");
-      navigator.geolocation.getCurrentPosition(function (pos) { S.city = "__here"; S.here = { lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3) }; save(); close(); render(); resync(); }, function () { toast("לא קיבלנו מיקום. בוחרים עיר מהרשימה."); }, { timeout: 12000 });
+      navigator.geolocation.getCurrentPosition(function (pos) { S.here = { lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3) }; pickCity("__here"); close(); }, function () { toast("לא קיבלנו מיקום. בוחרים עיר מהרשימה."); }, { timeout: 12000 });
     });
   });
   $("havMode").value = S.hav; $("havMode").addEventListener("change", function () { S.hav = $("havMode").value; save(); render(); resync(); });
