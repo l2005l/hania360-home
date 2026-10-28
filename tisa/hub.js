@@ -3,6 +3,7 @@
 // asked to be told when a flight changes. Pushes carry no payload: the service worker asks
 // /api/tisa/msg what to show.
 import { okEndpoint, subId, vapidKeys, wake } from "../lib/webpush.js";
+import { passUser, hanCors } from "../lib/account.js";
 
 const RESOURCE = "e83f763b-b7d7-479e-b172-ae981ddc6de5";
 const EVERY = 10 * 60 * 1000;
@@ -29,6 +30,8 @@ export class FlightHub {
     sql.exec("CREATE TABLE IF NOT EXISTS hist (k TEXT PRIMARY KEY, day TEXT, al TEXT, num TEXT, dir TEXT, code TEXT, delay INTEGER, cancel INTEGER, final INTEGER)");
     sql.exec("CREATE INDEX IF NOT EXISTS hist_f ON hist (al, num, dir)");
     sql.exec("CREATE TABLE IF NOT EXISTS subs (id TEXT PRIMARY KEY, endpoint TEXT, keys TEXT, msg TEXT, at INTEGER)");
+    // What a signed-in person keeps: flight keys (HaniaTisa) and cars (HaniaCheck).
+    sql.exec("CREATE TABLE IF NOT EXISTS acct (user TEXT PRIMARY KEY, flights TEXT NOT NULL DEFAULT '[]', cars TEXT NOT NULL DEFAULT '[]', upd INTEGER)");
   }
   rows(q, ...b) { return [...this.ctx.storage.sql.exec(q, ...b)]; }
 
@@ -108,6 +111,7 @@ export class FlightHub {
 
   async fetch(req) {
     const url = new URL(req.url), p = url.pathname;
+    if (p.startsWith("/me/")) return this.me(req, p);
     await this.ctx.storage.put("seen", Date.now()); await this.ensureAlarm();
     if (p === "/api/tisa/board") return json(await this.board(), 200, { "cache-control": "public, max-age=60" });
     if (p === "/api/tisa/stats") {
@@ -129,9 +133,63 @@ export class FlightHub {
     if (p === "/api/tisa/msg") { const r = this.rows("SELECT msg FROM subs WHERE id = ?", id)[0]; return json(r && r.msg ? JSON.parse(r.msg) : {}); }
     return json({ error: "not found" }, 404);
   }
+
+  // Called only by meApi below, with the user already checked; never reachable from a browser.
+  async me(req, p) {
+    const user = req.headers.get("x-hania-user") || ""; if (!user) return json({ error: "user" }, 400);
+    const row = this.rows("SELECT flights, cars FROM acct WHERE user = ?", user)[0] || { flights: "[]", cars: "[]" };
+    const flights = JSON.parse(row.flights), cars = JSON.parse(row.cars);
+    if (p === "/me/get") return json({ flights, cars });
+    if (p === "/me/summary") {
+      const today = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10), board = new Map(this.rows("SELECT k, d FROM board").map((x) => [x.k, JSON.parse(x.d)]));
+      return json({ flights: flights.filter((k) => k.slice(-10) >= today || board.has(k)).map((k) => board.get(k) || { k, gone: true }).slice(0, 10), cars });
+    }
+    const b = await req.json().catch(() => null) || {};
+    if (p === "/me/flights") { const keys = (Array.isArray(b.keys) ? b.keys : []).filter((k) => typeof k === "string" && /^[AD]\|[A-Z0-9]{2,3}\|[0-9A-Z]{1,6}\|\d{4}-\d{2}-\d{2}$/.test(k)).slice(0, 30);
+      this.ctx.storage.sql.exec("INSERT INTO acct (user, flights, upd) VALUES (?, ?, ?) ON CONFLICT(user) DO UPDATE SET flights = excluded.flights, upd = excluded.upd", user, JSON.stringify(keys), Date.now()); return json({ ok: true, flights: keys }); }
+    if (p === "/me/cars") { const list = (Array.isArray(b.cars) ? b.cars : []).filter((c) => c && /^\d{5,8}$/.test(String(c.p))).map((c) => ({ p: String(c.p), t: String(c.t || "").slice(0, 60) })).slice(0, 6);
+      this.ctx.storage.sql.exec("INSERT INTO acct (user, cars, upd) VALUES (?, ?, ?) ON CONFLICT(user) DO UPDATE SET cars = excluded.cars, upd = excluded.upd", user, JSON.stringify(list), Date.now()); return json({ ok: true, cars: list }); }
+    return json({ error: "not found" }, 404);
+  }
+}
+
+/** /api/me/* on tisa.hania360.com and check.hania360.com: the signed-in person's flights and cars. */
+export async function meApi(req, env, ctx) {
+  const url = new URL(req.url), p = url.pathname, cors = hanCors(req.headers.get("origin"));
+  const reply = (body, status = 200) => { const r = json(body, status); if (cors) for (const [k, v] of Object.entries(cors)) r.headers.set(k, v); return r; };
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors ? { ...cors, "access-control-allow-methods": "GET", "access-control-max-age": "600" } : {} });
+  if (!env.TISA) return reply({ available: false });
+  const user = await passUser(req, env);
+  if (user === undefined) return reply({ available: false });
+  if (!user) return reply({ available: true, signedIn: false });
+  const hub = env.TISA.get(env.TISA.idFromName("board")), call = (path, body) => hub.fetch(new Request("https://hub" + path, { method: body ? "POST" : "GET", headers: { "x-hania-user": user.id, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined })).then((r) => r.json());
+  if (p === "/api/me" && req.method === "GET") return reply(Object.assign({ available: true, signedIn: true, email: user.email }, await call("/me/get")));
+  if (p === "/api/me/summary") {
+    const s = await call("/me/summary");
+    s.cars = await Promise.all((s.cars || []).map((c) => carFacts(c, ctx)));
+    return reply(Object.assign({ available: true, signedIn: true }, s));
+  }
+  // Changes come only from the app's own page: a cookie alone is not enough.
+  if (req.method !== "POST" || req.headers.get("origin") !== url.origin) return reply({ error: "origin" }, 403);
+  if (p === "/api/me/flights" || p === "/api/me/cars") return reply(await call(p.slice(4), await req.json().catch(() => ({}))));
+  return reply({ error: "not found" }, 404);
+}
+
+/** Licence date and open recalls of a saved car, from the Ministry of Transport (cached half a day). */
+async function carFacts(c, ctx) {
+  const get = async (rid, f) => {
+    const u = "https://data.gov.il/api/3/action/datastore_search?resource_id=" + rid + "&limit=5&filters=" + encodeURIComponent(JSON.stringify(f)), key = new Request(u), cache = caches.default;
+    let r = await cache.match(key);
+    if (!r) { const x = await fetch(u, { headers: { accept: "application/json", "user-agent": "HaniaCheck/1 (+https://check.hania360.com)" } }).catch(() => null); if (!x || !x.ok) return null; r = new Response(await x.text(), { headers: { "content-type": "application/json", "cache-control": "public, max-age=43200" } }); ctx && ctx.waitUntil && ctx.waitUntil(cache.put(key, r.clone())); }
+    const j = await r.json().catch(() => null); return j && j.success ? j.result.records || [] : null;
+  };
+  const n = +c.p, [car, rec] = await Promise.all([get("053cea08-09bc-40ec-8f7a-156f0677aff3", { mispar_rechev: n }), get("36bf1404-0be4-49d2-82dc-2f1ead4a8b93", { MISPAR_RECHEV: n })]);
+  const row = car && car[0];
+  return { p: c.p, t: c.t || (row ? [row.tozeret_nm, row.kinuy_mishari].filter(Boolean).join(" ") : ""), tokef: row ? String(row.tokef_dt || "").slice(0, 10) : "", recalls: rec ? rec.length : 0, recall: rec && rec[0] ? String(rec[0].SUG_TAKALA || rec[0].TEUR_TAKALA || "") : "" };
 }
 
 export async function tisaApi(req, env, url) {
   if (!env.TISA) return json({ error: "unavailable" }, 503);
-  return env.TISA.get(env.TISA.idFromName("board")).fetch(req);
+  const clean = new Request(req); clean.headers.delete("x-hania-user");
+  return env.TISA.get(env.TISA.idFromName("board")).fetch(clean);
 }

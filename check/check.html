@@ -289,6 +289,8 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     kids.push(el("details", {}, [el("summary", { text: "כל הפרטים הטכניים" }), el("dl", {}, tech.reduce(function (a, x) { a.push(el("dt", { text: x[0] }), el("dd", { text: String(x[1]).trim() })); return a; }, []))]));
 
     var share = "🚗 " + title + " (" + fmtPlate(d) + ")\n" + flags.map(function (f) { return f[1] + " " + f[2]; }).join("\n") + "\n" + stats.map(function (x) { return x[0] + ": " + x[1]; }).join(" · ") + "\nבדיקה ב־HaniaCheck: https://check.hania360.com/#car-" + d;
+    var isMineCar = myCars().some(function (x) { return x.p === d; });
+    kids.push(el("button", { class: "btn", type: "button", style: "background:var(--plate);color:#111", text: isMineCar ? "⭐ הרכב שלי (להסרה)" : "⭐ זה הרכב שלי: תזכורת לטסט ולריקולים", onclick: function () { toggleCar(d, [c.tozeret_nm, c.kinuy_mishari].filter(Boolean).join(" ").trim()); show(d, r); } }));
     kids.push(el("div", { class: "btns" }, [
       el("a", { class: "btn wa", href: "https://wa.me/?text=" + encodeURIComponent(share), target: "_blank", rel: "noopener", text: "שליחה בוואטסאפ" }),
       el("button", { class: "btn", type: "button", text: "רכב אחר", onclick: function () { $("num").value = ""; $("num").focus(); scrollTo({ top: 0, behavior: "smooth" }); } })]));
@@ -298,10 +300,27 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     renderRecent();
   }
 
+  // ---- my cars: kept on the phone, and in the Hania360 account for Hania Today's test reminder ----------
+  function myCars() { try { return JSON.parse(ls("hc.cars") || "[]"); } catch (e) { return []; } }
+  var ACCT = null;
+  function toggleCar(p, t) {
+    var cs = myCars(), had = cs.some(function (x) { return x.p === p; });
+    cs = had ? cs.filter(function (x) { return x.p !== p; }) : cs.concat([{ p: p, t: t }]).slice(-6);
+    ls("hc.cars", JSON.stringify(cs)); saveCars(); renderRecent();
+    toast(had ? "הוסר מהרכבים שלי" : ACCT && ACCT.signedIn ? "נשמר. Hania Today יזכיר את הטסט ויתריע על ריקול" : "נשמר בטלפון. כדי לקבל תזכורת ב־Hania Today מתחברים ל־Hania360");
+  }
+  function saveCars() { if (ACCT && ACCT.signedIn) fetch("/api/me/cars", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ cars: myCars() }) }).catch(function () {}); }
+  fetch("/api/me", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (j) {
+    ACCT = j; if (!j.signedIn) return;
+    var cs = myCars(), add = (j.cars || []).filter(function (x) { return !cs.some(function (y) { return y.p === x.p; }); });
+    if (add.length) { ls("hc.cars", JSON.stringify(cs.concat(add).slice(-6))); renderRecent(); }
+    if (add.length || (j.cars || []).length !== myCars().length) saveCars();
+  }).catch(function () {});
+
   // ---- recent ------------------------------------------------------------------------------
   function recent() { try { return JSON.parse(ls("hp.recent") || "[]"); } catch (e) { return []; } }
   function remember(d, c) { var r = recent().filter(function (x) { return x.d !== d; }); r.unshift({ d: d, t: [c.tozeret_nm, c.kinuy_mishari].filter(Boolean).join(" ").trim() }); ls("hp.recent", JSON.stringify(r.slice(0, 8))); }
-  function renderRecent() { $("recent").replaceChildren.apply($("recent"), recent().slice(0, 5).map(function (x) { return el("button", { type: "button", title: x.t, text: fmtPlate(x.d), onclick: function () { $("num").value = fmtPlate(x.d); go(x.d); } }); })); }
+  function renderRecent() { var mc = myCars(); $("recent").replaceChildren.apply($("recent"), mc.map(function (x) { return el("button", { type: "button", title: x.t, text: "⭐ " + fmtPlate(x.p), onclick: function () { $("num").value = fmtPlate(x.p); go(x.p); } }); }).concat(recent().filter(function (x) { return !mc.some(function (y) { return y.p === x.d; }); }).slice(0, 4).map(function (x) { return el("button", { type: "button", title: x.t, text: fmtPlate(x.d), onclick: function () { $("num").value = fmtPlate(x.d); go(x.d); } }); }))); }
 
   // ---- photo of a plate: digits read on the phone, then confirmed in the box ------------------
   $("photo").addEventListener("change", function (e) {
