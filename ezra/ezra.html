@@ -1,0 +1,275 @@
+<title>HaniaEzra · עזרה ראשונה</title>
+<style>
+/* Layout: one screen for the worst moment. The call button is always at the top; a big grid of situations;
+   each opens as large numbered steps that can be read aloud. CPR and choking have their own live helpers. */
+:root{
+  --bg:#FFF7F6; --surface:#FFFFFF; --ink:#1E1A1D; --muted:#6B5F64; --line:#F0D9DA; --red:#D7263D; --red-dark:#A3172B; --red-bg:#FDE4E6; --amber:#B4560A; --amber-bg:#FFF0DD; --ok:#11845B; --ok-bg:#E3F5EC; --blue:#1C5DB8;
+  --font:system-ui,-apple-system,"Segoe UI","Arial Hebrew","Noto Sans Hebrew",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#161214;--surface:#211B1E;--ink:#F6EEF0;--muted:#B8A9AE;--line:#3A2C31;--red-bg:#3B1A20;--amber-bg:#3A2914;--ok-bg:#12332A;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.5}
+.wrap{max-width:640px;margin:0 auto;padding:10px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.top{position:sticky;top:0;z-index:10;background:var(--bg);padding:6px 0 8px;display:grid;gap:8px}
+.call{display:flex;align-items:center;justify-content:center;gap:12px;background:var(--red);color:#fff;text-decoration:none;border-radius:20px;padding:16px;font-size:24px;font-weight:900;box-shadow:0 8px 24px rgba(215,38,61,.35)}
+.call small{font-size:15px;font-weight:600;opacity:.9}
+.mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.mini a,.mini button{appearance:none;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:8px 4px;font:inherit;font-size:13px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;display:grid;gap:1px}
+.mini b{font-size:16px}
+.who{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.who button{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:10px 4px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.who button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sit{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 10px;font:inherit;font-size:17px;font-weight:800;cursor:pointer;display:grid;gap:4px;justify-items:start;text-align:start;min-height:84px}
+.sit i{font-style:normal;font-size:28px;line-height:1}
+.sit.hot{border-color:var(--red);background:var(--red-bg)}
+.guide{display:grid;gap:10px}
+.guide h1{margin:0;font-size:clamp(26px,7vw,34px);line-height:1.15;font-weight:900}
+.alert{padding:12px 14px;border-radius:16px;background:var(--red-bg);color:var(--red-dark);font-weight:800;font-size:17px}
+@media (prefers-color-scheme:dark){.alert{color:#FF9AA6}}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:14px;font-size:19px;line-height:1.45}
+.steps li::before{content:counter(s);display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:20px}
+.steps li.on{border-color:var(--red);box-shadow:0 0 0 3px var(--red-bg)}
+.steps li b{font-weight:800}
+.dont{padding:12px 14px;border-radius:16px;background:var(--amber-bg);color:var(--amber);font-size:16px}
+@media (prefers-color-scheme:dark){.dont{color:#FFC27A}}
+.btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.btn{appearance:none;border:0;border-radius:16px;background:var(--ink);color:var(--bg);font:inherit;font-weight:800;font-size:17px;padding:14px;cursor:pointer;text-align:center;text-decoration:none}
+.btn.red{background:var(--red);color:#fff}.btn.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.btn:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+/* CPR */
+.cpr{display:grid;justify-items:center;gap:12px;text-align:center}
+.beat{width:min(70vw,280px);aspect-ratio:1;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:clamp(60px,20vw,96px);font-weight:900;transition:transform .08s ease-out;user-select:none}
+.beat.push{transform:scale(.88)}
+.beat.breath{background:var(--blue);font-size:clamp(26px,8vw,36px)}
+.cpr .big{font-size:22px;font-weight:900}
+.cpr .t{font-size:16px;color:var(--muted)}
+.tog{display:flex;gap:8px;align-items:center;justify-content:center;font-size:15px}
+.card{background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:10px}
+label.f{display:grid;gap:4px;font-size:14px;font-weight:700;color:var(--muted)}
+input,textarea{font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;min-width:0}
+textarea{min-height:70px}
+.idcard{display:grid;gap:6px;padding:16px;border-radius:18px;border:3px solid var(--red);background:var(--surface);font-size:19px}
+.idcard b{color:var(--red)}
+.note{margin:0;color:var(--muted);font-size:14px}
+.loc{font-size:22px;font-weight:900;direction:ltr;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+@media (prefers-reduced-motion:reduce){.beat{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <a class="call" href="tel:101">📞 101 <small>מד״א · מוקדן ידריך אתכם</small></a>
+    <div class="mini">
+      <button type="button" id="locBtn"><b>📍</b>המיקום שלי</button>
+      <a href="tel:100"><b>100</b>משטרה</a>
+      <a href="tel:102"><b>102</b>כבאות</a>
+      <a href="tel:047771900"><b>☠️</b>הרעלות</a>
+    </div>
+  </div>
+  <div id="view"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { var v = a[k]; if (v == null || v === false) return; if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v; else if (k === "value") e.value = v; else e.setAttribute(k, v === true ? "" : v); }); (kids || []).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c); }); return e; }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  var view = $("view"), WHO = ls("ez.who") || "adult";
+  function show(nodes) { stopAll(); view.replaceChildren.apply(view, nodes.filter(Boolean)); window.scrollTo(0, 0); }
+
+  // Content: the steps follow the usual Magen David Adom first-aid guidance; every guide says when to call 101.
+  // Steps are plain text with **bold**, written to be read under stress.
+  var W = { adult: "מבוגר", child: "ילד", baby: "תינוק" };
+  function G() {
+    var a = WHO === "adult", c = WHO === "child", b = WHO === "baby";
+    return {
+      cpr: { icon: "💓", name: "לא מגיב ולא נושם", hot: true, alert: "חייגו 101 עכשיו ושימו על רמקול. המוקדן ידריך אתכם.", live: "cpr",
+        steps: [
+          "ודאו שהמקום **בטוח** לכם.",
+          b ? "**טפחו בעדינות** על כף הרגל וקראו לו. **לא לנער** תינוק." : "**טפחו על הכתפיים** וקראו בקול. אם אין תגובה ואין נשימה רגילה, מתחילים.",
+          b || c ? "אם יש עוד מישהו, שיחייג **101 מיד**. אם אתם לבד: **2 דקות** החייאה ואז חייגו (על רמקול)." : "חייגו **101** על רמקול, ובקשו שמישהו יביא **דפיברילטור** (מכשיר החייאה).",
+          b ? "השכיבו על משטח קשה. **שתי אצבעות** במרכז החזה, מעט מתחת לקו הפטמות." : c ? "השכיבו על הגב על משטח קשה. **כף יד אחת** (או שתיים) במרכז החזה." : "השכיבו על הגב על משטח קשה. **שתי כפות ידיים** אחת על השנייה, במרכז החזה.",
+          b ? "לחצו **כ־4 ס״מ** עומק, בקצב **100–120 בדקה** (לחצו ▶ לקצב). תנו לחזה לחזור למעלה." : c ? "לחצו **כ־5 ס״מ** (שליש מעומק החזה), בקצב **100–120 בדקה**. תנו לחזה לחזור." : "ידיים ישרות, לחצו **5–6 ס״מ** עומק, בקצב **100–120 בדקה**. תנו לחזה לחזור למעלה.",
+          "מי שלמד החייאה: **30 לחיצות ו־2 הנשמות**" + (b ? " (פה על הפה והאף של התינוק)." : " (הטיית ראש, הרמת סנטר).") + " מי שלא למד: **רק לחיצות, בלי הפסקה**.",
+          a ? "כשמגיע **דפיברילטור**: מדליקים ועושים בדיוק מה שהוא אומר בקול." : "כשמגיע **דפיברילטור**: מדליקים ועושים מה שהוא אומר (יש מדבקות לילדים).",
+          "ממשיכים עד שמגיע צוות, או עד שהוא **מתחיל לנשום**. אם נושם: **תנוחת התאוששות** (על הצד) ולהשגיח."],
+        dont: "לא לעצור כדי לבדוק דופק. אם יש עוד אנשים, להתחלף כל 2 דקות כדי לא להתעייף." },
+      choke: { icon: "🫁", name: "נחנק", hot: true, live: "choke",
+        alert: "משתעל חזק? לעודד להמשיך להשתעל ולא להכות. לא נושם, לא מדבר ולא משתעל? מתחילים עכשיו.",
+        steps: b ? [
+          "השכיבו את התינוק **על הבטן לאורך האמה**, ראש נמוך מהגוף, ותמכו בלסת.",
+          "**5 טפיחות** חזקות בגב, בין השכמות, בעקב כף היד.",
+          "הפכו אותו **על הגב** (ראש נמוך), ו־**5 לחיצות חזה** בשתי אצבעות, במרכז החזה.",
+          "ממשיכים לסירוגין: **5 טפיחות, 5 לחיצות**, עד שהגוף הזר יוצא.",
+          "מישהו מחייג **101**. אם התינוק **מפסיק להגיב**: מתחילים **החייאה**, ולפני הנשמה מסתכלים בפה ומוציאים רק מה שרואים."]
+        : [
+          "עמדו מאחוריו, הטו אותו **קדימה**, ו־**5 טפיחות** חזקות בגב בין השכמות, בעקב כף היד.",
+          "אם לא עזר: **5 לחיצות בטן**: אגרוף מעל הטבור, יד שנייה עליו, ומשיכה חזקה **פנימה ולמעלה**." + (c ? " בילד קטן, כורעים מאחוריו." : ""),
+          "ממשיכים לסירוגין: **5 טפיחות, 5 לחיצות**, עד שהגוף הזר יוצא.",
+          "באישה בהריון או באדם גדול מאוד: לוחצים על **מרכז החזה** במקום על הבטן.",
+          "מישהו מחייג **101**. אם הוא **מאבד הכרה**: משכיבים, מתחילים **החייאה**, ולפני הנשמה מסתכלים בפה ומוציאים רק מה שרואים."],
+        dont: b ? "לא לעשות לחיצות בטן לתינוק. לא להכניס אצבע עיוורת לפה." : "לא להכניס אצבע עיוורת לפה. אחרי לחיצות בטן, תמיד להיבדק אצל רופא." },
+      bleed: { icon: "🩸", name: "דימום חזק", hot: true, alert: "דימום שלא נעצר או שפורץ בחוזקה: חייגו 101.",
+        steps: ["**לחצו חזק** ישירות על הפצע עם בד נקי (או ביד, אם אין).", "לא מרימים לבדוק. אם הבד נספג: **מוסיפים בד מעל** וממשיכים ללחוץ.", "בגפה, אם אפשר: **מרימים** מעל גובה הלב.", "דימום מסכן חיים מיד או רגל שלא נעצר בלחיצה: **חוסם עורקים** 5–7 ס״מ מעל הפצע, מהדקים עד שהדימום נעצר, ורושמים את **השעה**.", "חפץ תקוע בפצע: **לא מוציאים**. מרפדים סביבו ולוחצים מסביב.", "משכיבים, מכסים בשמיכה ומרגיעים עד שמגיע צוות."],
+        dont: "לא להוציא חפץ תקוע, ולא לשחרר חוסם עורקים שהונח." },
+      burn: { icon: "🔥", name: "כוויה", alert: "חייגו 101: כוויה גדולה, בפנים, בידיים או באיברי המין, בתינוק או בילד, מחשמל, מכימיקל, או אחרי עשן.",
+        steps: ["**מפסיקים את השריפה**: בגד בוער? עוצרים, נשכבים ומתגלגלים.", "**מים זורמים פושרים־קרירים 20 דקות** על הכוויה.", "מורידים **טבעות, שעון ובגדים** שלא דבוקים לעור, לפני שהמקום מתנפח.", "מכסים בעדינות בניילון נצמד או בבד נקי שלא משאיר סיבים.", b || c ? "בילדים ותינוקות שומרים שלא יתקררו: מקררים רק את הכוויה ומכסים את השאר." : "שומרים על חום הגוף: מקררים רק את הכוויה."],
+        dont: "לא קרח, לא חמאה, לא משחת שיניים ולא לפוצץ שלפוחיות." },
+      allergy: { icon: "🐝", name: "תגובה אלרגית קשה", hot: true, alert: "התנפחות שפתיים או לשון, קושי בנשימה, חרלת שמתפשטת או סחרחורת: חייגו 101.",
+        steps: ["יש **מזרק אפיפן**? מזריקים **מיד** לצד החיצוני של הירך, גם דרך בגדים, ומחזיקים לפי ההוראות.", "חייגו **101** ואמרו \"תגובה אלרגית קשה\".", "**משכיבים** עם רגליים מורמות. קשה לנשום? **ישיבה** זקופה.", "לא קמים ולא הולכים פתאום, גם אם מרגישים טוב יותר.", "אין שיפור אחרי **5 דקות** ויש מזרק נוסף: **מזריקים שוב**.", "גם אם הכל עבר: **חייבים להגיע לבית חולים**."],
+        dont: "לא לחכות שיחמיר. עקיצת דבורה: מוציאים את העוקץ בגירוד (בכרטיס), לא בצביטה." },
+      seizure: { icon: "⚡", name: "פרכוס", alert: "חייגו 101: פרכוס ראשון, נמשך יותר מ־5 דקות, חוזר, פציעה, במים, בהריון, או לא מתעורר.",
+        steps: ["שומרים על רוגע ו**מודדים את הזמן** (▶ שעון למטה).", "מרחיקים חפצים קשים ו**מרפדים מתחת לראש**.", "**לא מחזיקים** בכוח ו**לא מכניסים כלום לפה**.", "כשהרעד נפסק: **תנוחת התאוששות** (על הצד) ובודקים שנושם.", "נשארים לידו עד שהוא חוזר לעצמו ומדברים אליו בשקט.", c || b ? "פרכוס עם **חום** בילד: אותו דבר. פעם ראשונה: **101**." : "אחרי הפרכוס עייף ומבולבל, זה צפוי."],
+        dont: "לא לתת לשתות או לאכול עד שהוא ער לגמרי.", live: "timer" },
+      stroke: { icon: "🧠", name: "חשד לשבץ", hot: true, alert: "כל סימן אחד מספיק: חייגו 101 מיד. כל דקה חשובה.",
+        steps: ["**פנים**: מבקשים לחייך. צד אחד נופל?", "**ידיים**: מבקשים להרים את שתיהן. אחת נופלת או חלשה?", "**דיבור**: מבקשים לחזור על משפט. מדבר מוזר או לא מבין?", "**זמן**: חייגו **101** ורשמו **מתי** התחילו הסימנים.", "משכיבים עם ראש מורם מעט ונשארים לידו."],
+        dont: "לא לתת אוכל, שתייה או תרופות." },
+      heart: { icon: "❤️", name: "כאב בחזה", hot: true, alert: "לחץ או כאב בחזה, שמקרין ליד, לגב או ללסת, עם זיעה או קוצר נשימה: חייגו 101.",
+        steps: ["חייגו **101**.", "מושיבים במנוחה, **לא הולכים**, ומשחררים בגדים צמודים.", "אם אין רגישות לאספירין ולפי הנחיית המוקדן: **ללעוס** כדור אספירין.", "מי שיש לו תרופה מהרופא ללב (כמו כדור מתחת ללשון): נותנים לפי ההוראות.", "מאבד הכרה ולא נושם: **החייאה** מיד."],
+        dont: "לא לנסוע לבד לבית חולים. מחכים לאמבולנס." },
+      snake: { icon: "🐍", name: "הכשת נחש / עקרב", alert: "הכשת נחש, או עקיצת עקרב בילד: חייגו 101.",
+        steps: ["מרחיקים מהנחש. **לא מנסים לתפוס** אותו.", "**שוכבים ונחים**, בלי ללכת. הגפה **ללא תזוזה** ובגובה הלב.", "מורידים **טבעות, שעונים** ונעליים מהגפה לפני שמתנפחת.", "רושמים את **השעה**, ומשגיחים על נשימה והכרה עד שמגיעים.", "עקרב במבוגר: קירור מקומי, משכך כאבים, ו־**101** אם יש הקאות, הזעה, קושי בנשימה או רעד."],
+        dont: "לא חוסם עורקים, לא לחתוך, לא למצוץ ולא לשים קרח." },
+      heat: { icon: "🥵", name: "מכת חום", alert: "עור חם, בלבול, התעלפות או הקאות בחום: חייגו 101.",
+        steps: ["מעבירים ל**צל או למזגן** ומורידים בגדים מיותרים.", "**מקררים**: מים על הגוף ומניפים. קרח עטוף בצוואר, בבתי השחי ובמפשעות.", "רק אם **ער לגמרי**: לגימות קטנות של מים.", "מבולבל או לא מגיב: **101**, ואם לא נושם, **החייאה**."],
+        dont: "אף פעם לא להשאיר ילד ברכב, גם לא לדקה." },
+      poison: { icon: "🧪", name: "בליעה / הרעלה", alert: "לא מגיב, מתקשה לנשום או מפרכס: חייגו 101. אחרת: מרכז ההרעלות 04-7771900 (24/7).",
+        steps: ["חייגו ל**מרכז ההרעלות 04-7771900**. הם יגידו מה לעשות.", "שמרו את **האריזה** או הבקבוק לידכם.", "**סוללה כפתור** שנבלעה: לבית חולים **מיד** (101).", "חומר צורב או ניקוי: שוטפים את הפה במים, **לא מקיאים**.", "על העור או בעין: שוטפים במים זורמים 15–20 דקות."],
+        dont: "לא לגרום להקאה ולא לתת חלב או מלח, אלא אם הורו לכם." },
+      faint: { icon: "😵", name: "התעלפות",
+        steps: ["**משכיבים** ומרימים את הרגליים.", "משחררים בגדים צמודים ומאווררים.", "כשמתעורר: קמים **לאט**, קודם לישיבה.", "לא מתעורר תוך דקה, או לא נושם: **101** ו**החייאה**.", "התעלפות עם כאב בחזה, מאמץ, או אצל אישה בהריון: **101**."], dont: "לא לשפוך מים על הפנים ולא לתת לשתות מחוסר הכרה." },
+      drown: { icon: "🌊", name: "טביעה", hot: true, alert: "חייגו 101. לא נכנסים למים בלי שזה בטוח לכם.",
+        steps: ["מוציאים מהמים **רק אם בטוח**: מושיטים מקל, חבל או גלגל הצלה.", "לא נושם: מי שלמד, **5 הנשמות** קודם, ואז **החייאה 30:2**. מי שלא למד: **לחיצות בלי הפסקה**.", "נושם: **תנוחת התאוששות**, מכסים ומחממים.", "גם אם התאושש: **חייבים בדיקה** בבית חולים."], dont: "לא להפוך הפוך כדי \"להוציא מים\"." }
+    };
+  }
+  var ORDER = ["cpr", "choke", "bleed", "allergy", "stroke", "heart", "burn", "seizure", "drown", "snake", "heat", "poison", "faint"];
+  function rich(s) { return el("span", { html: s.replace(/[<>&]/g, "").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>") }); }
+
+  // ---- home ------------------------------------------------------------------------------------
+  function home() {
+    var g = G(), med = jget("ez.med", null);
+    if (location.hash) history.replaceState(null, "", location.pathname);
+    show([
+      el("div", { class: "who", role: "radiogroup", "aria-label": "למי עוזרים" }, Object.keys(W).map(function (k) { return el("button", { type: "button", role: "radio", "aria-pressed": String(WHO === k), onclick: function () { WHO = k; ls("ez.who", k); home(); } }, [k === "adult" ? "🧑 מבוגר" : k === "child" ? "🧒 ילד" : "👶 תינוק"]); })),
+      el("div", { class: "grid" }, ORDER.map(function (k) { var x = g[k]; return el("button", { type: "button", class: "sit" + (x.hot ? " hot" : ""), onclick: function () { guide(k); } }, [el("i", { text: x.icon, "aria-hidden": "true" }), x.name]); })),
+      el("button", { class: "btn ghost", type: "button", text: med && med.name ? "🪪 הכרטיס הרפואי של " + med.name : "🪪 כרטיס רפואי לחירום", onclick: medCard }),
+      el("p", { class: "note", text: "מבוסס על הנחיות עזרה ראשונה מקובלות של מד״א. לא מחליף קורס עזרה ראשונה, ותמיד מחייגים 101. עובד גם בלי אינטרנט אחרי פתיחה ראשונה." })]);
+  }
+  function jget(k, d) { try { return JSON.parse(ls(k) || "") || d; } catch (e) { return d; } }
+
+  // ---- a guide -----------------------------------------------------------------------------------
+  function guide(k) {
+    var x = G()[k], items = x.steps.map(function (s) { return el("li", {}, [rich(s)]); });
+    var nodes = [el("div", { class: "guide" }, [el("h1", { text: x.icon + " " + x.name + (k === "cpr" || k === "choke" ? " · " + W[WHO] : "") }), x.alert ? el("div", { class: "alert", text: x.alert }) : null,
+      x.live === "cpr" ? cprBox() : x.live === "choke" ? chokeBox() : x.live === "timer" ? timerBox() : null,
+      el("ol", { class: "steps" }, items), x.dont ? el("div", { class: "dont" }, ["⚠️ ", x.dont]) : null,
+      el("div", { class: "btns" }, [el("button", { class: "btn", type: "button", text: "🔊 הקראה", onclick: function (e) { speakSteps(x, items, e.currentTarget); } }), el("button", { class: "btn ghost", type: "button", text: "→ חזרה", onclick: home })])])];
+    show(nodes);
+    history.replaceState(null, "", "#" + k);
+  }
+  function plain(s) { return s.replace(/\*\*/g, ""); }
+  var speaking = null;
+  function speakSteps(x, items, btn) {
+    if (!("speechSynthesis" in window)) { toast("הדפדפן לא יודע להקריא"); return; }
+    if (speaking) { stopSpeak(); btn.textContent = "🔊 הקראה"; return; }
+    var r = speaking = { stop: false }; btn.textContent = "⏹ עצירה";
+    var lines = [x.alert || ""].concat(x.steps.map(plain)).filter(Boolean), v = (speechSynthesis.getVoices() || []).filter(function (v) { return /^he|^iw/i.test(v.lang); })[0];
+    (function next(i) {
+      if (r.stop) return; if (i >= lines.length) { speaking = null; btn.textContent = "🔊 הקראה"; items.forEach(function (li) { li.classList.remove("on"); }); return; }
+      var li = items[i - (x.alert ? 1 : 0)]; items.forEach(function (n) { n.classList.toggle("on", n === li); }); if (li) li.scrollIntoView({ behavior: "smooth", block: "center" });
+      var u = new SpeechSynthesisUtterance(lines[i]); u.lang = "he-IL"; if (v) u.voice = v; u.rate = 0.95; u.onend = function () { setTimeout(function () { next(i + 1); }, 500); }; u.onerror = function () { next(i + 1); };
+      speechSynthesis.speak(u);
+    })(0);
+  }
+  function stopSpeak() { if (speaking) { speaking.stop = true; speaking = null; } try { speechSynthesis.cancel(); } catch (e) {} }
+
+  // ---- CPR helper: a beat at 110 a minute, counted, with breaths for trained rescuers ----------------
+  var cpr = null, lock = null, ac = null;
+  function click(hi) { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = hi ? 1250 : 880; g.gain.setValueAtTime(0.0001, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.5, ac.currentTime + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.09); o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.1); } catch (e) {} }
+  function cprBox() {
+    var trained = ls("ez.trained") === "1";
+    var beat = el("div", { class: "beat", "aria-live": "off", text: "▶" }), big = el("div", { class: "big", text: "לחצו על העיגול להתחלה" }), t = el("div", { class: "t" });
+    var cb = el("input", { type: "checkbox", style: "width:auto" }); cb.checked = trained;
+    cb.addEventListener("change", function () { ls("ez.trained", cb.checked ? "1" : "0"); if (cpr) cpr.trained = cb.checked; });
+    function start() {
+      if (cpr) { stopCpr(); beat.textContent = "▶"; big.textContent = "עצרתם. לחצו להמשך"; return; }
+      var st = cpr = { n: 0, t0: Date.now(), trained: cb.checked, breath: 0 };
+      try { navigator.wakeLock && navigator.wakeLock.request("screen").then(function (l) { lock = l; }).catch(function () {}); } catch (e) {}
+      var period = 60000 / 110;
+      (function tick() {
+        if (cpr !== st) return;
+        if (st.breath > 0) { st.breath--; beat.classList.add("breath"); beat.textContent = "2 הנשמות"; big.textContent = "הטיית ראש, הרמת סנטר, 2 הנשמות"; if (st.breath === 0) { st.n = 0; beat.classList.remove("breath"); } st.to = setTimeout(tick, period); return; }
+        st.n++; click(st.n % 30 === 1); beat.textContent = String(st.n); beat.classList.add("push"); setTimeout(function () { beat.classList.remove("push"); }, 120);
+        var s = Math.floor((Date.now() - st.t0) / 1000); t.textContent = "זמן: " + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") + (s >= 120 && s % 120 < 10 ? " · להתחלף אם אפשר" : "");
+        big.textContent = st.trained ? "לוחצים עם הקצב · " + st.n + "/30" : "לוחצים עם הקצב, בלי לעצור";
+        if (st.trained && st.n >= 30) st.breath = 9; // about 5 seconds for two breaths
+        st.to = setTimeout(tick, period);
+      })();
+    }
+    beat.addEventListener("click", start); beat.setAttribute("role", "button"); beat.setAttribute("tabindex", "0"); beat.setAttribute("aria-label", "התחלה או עצירה של קצב הלחיצות");
+    return el("div", { class: "cpr" }, [beat, big, t, el("label", { class: "tog" }, [cb, "למדתי החייאה (30 לחיצות ו־2 הנשמות)"])]);
+  }
+  function stopCpr() { if (cpr) { clearTimeout(cpr.to); cpr = null; } if (lock && lock.release) lock.release().catch(function () {}); lock = null; }
+
+  // ---- choking helper: counts the five and five --------------------------------------------------------
+  function chokeBox() {
+    var phase = 0, n = 0, b = WHO === "baby";
+    var names = [b ? "טפיחות בגב" : "טפיחות בגב", b ? "לחיצות חזה" : "לחיצות בטן"];
+    var beat = el("div", { class: "beat", style: "font-size:clamp(30px,9vw,44px)", text: "5 " + names[0] }), big = el("div", { class: "big", text: "לחצו על העיגול בכל מכה" });
+    beat.setAttribute("role", "button"); beat.setAttribute("tabindex", "0");
+    beat.addEventListener("click", function () {
+      n++; click(false); beat.classList.add("push"); setTimeout(function () { beat.classList.remove("push"); }, 120);
+      if (n >= 5) { n = 0; phase = 1 - phase; beat.classList.toggle("breath", phase === 1); }
+      beat.textContent = (5 - n) + " " + names[phase]; big.textContent = n ? "עוד " + (5 - n) + " " + names[phase] : "עכשיו: 5 " + names[phase];
+    });
+    return el("div", { class: "cpr" }, [beat, big, el("button", { class: "btn red", type: "button", text: "יצא! 🎉", onclick: function () { toast("כל הכבוד. עדיין כדאי בדיקה אצל רופא."); home(); } })]);
+  }
+  // ---- seizure timer --------------------------------------------------------------------------------
+  var tmr = null;
+  function timerBox() {
+    var big = el("div", { class: "big", text: "0:00" }), b = el("button", { class: "btn red", type: "button", text: "▶ התחילו למדוד" });
+    b.addEventListener("click", function () {
+      if (tmr) { clearInterval(tmr.i); tmr = null; b.textContent = "▶ התחילו למדוד"; return; }
+      var t0 = Date.now(); b.textContent = "⏹ עצירה";
+      tmr = { i: setInterval(function () { var s = Math.floor((Date.now() - t0) / 1000); big.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); if (s === 300) { click(true); toast("5 דקות: חייגו 101"); big.style.color = "var(--red)"; } }, 500) };
+    });
+    return el("div", { class: "cpr" }, [big, b]);
+  }
+  function stopAll() { stopCpr(); stopSpeak(); if (tmr) { clearInterval(tmr.i); tmr = null; } }
+
+  // ---- my location, to read out or send ------------------------------------------------------------------
+  $("locBtn").addEventListener("click", function () {
+    if (!navigator.geolocation) { toast("אין גישה למיקום"); return; }
+    toast("מאתרים מיקום…");
+    navigator.geolocation.getCurrentPosition(function (p) {
+      var la = p.coords.latitude.toFixed(5), lo = p.coords.longitude.toFixed(5), url = "https://maps.google.com/?q=" + la + "," + lo, msg = "צריך עזרה, אני כאן: " + url;
+      show([el("div", { class: "card" }, [el("h1", { style: "margin:0;font-size:24px", text: "📍 המיקום שלך" }), el("div", { class: "loc", text: la + ", " + lo }), el("p", { class: "note", text: "אפשר להקריא את המספרים למוקדן. דיוק: כ־" + Math.round(p.coords.accuracy) + " מטר." }),
+        el("div", { class: "btns" }, [el("a", { class: "btn red", href: "sms:?&body=" + encodeURIComponent(msg), text: "שליחה ב־SMS" }), el("a", { class: "btn", href: "https://wa.me/?text=" + encodeURIComponent(msg), target: "_blank", rel: "noopener", text: "וואטסאפ" }), el("a", { class: "btn ghost", href: url, target: "_blank", rel: "noopener", text: "פתיחה במפה" })]),
+        el("button", { class: "btn ghost", type: "button", text: "→ חזרה", onclick: home })])]);
+    }, function () { toast("לא קיבלנו מיקום. מאשרים מיקום בהגדרות."); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
+
+  // ---- medical card for the paramedics --------------------------------------------------------------
+  function medCard() {
+    var m = jget("ez.med", {}), f = {};
+    var inp = function (k, label, ph, ta) { f[k] = el(ta ? "textarea" : "input", { value: m[k] || "", placeholder: ph || "" }); if (ta) f[k].value = m[k] || ""; return el("label", { class: "f" }, [label, f[k]]); };
+    var card = m.name ? el("div", { class: "idcard" }, [el("div", {}, [el("b", { text: "שם: " }), m.name + (m.birth ? " · " + m.birth : "")]), m.blood ? el("div", {}, [el("b", { text: "סוג דם: " }), m.blood]) : null, m.allergy ? el("div", {}, [el("b", { text: "אלרגיות: " }), m.allergy]) : null, m.meds ? el("div", {}, [el("b", { text: "תרופות: " }), m.meds]) : null, m.cond ? el("div", {}, [el("b", { text: "מחלות: " }), m.cond]) : null,
+      m.contact ? el("div", {}, [el("b", { text: "איש קשר: " }), m.contact, m.phone ? el("a", { href: "tel:" + m.phone.replace(/[^\d+]/g, ""), text: " 📞 " + m.phone }) : null]) : null]) : null;
+    show([el("h1", { style: "margin:0;font-size:26px", text: "🪪 כרטיס רפואי" }), card, card ? el("p", { class: "note", text: "בחירום: פותחים את המסך הזה ומראים לצוות." }) : null,
+      el("div", { class: "card" }, [inp("name", "שם"), inp("birth", "תאריך לידה", "1.1.1980"), inp("blood", "סוג דם", "A+"), inp("allergy", "אלרגיות", "פניצילין, בוטנים", true), inp("meds", "תרופות קבועות", "", true), inp("cond", "מחלות רקע", "סוכרת, אסתמה", true), inp("contact", "איש קשר לחירום", "שם"), inp("phone", "טלפון שלו", "050-0000000"),
+        el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var o = {}; Object.keys(f).forEach(function (k) { o[k] = f[k].value.trim().slice(0, 200); }); ls("ez.med", JSON.stringify(o)); toast("נשמר בטלפון בלבד"); medCard(); } })]),
+      el("p", { class: "note", text: "המידע נשמר רק בטלפון הזה, לא נשלח לשום מקום." }),
+      el("button", { class: "btn ghost", type: "button", text: "→ חזרה", onclick: home })]);
+  }
+
+  var h = location.hash.slice(1);
+  if (ORDER.indexOf(h) >= 0) guide(h); else home();
+  window.addEventListener("hashchange", function () { var k = location.hash.slice(1); if (ORDER.indexOf(k) >= 0) guide(k); });
+})();
+</script>
