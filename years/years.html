@@ -1,0 +1,499 @@
+<title>HaniaYears · סרטון גדילה</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800;900&display=swap">
+<style>
+/* Layout: one column of numbered steps; the preview sticks big in the middle; the AI upgrade is a separate card at the end. */
+:root{
+  --bg:#FFF4EC; --surface:#FFFFFF; --ink:#2B1B33; --muted:#7A6680; --line:#F1DED3;
+  --coral:#FF6A5C; --sun:#FFB830; --sky:#4CB8F5; --mint:#3CCB8C; --plum:#8B5CF6;
+  --ok:#11845B; --bad:#C62D3A;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI","Arial Hebrew",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1420;--surface:#2A1F30;--ink:#F8ECF4;--muted:#BCA6C2;--line:#3E3045;--ok:#4FD39B;--bad:#FF7A85;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.45}
+.wrap{max-width:720px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+header{display:flex;align-items:center;gap:10px}
+header b{font-size:21px;font-weight:900}
+header b span{background:linear-gradient(90deg,var(--coral),var(--sun));-webkit-background-clip:text;background-clip:text;color:transparent}
+header a{margin-inline-start:auto;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
+.hero{border-radius:26px;padding:22px 20px;background:linear-gradient(135deg,#FF6A5C,#FFB830 55%,#4CB8F5);color:#fff;display:grid;gap:8px;box-shadow:0 14px 34px rgba(255,106,92,.25)}
+.hero h1{margin:0;font-size:clamp(27px,7.5vw,40px);line-height:1.12;font-weight:900;text-wrap:balance;text-shadow:0 2px 12px rgba(0,0,0,.15)}
+.hero p{margin:0;font-size:17px;max-width:520px;text-shadow:0 1px 6px rgba(0,0,0,.15)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.card h2{margin:0;font-size:19px;font-weight:800;display:flex;align-items:center;gap:10px}
+.card h2 i{font-style:normal;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--coral);color:#fff;font-size:15px;flex:none}
+.card:nth-of-type(3) h2 i{background:var(--sun)}.card:nth-of-type(4) h2 i{background:var(--sky)}.card:nth-of-type(5) h2 i{background:var(--mint)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label.f{display:grid;gap:4px;font-size:14px;font-weight:600;color:var(--muted)}
+input,select{font:inherit;font-size:17px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;width:100%}
+input:focus,select:focus{outline:3px solid var(--sky);outline-offset:1px}
+.add{display:grid;place-items:center;gap:4px;text-align:center;border:2.5px dashed var(--coral);border-radius:18px;padding:22px 14px;cursor:pointer;background:color-mix(in srgb,var(--coral) 7%,transparent)}
+.add b{font-size:18px}.add span{color:var(--muted);font-size:14.5px}
+.add input{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.ph{position:relative;border-radius:14px;overflow:hidden;background:var(--bg);border:1px solid var(--line);display:grid}
+.ph img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block}
+.ph .age{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:12.5px;font-weight:800;border-radius:8px;padding:2px 7px}
+.ph .face{position:absolute;top:6px;left:6px;font-size:13px;border-radius:8px;padding:1px 5px;background:rgba(255,255,255,.85)}
+.ph input{border:0;border-top:1px solid var(--line);border-radius:0;font-size:13px;padding:6px;background:var(--surface);text-align:center}
+.ph button{position:absolute;bottom:38px;left:6px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:15px;cursor:pointer}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{appearance:none;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:8px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stage{display:grid;justify-items:center;gap:12px}
+canvas#cv,video.out{width:min(100%,420px);border-radius:18px;background:#000;box-shadow:0 12px 30px rgba(43,27,51,.25);display:block}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{appearance:none;border:0;border-radius:999px;background:var(--coral);color:#fff;font:inherit;font-weight:800;font-size:17px;padding:13px 22px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn.alt{background:var(--ink);color:var(--bg)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.ai{background:linear-gradient(90deg,var(--plum),var(--sky))}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+.bar{width:min(100%,420px);height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--coral),var(--sun));transition:width .2s}
+.note{margin:0;color:var(--muted);font-size:14.5px}
+.warn{padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--sun) 18%,transparent);font-size:14.5px}
+.cost{font-size:22px;font-weight:900}
+.jobs{display:grid;gap:6px;font-size:14.5px}
+.jobs div{display:flex;gap:8px;align-items:center}
+.jobs a{color:var(--plum);font-weight:700}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14.5px}
+.check input{width:auto;margin-top:3px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header><b>Hania<span>Years</span></b><a href="https://hania360.com/">Hania360 ←</a></header>
+  <section class="hero">
+    <h1>מהיום שנולד ועד היום, בסרטון אחד</h1>
+    <p>מעלים תמונות של הילד מגילאים שונים. האפליקציה מוצאת את הפנים, מיישרת אותן, ובונה סרטון גדילה עם הגיל בכל תמונה ומוזיקה. התמונות לא יוצאות מהטלפון.</p>
+  </section>
+
+  <section class="card">
+    <h2><i>1</i>מי הגיבור?</h2>
+    <div class="row">
+      <label class="f">שם<input id="name" maxlength="30" placeholder="למשל אלינויה"></label>
+      <label class="f">תאריך לידה<input id="birth" type="date"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><i>2</i>תמונות</h2>
+    <label class="add"><input id="files" type="file" accept="image/*" multiple><b>📸 הוספת תמונות</b><span>אפשר לבחור הרבה בבת אחת. הכי טוב: פנים קרובות, מבט למצלמה, תמונה אחת לכל חצי שנה בערך.</span></label>
+    <p class="note" id="phNote">התאריך נקרא מהתמונה כשאפשר. אם הוא לא נכון, מתקנים מתחת לתמונה.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="card">
+    <h2><i>3</i>סגנון</h2>
+    <div class="row">
+      <label class="f">כותרת<input id="title" maxlength="40" placeholder="מהלידה ועד היום"></label>
+    </div>
+    <div><p class="note">צורה</p><div class="seg" id="fmt"></div></div>
+    <div><p class="note">קצב</p><div class="seg" id="pace"></div></div>
+    <div><p class="note">מוזיקה</p><div class="seg" id="music"></div><input id="musicFile" type="file" accept="audio/*" hidden></div>
+  </section>
+
+  <section class="card">
+    <h2><i>4</i>הסרטון</h2>
+    <div class="stage">
+      <canvas id="cv" width="1080" height="1350" aria-label="תצוגה מקדימה של הסרטון"></canvas>
+      <div class="bar" id="bar" hidden><i></i></div>
+      <p class="note" id="stageNote">מוסיפים לפחות 2 תמונות כדי לראות.</p>
+      <div class="btns">
+        <button class="btn ghost" type="button" id="play" disabled>▶ תצוגה</button>
+        <button class="btn" type="button" id="make" disabled>🎬 יצירת הסרטון</button>
+      </div>
+      <video class="out" id="outVideo" controls playsinline hidden></video>
+      <div class="btns" id="outBtns" hidden>
+        <a class="btn alt" id="dl" download>⬇ הורדה</a>
+        <button class="btn" type="button" id="share">שיתוף</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="aiCard">
+    <h2><i style="background:var(--plum)">✨</i>שדרוג בינה מלאכותית <small style="color:var(--muted);font-weight:600;font-size:14px">אופציונלי</small></h2>
+    <p class="note">בינה מלאכותית לווידאו (Kling של fal.ai) יוצרת תנועה אמיתית בין כל שתי תמונות: הילד ממש "גדל" מול העיניים. משלמים ישירות ל־fal.ai מהחשבון שלך. אנחנו לא רואים את המפתח, את התמונות או את התשלום.</p>
+    <div class="warn">🔒 התמונות שבחרת יישלחו ל־fal.ai ול־Kling כדי ליצור את הסרטון. אם זה לא מתאים לך, הסרטון הרגיל למעלה נבנה כולו בטלפון.</div>
+    <div class="row">
+      <label class="f">אורך כל מעבר<select id="aiDur"><option value="3">3 שניות</option><option value="5" selected>5 שניות</option></select></label>
+      <div><p class="note" style="margin-bottom:4px">עלות משוערת</p><div class="cost" id="aiCost">—</div></div>
+    </div>
+    <label class="f">מפתח fal.ai שלך<input id="aiKey" type="password" autocomplete="off" spellcheck="false" placeholder="נשמר רק בטלפון הזה" dir="ltr"></label>
+    <p class="note">אין מפתח? נרשמים ב־<a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener">fal.ai</a>, טוענים קרדיט ויוצרים מפתח. המחיר לפי המחירון של fal.ai ויכול להשתנות.</p>
+    <label class="check"><input type="checkbox" id="aiOk"><span>אני מאשר/ת לשלוח את התמונות ל־fal.ai ולשלם להם על היצירה.</span></label>
+    <div class="btns"><button class="btn ai" type="button" id="aiGo" disabled>✨ יצירה עם בינה מלאכותית</button></div>
+    <div class="jobs" id="jobs"></div>
+    <div class="stage" id="aiStage" hidden>
+      <video class="out" id="aiVideo" controls playsinline></video>
+      <div class="btns"><a class="btn alt" id="aiDl" download>⬇ הורדה</a><button class="btn" type="button" id="aiShare">שיתוף</button></div>
+    </div>
+  </section>
+  <p class="note">מקודדים בטלפון. בזמן יצירת הסרטון משאירים את המסך פתוח.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), a[k]); else if (k === "text") e.textContent = a[k]; else e.setAttribute(k, a[k]); }); (kids || []).forEach(function (c) { if (c != null) e.append(typeof c === "string" ? document.createTextNode(c) : c); }); return e; }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2800); }
+
+  // ---- settings ---------------------------------------------------------------------------
+  var S = { fmt: ls("yr.fmt") || "45", pace: ls("yr.pace") || "normal", music: ls("yr.music") || "box", musicFile: null };
+  var FMT = { "45": [1080, 1350, "4:5 לאינסטגרם"], "916": [1080, 1920, "9:16 לסטורי"], "11": [1080, 1080, "ריבוע"] };
+  var PACE = { calm: [2.4, 1.1, "רגוע"], normal: [1.6, 0.8, "רגיל"], fast: [1.0, 0.5, "מהיר"] };
+  function seg(id, opts, key, after) {
+    $(id).replaceChildren.apply($(id), opts.map(function (o) { return el("button", { type: "button", role: "radio", "aria-checked": String(S[key] === o[0]), onclick: function () { S[key] = o[0]; ls("yr." + key, o[0]); Array.prototype.forEach.call($(id).children, function (b, i) { b.setAttribute("aria-checked", String(opts[i][0] === o[0])); }); after && after(o[0]); } }, [o[1]]); }));
+  }
+  seg("fmt", Object.keys(FMT).map(function (k) { return [k, FMT[k][2]]; }), "fmt", function () { reframe(); });
+  seg("pace", Object.keys(PACE).map(function (k) { return [k, PACE[k][2]]; }), "pace", function () { reframe(); });
+  seg("music", [["box", "🎵 קופסת נגינה"], ["none", "בלי"], ["mine", "שיר משלי"]], "music", function (v) { if (v === "mine") $("musicFile").click(); });
+  $("musicFile").addEventListener("change", function (e) { S.musicFile = e.target.files[0] || null; if (S.musicFile) toast("השיר נבחר: " + S.musicFile.name); });
+  $("name").value = ls("yr.name") || ""; $("birth").value = ls("yr.birth") || ""; $("title").value = ls("yr.title") || "";
+  ["name", "birth", "title"].forEach(function (k) { $(k).addEventListener("input", function () { ls("yr." + k, $(k).value); if (k === "birth") renderGrid(); drawStill(); }); });
+
+  // ---- photos ------------------------------------------------------------------------------
+  var photos = [];   // {id, url, src (canvas), date, face:{a:[x,y], b:[x,y]}|null|undefined, frame (canvas)}
+  $("files").addEventListener("change", function (e) { var fs = Array.prototype.slice.call(e.target.files || []); e.target.value = ""; addFiles(fs); });
+  function addFiles(fs) {
+    if (photos.length + fs.length > 60) { toast("עד 60 תמונות בסרטון"); fs = fs.slice(0, 60 - photos.length); }
+    $("stageNote").textContent = "קוראים את התמונות…";
+    var chain = Promise.resolve();
+    fs.forEach(function (f) { chain = chain.then(function () { return load(f); }).then(function (p) { if (p) { photos.push(p); sortPhotos(); renderGrid(); } }); });
+    chain.then(detectAll).then(function () { reframe(); });
+  }
+  function load(file) {
+    return Promise.all([exifDate(file), new Promise(function (ok) { var img = new Image(); img.onload = function () { ok(img); }; img.onerror = function () { ok(null); }; img.src = URL.createObjectURL(file); })]).then(function (r) {
+      var img = r[1]; if (!img) return null;
+      // Big photos are scaled down once: enough for 1080p, light on memory.
+      var k = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      var d = r[0] || new Date(file.lastModified || Date.now());
+      return { id: Math.random().toString(36).slice(2), url: img.src, src: c, date: iso(d), face: undefined, frame: null };
+    });
+  }
+  function iso(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function sortPhotos() { photos.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); }
+  // The date the photo was taken, from its EXIF (JPEG only); otherwise the file date.
+  function exifDate(file) {
+    return file.slice(0, 131072).arrayBuffer().then(function (buf) {
+      var v = new DataView(buf); if (v.byteLength < 4 || v.getUint16(0) !== 0xFFD8) return null;
+      var o = 2;
+      while (o + 4 < v.byteLength) {
+        var mk = v.getUint16(o), len = v.getUint16(o + 2);
+        if (mk === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) {
+          var t = o + 10, le = v.getUint16(t) === 0x4949, u16 = function (p) { return v.getUint16(t + p, le); }, u32 = function (p) { return v.getUint32(t + p, le); };
+          var readIfd = function (p, want) { var n = u16(p); for (var i = 0; i < n; i++) { var e = p + 2 + i * 12; if (t + e + 12 > v.byteLength) return null; var tag = u16(e); if (want[tag]) return want[tag](e); } return null; };
+          var str = function (e) { var off = u32(e + 8), s = ""; for (var i = 0; i < 19 && t + off + i < v.byteLength; i++) s += String.fromCharCode(v.getUint8(t + off + i)); return s; };
+          var ifd0 = u32(4);
+          var sub = readIfd(ifd0, { 0x8769: function (e) { return u32(e + 8); } });
+          var s = (sub && readIfd(sub, { 0x9003: str })) || readIfd(ifd0, { 0x0132: str });
+          var m = s && s.match(/^(\d{4}):(\d{2}):(\d{2})/);
+          return m && +m[1] > 1990 ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+        }
+        if ((mk & 0xFF00) !== 0xFF00) return null;
+        o += 2 + len;
+      }
+      return null;
+    }).catch(function () { return null; });
+  }
+  function ageText(dateStr) {
+    var b = $("birth").value; if (!b || !dateStr) return "";
+    var B = new Date(b), D = new Date(dateStr), m = (D.getFullYear() - B.getFullYear()) * 12 + D.getMonth() - B.getMonth() - (D.getDate() < B.getDate() ? 1 : 0);
+    var days = Math.round((D - B) / 864e5);
+    if (days < 0) return "";
+    if (days < 10) return "יום הלידה";
+    if (m < 1) return days < 21 ? "שבועיים" : "3 שבועות";
+    if (m < 12) return m === 1 ? "חודש" : m === 2 ? "חודשיים" : m + " חודשים";
+    if (m < 24) return m === 12 ? "שנה" : "שנה ו־" + (m - 12 === 1 ? "חודש" : m - 12 === 2 ? "חודשיים" : (m - 12) + " חודשים");
+    var y = Math.floor(m / 12), half = m % 12 >= 6;
+    return y === 2 ? (half ? "שנתיים וחצי" : "שנתיים") : y + (half ? " וחצי" : "") + " שנים";
+  }
+  function renderGrid() {
+    $("grid").replaceChildren.apply($("grid"), photos.map(function (p) {
+      var a = ageText(p.date);
+      return el("div", { class: "ph" }, [el("img", { src: p.url, alt: "תמונה מ־" + p.date, loading: "lazy" }), a ? el("span", { class: "age", text: a }) : null,
+        p.face === undefined ? null : el("span", { class: "face", title: p.face ? "הפנים זוהו ויושרו" : "לא זוהו פנים, התמונה תמורכז", text: p.face ? "🙂" : "⚠️" }),
+        el("button", { type: "button", "aria-label": "הסרת התמונה", text: "✕", onclick: function () { photos = photos.filter(function (x) { return x !== p; }); renderGrid(); reframe(); } }),
+        el("input", { type: "date", value: p.date, "aria-label": "תאריך התמונה", onchange: function (e) { p.date = e.target.value || p.date; sortPhotos(); renderGrid(); reframe(); } })]);
+    }));
+    var bad = photos.filter(function (p) { return p.face === null; }).length;
+    $("phNote").textContent = photos.length ? photos.length + " תמונות" + (bad ? " · ב־" + bad + " לא זוהו פנים (⚠️), הן ימורכזו. כדאי להחליף בתמונה עם פנים קרובות." : " · 🙂 = הפנים זוהו ויושרו") : "התאריך נקרא מהתמונה כשאפשר. אם הוא לא נכון, מתקנים מתחת לתמונה.";
+    updateAiCost();
+  }
+
+  // ---- faces (MediaPipe, on the phone) -------------------------------------------------------------
+  var detector = null;
+  function getDetector() {
+    if (detector) return detector;
+    var V = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+    detector = import(V + "/vision_bundle.mjs").then(function (m) {
+      return m.FilesetResolver.forVisionTasks(V + "/wasm").then(function (fs) {
+        return m.FaceDetector.createFromOptions(fs, { baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite" }, runningMode: "IMAGE", minDetectionConfidence: 0.4 });
+      });
+    }).catch(function () { detector = null; return null; });
+    return detector;
+  }
+  function detectAll() {
+    var todo = photos.filter(function (p) { return p.face === undefined; }); if (!todo.length) return Promise.resolve();
+    $("stageNote").textContent = "מזהים פנים…";
+    return getDetector().then(function (fd) {
+      todo.forEach(function (p) {
+        p.face = null;
+        if (!fd) return;
+        try {
+          var r = fd.detect(p.src), best = null;
+          (r.detections || []).forEach(function (d) { var bb = d.boundingBox, area = bb ? bb.width * bb.height : 0; if (d.keypoints && d.keypoints.length >= 2 && (!best || area > best.area)) best = { d: d, area: area }; });
+          if (best) {
+            var k = best.d.keypoints, e1 = [k[0].x * p.src.width, k[0].y * p.src.height], e2 = [k[1].x * p.src.width, k[1].y * p.src.height];
+            p.face = e1[0] <= e2[0] ? { a: e1, b: e2 } : { a: e2, b: e1 };
+          }
+        } catch (e) { p.face = null; }
+      });
+      renderGrid();
+    });
+  }
+
+  // ---- one aligned frame per photo: the eyes always land on the same spot -------------------------------
+  function size() { return FMT[S.fmt]; }
+  function frameOf(p) {
+    var W = size()[0], H = size()[1], c = document.createElement("canvas"), g = c.getContext("2d"), s = p.src;
+    c.width = W; c.height = H;
+    // Behind: the same photo, blurred, so a rotated or small photo never leaves black corners.
+    var k = Math.max(W / s.width, H / s.height) * 1.15;
+    g.filter = "blur(36px) brightness(.8) saturate(1.2)"; g.drawImage(s, (W - s.width * k) / 2, (H - s.height * k) / 2, s.width * k, s.height * k); g.filter = "none";
+    if (p.face) {
+      var a = p.face.a, b = p.face.b, dx = b[0] - a[0], dy = b[1] - a[1], dist = Math.hypot(dx, dy) || 1, ang = Math.atan2(dy, dx);
+      var target = W * 0.19, sc = Math.min(target / dist, 6), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      g.save(); g.translate(W / 2, H * 0.42); g.rotate(-ang); g.scale(sc, sc); g.translate(-mx, -my); g.drawImage(s, 0, 0); g.restore();
+    } else {
+      var kk = Math.max(W / s.width, H / s.height); g.drawImage(s, (W - s.width * kk) / 2, (H - s.height * kk) / 2, s.width * kk, s.height * kk);
+    }
+    return c;
+  }
+  function reframe() {
+    var cv = $("cv"); cv.width = size()[0]; cv.height = size()[1];
+    photos.forEach(function (p) { if (p.face !== undefined) p.frame = frameOf(p); });
+    var ready = photos.filter(function (p) { return p.frame; }).length >= 2;
+    $("play").disabled = $("make").disabled = !ready;
+    $("stageNote").textContent = ready ? "אורך הסרטון: כ־" + Math.round(total()) + " שניות. ▶ לתצוגה, 🎬 ליצירה." : "מוסיפים לפחות 2 תמונות כדי לראות.";
+    drawStill(); updateAiCost();
+  }
+
+  // ---- the timeline ------------------------------------------------------------------------
+  var INTRO = 2.2, OUTRO = 2.6;
+  function list() { return photos.filter(function (p) { return p.frame; }); }
+  function total() { var n = list().length, P = PACE[S.pace]; return n ? INTRO + n * P[0] + (n - 1) * P[1] + OUTRO : 0; }
+  function label(g, W, H, text, alpha) {
+    if (!text || alpha <= 0) return;
+    g.save(); g.globalAlpha = alpha; g.font = "900 " + Math.round(W * 0.075) + "px Rubik, system-ui, sans-serif"; g.textAlign = "center"; g.direction = "rtl";
+    var w = g.measureText(text).width + W * 0.09, h = W * 0.12, x = W / 2 - w / 2, y = H - h - H * 0.06;
+    g.fillStyle = "rgba(255,255,255,.92)"; g.beginPath(); g.roundRect(x, y, w, h, h / 2); g.fill();
+    g.fillStyle = "#2B1B33"; g.textBaseline = "middle"; g.fillText(text, W / 2, y + h / 2 + 2); g.restore();
+  }
+  function titleCard(g, W, H, alpha, lines) {
+    g.save(); g.globalAlpha = alpha; g.fillStyle = "rgba(20,10,25,.45)"; g.fillRect(0, 0, W, H);
+    g.textAlign = "center"; g.direction = "rtl"; g.fillStyle = "#fff"; g.shadowColor = "rgba(0,0,0,.35)"; g.shadowBlur = 24;
+    g.font = "900 " + Math.round(W * 0.12) + "px Rubik, system-ui, sans-serif"; g.fillText(lines[0], W / 2, H * 0.47);
+    if (lines[1]) { g.font = "600 " + Math.round(W * 0.05) + "px Rubik, system-ui, sans-serif"; g.fillText(lines[1], W / 2, H * 0.47 + W * 0.09); }
+    g.restore();
+  }
+  function zoomed(g, W, H, frame, z, alpha) { g.save(); g.globalAlpha = alpha; g.translate(W / 2, H * 0.42); g.scale(z, z); g.translate(-W / 2, -H * 0.42); g.drawImage(frame, 0, 0); g.restore(); }
+  // Everything one moment of the video shows.
+  function drawAt(g, t) {
+    var L = list(), W = g.canvas.width, H = g.canvas.height, P = PACE[S.pace], T = total(); if (!L.length) return;
+    var z = 1 + 0.07 * Math.min(1, t / T), name = $("name").value.trim(), title = $("title").value.trim() || "מהלידה ועד היום";
+    g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+    if (t < INTRO) { zoomed(g, W, H, L[0].frame, z, 1); titleCard(g, W, H, Math.min(1, (INTRO - t) / 0.6), [name || "❤", title]); label(g, W, H, ageText(L[0].date), Math.max(0, (t - INTRO + 0.5) / 0.5)); return; }
+    var u = t - INTRO, step = P[0] + P[1], i = Math.min(L.length - 1, Math.floor(u / step)), r = u - i * step;
+    if (i >= L.length - 1 || r < P[0]) {
+      var last = i >= L.length - 1; zoomed(g, W, H, L[i].frame, z, 1); label(g, W, H, ageText(L[i].date), 1);
+      if (last && u > (L.length - 1) * step + P[0]) { var q = Math.min(1, (u - ((L.length - 1) * step + P[0])) / 0.8); titleCard(g, W, H, q, [name ? name + " ❤" : "❤", "היום: " + (ageText(L[i].date) || "")]); }
+      return;
+    }
+    var f = (r - P[0]) / P[1], e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+    zoomed(g, W, H, L[i].frame, z, 1); zoomed(g, W, H, L[i + 1].frame, z, e);
+    label(g, W, H, ageText(L[i].date), 1 - e); label(g, W, H, ageText(L[i + 1].date), e);
+  }
+  function drawStill() { var g = $("cv").getContext("2d"); if (list().length) drawAt(g, INTRO + 0.01); else { g.fillStyle = "#2B1B33"; g.fillRect(0, 0, g.canvas.width, g.canvas.height); } }
+
+  // ---- sound ----------------------------------------------------------------------------------
+  // A small music box, written as notes, so there is no copyright question.
+  var MELODY = [0, 4, 7, 12, 11, 7, 4, 7, 9, 7, 4, 2, 4, 0, -1, 0, 4, 7, 12, 14, 12, 11, 9, 7, 9, 7, 4, 2, 0, 2, 4, 0];
+  function musicBox(ac, out, start, dur) {
+    var beat = 0.42, base = 523.25;
+    for (var i = 0, t = start; t < start + dur - 0.3; i++, t += beat) {
+      var n = MELODY[i % MELODY.length], f = base * Math.pow(2, n / 12);
+      [1, 2].forEach(function (h, j) { var o = ac.createOscillator(), g = ac.createGain(); o.type = "sine"; o.frequency.value = f * h; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(j ? 0.04 : 0.16, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0008, t + 1.6); o.connect(g); g.connect(out); o.start(t); o.stop(t + 1.7); });
+      if (i % 4 === 0) { var o2 = ac.createOscillator(), g2 = ac.createGain(); o2.type = "triangle"; o2.frequency.value = base / 2 * Math.pow(2, [0, -3, -5, -7][(i / 4) % 4] / 12); g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(0.08, t + 0.02); g2.gain.exponentialRampToValueAtTime(0.001, t + 1.6); o2.connect(g2); g2.connect(out); o2.start(t); o2.stop(t + 1.7); }
+    }
+  }
+  function sound(ac, dest, dur) {
+    var master = ac.createGain(); master.gain.value = 1; master.connect(dest); if (dest !== ac.destination) master.connect(ac.destination);
+    master.gain.setValueAtTime(1, ac.currentTime + Math.max(0, dur - 1.5)); master.gain.linearRampToValueAtTime(0, ac.currentTime + dur);
+    if (S.music === "box") musicBox(ac, master, ac.currentTime + 0.1, dur);
+    else if (S.music === "mine" && S.musicFile) { var a = new Audio(URL.createObjectURL(S.musicFile)); a.crossOrigin = "anonymous"; ac.createMediaElementSource(a).connect(master); a.play().catch(function () {}); return function () { a.pause(); }; }
+    return function () {};
+  }
+
+  // ---- preview and making the file ------------------------------------------------------------------
+  var running = null;
+  function run(rec, onFrame, T, painter) {
+    var cv = $("cv"), g = cv.getContext("2d"), t0 = performance.now();
+    return new Promise(function (done) {
+      function tick() { if (running !== tick) return done(false); var t = (performance.now() - t0) / 1000; painter(g, Math.min(t, T)); onFrame && onFrame(t / T); if (t >= T) { running = null; return done(true); } requestAnimationFrame(tick); }
+      running = tick; requestAnimationFrame(tick);
+    });
+  }
+  $("play").addEventListener("click", function () {
+    if (running) { running = null; $("play").textContent = "▶ תצוגה"; return; }
+    var ac = new (window.AudioContext || window.webkitAudioContext)(), stop = sound(ac, ac.destination, total());
+    $("play").textContent = "⏹ עצירה";
+    run(false, null, total(), drawAt).then(function () { stop(); ac.close(); $("play").textContent = "▶ תצוגה"; drawStill(); });
+  });
+  function mime() { var c = ["video/mp4;codecs=avc1.640028,mp4a.40.2", "video/mp4;codecs=avc1,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm"]; for (var i = 0; i < c.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported(c[i])) return c[i]; return ""; }
+  // Records whatever the painter draws on the canvas, with the music, in real time.
+  function record(T, painter, btn) {
+    var type = mime(); if (!type || !$("cv").captureStream) { toast("הדפדפן הזה לא יודע ליצור וידאו. נסו בכרום או בספארי מעודכן."); return Promise.resolve(null); }
+    var ac = new (window.AudioContext || window.webkitAudioContext)(), dest = ac.createMediaStreamDestination(), stop = sound(ac, dest, T);
+    var stream = new MediaStream($("cv").captureStream(30).getVideoTracks().concat(dest.stream.getAudioTracks()));
+    var chunks = [], mr = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 8e6 });
+    mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    $("bar").hidden = false; btn.disabled = true; var lock = null; try { navigator.wakeLock && navigator.wakeLock.request("screen").then(function (l) { lock = l; }).catch(function () {}); } catch (e) {}
+    mr.start(500);
+    return run(true, function (f) { $("bar").firstElementChild.style.width = Math.min(100, f * 100) + "%"; }, T, painter).then(function (ok) {
+      return new Promise(function (res) { mr.onstop = function () { stop(); ac.close(); $("bar").hidden = true; btn.disabled = false; lock && lock.release && lock.release(); res(ok ? new Blob(chunks, { type: type.split(";")[0] }) : null); }; mr.stop(); });
+    });
+  }
+  function fileName(blob) { return ($("name").value.trim() || "years").replace(/[^\p{L}\p{N}_-]+/gu, "-") + (blob.type.indexOf("mp4") >= 0 ? ".mp4" : ".webm"); }
+  function deliver(blob, video, dl, share) {
+    var u = URL.createObjectURL(blob); video.src = u; video.hidden = false; dl.href = u; dl.download = fileName(blob);
+    share.onclick = function () { var f = new File([blob], fileName(blob), { type: blob.type }); if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: $("name").value.trim() || "HaniaYears" }).catch(function () {}); else dl.click(); };
+    video.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  $("make").addEventListener("click", function () {
+    if (document.hidden) return;
+    $("stageNote").textContent = "יוצרים את הסרטון… משאירים את המסך פתוח (" + Math.round(total()) + " שניות).";
+    record(total(), drawAt, $("make")).then(function (blob) {
+      if (!blob) { $("stageNote").textContent = "היצירה נעצרה. מנסים שוב, עם המסך פתוח."; return; }
+      $("stageNote").textContent = blob.type.indexOf("mp4") >= 0 ? "מוכן! MP4 לוואטסאפ ולאינסטגרם." : "מוכן! (WebM. אם וואטסאפ לא מקבל, פותחים את האפליקציה בכרום מעודכן או בספארי.)";
+      $("outBtns").hidden = false; deliver(blob, $("outVideo"), $("dl"), $("share")); drawStill();
+    });
+  });
+  document.addEventListener("visibilitychange", function () { if (document.hidden && running) { running = null; toast("הסרטון נעצר כי המסך נסגר"); } });
+
+  // =====================================================================================
+  // AI upgrade, paid by the user straight to fal.ai with their own key. Nothing passes through our server.
+  // =====================================================================================
+  var MODEL = "fal-ai/kling-video/o1/image-to-video", PRICE = 0.112;
+  $("aiKey").value = ls("yr.falkey") || "";
+  $("aiKey").addEventListener("input", function () { ls("yr.falkey", $("aiKey").value.trim() || null); aiReady(); });
+  $("aiOk").addEventListener("change", aiReady); $("aiDur").addEventListener("change", updateAiCost);
+  function aiReady() { $("aiGo").disabled = !($("aiKey").value.trim().length > 20 && $("aiOk").checked && list().length >= 2); }
+  function updateAiCost() { var n = Math.max(0, list().length - 1), d = +$("aiDur").value; $("aiCost").textContent = n ? "$" + (n * d * PRICE).toFixed(2) + " · " + n + " מעברים" : "—"; aiReady(); }
+  function auth() { return { authorization: "Key " + $("aiKey").value.trim() }; }
+  function jpeg(c) { return new Promise(function (ok) { c.toBlob(ok, "image/jpeg", 0.9); }); }
+  // A photo for the model: uploaded to fal's own storage; as inline data if that is refused.
+  function upload(c, name) {
+    return jpeg(c).then(function (blob) {
+      return fetch("https://rest.alpha.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3", { method: "POST", headers: Object.assign({ "content-type": "application/json" }, auth()), body: JSON.stringify({ content_type: "image/jpeg", file_name: name }) })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (j) { return fetch(j.upload_url, { method: "PUT", headers: { "content-type": "image/jpeg" }, body: blob }).then(function (r) { if (!r.ok) throw new Error(r.status); return j.file_url; }); })
+        .catch(function () { return new Promise(function (ok) { var fr = new FileReader(); fr.onload = function () { ok(fr.result); }; fr.readAsDataURL(blob); }); });
+    });
+  }
+  var PROMPT = "@Image1 smoothly and naturally grows older and becomes @Image2. The same child, the same face and identity, a seamless gentle age progression, soft natural light, calm slow camera, photorealistic, no text.";
+  function jobRow(i, text) { var row = el("div", {}, [el("span", { text: "⏳" }), el("span", { text: text })]); $("jobs").append(row); return row; }
+  function setRow(row, icon, text, href) { row.replaceChildren(el("span", { text: icon }), el("span", { text: text }), href ? el("a", { href: href, target: "_blank", rel: "noopener", text: "קליפ" }) : null); }
+  function poll(job, row) {
+    return new Promise(function (done, fail) {
+      var tries = 0;
+      (function check() {
+        fetch(job.status_url, { headers: auth() }).then(function (r) { return r.json(); }).then(function (s) {
+          if (s.status === "COMPLETED") {
+            if (s.error) return fail(new Error(s.error));
+            return fetch(job.response_url, { headers: auth() }).then(function (r) { return r.json(); }).then(function (o) { var u = o && o.video && o.video.url; if (!u) throw new Error((o && o.detail && JSON.stringify(o.detail)) || "no video"); done(u); }).catch(fail);
+          }
+          setRow(row, "⏳", job.text + (s.status === "IN_QUEUE" ? " · בתור" + (s.queue_position != null ? " (" + s.queue_position + ")" : "") : " · נוצר…"));
+          if (++tries > 240) return fail(new Error("timeout"));
+          setTimeout(check, 5000);
+        }).catch(function () { if (++tries > 240) return fail(new Error("network")); setTimeout(check, 8000); });
+      })();
+    });
+  }
+  $("aiGo").addEventListener("click", function () {
+    var L = list(), n = L.length - 1, d = $("aiDur").value;
+    if (!confirmCost(n, d)) return;
+    $("aiGo").disabled = true; $("jobs").replaceChildren(); $("aiStage").hidden = true;
+    var saved = { at: Date.now(), dur: +d, jobs: [] }, idx = 0, clips = new Array(n), failed = 0;
+    // Three at a time, in order.
+    function next() {
+      if (idx >= n) return Promise.resolve();
+      var i = idx++, text = (ageText(L[i].date) || "תמונה " + (i + 1)) + " ← " + (ageText(L[i + 1].date) || "תמונה " + (i + 2)), row = jobRow(i, text);
+      return Promise.all([upload(L[i].frame, "a" + i + ".jpg"), upload(L[i + 1].frame, "b" + i + ".jpg")]).then(function (urls) {
+        return fetch("https://queue.fal.run/" + MODEL, { method: "POST", headers: Object.assign({ "content-type": "application/json" }, auth()), body: JSON.stringify({ prompt: PROMPT, start_image_url: urls[0], end_image_url: urls[1], duration: d }) })
+          .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.status_url) throw new Error(r.status === 401 || r.status === 403 ? "key" : r.status === 402 || /balance|credit/i.test(JSON.stringify(j)) ? "credit" : "submit " + r.status); return j; }); });
+      }).then(function (j) {
+        var job = { i: i, text: text, status_url: j.status_url, response_url: j.response_url, from: ageText(L[i].date), to: ageText(L[i + 1].date) };
+        saved.jobs.push(job); ls("yr.ai", JSON.stringify(saved));
+        return poll(job, row).then(function (u) { clips[i] = { url: u, from: job.from, to: job.to }; job.url = u; ls("yr.ai", JSON.stringify(saved)); setRow(row, "✅", text, u); });
+      }).catch(function (e) {
+        failed++; setRow(row, "❌", text + " · " + (e.message === "key" ? "המפתח לא התקבל" : e.message === "credit" ? "אין מספיק קרדיט ב־fal.ai" : "לא הצליח"));
+        if (e.message === "key" || e.message === "credit") idx = n;
+      }).then(next);
+    }
+    Promise.all([next(), next(), next()]).then(function () {
+      $("aiGo").disabled = false;
+      var ok = clips.filter(Boolean);
+      if (!ok.length) { toast("לא נוצרו קליפים"); return; }
+      if (failed) toast(failed + " מעברים לא הצליחו. הסרטון ייבנה מהשאר.");
+      stitch(clips.filter(Boolean));
+    });
+  });
+  function confirmCost(n, d) { return window.confirm("ייווצרו " + n + " מעברים של " + d + " שניות.\nעלות משוערת: $" + (n * d * PRICE).toFixed(2) + ", מהחשבון שלך ב־fal.ai.\nלהמשיך?"); }
+  // The clips one after another on the canvas, with the age on each, and the music: one file.
+  function stitch(clips) {
+    var vids = clips.map(function (c) { var v = document.createElement("video"); v.crossOrigin = "anonymous"; v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = c.url; return v; });
+    Promise.all(vids.map(function (v) { return new Promise(function (ok) { v.onloadedmetadata = function () { ok(v.duration || 5); }; v.onerror = function () { ok(0); }; }); })).then(function (durs) {
+      if (durs.some(function (x) { return !x; })) return fallbackList(clips);
+      // Canvas safety check: a clip without CORS would taint the canvas.
+      try { var g0 = $("cv").getContext("2d"); g0.drawImage(vids[0], 0, 0, 2, 2); g0.getImageData(0, 0, 1, 1); } catch (e) { return fallbackList(clips); }
+      var starts = [], acc = INTRO; durs.forEach(function (d) { starts.push(acc); acc += d; }); var T = acc + OUTRO, cur = -1, L = list();
+      var painter = function (g, t) {
+        var W = g.canvas.width, H = g.canvas.height, name = $("name").value.trim();
+        g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+        if (t < INTRO) { zoomed(g, W, H, L[0].frame, 1, 1); titleCard(g, W, H, Math.min(1, (INTRO - t) / 0.6), [name || "❤", $("title").value.trim() || "מהלידה ועד היום"]); return; }
+        var i = starts.length - 1; while (i > 0 && t < starts[i]) i--;
+        if (i !== cur) { if (vids[cur]) vids[cur].pause(); cur = i; vids[i].currentTime = 0; vids[i].play().catch(function () {}); }
+        var v = vids[i], k = Math.max(W / v.videoWidth, H / v.videoHeight) || 1;
+        if (v.videoWidth) g.drawImage(v, (W - v.videoWidth * k) / 2, (H - v.videoHeight * k) / 2, v.videoWidth * k, v.videoHeight * k);
+        var p = Math.min(1, (t - starts[i]) / durs[i]);
+        label(g, W, H, clips[i].from, p < 0.5 ? 1 - p * 2 : 0); label(g, W, H, clips[i].to, p > 0.5 ? (p - 0.5) * 2 : 0);
+        if (t > T - OUTRO) titleCard(g, W, H, Math.min(1, (t - (T - OUTRO)) / 0.8), [name ? name + " ❤" : "❤", "היום: " + (clips[clips.length - 1].to || "")]);
+      };
+      toast("מחברים את הקליפים לסרטון אחד… משאירים את המסך פתוח");
+      record(T, painter, $("aiGo")).then(function (blob) { vids.forEach(function (v) { v.pause(); }); if (!blob) return fallbackList(clips); $("aiStage").hidden = false; deliver(blob, $("aiVideo"), $("aiDl"), $("aiShare")); drawStill(); });
+    });
+  }
+  function fallbackList(clips) { toast("הקליפים מוכנים. לחיצה על \"קליפ\" ברשימה פותחת כל אחד להורדה."); }
+  // A run that started before the page closed: its clips are still waiting at fal.ai.
+  (function resume() {
+    var s = null; try { s = JSON.parse(ls("yr.ai") || "null"); } catch (e) {}
+    if (!s || !s.jobs || !s.jobs.length || Date.now() - s.at > 7 * 864e5) return;
+    var row = el("div", {}, [el("span", { text: "↩️" }), el("span", { text: "יש יצירה קודמת עם " + s.jobs.length + " מעברים. " }), el("a", { href: "#", text: "להציג את הקליפים", onclick: function (e) {
+      e.preventDefault(); $("jobs").replaceChildren();
+      s.jobs.forEach(function (j) { var r = jobRow(j.i, j.text); if (j.url) setRow(r, "✅", j.text, j.url); else if ($("aiKey").value.trim()) poll(j, r).then(function (u) { j.url = u; ls("yr.ai", JSON.stringify(s)); setRow(r, "✅", j.text, u); }).catch(function () { setRow(r, "❌", j.text + " · לא הצליח"); }); else setRow(r, "🔑", j.text + " · מכניסים את המפתח כדי לטעון"); });
+    } })]);
+    $("jobs").append(row);
+  })();
+
+  drawStill(); updateAiCost();
+  if ("fonts" in document) document.fonts.load("900 40px Rubik").then(drawStill).catch(function () {});
+})();
+</script>
