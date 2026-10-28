@@ -1,0 +1,525 @@
+<title>HaniaCheck · בודקים לפני שמשלמים</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;800;900&display=swap">
+<style>
+/* Layout: a yellow Israeli plate as the search box; under it a verdict strip, then cards of facts. */
+:root{
+  --bg:#EEF2F7; --surface:#FFFFFF; --ink:#12233D; --muted:#5D6B80; --line:#DCE3EC;
+  --plate:#FFD21F; --plate-ink:#111; --il:#1F4FB8; --ok:#11845B; --ok-bg:#E3F5EC; --warn:#B5590B; --warn-bg:#FFF1E0; --bad:#C62D3A; --bad-bg:#FDE7E9;
+  --font:"Heebo",system-ui,-apple-system,"Segoe UI","Arial Hebrew",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0C1524;--surface:#152238;--ink:#E8EEF7;--muted:#98A6BB;--line:#26354F;--ok:#4FD39B;--ok-bg:#12332A;--warn:#FFB36B;--warn-bg:#3A2A14;--bad:#FF7A85;--bad-bg:#3B1B22;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.45}
+.wrap{max-width:640px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+header{display:flex;align-items:center;gap:10px}
+header b{font-size:21px;font-weight:900;letter-spacing:-.01em}
+header a{margin-inline-start:auto;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
+h1{margin:6px 0 0;font-size:clamp(26px,7vw,36px);line-height:1.15;font-weight:900;text-wrap:balance}
+.lead{margin:0;color:var(--muted);font-size:16.5px}
+/* the plate */
+form.plate{display:flex;direction:ltr;align-items:stretch;background:var(--plate);border:3px solid #111;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(18,35,61,.18);height:84px}
+.il{width:44px;flex:none;background:var(--il);color:#fff;display:grid;place-items:center;align-content:center;gap:2px;font:800 13px/1 var(--font);padding:6px 0}
+.il i{font-style:normal;font-size:16px}
+.plate input{flex:1;min-width:0;border:0;background:transparent;font:900 clamp(34px,10vw,48px)/1 "Heebo",sans-serif;letter-spacing:.04em;text-align:center;color:var(--plate-ink);font-variant-numeric:tabular-nums;outline:none}
+.plate input::placeholder{color:rgba(0,0,0,.2)}
+.plate button{appearance:none;border:0;border-left:3px solid #111;background:#111;color:var(--plate);font:800 18px var(--font);padding:0 18px;cursor:pointer}
+.plate:focus-within{outline:3px solid var(--il);outline-offset:3px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:8px 14px;font:inherit;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip input{display:none}
+.chip small{color:var(--muted);font-weight:400}
+.recent{display:flex;gap:6px;flex-wrap:wrap}
+.recent button{appearance:none;border:1.5px solid #111;background:var(--plate);color:#111;border-radius:6px;padding:3px 9px;font:800 14px var(--font);direction:ltr;cursor:pointer}
+.status{padding:14px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+/* result */
+.car{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;display:grid;gap:6px}
+.car h2{margin:0;font-size:clamp(22px,6vw,28px);line-height:1.2;font-weight:900;text-wrap:balance}
+.car .sub{color:var(--muted);font-size:15.5px}
+.dot{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.25);vertical-align:-2px;margin-inline-end:5px}
+.flags{display:grid;gap:8px}
+.flag{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:start;padding:12px 14px;border-radius:14px;font-size:15.5px}
+.flag b{font-weight:800}
+.flag span:first-child{font-size:20px;line-height:1.2;grid-row:span 2}
+.flag small{color:inherit;opacity:.85}
+.flag.ok{background:var(--ok-bg);color:var(--ok)}
+.flag.warn{background:var(--warn-bg);color:var(--warn)}
+.flag.bad{background:var(--bad-bg);color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.stat small{display:block;color:var(--muted);font-size:13px;font-weight:600}
+.stat b{display:block;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.25}
+.stat i{font-style:normal;color:var(--muted);font-size:13px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px 14px}
+summary{cursor:pointer;font-weight:800;padding:10px 0;font-size:16px}
+dl{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:6px 14px;margin:0 0 12px;font-size:15px}
+dt{color:var(--muted)}
+dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.hands{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.hands li{display:flex;gap:10px;align-items:center;font-size:15px}
+.hands li b{min-width:64px;font-variant-numeric:tabular-nums}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{appearance:none;border:0;border-radius:14px;background:var(--ink);color:var(--bg);font:inherit;font-weight:800;font-size:16px;padding:13px;cursor:pointer;text-align:center;text-decoration:none}
+.btn.wa{background:#1FA855;color:#fff}
+.btn:focus-visible,.chip:focus-visible{outline:3px solid var(--il);outline-offset:2px}
+.src{color:var(--muted);font-size:13px;margin:0}
+.src a{color:inherit}
+.cats{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cats button{flex:none;appearance:none;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:8px 12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:72px}
+.cats button i{font-style:normal;font-size:22px;line-height:1}
+.cats button[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.panel{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+form.search{display:flex;gap:8px}
+form.search input{flex:1;min-width:0;font:inherit;font-size:18px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:13px 14px}
+form.search input:focus{outline:3px solid var(--il);outline-offset:1px}
+form.search button{appearance:none;border:0;border-radius:14px;background:var(--ink);color:var(--bg);font:inherit;font-weight:800;font-size:17px;padding:0 18px;cursor:pointer}
+.hint{margin:0;color:var(--muted);font-size:14.5px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:7px 13px;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer}
+.seg button[aria-checked="true"]{background:var(--il);border-color:var(--il);color:#fff}
+.rec{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 16px;display:grid;gap:6px}
+.rec h3{margin:0;font-size:19px;line-height:1.3;font-weight:800;overflow-wrap:anywhere}
+.rec .sub{color:var(--muted);font-size:14.5px;overflow-wrap:anywhere}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:13px;font-weight:800;border-radius:8px;padding:2px 9px;background:var(--bg);color:var(--ink)}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}.badge.bad{background:var(--bad-bg);color:var(--bad)}.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.rec details{border:0;padding:0;background:transparent}
+.rec summary{padding:4px 0;font-size:14.5px;color:var(--il)}
+.group{margin:6px 0 0;font-size:15px;color:var(--muted);font-weight:800}
+.fund{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.fund.me{border:2px solid var(--il)}
+.fund .rk{font-weight:900;font-size:18px;color:var(--muted);font-variant-numeric:tabular-nums;grid-row:span 2}
+.fund b{font-size:15.5px;overflow-wrap:anywhere}
+.fund .y{font-weight:900;font-size:19px;font-variant-numeric:tabular-nums;text-align:left;direction:ltr}
+.fund small{color:var(--muted);font-size:13px}
+.fund .f{font-size:13px;color:var(--muted);text-align:left}
+.deal{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.deal:first-child{border-top:0}
+.deal b{font-size:16px}.deal .pr{font-weight:900;font-size:17px;font-variant-numeric:tabular-nums}
+.deal small{color:var(--muted);font-size:13.5px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px 16px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+</style>
+
+<div class="wrap">
+  <header><b>Hania<span style="color:var(--il)">Check</span></b><a href="https://hania360.com/">Hania360 ←</a></header>
+  <div>
+    <h1>בודקים לפני שמשלמים</h1>
+    <p class="lead">רכב, חברה, קבלן, מתווך, עמותה, מוסך, קרן פנסיה ומחירי דירות. הכל ממאגרי המידע הרשמיים של המדינה, בחינם.</p>
+  </div>
+  <nav class="cats" id="cats" aria-label="מה בודקים"></nav>
+  <section class="panel" id="p-car">
+    <form class="plate" id="form" autocomplete="off">
+      <div class="il" aria-hidden="true"><i>🇮🇱</i>IL</div>
+      <input id="num" inputmode="numeric" placeholder="12-345-67" aria-label="מספר הרכב" maxlength="10">
+      <button type="submit">בדיקה</button>
+    </form>
+    <div class="tools">
+      <label class="chip" id="photoBtn"><input type="file" accept="image/*" capture="environment" id="photo">📷 צילום לוחית <small>ניסיוני</small></label>
+      <div class="recent" id="recent"></div>
+    </div>
+  </section>
+  <section class="panel" id="p-text" hidden>
+    <form class="search" id="qForm" autocomplete="off">
+      <input id="qIn" type="search" enterkeyhint="search" aria-label="חיפוש">
+      <button type="submit">חיפוש</button>
+    </form>
+    <p class="hint" id="qHint"></p>
+  </section>
+  <section class="panel" id="p-pension" hidden>
+    <div class="seg" id="penType" role="radiogroup" aria-label="סוג הקרן"></div>
+    <form class="search" id="penForm" autocomplete="off">
+      <input id="penIn" type="search" placeholder="שם הקרן או החברה, למשל מגדל או אלטשולר" aria-label="שם הקרן">
+      <button type="submit">השוואה</button>
+    </form>
+  </section>
+  <section class="panel" id="p-nadlan" hidden>
+    <form class="search" id="ndForm" autocomplete="off">
+      <input id="ndIn" type="search" placeholder="רחוב, מספר ועיר, למשל הרצל 10 נתיבות" aria-label="כתובת">
+      <button type="submit">מחירים</button>
+    </form>
+    <div class="seg" id="ndRooms" role="radiogroup" aria-label="מספר חדרים"></div>
+  </section>
+  <div class="status" id="status" hidden></div>
+  <div id="out" class="wrap" style="padding:0;gap:12px;width:100%" hidden></div>
+  <p class="src" id="src"></p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), a[k]); else if (k === "text") e.textContent = a[k]; else e.setAttribute(k, a[k]); }); (kids || []).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c); }); return e; }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+
+  // Ministry of Transport open datasets (data.gov.il, CKAN). Filter keys differ between them.
+  var R = {
+    active: ["053cea08-09bc-40ec-8f7a-156f0677aff3", "mispar_rechev"],
+    km: ["56063a99-8a3e-4ff4-912e-5966c0279bad", "mispar_rechev"],
+    owners: ["bb2355dc-9ec7-4f06-9c3f-3344672171da", "mispar_rechev"],
+    recall: ["36bf1404-0be4-49d2-82dc-2f1ead4a8b93", "MISPAR_RECHEV"],
+    tag: ["c8b9f9c8-4612-4068-934f-d4acd2e3c06e", "MISPAR RECHEV"],
+    moto: ["bf9df4e2-d90d-4c0a-a400-19e15af8e95f", "mispar_rechev"],
+    heavy: ["cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "mispar_rechev"],
+    personal: ["03adc637-b6fe-402b-9937-7c3d3afc9140", "mispar_rechev"],
+    inactive: ["f6efe89a-fb3d-43a4-bb61-9bf12a9b9099", "mispar_rechev"],
+    cancelled: ["851ecab1-0622-4dbe-a6c7-f950cf82abf9", "mispar_rechev"],
+    wltp: ["142afde2-6228-49f9-8a29-9b6c3a0cbe40", null]
+  };
+  var CKAN = "https://data.gov.il/api/3/action/datastore_search";
+  // Straight from the phone (the API allows it); through our server when the phone cannot reach it.
+  function ds(key, filters, extra) {
+    var q = new URLSearchParams(Object.assign({ resource_id: R[key][0], filters: JSON.stringify(filters), limit: "50" }, extra || {})).toString();
+    var get = function (u) { return fetch(u, { headers: { accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (j) { if (!j.success) throw new Error("ckan"); return j.result.records || []; }); };
+    return get(CKAN + "?" + q).catch(function () { return get("/api/plate?" + q); });
+  }
+  function byPlate(key, n, extra) { var f = {}; f[R[key][1]] = n; return ds(key, f, extra); }
+
+  // ---- input ------------------------------------------------------------------------
+  var digits = function (s) { return String(s || "").replace(/\D/g, ""); };
+  function fmtPlate(d) { if (d.length === 7) return d.slice(0, 2) + "-" + d.slice(2, 5) + "-" + d.slice(5); if (d.length === 8) return d.slice(0, 3) + "-" + d.slice(3, 5) + "-" + d.slice(5); return d; }
+  $("num").addEventListener("input", function (e) { var d = digits(e.target.value).slice(0, 8); e.target.value = d.length >= 7 ? fmtPlate(d) : d; });
+  $("form").addEventListener("submit", function (e) { e.preventDefault(); go(digits($("num").value)); });
+
+  // ---- dates & numbers ----------------------------------------------------------------
+  var MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+  function day(v) { var m = String(v || "").match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function fmtDay(d) { return d ? d.getDate() + "." + (d.getMonth() + 1) + "." + d.getFullYear() : "—"; }
+  function ym(v) { var s = String(v || ""), m = s.match(/^(\d{4})-?(\d{1,2})/); return m ? { y: +m[1], m: +m[2] } : null; }
+  function fmtYm(o) { return o ? MONTHS[o.m - 1] + " " + o.y : "—"; }
+  var num = function (n) { return Number(n).toLocaleString("he-IL"); };
+  function daysTo(d) { var t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((d - t) / 864e5); }
+  var COLORS = { "לבן": "#fff", "שחור": "#111", "כסף": "#C0C4CA", "כסוף": "#C0C4CA", "אפור": "#8A8F96", "כחול": "#2350B8", "אדום": "#C8222C", "ירוק": "#227A3A", "צהוב": "#F2C516", "חום": "#6B4A2B", "בז": "#D8C39A", "זהב": "#C9A646", "כתום": "#E9771E", "סגול": "#6B3FA0", "תכלת": "#7FC4EA", "בורדו": "#6D1B2A" };
+  function colorDot(name) { var k = Object.keys(COLORS).filter(function (c) { return String(name || "").indexOf(c) >= 0; })[0]; return k ? el("span", { class: "dot", style: "background:" + COLORS[k] }) : null; }
+
+  // ---- lookup ---------------------------------------------------------------------------
+  var busy = false;
+  function go(d) {
+    if (d.length < 5 || d.length > 8) { toast("מספר רכב הוא 5 עד 8 ספרות"); return; }
+    if (busy) return; busy = true;
+    var n = +d;
+    history.replaceState(null, "", "#car-" + d);
+    $("out").hidden = true; status("בודקים במשרד התחבורה…");
+    Promise.all([byPlate("active", n), byPlate("km", n).catch(no), byPlate("owners", n, { sort: "baalut_dt desc" }).catch(no), byPlate("recall", n).catch(no), byPlate("tag", n).catch(no)])
+      .then(function (r) {
+        if (r[0].length) return { car: r[0][0], kind: "", km: r[1][0], owners: r[2], recalls: r[3], tag: r[4][0] };
+        // Not in the main registry: a motorbike, a truck, a personal import, or off the road.
+        var other = [["moto", "דו־גלגלי"], ["heavy", "רכב כבד"], ["personal", "יבוא אישי"], ["inactive", "לא פעיל"], ["cancelled", "ירד מהכביש"]];
+        return Promise.all(other.map(function (o) { return byPlate(o[0], n).catch(no); })).then(function (x) {
+          for (var i = 0; i < x.length; i++) if (x[i].length) return { car: x[i][0], kind: other[i][1], km: r[1][0], owners: r[2], recalls: r[3], tag: r[4][0] };
+          return null;
+        });
+      })
+      .then(function (res) {
+        busy = false;
+        if (!res) { status("לא מצאנו רכב עם המספר " + fmtPlate(d) + " במאגרי משרד התחבורה. בודקים שהספרות נכונות."); return; }
+        remember(d, res.car);
+        var c = res.car;
+        // Specs of the model (horsepower, airbags, gearbox) from the WLTP table, when the codes are there.
+        var f = { tozeret_cd: c.tozeret_cd, degem_cd: c.degem_cd }; if (c.shnat_yitzur) f.shnat_yitzur = c.shnat_yitzur;
+        var spec = c.tozeret_cd && c.degem_cd ? ds("wltp", f, { limit: "1" }).then(function (x) { return x[0]; }).catch(function () { return null; }) : Promise.resolve(null);
+        return spec.then(function (s) { res.spec = s; status(""); show(d, res); });
+      })
+      .catch(function () { busy = false; status("אין חיבור למאגר של משרד התחבורה כרגע. מנסים שוב בעוד רגע."); });
+  }
+  function no() { return []; }
+  function status(t) { $("status").hidden = !t; $("status").textContent = t; }
+
+  // ---- result ---------------------------------------------------------------------------
+  var BAALUT = { "פרטי": "פרטי", "ליסינג": "ליסינג", "השכרה": "השכרה", "חברה": "חברה", "סוחר": "סוחר", "ממשלתי": "ממשלתי" };
+  function show(d, r) {
+    var c = r.car, km = r.km || {}, out = $("out"), flags = [], now = new Date();
+    var title = [c.tozeret_nm, c.kinuy_mishari || c.degem_nm].filter(Boolean).join(" ").replace(/\s+/g, " ").trim() || "רכב " + fmtPlate(d);
+    var onRoad = ym(c.moed_aliya_lakvish), year = +c.shnat_yitzur || (onRoad && onRoad.y);
+    var ageY = onRoad ? Math.max(0.25, (now.getFullYear() - onRoad.y) + (now.getMonth() + 1 - onRoad.m) / 12) : (year ? Math.max(0.25, now.getFullYear() - year + 0.5) : 0);
+    var owners = (r.owners || []).slice().sort(function (a, b) { return (+a.baalut_dt || 0) - (+b.baalut_dt || 0); });
+    var hand = owners.length || null;
+
+    // License and test
+    var tokef = day(c.tokef_dt), test = day(c.mivchan_acharon_dt);
+    if (r.kind === "ירד מהכביש" || r.kind === "לא פעיל") flags.push(["bad", "⛔", "הרכב " + (r.kind === "ירד מהכביש" ? "ירד מהכביש (ביטול סופי)" : "לא פעיל במשרד התחבורה"), c.bitul_dt ? "מאז " + fmtDay(day(c.bitul_dt)) : "לא קונים בלי לברר למה"]);
+    else if (tokef) { var left = daysTo(tokef); flags.push(left < 0 ? ["bad", "⛔", "הרישיון (טסט) פג לפני " + (-left) + " ימים", "נגמר ב־" + fmtDay(tokef)] : left <= 45 ? ["warn", "⏳", "הטסט נגמר בעוד " + left + " ימים", "עד " + fmtDay(tokef)] : ["ok", "✅", "רישיון בתוקף עד " + fmtDay(tokef), "עוד " + num(left) + " ימים"]); }
+    // Recalls
+    if (r.recalls && r.recalls.length) r.recalls.slice(0, 4).forEach(function (x) { flags.push(["bad", "🔧", "ריקול פתוח: " + (x.SUG_TAKALA || x.SUG_RECALL || "תקלת בטיחות"), (x.TEUR_TAKALA || "") + (x.TAARICH_PTICHA ? " · נפתח " + fmtDay(day(x.TAARICH_PTICHA)) : "") + " · התיקון אצל היבואן בחינם"]); });
+    else if (!r.kind) flags.push(["ok", "✅", "אין ריקול פתוח על הרכב הזה", ""]);
+    // Mileage
+    var kmv = +km.kilometer_test_aharon || 0, perY = kmv && ageY ? Math.round(kmv / ageY) : 0;
+    if (perY > 25000) flags.push(["warn", "🛣️", "נסע הרבה: כ־" + num(Math.round(perY / 1000) * 1000) + " ק״מ בשנה", "הממוצע בישראל הוא בערך 15 אלף. בודקים מנוע ותיבת הילוכים"]);
+    else if (kmv && perY < 4000 && ageY > 3) flags.push(["warn", "🤔", "מעט מאוד קילומטרים לגיל: " + num(kmv), "יכול להיות אמיתי, ושווה לבדוק שהמונה תואם"]);
+    // History of the ownership type
+    var types = owners.map(function (o) { return String(o.baalut || "").trim(); });
+    if (types.some(function (t) { return /השכרה/.test(t); })) flags.push(["warn", "🔑", "היה רכב השכרה", "נהגו בו הרבה נהגים. בודקים היטב"]);
+    else if (types.some(function (t) { return /ליסינג/.test(t); })) flags.push(["warn", "📄", "היה רכב ליסינג", "לרוב מטופל במוסך מורשה, אבל נוסע הרבה"]);
+    if (hand >= 4) flags.push(["warn", "🤝", "יד " + hand + ": עבר הרבה ידיים", ""]);
+    // Changes and origin
+    var ch = [];
+    if (+km.shinui_mivne_ind === 1) ch.push("שינוי מבנה");
+    if (+km.shnui_zeva_ind === 1) ch.push("שינוי צבע");
+    if (+km.gapam_ind === 1) ch.push("הותקנה מערכת גז (גפ״מ)");
+    if (+km.shinui_zmig_ind === 1) ch.push("שינוי מידת צמיגים");
+    if (ch.length) flags.push(["warn", "🛠️", ch.join(" · "), "רשום במשרד התחבורה. שואלים את המוכר למה"]);
+    if (km.mkoriut_nm && !/^\s*$/.test(km.mkoriut_nm) && !/רגיל|יבוא רגיל|יבואן/.test(km.mkoriut_nm)) flags.push(["warn", "🌍", "מקוריות: " + km.mkoriut_nm, "לא דרך היבואן הרשמי. חלקים ואחריות יכולים להיות שונים"]);
+    if (r.tag) flags.push(["ok", "♿", "לרכב יש תו נכה", ""]);
+
+    var s = r.spec || {};
+    var stats = [
+      ["שנה", year || "—", onRoad ? "על הכביש מ" + fmtYm(onRoad) : ""],
+      ["יד", hand ? hand : "—", types.length ? "עכשיו " + (types[types.length - 1] || c.baalut || "") : (c.baalut || "")],
+      ["ק״מ בטסט האחרון", kmv ? num(kmv) : "—", perY ? "כ־" + num(Math.round(perY / 500) * 500) + " בשנה" : ""],
+      ["טסט אחרון", test ? fmtDay(test) : "—", ""]
+    ];
+    if (s.koah_sus) stats.push(["כוח סוס", s.koah_sus, s.nefah_manoa ? num(s.nefah_manoa) + " סמ״ק" : ""]);
+
+    var kids = [];
+    kids.push(el("div", { class: "car" }, [
+      el("div", { class: "recent" }, [el("button", { type: "button", text: fmtPlate(d), "aria-label": "מספר רכב " + fmtPlate(d) })]),
+      el("h2", { text: title }),
+      el("div", { class: "sub" }, [colorDot(c.tzeva_rechev), [c.tzeva_rechev, c.ramat_gimur ? "גימור " + c.ramat_gimur : "", c.sug_delek_nm, r.kind].filter(Boolean).join(" · ")])]));
+    kids.push(el("div", { class: "flags" }, flags.map(function (f) { return el("div", { class: "flag " + f[0] }, [el("span", { text: f[1] }), el("b", { text: f[2] }), f[3] ? el("small", { text: f[3] }) : null]); })));
+    kids.push(el("div", { class: "stats" }, stats.map(function (x) { return el("div", { class: "stat" }, [el("small", { text: x[0] }), el("b", { text: String(x[1]) }), x[2] ? el("i", { text: x[2] }) : null]); })));
+
+    if (owners.length) kids.push(el("details", {}, [el("summary", { text: "היסטוריית בעלות (" + owners.length + ")" }), el("ul", { class: "hands" }, owners.map(function (o, i) { return el("li", {}, [el("b", { text: "יד " + (i + 1) }), el("span", { text: (o.baalut || "—") + " · מ" + fmtYm(ym(o.baalut_dt)) })]); }))]));
+    var tech = [["יצרן", c.tozeret_nm], ["ארץ ייצור", c.tozeret_eretz_nm], ["דגם", c.degem_nm], ["רמת גימור", c.ramat_gimur], ["דלק", c.sug_delek_nm], ["צמיג קדמי", c.zmig_kidmi], ["צמיג אחורי", c.zmig_ahori], ["מספר שלדה", c.misgeret], ["דגם מנוע", c.degem_manoa], ["קבוצת זיהום", c.kvutzat_zihum], ["רמת אבזור בטיחותי", c.ramat_eivzur_betihuty],
+      ["תיבת הילוכים", s.automatic_ind == null ? "" : (+s.automatic_ind ? "אוטומטית" : "ידנית")], ["כריות אוויר", s.mispar_kariot_avir], ["מרכב", s.merkav], ["הנעה", s.technologiat_hanaa_nm || s.hanaa_nm], ["משקל כולל", s.mishkal_kolel ? num(s.mishkal_kolel) + " ק״ג" : ""]]
+      .filter(function (x) { return x[1] !== undefined && x[1] !== null && String(x[1]).trim() !== ""; });
+    kids.push(el("details", {}, [el("summary", { text: "כל הפרטים הטכניים" }), el("dl", {}, tech.reduce(function (a, x) { a.push(el("dt", { text: x[0] }), el("dd", { text: String(x[1]).trim() })); return a; }, []))]));
+
+    var share = "🚗 " + title + " (" + fmtPlate(d) + ")\n" + flags.map(function (f) { return f[1] + " " + f[2]; }).join("\n") + "\n" + stats.map(function (x) { return x[0] + ": " + x[1]; }).join(" · ") + "\nבדיקה ב־HaniaCheck: https://check.hania360.com/#car-" + d;
+    kids.push(el("div", { class: "btns" }, [
+      el("a", { class: "btn wa", href: "https://wa.me/?text=" + encodeURIComponent(share), target: "_blank", rel: "noopener", text: "שליחה בוואטסאפ" }),
+      el("button", { class: "btn", type: "button", text: "רכב אחר", onclick: function () { $("num").value = ""; $("num").focus(); scrollTo({ top: 0, behavior: "smooth" }); } })]));
+    out.replaceChildren.apply(out, kids);
+    out.hidden = false;
+    out.scrollIntoView({ behavior: "smooth", block: "start" });
+    renderRecent();
+  }
+
+  // ---- recent ------------------------------------------------------------------------------
+  function recent() { try { return JSON.parse(ls("hp.recent") || "[]"); } catch (e) { return []; } }
+  function remember(d, c) { var r = recent().filter(function (x) { return x.d !== d; }); r.unshift({ d: d, t: [c.tozeret_nm, c.kinuy_mishari].filter(Boolean).join(" ").trim() }); ls("hp.recent", JSON.stringify(r.slice(0, 8))); }
+  function renderRecent() { $("recent").replaceChildren.apply($("recent"), recent().slice(0, 5).map(function (x) { return el("button", { type: "button", title: x.t, text: fmtPlate(x.d), onclick: function () { $("num").value = fmtPlate(x.d); go(x.d); } }); })); }
+
+  // ---- photo of a plate: digits read on the phone, then confirmed in the box ------------------
+  $("photo").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return;
+    status("קוראים את הלוחית מהתמונה…");
+    loadOcr().then(function (T) {
+      return T.recognize(f, "eng", { tessedit_char_whitelist: "0123456789-" });
+    }).then(function (res) {
+      var best = ((res && res.data && res.data.text) || "").split(/\n/).map(digits).filter(function (x) { return x.length >= 7 && x.length <= 8; })[0];
+      if (!best) { var all = digits((res && res.data && res.data.text) || ""); var m = all.match(/\d{7,8}/); best = m && m[0]; }
+      if (!best) { status("לא הצלחנו לקרוא את המספר. מצלמים קרוב וישר, או מקלידים."); return; }
+      $("num").value = fmtPlate(best); status(""); go(best);
+    }).catch(function () { status("קריאת התמונה לא עבדה כאן. מקלידים את המספר."); });
+  });
+  var ocr = null;
+  function loadOcr() {
+    if (ocr) return ocr;
+    ocr = new Promise(function (ok, fail) { var s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; s.onload = function () { ok(window.Tesseract); }; s.onerror = function () { ocr = null; fail(); }; document.head.append(s); });
+    return ocr;
+  }
+
+  renderRecent();
+
+  // =====================================================================================
+  // The other registers. Each one is a data.gov.il package; its tables are found by name at run time,
+  // so a table the ministry replaces keeps working.
+  // =====================================================================================
+  var CATS = [
+    { id: "car", icon: "🚗", name: "רכב" },
+    { id: "company", icon: "🏢", name: "חברה", pkg: ["ica_companies"], ph: "שם החברה או מספר ח.פ.", hint: "רואים אם החברה פעילה, מפרת חוק, בפירוק או מיועדת למחיקה.", src: "רשם החברות, משרד המשפטים" },
+    { id: "contractor", icon: "👷", name: "קבלן", pkg: ["pinkashakablanim"], ph: "שם הקבלן, החברה או מספר הקבלן", hint: "רק קבלן רשום רשאי לבצע עבודות בנייה מעל סכום מסוים. רואים סיווג והיקף מותר.", src: "פנקס הקבלנים, רשם הקבלנים" },
+    { id: "broker", icon: "🏠", name: "מתווך", pkg: ["metavhim"], ph: "שם המתווך או מספר הרישיון", hint: "מתווך בלי רישיון לא זכאי לדמי תיווך.", src: "מאגר המתווכים הפעילים, משרד המשפטים" },
+    { id: "amuta", icon: "🤝", name: "עמותה", pkg: ["moj-amutot"], ph: "שם העמותה או מספר העמותה", hint: "לפני שתורמים: האם פעילה, האם יש אישור ניהול תקין, והאם יש זיכוי מס.", src: "רשם העמותות, משרד המשפטים" },
+    { id: "garage", icon: "🔧", name: "מוסך", pkg: ["musachim"], ph: "שם המוסך או עיר", hint: "האם המוסך מורשה על ידי משרד התחבורה ובאילו תחומים. גם מכוני רישוי (טסט).", src: "מוסכים ומכוני רישוי, משרד התחבורה" },
+    { id: "pension", icon: "💰", name: "פנסיה" },
+    { id: "nadlan", icon: "🏘️", name: "דירות" }
+  ];
+  var SRC = {
+    car: "הנתונים נשלפים ישירות מהמאגרים הפתוחים של משרד התחבורה ב־data.gov.il. אין בהם פרטי בעלים, תאונות או שעבודים. לפני קנייה תמיד עושים בדיקה במכון.",
+    pension: "פנסיה־נט וגמל־נט של רשות שוק ההון, דרך data.gov.il. תשואת עבר לא מבטיחה תשואה בעתיד. מידע בלבד, לא ייעוץ.",
+    nadlan: "עסקאות שדווחו לרשות המסים, דרך GovMap הממשלתי. מחירי עסקאות שנסגרו, לא מחירי מודעות."
+  };
+  var cat = "car";
+  function setCat(id, keepOut) {
+    cat = id;
+    Array.prototype.forEach.call($("cats").children, function (b) { b.setAttribute("aria-pressed", String(b.dataset.id === id)); });
+    var c = CATS.filter(function (x) { return x.id === id; })[0];
+    $("p-car").hidden = id !== "car"; $("p-pension").hidden = id !== "pension"; $("p-nadlan").hidden = id !== "nadlan"; $("p-text").hidden = !c.pkg;
+    if (c.pkg) { $("qIn").placeholder = c.ph; $("qHint").textContent = c.hint; }
+    $("src").textContent = c.pkg ? "מקור: " + c.src + ", דרך data.gov.il. המידע מתעדכן שם, ותמיד כדאי לוודא גם מול הגוף עצמו." : SRC[id];
+    if (!keepOut) { $("out").hidden = true; status(""); }
+    try { ls("hc.cat", id); } catch (e) {}
+  }
+  $("cats").replaceChildren.apply($("cats"), CATS.map(function (c) { return el("button", { type: "button", "data-id": c.id, "aria-pressed": "false", onclick: function () { setCat(c.id); } }, [el("i", { text: c.icon }), c.name]); }));
+
+  // ---- data.gov.il, by package name --------------------------------------------------------
+  var API = "https://data.gov.il/api/3/action/";
+  function ckan(action, params) {
+    var q = new URLSearchParams(params).toString();
+    var get = function (u) { return fetch(u, { headers: { accept: "application/json" } }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (j) { if (!j.success) throw new Error("ckan"); return j.result; }); };
+    return get(API + action + "?" + q).catch(function () { return get("/api/ds?action=" + action + "&" + q); });
+  }
+  var tables = {};
+  function tablesOf(pkg) {
+    if (!tables[pkg]) tables[pkg] = ckan("package_show", { id: pkg }).then(function (p) { return (p.resources || []).filter(function (r) { return r.datastore_active; }).map(function (r) { return { id: r.id, name: r.name || "" }; }); }).catch(function (e) { delete tables[pkg]; throw e; });
+    return tables[pkg];
+  }
+  function searchPkg(pkg, q, limit) {
+    return tablesOf(pkg).then(function (ts) {
+      return Promise.all(ts.slice(0, 5).map(function (t) { return ckan("datastore_search", { resource_id: t.id, q: q, limit: String(limit || 15) }).then(function (r) { return { table: t.name, fields: (r.fields || []).map(function (f) { return f.id; }), records: r.records || [] }; }).catch(function () { return { table: t.name, fields: [], records: [] }; }); }));
+    });
+  }
+
+  // ---- one record as a card: a name, where, a status, and everything else folded -------------------
+  var SKIP = /^(_id|_full_text|rank.*)$/;
+  var BAD = /מפר|פירוק|מחוק|נמחק|מחיקה|לא פעיל|לא בתוקף|מבוטל|בוטל|פג תוקף|פג|מושעה|הושעה|שלילה|נשלל|חסר|אין אישור|סגור/;
+  var OK = /^(פעיל|פעילה|בתוקף|תקין|יש|כן|רשום|רשומה|מאושר)/;
+  function clean(v) { return v == null ? "" : String(v).trim(); }
+  function pick(rec, fields, re, not) { for (var i = 0; i < fields.length; i++) { var f = fields[i]; if (re.test(f) && !(not && not.test(f)) && clean(rec[f])) return f; } return null; }
+  function card(rec, fields, extra) {
+    fields = fields.length ? fields : Object.keys(rec);
+    fields = fields.filter(function (f) { return !SKIP.test(f); });
+    var nameF = pick(rec, fields, /שם.*(חברה|עמותה|תאגיד|קבלן|מתווך|מוסך|עסק|מכון)|^שם$|^שם /, /אנגלית|English|רחוב|ישוב|יישוב|עיר/) || pick(rec, fields, /שם|name|shem/i, /אנגלית|English|ANGLIT|רחוב|ישוב|יישוב|עיר|city|street|rechov|yishuv/i) || fields[0];
+    var numF = pick(rec, fields, /מספר|^מס|number|mispar|_id$/i, /טלפון|פקס|בית|רחוב|phone|fax|telefon|bayit|rechov/i);
+    var placeF = pick(rec, fields, /ישוב|יישוב|עיר|city|yishuv/i);
+    var streetF = pick(rec, fields, /רחוב|כתובת|address|street|rechov|ktovet/i);
+    var badges = [];
+    fields.forEach(function (f) {
+      var v = clean(rec[f]); if (!v || v.length > 40) return;
+      if (/סטטוס|status|מצב|matzav|תוקף|tokef|מפר|ניהול תקין|סעיף 46|46|פעיל|sivug|סיווג|kvutza|קבוצה/i.test(f)) {
+        var cls = BAD.test(v) ? "bad" : OK.test(v) ? "ok" : "";
+        if (/מפר/.test(f) && v && !/^(לא|0|false)$/i.test(v)) cls = "bad";
+        badges.push(el("span", { class: "badge " + cls, text: (/סטטוס|status|מצב/i.test(f) ? "" : f + ": ") + v }));
+      }
+    });
+    (extra || []).forEach(function (b) { badges.push(el("span", { class: "badge " + b[0], text: b[1] })); });
+    var sub = [numF ? numF + " " + clean(rec[numF]) : "", [clean(rec[streetF]), clean(rec[placeF])].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
+    var dl = el("dl", {}, fields.reduce(function (a, f) { var v = clean(rec[f]); if (v) a.push(el("dt", { text: f }), el("dd", { text: v })); return a; }, []));
+    return el("div", { class: "rec" }, [el("h3", { text: clean(rec[nameF]) || "—" }), sub ? el("div", { class: "sub", text: sub }) : null, badges.length ? el("div", { class: "badges" }, badges) : null, el("details", {}, [el("summary", { text: "כל הפרטים" }), dl])]);
+  }
+
+  // ---- text registers ---------------------------------------------------------------------------
+  $("qForm").addEventListener("submit", function (e) { e.preventDefault(); textSearch(cat, $("qIn").value.trim()); });
+  function textSearch(id, q) {
+    var c = CATS.filter(function (x) { return x.id === id; })[0];
+    if (q.length < 2) { toast("מקלידים לפחות 2 תווים"); return; }
+    history.replaceState(null, "", "#" + id + "-" + encodeURIComponent(q));
+    $("out").hidden = true; status("מחפשים ב" + c.src.split(",")[0] + "…");
+    searchPkg(c.pkg[0], q, 15).then(function (parts) {
+      var recs = []; parts.forEach(function (p) { p.records.forEach(function (r) { recs.push({ r: r, f: p.fields, t: p.table }); }); });
+      if (!recs.length) { status("לא נמצא \"" + q + "\" ב" + c.src.split(",")[0] + ". " + (id === "contractor" || id === "broker" ? "מי שלא מופיע כאן לא רשום, או שהשם נכתב אחרת. מנסים גם מספר." : "מנסים שם קצר יותר או מספר.")); return; }
+      status("");
+      if (id !== "company") return show2(recs.slice(0, 30).map(function (x) { return card(x.r, x.f); }), recs.length);
+      // A company: also the lists of companies being struck off or wound up.
+      var nums = recs.slice(0, 15).map(function (x) { var f = pick(x.r, x.f.length ? x.f : Object.keys(x.r), /מספר.*חברה|מספר תאגיד|ח\.?פ|^מספר/); return f ? digits(x.r[f]) : ""; });
+      var probe = function (pkg) { return Promise.all(nums.map(function (n) { return n ? searchPkg(pkg, n, 3).then(function (ps) { return ps.some(function (p) { return p.records.some(function (r) { return Object.keys(r).some(function (k) { return digits(r[k]) === n; }); }); }); }).catch(function () { return false; }) : Promise.resolve(false); })); };
+      return Promise.all([probe("ica-deletion"), probe("membership-in-liquidation")]).then(function (fl) {
+        show2(recs.slice(0, 15).map(function (x, i) { var ex = []; if (fl[0][i]) ex.push(["bad", "ברשימת החברות המיועדות למחיקה"]); if (fl[1][i]) ex.push(["warn", "בפירוק מרצון"]); return card(x.r, x.f, ex); }), recs.length);
+      });
+    }).catch(function () { status("אין חיבור למאגר כרגע. מנסים שוב בעוד רגע."); });
+  }
+  function show2(nodes, total) {
+    var out = $("out");
+    out.replaceChildren.apply(out, [el("p", { class: "group", text: total > nodes.length ? "מוצגות " + nodes.length + " תוצאות ראשונות. מדייקים את החיפוש כדי לראות אחרות." : nodes.length === 1 ? "תוצאה אחת" : nodes.length + " תוצאות" })].concat(nodes));
+    out.hidden = false;
+  }
+
+  // ---- pension and savings funds: where mine stands among all the others -----------------------------
+  var PEN = [["pension", "קרן פנסיה", "pensia-net", null], ["hish", "קרן השתלמות", "gemelnet", /השתלמות/], ["gemel", "קופת גמל", "gemelnet", /תגמולים|אישית לפיצויים|גמל(?!.*להשקעה)/], ["invest", "גמל להשקעה", "gemelnet", /להשקעה/]];
+  var penType = "pension", penRows = {};
+  $("penType").replaceChildren.apply($("penType"), PEN.map(function (p) { return el("button", { type: "button", role: "radio", "aria-checked": String(p[0] === penType), onclick: function (e) { penType = p[0]; Array.prototype.forEach.call($("penType").children, function (b) { b.setAttribute("aria-checked", String(b === e.currentTarget)); }); pension(); } }, [p[1]]); }));
+  $("penForm").addEventListener("submit", function (e) { e.preventDefault(); ls("hc.myfund", $("penIn").value.trim()); pension(); });
+  $("penIn").value = ls("hc.myfund") || "";
+  function F(fields, re) { for (var i = 0; i < fields.length; i++) if (re.test(fields[i])) return fields[i]; return null; }
+  // The newest month of every fund, from whichever table holds it.
+  function latestRows(pkg) {
+    if (penRows[pkg]) return penRows[pkg];
+    penRows[pkg] = tablesOf(pkg).then(function (ts) {
+      return Promise.all(ts.slice(0, 6).map(function (t) {
+        return ckan("datastore_search", { resource_id: t.id, limit: "1", sort: "REPORT_PERIOD desc" }).catch(function () { return ckan("datastore_search", { resource_id: t.id, limit: "1" }); }).then(function (r) { var f = (r.fields || []).map(function (x) { return x.id; }); var pf = F(f, /REPORT_PERIOD|תקופ/i); return { t: t, f: f, pf: pf, top: r.records[0] && +r.records[0][pf] || 0 }; }).catch(function () { return null; });
+      })).then(function (xs) {
+        xs = xs.filter(function (x) { return x && x.top; }).sort(function (a, b) { return b.top - a.top; });
+        if (!xs.length) throw new Error("no table");
+        var x = xs[0], flt = {}; flt[x.pf] = x.top;
+        return ckan("datastore_search", { resource_id: x.t.id, filters: JSON.stringify(flt), limit: "2000" }).then(function (r) { return { fields: x.f, rows: r.records || [], period: x.top }; });
+      });
+    }).catch(function (e) { delete penRows[pkg]; throw e; });
+    return penRows[pkg];
+  }
+  function pct(v) { var n = parseFloat(v); return isFinite(n) ? (n > 0 ? "+" : "") + n.toFixed(2) + "%" : "—"; }
+  function pension() {
+    var P = PEN.filter(function (p) { return p[0] === penType; })[0], mine = $("penIn").value.trim();
+    history.replaceState(null, "", "#pension-" + penType);
+    $("out").hidden = true; status("טוענים את כל הקרנות…");
+    latestRows(P[2]).then(function (d) {
+      var f = d.fields, name = F(f, /FUND_NAME|שם.*(קופה|קרן)/i), corp = F(f, /MANAGING_CORPORATION|CONTROLLING|חברה מנהלת|גוף/i), cls = F(f, /FUND_CLASSIFICATION|סיווג/i),
+        y5 = F(f, /5_Y|5 שנים|חמש/i), y3 = F(f, /3_Y|3 שנים|שלוש/i), ytd = F(f, /YEAR_TO_DATE|מתחילת/i), fee = F(f, /AVG_ANNUAL_MANAGEMENT_FEE|דמי ניהול.*(צבירה|נכסים)|MANAGEMENT_FEE/i), dep = F(f, /AVG_DEPOSIT_FEE|דמי ניהול.*הפקד/i), spec = F(f, /^SPECIALIZATION|התמחות$/i), sub = F(f, /SUB_SPECIALIZATION|תת/i), pop = F(f, /TARGET_POPULATION|אוכלוסי/i);
+      var rows = d.rows.filter(function (r) { return !P[3] || (cls && P[3].test(r[cls] || "")); });
+      // General tracks only, the ones most people are in, unless the search asks for something else.
+      var general = rows.filter(function (r) { return !sub || /כללי|כללית|^$/.test(clean(r[sub])) || /כללי/.test(clean(r[spec])); });
+      if (general.length >= 5) rows = general;
+      var key = y5 && rows.some(function (r) { return isFinite(parseFloat(r[y5])); }) ? y5 : y3 || ytd;
+      rows = rows.filter(function (r) { return isFinite(parseFloat(r[key])); }).sort(function (a, b) { return parseFloat(b[key]) - parseFloat(a[key]); });
+      if (!rows.length) { status("לא נמצאו נתונים לסוג הזה כרגע."); return; }
+      status("");
+      var words = mine.split(/\s+/).filter(function (w) { return w.length > 1; });
+      var isMine = function (r) { var t = clean(r[name]) + " " + clean(r[corp]); return words.length && words.every(function (w) { return t.indexOf(w) >= 0; }); };
+      var per = String(d.period), when = per.length >= 6 ? MONTHS[+per.slice(4, 6) - 1] + " " + per.slice(0, 4) : per;
+      var label = key === y5 ? "תשואה מצטברת ב־5 שנים" : key === y3 ? "תשואה מצטברת ב־3 שנים" : "תשואה מתחילת השנה";
+      var head = [el("p", { class: "group", text: P[1] + " · " + (rows.length) + " מסלולים · " + label + " · נכון ל" + when })];
+      var myIdx = rows.findIndex(isMine);
+      if (words.length) head.push(myIdx >= 0 ? el("div", { class: "flag " + (myIdx < rows.length / 3 ? "ok" : myIdx < rows.length * 2 / 3 ? "warn" : "bad") }, [el("span", { text: "📊" }), el("b", { text: "שלך במקום " + (myIdx + 1) + " מתוך " + rows.length }), el("small", { text: clean(rows[myIdx][name]) + " · " + pct(rows[myIdx][key]) + (fee && rows[myIdx][fee] !== undefined ? " · דמי ניהול " + pct(rows[myIdx][fee]).replace("+", "") : "") })]) : el("div", { class: "flag warn" }, [el("span", { text: "🔎" }), el("b", { text: "לא מצאנו קרן עם \"" + mine + "\"" }), el("small", { text: "מקלידים חלק מהשם, למשל רק את שם החברה" })]));
+      var list = rows.slice(0, 40); if (myIdx >= 40) list.push(rows[myIdx]);
+      var items = list.map(function (r) { var i = rows.indexOf(r); return el("div", { class: "fund" + (i === myIdx ? " me" : "") }, [el("span", { class: "rk", text: String(i + 1) }), el("b", { text: clean(r[name]) }), el("span", { class: "y", text: pct(r[key]) }), el("small", { text: [clean(r[corp]), pop ? clean(r[pop]) : ""].filter(Boolean).join(" · ") }), el("span", { class: "f", text: fee && clean(r[fee]) ? "ניהול " + parseFloat(r[fee]).toFixed(2) + "%" + (dep && clean(r[dep]) ? " · הפקדה " + parseFloat(r[dep]).toFixed(2) + "%" : "") : "" })]); });
+      var out = $("out"); out.replaceChildren.apply(out, head.concat(items)); out.hidden = false;
+    }).catch(function () { status("אין חיבור למאגר הקרנות כרגע. מנסים שוב בעוד רגע."); });
+  }
+
+  // ---- apartments: what sold around an address ---------------------------------------------------
+  var rooms = "all";
+  $("ndRooms").replaceChildren.apply($("ndRooms"), [["all", "כל הדירות"], ["3", "3 חדרים"], ["4", "4 חדרים"], ["5", "5+"]].map(function (o) { return el("button", { type: "button", role: "radio", "aria-checked": String(o[0] === rooms), onclick: function (e) { rooms = o[0]; Array.prototype.forEach.call($("ndRooms").children, function (b) { b.setAttribute("aria-checked", String(b === e.currentTarget)); }); if (lastDeals) showDeals(lastDeals); } }, [o[1]]); }));
+  var lastDeals = null;
+  $("ndForm").addEventListener("submit", function (e) { e.preventDefault(); nadlan($("ndIn").value.trim()); });
+  function nadlan(q) {
+    if (q.length < 4) { toast("מקלידים רחוב, מספר ועיר"); return; }
+    history.replaceState(null, "", "#nadlan-" + encodeURIComponent(q));
+    $("out").hidden = true; status("מחפשים עסקאות ליד " + q + "…");
+    fetch("/api/nadlan?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) { status(j.error === "address" ? "לא מצאנו את הכתובת. כותבים רחוב, מספר ועיר." : "אין חיבור למאגר העסקאות כרגע. מנסים שוב בעוד רגע."); return; }
+      if (!j.deals.length) { status("לא נמצאו עסקאות שדווחו ליד " + j.address + "."); return; }
+      status(""); lastDeals = j; showDeals(j);
+    }).catch(function () { status("אין חיבור כרגע. מנסים שוב בעוד רגע."); });
+  }
+  function median(a) { a = a.slice().sort(function (x, y) { return x - y; }); var m = a.length >> 1; return a.length ? (a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2) : 0; }
+  function money(n) { return n >= 1e6 ? "₪" + (n / 1e6).toFixed(n >= 1e7 ? 1 : 2).replace(/\.?0+$/, "") + " מיליון" : "₪" + num(Math.round(n / 1000) * 1000); }
+  function showDeals(j) {
+    var ds = j.deals.filter(function (d) { var r = +d.rooms || 0; return rooms === "all" || (rooms === "5" ? r >= 5 : Math.floor(r) === +rooms); });
+    var recent = ds.filter(function (d) { return d.date >= String(new Date().getFullYear() - 2); });
+    var base = recent.length >= 3 ? recent : ds;
+    var pm = base.filter(function (d) { return d.area > 20 && d.price > 1e5; }).map(function (d) { return d.price / d.area; });
+    var kids = [el("p", { class: "group", text: "ליד " + j.address + " · " + ds.length + " עסקאות" })];
+    if (base.length) kids.push(el("div", { class: "stats" }, [
+      el("div", { class: "stat" }, [el("small", { text: "מחיר חציוני" }), el("b", { text: money(median(base.map(function (d) { return d.price; }))) }), el("i", { text: base === recent ? "בשנתיים האחרונות" : "בכל התקופה" })]),
+      el("div", { class: "stat" }, [el("small", { text: "למטר" }), el("b", { text: pm.length ? "₪" + num(Math.round(median(pm) / 100) * 100) : "—" }), el("i", { text: pm.length + " עסקאות עם שטח" })])]));
+    kids.push(el("div", { class: "box" }, ds.slice(0, 60).map(function (d) {
+      return el("div", { class: "deal" }, [el("b", { text: [d.street, d.house].filter(Boolean).join(" ") || d.city || "—" }), el("span", { class: "pr", text: money(d.price) }),
+        el("small", { text: [d.rooms ? d.rooms + " חד׳" : "", d.area ? d.area + " מ״ר" : "", d.floor ? "קומה " + d.floor : "", d.type || ""].filter(Boolean).join(" · ") }), el("small", { text: d.date ? d.date.slice(8, 10) + "." + d.date.slice(5, 7) + "." + d.date.slice(0, 4) : "" })]);
+    })));
+    if (!ds.length) kids.push(el("div", { class: "status", text: "אין עסקאות בגודל הזה. בוחרים \"כל הדירות\"." }));
+    var out = $("out"); out.replaceChildren.apply(out, kids); out.hidden = false;
+  }
+
+  // ---- start: the link decides, then the last thing checked ------------------------------------------
+  var hs = location.hash.slice(1), m = hs.match(/^([a-z]+)-(.+)$/), old = digits(hs);
+  if (/^\d{5,8}$/.test(hs)) { setCat("car"); $("num").value = fmtPlate(old); go(old); }
+  else if (m && m[1] === "car") { setCat("car"); $("num").value = fmtPlate(digits(m[2])); go(digits(m[2])); }
+  else if (m && m[1] === "pension") { setCat("pension"); if (PEN.some(function (p) { return p[0] === m[2]; })) { penType = m[2]; Array.prototype.forEach.call($("penType").children, function (b, i) { b.setAttribute("aria-checked", String(PEN[i][0] === penType)); }); } pension(); }
+  else if (m && m[1] === "nadlan") { setCat("nadlan"); $("ndIn").value = decodeURIComponent(m[2]); nadlan($("ndIn").value); }
+  else if (m && CATS.some(function (c) { return c.id === m[1] && c.pkg; })) { setCat(m[1]); $("qIn").value = decodeURIComponent(m[2]); textSearch(m[1], $("qIn").value); }
+  else setCat(CATS.some(function (c) { return c.id === ls("hc.cat"); }) ? ls("hc.cat") : "car");
+})();
+</script>
