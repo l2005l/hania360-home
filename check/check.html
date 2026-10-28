@@ -107,7 +107,7 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
   <header><b>Hania<span style="color:var(--il)">Check</span></b><a href="https://hania360.com/">Hania360 ←</a></header>
   <div>
     <h1>בודקים לפני שמשלמים</h1>
-    <p class="lead">רכב, חברה, קבלן, מתווך, עמותה, מוסך, קרן פנסיה ומחירי דירות. הכל ממאגרי המידע הרשמיים של המדינה, בחינם.</p>
+    <p class="lead">רכב, חברה, קבלן, מתווך, עמותה, מוסך, כשרות, עמדות טעינה, קרן פנסיה ומחירי דירות. הכל ממאגרי המידע הרשמיים של המדינה, בחינם.</p>
   </div>
   <nav class="cats" id="cats" aria-label="מה בודקים"></nav>
   <section class="panel" id="p-car">
@@ -127,6 +127,7 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
       <button type="submit">חיפוש</button>
     </form>
     <p class="hint" id="qHint"></p>
+    <button class="chip" type="button" id="nearBtn" hidden>📍 הכי קרובות אליי</button>
   </section>
   <section class="panel" id="p-pension" hidden>
     <div class="seg" id="penType" role="radiogroup" aria-label="סוג הקרן"></div>
@@ -335,6 +336,8 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     { id: "broker", icon: "🏠", name: "מתווך", pkg: ["metavhim"], ph: "שם המתווך או מספר הרישיון", hint: "מתווך בלי רישיון לא זכאי לדמי תיווך.", src: "מאגר המתווכים הפעילים, משרד המשפטים" },
     { id: "amuta", icon: "🤝", name: "עמותה", pkg: ["moj-amutot"], ph: "שם העמותה או מספר העמותה", hint: "לפני שתורמים: האם פעילה, האם יש אישור ניהול תקין, והאם יש זיכוי מס.", src: "רשם העמותות, משרד המשפטים" },
     { id: "garage", icon: "🔧", name: "מוסך", pkg: ["musachim"], ph: "שם המוסך או עיר", hint: "האם המוסך מורשה על ידי משרד התחבורה ובאילו תחומים. גם מכוני רישוי (טסט).", src: "מוסכים ומכוני רישוי, משרד התחבורה" },
+    { id: "kosher", icon: "✡️", name: "כשרות", pkg: ["kosherbusiness"], ph: "שם המסעדה, העסק או העיר", hint: "האם לעסק יש תעודת כשרות של הרבנות, ועד מתי היא בתוקף.", src: "בתי עסק עם תעודת כשרות, המשרד לשירותי דת" },
+    { id: "charge", icon: "⚡", name: "טעינה", pkg: ["agg_charge_stations"], ph: "עיר, רחוב או שם החניון", hint: "עמדות טעינה לרכב חשמלי. 📍 מראה את הקרובות אליך.", src: "עמדות טעינה לרכב חשמלי, משרד התחבורה", near: true },
     { id: "pension", icon: "💰", name: "פנסיה" },
     { id: "nadlan", icon: "🏘️", name: "דירות" }
   ];
@@ -349,7 +352,7 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     Array.prototype.forEach.call($("cats").children, function (b) { b.setAttribute("aria-pressed", String(b.dataset.id === id)); });
     var c = CATS.filter(function (x) { return x.id === id; })[0];
     $("p-car").hidden = id !== "car"; $("p-pension").hidden = id !== "pension"; $("p-nadlan").hidden = id !== "nadlan"; $("p-text").hidden = !c.pkg;
-    if (c.pkg) { $("qIn").placeholder = c.ph; $("qHint").textContent = c.hint; }
+    if (c.pkg) { $("qIn").placeholder = c.ph; $("qHint").textContent = c.hint; } $("nearBtn").hidden = !c.near;
     $("src").textContent = c.pkg ? "מקור: " + c.src + ", דרך data.gov.il. המידע מתעדכן שם, ותמיד כדאי לוודא גם מול הגוף עצמו." : SRC[id];
     if (!keepOut) { $("out").hidden = true; status(""); }
     try { ls("hc.cat", id); } catch (e) {}
@@ -393,10 +396,15 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
       if (/סטטוס|status|מצב|matzav|תוקף|tokef|מפר|ניהול תקין|סעיף 46|46|פעיל|sivug|סיווג|kvutza|קבוצה/i.test(f)) {
         var cls = BAD.test(v) ? "bad" : OK.test(v) ? "ok" : "";
         if (/מפר/.test(f) && v && !/^(לא|0|false)$/i.test(v)) cls = "bad";
+        var dm = v.match(/^(\d{4})-(\d{2})-(\d{2})|^(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+        if (dm && /תוקף|tokef|valid/i.test(f)) { var dd = dm[1] ? new Date(+dm[1], +dm[2] - 1, +dm[3]) : new Date(+dm[6], +dm[5] - 1, +dm[4]); cls = dd < new Date() ? "bad" : "ok"; if (cls === "bad") v = v + " (פג)"; }
         badges.push(el("span", { class: "badge " + cls, text: (/סטטוס|status|מצב/i.test(f) ? "" : f + ": ") + v }));
       }
     });
     (extra || []).forEach(function (b) { badges.push(el("span", { class: "badge " + b[0], text: b[1] })); });
+    var lat = pick(rec, fields, /^(lat|latitude|y|קו רוחב|נ.צ.? ?y)$/i), lon = pick(rec, fields, /^(lon|lng|long|longitude|x|קו אורך|נ.צ.? ?x)$/i);
+    var la = lat && parseFloat(rec[lat]), lo = lon && parseFloat(rec[lon]);
+    if (la > 29 && la < 34 && lo > 34 && lo < 36.5) { if (rec._km != null) badges.push(el("span", { class: "badge ok", text: rec._km < 1 ? Math.round(rec._km * 1000) + " מ׳ ממך" : rec._km.toFixed(1) + " ק״מ ממך" })); badges.push(el("a", { class: "badge", href: "https://www.google.com/maps/dir/?api=1&destination=" + la + "," + lo, target: "_blank", rel: "noopener", text: "🧭 ניווט" })); }
     var sub = [numF ? numF + " " + clean(rec[numF]) : "", [clean(rec[streetF]), clean(rec[placeF])].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
     var dl = el("dl", {}, fields.reduce(function (a, f) { var v = clean(rec[f]); if (v) a.push(el("dt", { text: f }), el("dd", { text: v })); return a; }, []));
     return el("div", { class: "rec" }, [el("h3", { text: clean(rec[nameF]) || "—" }), sub ? el("div", { class: "sub", text: sub }) : null, badges.length ? el("div", { class: "badges" }, badges) : null, el("details", {}, [el("summary", { text: "כל הפרטים" }), dl])]);
@@ -422,6 +430,27 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
       });
     }).catch(function () { status("אין חיבור למאגר כרגע. מנסים שוב בעוד רגע."); });
   }
+  $("nearBtn").addEventListener("click", function () {
+    var c = CATS.filter(function (x) { return x.id === cat; })[0]; if (!c || !c.near) return;
+    if (!navigator.geolocation) { toast("אין גישה למיקום בדפדפן הזה"); return; }
+    status("מחפשים את המיקום שלך…"); $("out").hidden = true;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var me = [pos.coords.latitude, pos.coords.longitude];
+      status("מחפשים עמדות קרובות…");
+      tablesOf(c.pkg[0]).then(function (ts) {
+        return Promise.all(ts.slice(0, 4).map(function (t) { return ckan("datastore_search", { resource_id: t.id, limit: "2000" }).then(function (r) { return { fields: (r.fields || []).map(function (f) { return f.id; }), records: r.records || [] }; }).catch(function () { return { fields: [], records: [] }; }); }));
+      }).then(function (parts) {
+        var all = [];
+        parts.forEach(function (p) {
+          var la = F(p.fields, /^(lat|latitude|y|קו רוחב)$/i), lo = F(p.fields, /^(lon|lng|long|longitude|x|קו אורך)$/i); if (!la || !lo) return;
+          p.records.forEach(function (r) { var a = parseFloat(r[la]), b = parseFloat(r[lo]); if (!(a > 29 && a < 34 && b > 34 && b < 36.5)) return; var dy = (a - me[0]) * 111.2, dx = (b - me[1]) * 111.2 * Math.cos(me[0] * Math.PI / 180); r._km = Math.hypot(dx, dy); all.push({ r: r, f: p.fields }); });
+        });
+        if (!all.length) { status("לא הצלחנו למצוא עמדות לפי מיקום. מחפשים לפי שם העיר."); return; }
+        all.sort(function (a, b) { return a.r._km - b.r._km; }); status("");
+        var near = all.slice(0, 15); show2(near.map(function (x) { return card(x.r, x.f); }), near.length);
+      }).catch(function () { status("אין חיבור למאגר כרגע. מנסים שוב בעוד רגע."); });
+    }, function () { status("לא קיבלנו מיקום. מאשרים מיקום לאתר, או מחפשים לפי עיר."); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+  });
   function show2(nodes, total) {
     var out = $("out");
     out.replaceChildren.apply(out, [el("p", { class: "group", text: total > nodes.length ? "מוצגות " + nodes.length + " תוצאות ראשונות. מדייקים את החיפוש כדי לראות אחרות." : nodes.length === 1 ? "תוצאה אחת" : nodes.length + " תוצאות" })].concat(nodes));

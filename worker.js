@@ -205,7 +205,7 @@ async function plateProxy(url, ctx) {
 
 /** HaniaCheck's other registers, when a phone cannot reach data.gov.il itself: only these packages and
  *  their own tables, read-only searches, cached for six hours. */
-const CHECK_PKGS = new Set(["ica_companies","ica-deletion","membership-in-liquidation","pinkashakablanim","metavhim","moj-amutot","musachim","pensia-net","gemelnet"]);
+const CHECK_PKGS = new Set(["ica_companies","ica-deletion","membership-in-liquidation","pinkashakablanim","metavhim","moj-amutot","musachim","pensia-net","gemelnet","kosherbusiness","agg_charge_stations"]);
 const jsonRes = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), { status, headers: Object.assign({ "content-type": "application/json; charset=utf-8" }, extra) });
 async function cachedGet(target, ctx, ttl, headers) {
   const key = new Request(target), cache = caches.default;
