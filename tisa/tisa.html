@@ -98,6 +98,7 @@ textarea{width:100%;min-height:260px;font:inherit;font-size:15px;line-height:1.6
     <div class="btns" id="mineBtns" hidden>
       <button class="btn ghost" type="button" id="alerts">🔔 התראות לטלפון</button>
     </div>
+    <p class="note" id="acctNote" hidden></p>
     <p class="note" id="mineNote">מוסיפים את הטיסה שלך, של ההורים או של מי שצריך לאסוף. כל הטיסות מתעדכנות כאן ביחד.</p>
   </section>
 
@@ -199,7 +200,21 @@ textarea{width:100%;min-height:260px;font:inherit;font-size:15px;line-height:1.6
 
   // ---- my flights ---------------------------------------------------------------------------------
   function mine() { try { return JSON.parse(ls("ts.mine") || "[]"); } catch (e) { return []; } }
-  function setMine(m) { ls("ts.mine", JSON.stringify(m.slice(0, 20))); renderMine(); syncAlerts(); }
+  function setMine(m) { ls("ts.mine", JSON.stringify(m.slice(0, 20))); renderMine(); syncAlerts(); saveAcct(); }
+  // Signed in to Hania360: the flights follow the account to other phones and to Hania Today.
+  var ACCT = null;
+  function acct() {
+    return fetch("/api/me", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (j) {
+      ACCT = j;
+      if (j.signedIn) { var m = mine(), add = (j.flights || []).filter(function (k) { return m.indexOf(k) < 0; }); if (add.length) { ls("ts.mine", JSON.stringify(m.concat(add).slice(0, 20))); renderMine(); } if (add.length || (j.flights || []).length !== mine().length) saveAcct(); }
+      acctLine();
+    }).catch(function () {});
+  }
+  function saveAcct() { if (ACCT && ACCT.signedIn) fetch("/api/me/flights", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ keys: mine() }) }).catch(function () {}); }
+  function acctLine() {
+    var n = $("acctNote"); if (!ACCT || !ACCT.available) { n.hidden = true; return; } n.hidden = false;
+    n.replaceChildren(ACCT.signedIn ? "✓ מחובר/ת: הטיסות שמורות בחשבון ומופיעות ב־Hania Today" : el("a", { href: "https://pass.hania360.com/?return=" + encodeURIComponent(location.origin + "/#mine"), text: "התחברות ל־Hania360: הטיסות יופיעו ב־Hania Today ובכל טלפון ←" }));
+  }
   $("addIn").addEventListener("input", function (e) { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, ""); });
   $("addForm").addEventListener("submit", function (e) {
     e.preventDefault();
@@ -389,7 +404,7 @@ textarea{width:100%;min-height:260px;font:inherit;font-size:15px;line-height:1.6
     tab(TABS.indexOf(h.slice(1)) >= 0 ? h.slice(1) : "mine");
   }
   renderMine(); renderBoard();
-  loadBoard().then(function () { renderMine(); start(); syncAlerts().catch(function () {}); }).catch(function () { $("mineNote").textContent = "אין חיבור ללוח הטיסות כרגע. מנסים שוב בעוד רגע."; start(); });
+  loadBoard().then(function () { renderMine(); start(); syncAlerts().catch(function () {}); acct(); }).catch(function () { $("mineNote").textContent = "אין חיבור ללוח הטיסות כרגע. מנסים שוב בעוד רגע."; start(); });
   // Fresh every two minutes while open.
   setInterval(function () { if (document.hidden) return; loadBoard().then(function () { renderMine(); if (!$("p-board").hidden) renderBoard(); var h = location.hash; if (h.indexOf("#f=") === 0 && !$("detail").hidden) openFlight(decodeURIComponent(h.slice(3)), true); }).catch(function () {}); }, 120000);
   window.addEventListener("hashchange", function () { if (location.hash.indexOf("#f=") === 0) openFlight(decodeURIComponent(location.hash.slice(3))); });

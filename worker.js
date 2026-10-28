@@ -13,7 +13,7 @@ import CAPTIONAPP, { FILES as CAPTION_FILES, IMAGES as CAPTION_IMAGES } from "./
 import CHECKAPP, { FILES as CHECK_FILES, IMAGES as CHECK_IMAGES } from "./check/page.js";
 import YEARSAPP, { FILES as YEARS_FILES, IMAGES as YEARS_IMAGES } from "./years/page.js";
 import TISAAPP, { FILES as TISA_FILES, IMAGES as TISA_IMAGES } from "./tisa/page.js";
-import { FlightHub, tisaApi } from "./tisa/hub.js";
+import { FlightHub, tisaApi, meApi } from "./tisa/hub.js";
 import { RideGroup, rideApi } from "./ride/group.js";
 export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
@@ -339,6 +339,7 @@ export default {
     if (url.hostname === "home.hania360.com" || url.searchParams.get("app") === "home" && /workers\.dev$/.test(url.hostname)) return homeApp(url);
     if (url.hostname === "caption.hania360.com" || url.searchParams.get("app") === "caption" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CAPTIONAPP, CAPTION_FILES, CAPTION_IMAGES, "https://caption.hania360.com/");
     if (url.hostname === "tisa.hania360.com" || url.searchParams.get("app") === "tisa" && /workers\.dev$/.test(url.hostname)) {
+      if (url.pathname === "/api/me" || url.pathname.startsWith("/api/me/")) return meApi(request, env, ctx);
       if (url.pathname.startsWith("/api/tisa/")) return tisaApi(request, env, url);
       return smallApp(url, TISAAPP, TISA_FILES, TISA_IMAGES, "https://tisa.hania360.com/");
     }
@@ -346,6 +347,7 @@ export default {
     // HaniaPlate grew into HaniaCheck; old links keep working (the #plate stays on the address).
     if (url.hostname === "plate.hania360.com") return url.pathname === "/api/plate" ? plateProxy(url, ctx) : Response.redirect("https://check.hania360.com/", 301);
     if (url.hostname === "check.hania360.com" || url.searchParams.get("app") === "check" && /workers\.dev$/.test(url.hostname)) {
+      if (url.pathname === "/api/me" || url.pathname.startsWith("/api/me/")) return meApi(request, env, ctx);
       if (url.pathname === "/api/plate") return plateProxy(url, ctx);
       if (url.pathname === "/api/ds") return dsProxy(url, ctx);
       if (url.pathname === "/api/nadlan") return nadlanApi(url, ctx);
