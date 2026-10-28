@@ -101,6 +101,8 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
 .deal small{color:var(--muted);font-size:13.5px}
 .box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px 16px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+
+.faq{max-width:720px;margin:8px auto 30px;padding:0 16px;display:grid;gap:8px}.faq h2{font-size:20px;margin:6px 0}.faqq{border:1px solid rgba(127,127,127,.3);border-radius:14px;padding:4px 14px}.faqq summary{cursor:pointer;font-weight:700;padding:8px 0}.faqq p{margin:0 0 10px;line-height:1.6;opacity:.9}
 </style>
 
 <div class="wrap">
@@ -148,6 +150,9 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
   <p class="src" id="src"></p>
 </div>
 
+
+<section class="faq" id="faq" aria-labelledby="faqT"><h2 id="faqT">שאלות נפוצות</h2><details class="faqq"><summary>איך בודקים רכב לפי מספר רישוי?</summary><p>מקלידים את מספר הרכב בלשונית רכב. הנתונים מגיעים ממאגרי משרד התחבורה ב־data.gov.il: דגם, שנה, יד, תוקף רישיון, קילומטרים בטסט האחרון, ריקולים פתוחים ושינויים רשומים.</p></details><details class="faqq"><summary>איך בודקים אם קבלן רשום?</summary><p>בלשונית קבלן מחפשים לפי שם או מספר, והתוצאה מגיעה מפנקס הקבלנים הרשומים של משרד הבינוי והשיכון.</p></details><details class="faqq"><summary>אפשר לבדוק אם חברה בפירוק או מפרת חוק?</summary><p>כן. החיפוש ברשם החברות מראה את סטטוס החברה, ומסמן אם היא ברשימת החברות המיועדות למחיקה או בפירוק מרצון.</p></details><details class="faqq"><summary>איך משווים קרנות פנסיה והשתלמות?</summary><p>בלשונית פנסיה בוחרים סוג קרן ורואים את כל המסלולים מדורגים לפי תשואה ל־5 שנים, עם דמי ניהול. כותבים את שם הקרן שלכם ורואים באיזה מקום היא. זה מידע ולא ייעוץ.</p></details><details class="faqq"><summary>המידע עולה כסף?</summary><p>לא. כל הבדיקות בחינם, ישירות מהמאגרים הפתוחים של המדינה.</p></details></section>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "איך בודקים רכב לפי מספר רישוי?", "acceptedAnswer": {"@type": "Answer", "text": "מקלידים את מספר הרכב בלשונית רכב. הנתונים מגיעים ממאגרי משרד התחבורה ב־data.gov.il: דגם, שנה, יד, תוקף רישיון, קילומטרים בטסט האחרון, ריקולים פתוחים ושינויים רשומים."}}, {"@type": "Question", "name": "איך בודקים אם קבלן רשום?", "acceptedAnswer": {"@type": "Answer", "text": "בלשונית קבלן מחפשים לפי שם או מספר, והתוצאה מגיעה מפנקס הקבלנים הרשומים של משרד הבינוי והשיכון."}}, {"@type": "Question", "name": "אפשר לבדוק אם חברה בפירוק או מפרת חוק?", "acceptedAnswer": {"@type": "Answer", "text": "כן. החיפוש ברשם החברות מראה את סטטוס החברה, ומסמן אם היא ברשימת החברות המיועדות למחיקה או בפירוק מרצון."}}, {"@type": "Question", "name": "איך משווים קרנות פנסיה והשתלמות?", "acceptedAnswer": {"@type": "Answer", "text": "בלשונית פנסיה בוחרים סוג קרן ורואים את כל המסלולים מדורגים לפי תשואה ל־5 שנים, עם דמי ניהול. כותבים את שם הקרן שלכם ורואים באיזה מקום היא. זה מידע ולא ייעוץ."}}, {"@type": "Question", "name": "המידע עולה כסף?", "acceptedAnswer": {"@type": "Answer", "text": "לא. כל הבדיקות בחינם, ישירות מהמאגרים הפתוחים של המדינה."}}]}</script>
 <script>
 (function () {
   "use strict";
