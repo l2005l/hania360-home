@@ -100,6 +100,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .themes button{appearance:none;border:2px solid var(--line);border-radius:14px;height:54px;cursor:pointer;font:inherit;font-size:12px;font-weight:700}
 .themes button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}
 .linkbox{display:flex;gap:8px}.linkbox input{direction:ltr;font-size:14px}
+
+.faq{max-width:720px;margin:8px auto 30px;padding:0 16px;display:grid;gap:8px}.faq h2{font-size:20px;margin:6px 0}.faqq{border:1px solid rgba(127,127,127,.3);border-radius:14px;padding:4px 14px}.faqq summary{cursor:pointer;font-weight:700;padding:8px 0}.faqq p{margin:0 0 10px;line-height:1.6;opacity:.9}
 </style>
 
 <div class="wrap" id="app">
@@ -107,6 +109,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   <div id="view"></div>
 </div>
 
+
+<section class="faq" id="faq" aria-labelledby="faqT"><h2 id="faqT">שאלות נפוצות על הזמנות ואישורי הגעה</h2><details class="faqq"><summary>כמה עולה HaniaHazmana?</summary><p>כלום. ההזמנה, אישורי ההגעה, התזכורות וסידור השולחנות בחינם, בלי הגבלה על מספר המוזמנים ובלי הרשמה.</p></details><details class="faqq"><summary>איך האורחים מאשרים הגעה?</summary><p>כל אורח מקבל בוואטסאפ קישור אישי להזמנה. הוא לוחץ על מגיעים, אולי או לא נוכל, בוחר כמה מבוגרים וילדים ומה הוא אוכל, ואתם רואים את התשובה מיד. יש גם קישור כללי לקבוצות, שבו כל אחד כותב את שמו.</p></details><details class="faqq"><summary>אפשר לשלוח תזכורת למי שלא ענה?</summary><p>כן. בלשונית השליחה בוחרים 'תזכורת למי שלא ענה', וכל לחיצה פותחת בוואטסאפ הודעה מוכנה עם הקישור האישי של אותו אורח.</p></details><details class="faqq"><summary>איך מסדרים שולחנות?</summary><p>יוצרים את השולחנות לפי האולם, ומושיבים בלחיצה על אורח ואז על שולחן, או בהושבה אוטומטית לפי קבוצות. בסוף מייצאים את רשימת ההושבה לאולם, ואפשר להראות לכל אורח את מספר השולחן שלו בקישור האישי.</p></details><details class="faqq"><summary>מי רואה את רשימת המוזמנים?</summary><p>רק מי שיש לו את קישור הניהול. אורח רואה רק את ההזמנה ואת התשובה שלו.</p></details></section>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "כמה עולה HaniaHazmana?", "acceptedAnswer": {"@type": "Answer", "text": "כלום. ההזמנה, אישורי ההגעה, התזכורות וסידור השולחנות בחינם, בלי הגבלה על מספר המוזמנים ובלי הרשמה."}}, {"@type": "Question", "name": "איך האורחים מאשרים הגעה?", "acceptedAnswer": {"@type": "Answer", "text": "כל אורח מקבל בוואטסאפ קישור אישי להזמנה. הוא לוחץ על מגיעים, אולי או לא נוכל, בוחר כמה מבוגרים וילדים ומה הוא אוכל, ואתם רואים את התשובה מיד. יש גם קישור כללי לקבוצות, שבו כל אחד כותב את שמו."}}, {"@type": "Question", "name": "אפשר לשלוח תזכורת למי שלא ענה?", "acceptedAnswer": {"@type": "Answer", "text": "כן. בלשונית השליחה בוחרים 'תזכורת למי שלא ענה', וכל לחיצה פותחת בוואטסאפ הודעה מוכנה עם הקישור האישי של אותו אורח."}}, {"@type": "Question", "name": "איך מסדרים שולחנות?", "acceptedAnswer": {"@type": "Answer", "text": "יוצרים את השולחנות לפי האולם, ומושיבים בלחיצה על אורח ואז על שולחן, או בהושבה אוטומטית לפי קבוצות. בסוף מייצאים את רשימת ההושבה לאולם, ואפשר להראות לכל אורח את מספר השולחן שלו בקישור האישי."}}, {"@type": "Question", "name": "מי רואה את רשימת המוזמנים?", "acceptedAnswer": {"@type": "Answer", "text": "רק מי שיש לו את קישור הניהול. אורח רואה רק את ההזמנה ואת התשובה שלו."}}]}</script>
 <script>
 (function () {
   "use strict";
@@ -116,7 +121,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
   function api(path, body, get) { return fetch("/api/hz/" + path + (get ? "?" + new URLSearchParams(get) : ""), body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw Object.assign(new Error(j.error || r.status), { code: j.error }); return j; }); }); }
   var view = $("view");
-  function show(nodes) { view.replaceChildren.apply(view, nodes.filter(Boolean)); window.scrollTo(0, 0); }
+  function show(nodes) { view.replaceChildren.apply(view, nodes.filter(Boolean)); window.scrollTo(0, 0); var fq = document.getElementById("faq"); if (fq) fq.hidden = !!(location.hash.length > 1 || /^\/i\//.test(location.pathname)); }
 
   var KINDS = { wedding: ["💍", "חתונה", "החתונה של"], bar: ["📜", "בר מצווה", "בר המצווה של"], bat: ["🌸", "בת מצווה", "בת המצווה של"], brit: ["👶", "ברית / בריתה", "הברית של"], birthday: ["🎂", "יום הולדת", "יום ההולדת של"], henna: ["🪔", "חינה", "החינה של"], other: ["🎉", "אירוע", ""] };
   var THEMES = [["gold", "קלאסי", "#FBF6EC", "#B8893B"], ["bloom", "פרחוני", "#FFF4F3", "#D9748A"], ["night", "ערב", "#141B33", "#D7B46A"], ["kids", "צבעוני", "#FFF9E8", "#FF6A5C"], ["sea", "ים", "#EFFAF9", "#1C9AA0"]];
@@ -257,7 +262,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     show([el("p", { class: "note", text: "טוענים…" })]);
     api("admin", null, { e: id, k: key }).then(function (j) { A = j; remember(id, key, j.event.title); paintAdmin(); }).catch(function () { show([el("div", { class: "card" }, [el("h2", { text: "קישור הניהול לא תקין" }), el("p", { class: "note", text: "בודקים שהועתק במלואו." })])]); });
   }
-  function link(t) { return location.origin + "/#" + (t ? "g-" + ID + "-" + t : "o-" + ID); }
+  // Path links, so WhatsApp shows a preview of the event; the older #g-/#o- links still open.
+  function link(t) { return location.origin + "/i/" + ID + (t ? "/" + t : ""); }
   function heads(g) { return g.status === "yes" ? (g.adults || 0) + (g.kids || 0) : 0; }
   function stats() {
     var G = A.guests, s = { yes: 0, no: 0, maybe: 0, none: 0, heads: 0, kids: 0, invited: 0, diet: {}, sent: 0 };
@@ -444,7 +450,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 
   // ---- routing ----
   function route() {
-    var h = location.hash.slice(1), m;
+    var h = location.hash.slice(1), m, pm = location.pathname.match(/^\/i\/([A-Za-z0-9]{6,24})(?:\/([A-Za-z0-9]{6,20}))?\/?$/);
+    if (pm && !h) { if (pm[2]) return guestView(pm[1], pm[2]); var tt = ls("hz.t." + pm[1]); return guestView(pm[1], tt || ""); }
     if ((m = h.match(/^a-([A-Za-z0-9]{6,24})-([A-Za-z0-9]{10,30})$/))) return adminView(m[1], m[2]);
     if ((m = h.match(/^g-([A-Za-z0-9]{6,24})-([A-Za-z0-9]{6,20})$/))) return guestView(m[1], m[2]);
     if ((m = h.match(/^o-([A-Za-z0-9]{6,24})$/))) { var t = ls("hz.t." + m[1]); return guestView(m[1], t || ""); }

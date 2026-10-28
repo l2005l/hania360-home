@@ -77,6 +77,8 @@ select,.f input{font:inherit;font-size:16.5px;color:var(--ink);background:var(--
 .list{margin:0;padding-inline-start:20px;display:grid;gap:4px}
 textarea{width:100%;min-height:260px;font:inherit;font-size:15px;line-height:1.6;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+
+.faq{max-width:720px;margin:8px auto 30px;padding:0 16px;display:grid;gap:8px}.faq h2{font-size:20px;margin:6px 0}.faqq{border:1px solid rgba(127,127,127,.3);border-radius:14px;padding:4px 14px}.faqq summary{cursor:pointer;font-weight:700;padding:8px 0}.faqq p{margin:0 0 10px;line-height:1.6;opacity:.9}
 </style>
 
 <div class="wrap">
@@ -147,6 +149,9 @@ textarea{width:100%;min-height:260px;font:inherit;font-size:15px;line-height:1.6
   <p class="note" id="src">מקור: לוח הטיסות של רשות שדות התעופה ב־data.gov.il, מתעדכן כל 15 דקות. רק טיסות מנתב"ג ואליו.</p>
 </div>
 
+
+<section class="faq" id="faq" aria-labelledby="faqT"><h2 id="faqT">שאלות נפוצות על טיסות ופיצוי</h2><details class="faqq"><summary>כמה פיצוי מגיע על ביטול טיסה?</summary><p>לפי חוק שירותי תעופה, על ביטול או עיכוב של 8 שעות ומעלה מגיע פיצוי לפי מרחק הטיסה, בנוסף להחזר או לטיסה חלופית. המחשבון מחשב את הסכום לפי מתי הודיעו לכם, אם הוצעה טיסה חלופית ומה הייתה הסיבה, ומכין מכתב דרישה.</p></details><details class="faqq"><summary>מה מגיע על עיכוב של כמה שעות?</summary><p>מעיכוב של שעתיים מגיעים אוכל, שתייה ואפשרות ליצור קשר. מ־5 שעות אפשר לבחור בהחזר מלא. מ־8 שעות העיכוב נחשב כמו ביטול לעניין הפיצוי.</p></details><details class="faqq"><summary>איך עוקבים אחרי טיסה?</summary><p>מוסיפים את מספר הטיסה ורואים שעה מעודכנת, טרמינל ודלפקי צ'ק־אין, לפי לוח רשות שדות התעופה. אפשר לקבל התראה לטלפון על כל שינוי.</p></details><details class="faqq"><summary>איך שולחים למי שאוסף מתי הטיסה נוחתת?</summary><p>בכרטיס הטיסה לוחצים 'למי שאוסף' ושולחים בוואטסאפ קישור שמראה את שעת הנחיתה המעודכנת.</p></details><details class="faqq"><summary>זה ייעוץ משפטי?</summary><p>לא. זה מידע כללי לפי החוק. הסכומים מתעדכנים כל שנה.</p></details></section>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "כמה פיצוי מגיע על ביטול טיסה?", "acceptedAnswer": {"@type": "Answer", "text": "לפי חוק שירותי תעופה, על ביטול או עיכוב של 8 שעות ומעלה מגיע פיצוי לפי מרחק הטיסה, בנוסף להחזר או לטיסה חלופית. המחשבון מחשב את הסכום לפי מתי הודיעו לכם, אם הוצעה טיסה חלופית ומה הייתה הסיבה, ומכין מכתב דרישה."}}, {"@type": "Question", "name": "מה מגיע על עיכוב של כמה שעות?", "acceptedAnswer": {"@type": "Answer", "text": "מעיכוב של שעתיים מגיעים אוכל, שתייה ואפשרות ליצור קשר. מ־5 שעות אפשר לבחור בהחזר מלא. מ־8 שעות העיכוב נחשב כמו ביטול לעניין הפיצוי."}}, {"@type": "Question", "name": "איך עוקבים אחרי טיסה?", "acceptedAnswer": {"@type": "Answer", "text": "מוסיפים את מספר הטיסה ורואים שעה מעודכנת, טרמינל ודלפקי צ'ק־אין, לפי לוח רשות שדות התעופה. אפשר לקבל התראה לטלפון על כל שינוי."}}, {"@type": "Question", "name": "איך שולחים למי שאוסף מתי הטיסה נוחתת?", "acceptedAnswer": {"@type": "Answer", "text": "בכרטיס הטיסה לוחצים 'למי שאוסף' ושולחים בוואטסאפ קישור שמראה את שעת הנחיתה המעודכנת."}}, {"@type": "Question", "name": "זה ייעוץ משפטי?", "acceptedAnswer": {"@type": "Answer", "text": "לא. זה מידע כללי לפי החוק. הסכומים מתעדכנים כל שנה."}}]}</script>
 <script>
 (function () {
   "use strict";
@@ -328,7 +333,7 @@ textarea{width:100%;min-height:260px;font:inherit;font-size:15px;line-height:1.6
   function shareFlight(f) {
     var link = location.origin + "/#f=" + encodeURIComponent(f.k);
     var text = (f.dir === "A" ? "✈️ נוחת ב" + dayName(f.sched) + " ב־" + hm(f.est) + " מ" + (f.city || f.code) + " (" + f.al + f.num + ")" + (f.term ? ", טרמינל " + f.term : "") + ".\nמעקב חי עם השעה המעודכנת והתראה כשנוחת:\n" : "✈️ " + route(f) + " · " + f.al + f.num + " · " + dayName(f.sched) + " " + hm(f.est) + "\nמעקב חי:\n") + link;
-    if (navigator.share) navigator.share({ text: text }).catch(function () {}); else location.href = "https://wa.me/?text=" + encodeURIComponent(text);
+    text += "\n\n✈️ HaniaTisa: מעקב טיסות ופיצוי, בחינם"; if (navigator.share) navigator.share({ text: text }).catch(function () {}); else location.href = "https://wa.me/?text=" + encodeURIComponent(text);
   }
 
   // ---- what I'm owed (חוק שירותי תעופה, תשע"ב-2012) ------------------------------------------------
