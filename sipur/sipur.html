@@ -99,7 +99,7 @@ body.dim .page{background:#1B1838;color:#CFC8F5}body.dim .page h1{color:var(--mo
     var L = lib().filter(function (s) { return !kid || s.kid === kid.name; });
     show([
       el("div", { class: "hero" }, [el("div", { class: "moon", "aria-hidden": "true" }), el("div", {}, [el("h1", { text: kid ? "איזה סיפור ל" + kid.name + " הלילה?" : "סיפור לפני השינה, רק לילד שלך" }), el("p", { text: "בוחרים מקום, חבר ומסר. נכתב סיפור חדש, והטלפון מקריא אותו בקול רגוע." })])]),
-      el("section", { class: "box" }, [el("h2", { text: "מי הגיבור?" }), el("div", { class: "kids" }, K.map(function (k, i) { return el("button", { type: "button", "aria-pressed": String(S.kid === i), onclick: function () { S.kid = i; save(); home(); } }, [k.name + " · " + k.age]); }).concat([el("button", { type: "button", class: "add", text: K.length ? "➕ עוד ילד" : "➕ הוספת ילד/ה", onclick: kidForm }), kid ? el("button", { type: "button", class: "add", text: "✏️", "aria-label": "עריכת " + kid.name, onclick: function () { kidForm(S.kid); } }) : null]))]),
+      el("section", { class: "box" }, [el("h2", { text: "מי הגיבור?" }), el("div", { class: "kids" }, K.map(function (k, i) { return el("button", { type: "button", "aria-pressed": String(S.kid === i), onclick: function () { S.kid = i; save(); home(); } }, [k.name + " · " + k.age]); }).concat([el("button", { type: "button", class: "add", text: K.length ? "➕ עוד ילד" : "➕ הוספת ילד/ה", onclick: function () { kidForm(); } }), kid ? el("button", { type: "button", class: "add", text: "✏️", "aria-label": "עריכת " + kid.name, onclick: function () { kidForm(S.kid); } }) : null]))]),
       el("section", { class: "box" }, [el("h2", { text: "איפה זה קורה?" }), cards(PLACES, "place")]),
       el("section", { class: "box" }, [el("h2", { text: "מי מצטרף להרפתקה?" }), cards(FRIENDS, "friend")]),
       el("section", { class: "box" }, [el("h2", { text: "על מה הסיפור?" }), el("div", { class: "vals" }, VALUES.map(function (o) { return el("button", { type: "button", "aria-pressed": String(S.value === o[0]), onclick: function () { S.value = o[0]; save(); home(); } }, [o[1]]); })),
@@ -139,7 +139,7 @@ body.dim .page{background:#1B1838;color:#CFC8F5}body.dim .page h1{color:var(--mo
   function read(s, fresh) {
     var spans = [];
     var page = el("article", { class: "page" }, [el("h1", { text: s.title })].concat(s.paragraphs.map(function (p) {
-      return el("p", {}, p.split(/(?<=[.!?…])\s+/).map(function (t) { var x = el("span", { class: "s", text: t + " " }); spans.push(x); return x; }));
+      return el("p", {}, p.replace(/([.!?…])\s+/g, "$1\n").split("\n").map(function (t) { var x = el("span", { class: "s", text: t + " " }); spans.push(x); return x; }));
     })));
     var rate = +(ls("sp.rate") || 0.9);
     var playBtn = el("button", { class: "btn big", type: "button", "aria-label": "הקראה", text: "▶" });
