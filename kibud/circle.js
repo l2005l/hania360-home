@@ -14,6 +14,7 @@ const wd = (d) => new Date(d + "T12:00:00Z").getUTCDay();
 const COLORS = ["#E8833A", "#2E86DE", "#10AC84", "#C0392B", "#8E44AD", "#D4A017", "#0ABDE3", "#E15F41", "#3B3B98", "#16A085", "#B33771", "#6D214F"];
 const MORNING = 9, EVENING = 19, AHEAD = 14, KEEP = 180;
 const MOODS = ["😊", "😐", "😟"];
+const DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 const phoneOk = (s) => { const d = String(s || "").replace(/[^\d+]/g, ""); return /^(\+?972|0)\d{8,9}$/.test(d) ? d : ""; };
 
 export class KibudCircle {
@@ -119,8 +120,18 @@ export class KibudCircle {
       }
       case "unfeed": c.feed = c.feed.filter((f) => !(f.id === b.id && f.m === m)); break;
       case "take": // "I'll call today" or swap a day
+      { // the one whose day it was hears about it, and so does the one it was given to
         if (!isDate(b.date) || !m) return json({ error: "date" }, 400);
-        c.plan[b.date] = m; break;
+        const was = c.plan[b.date], by = c.members[b.by] ? b.by : m;
+        c.plan[b.date] = m;
+        if (was === m) break;
+        const when = b.date === IL().day ? "היום" : b.date === addDays(IL().day, 1) ? "מחר" : "ביום " + DAYS[wd(b.date)] + " " + +b.date.slice(8) + "." + +b.date.slice(5, 7);
+        c.feed.push({ id: token(6), at: Date.now(), m: by, kind: "swap", mood: "", text: (by === m ? "לקח/ה את התור " : "העביר/ה ל" + c.members[m].name + " את התור ") + when + (was && c.members[was] ? " (במקום " + c.members[was].name + ")" : "") });
+        await this.save();
+        if (was && c.members[was] && was !== by) await this.notify(was, null, { title: "🔄 " + when + " זה כבר לא התור שלך", body: c.members[m].name + " יתקשר/תתקשר " + when + " ל" + c.name + ". תודה!" });
+        if (m !== by) await this.notify(m, null, { title: "☎️ " + when + " תורך להתקשר ל" + c.name, body: c.members[by].name + " העביר/ה אליך את התור." });
+        break;
+      }
       case "days": if (!m) return json({ error: "who" }, 400); c.members[m].days = (Array.isArray(b.days) ? b.days : []).map(Number).filter((d) => d >= 0 && d <= 6); for (let i = 1; i < AHEAD; i++) { const d = addDays(IL().day, i); if (c.plan[d] === m && !c.members[m].days.includes(wd(d))) delete c.plan[d]; } this.fill(IL().day); break;
       case "refill": for (let i = 1; i < AHEAD; i++) delete c.plan[addDays(IL().day, i)]; this.fill(IL().day); break;
       case "member": {
