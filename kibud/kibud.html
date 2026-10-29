@@ -189,7 +189,7 @@ details[open] summary{margin-bottom:10px}
       kids = [el("span", { class: "badge", text: "היום · " + DAYS[wd(d)] + " " + dm(d) }),
         el("div", { class: "who", text: mine ? "היום תורך להתקשר ל" + S.name + " ☎️" : who ? "היום תורו/ה של " + M(who).name : "היום אין תור" }),
         el("p", { class: "sub", text: "עוד לא דיברו איתו/ה היום" }),
-        el("div", { class: "btns" }, [tel, el("button", { class: "btn ok", type: "button", text: "✓ דיברתי", onclick: callSheet }), !mine ? el("button", { class: "btn", type: "button", text: "🙋 אני אתקשר היום", onclick: function () { if (needMe()) op({ op: "take", date: d, m: me }, "תודה! היום זה עליך"); } }) : null])];
+        el("div", { class: "btns" }, [tel, el("button", { class: "btn ok", type: "button", text: "✓ דיברתי", onclick: callSheet }), !mine ? el("button", { class: "btn", type: "button", text: "🙋 אני אתקשר היום", onclick: function () { if (needMe()) op({ op: "take", date: d, m: me, by: me }, "תודה! היום זה עליך"); } }) : null])];
     }
     c.replaceChildren.apply(c, kids.filter(Boolean));
   }
@@ -221,13 +221,13 @@ details[open] summary{margin-bottom:10px}
   }
   function daySheet(d) {
     var host = $("sheetHost"), close = function () { host.textContent = ""; }, cur = S.plan[d];
-    var pick = el("div", { class: "pickm" }, Object.keys(S.members).map(function (m) { var b = el("button", { type: "button", "aria-pressed": String(cur === m), text: M(m).name, onclick: function () { close(); op({ op: "take", date: d, m: m }, "עודכן"); } }); b.style.background = M(m).color; return b; }));
+    var pick = el("div", { class: "pickm" }, Object.keys(S.members).map(function (m) { var b = el("button", { type: "button", "aria-pressed": String(cur === m), text: M(m).name, onclick: function () { close(); op({ op: "take", date: d, m: m, by: me }, "עודכן, ומי שהיה בתור יקבל התראה"); } }); b.style.background = M(m).color; return b; }));
     host.replaceChildren(el("div", { class: "scrim", onclick: close }), el("div", { class: "sheet", role: "dialog", "aria-modal": "true" }, [el("h2", {}, ["מי מתקשר ביום " + DAYS[wd(d)] + " " + dm(d) + "?", el("button", { class: "btn ghost", type: "button", text: "סגירה", onclick: close })]), pick]));
   }
   function renderFeed() {
     var f = S.feed.slice().reverse();
     $("feed").replaceChildren.apply($("feed"), f.length ? f.map(function (x) {
-      var m = M(x.m), icon = x.kind === "visit" ? "🏠 ביקר/ה" : x.kind === "call" ? "📞 דיבר/ה" : "📝";
+      var m = M(x.m), icon = x.kind === "visit" ? "🏠 ביקר/ה" : x.kind === "call" ? "📞 דיבר/ה" : x.kind === "swap" ? "🔄" : "📝";
       return el("div", { class: "it" }, [el("span", { class: "av", style: "background:" + m.color, text: m.name.slice(0, 1) }), el("div", { class: "bub" }, [
         el("div", { class: "meta" }, [el("b", { text: m.name }), el("span", { text: icon }), x.mood ? el("span", { text: x.mood }) : null, el("span", { text: "· " + ago(x.at) }), x.m === me ? el("button", { class: "x", type: "button", text: "מחיקה", onclick: function () { op({ op: "unfeed", id: x.id, m: me }); } }) : null]),
         x.text ? el("p", { text: x.text }) : null])]);
