@@ -16,11 +16,13 @@ const day = () => new Date(Date.now() + 2 * 3600e3).toISOString().slice(0, 10);
 export class StoryLimits {
   constructor(ctx) { this.ctx = ctx; ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS n (k TEXT PRIMARY KEY, c INTEGER)"); }
   async fetch(req) {
-    const { device } = await req.json(), d = day(), sql = this.ctx.storage.sql;
+    // ns separates the apps sharing these limits (HaniaSipur has none, HaniaKita "kita:").
+    const b = await req.json(), d = day(), sql = this.ctx.storage.sql, ns = /^[a-z]{0,10}:?$/.test(b.ns || "") ? b.ns || "" : "", device = b.device;
+    const perDay = b.perDay || PER_DAY, perDevice = b.perDevice || PER_DEVICE;
     const get = (k) => { const r = [...sql.exec("SELECT c FROM n WHERE k = ?", k)][0]; return r ? r.c : 0; };
-    if (get("all:" + d) >= PER_DAY) return json({ ok: false, why: "day" });
-    if (get(device + ":" + d) >= PER_DEVICE) return json({ ok: false, why: "device" });
-    for (const k of ["all:" + d, device + ":" + d]) sql.exec("INSERT INTO n (k, c) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET c = c + 1", k);
+    if (get(ns + "all:" + d) >= perDay) return json({ ok: false, why: "day" });
+    if (get(ns + device + ":" + d) >= perDevice) return json({ ok: false, why: "device" });
+    for (const k of [ns + "all:" + d, ns + device + ":" + d]) sql.exec("INSERT INTO n (k, c) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET c = c + 1", k);
     sql.exec("DELETE FROM n WHERE k NOT LIKE ?", "%" + d);
     return json({ ok: true });
   }

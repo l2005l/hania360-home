@@ -1,0 +1,291 @@
+<title>HaniaKita · ארגז הכלים של המורה</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800;900&display=swap">
+<style>
+/* Layout: tabs on top (works on a projector and on a phone); each tool fills the screen with big type.
+   The worksheet tab ends in a printable A4 page; printing hides everything else. */
+:root{
+  --bg:#F4F7FB; --surface:#FFFFFF; --ink:#16202E; --muted:#617088; --line:#DCE4EE;
+  --c1:#FF6B5B; --c2:#FFB020; --c3:#2BB673; --c4:#3B82F6; --c5:#8B5CF6; --c6:#EC4899; --c7:#14B8A6; --c8:#F97316;
+  --acc:#3B82F6; --font:"Rubik",system-ui,-apple-system,"Segoe UI","Arial Hebrew",sans-serif; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0E1622;--surface:#172232;--ink:#EAF1FA;--muted:#9AABC2;--line:#28374B;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line-height:1.45}
+.wrap{max-width:1100px;margin:0 auto;padding:12px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+header b{font-size:21px;font-weight:900}header b span{color:var(--acc)}
+header select{width:auto;font-weight:700}
+header .sp{margin-inline-start:auto;display:flex;gap:6px}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:4px;position:sticky;top:0;z-index:5}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto;appearance:none;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:700;font-size:15px;padding:9px 12px;border-radius:12px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:12px}
+.card h2{margin:0;font-size:19px;font-weight:800}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+label.f{display:grid;gap:4px;font-size:14px;font-weight:600;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:16.5px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;min-width:0}
+textarea{min-height:140px}
+input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);outline-offset:1px}
+.btn{appearance:none;border:0;border-radius:14px;background:var(--acc);color:#fff;font:inherit;font-weight:800;font-size:17px;padding:12px 18px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px}
+.btn.ghost{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.btn.big{font-size:24px;padding:18px 30px;border-radius:20px}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14.5px;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,button:focus-visible{outline:3px solid var(--c2);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chips button{appearance:none;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:8px 14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.note{margin:0;color:var(--muted);font-size:14.5px}
+.center{display:grid;justify-items:center;text-align:center;gap:16px}
+/* picker */
+.pick{min-height:min(42vh,340px);width:100%;display:grid;place-items:center;border-radius:28px;background:linear-gradient(135deg,var(--c4),var(--c5));color:#fff;font-size:clamp(44px,11vw,120px);font-weight:900;line-height:1.05;padding:20px;text-wrap:balance;box-shadow:0 18px 40px rgba(59,130,246,.3)}
+.pick.spin{background:linear-gradient(135deg,var(--c2),var(--c1))}
+.picked{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.picked span{background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:14px;color:var(--muted)}
+/* groups */
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.grp{border-radius:20px;padding:14px 16px;color:#fff;display:grid;gap:4px;align-content:start}
+.grp b{font-size:22px;font-weight:900}.grp span{font-size:clamp(17px,2.2vw,22px);font-weight:600}
+/* timer */
+.timer{position:relative;width:min(80vw,440px);aspect-ratio:1;display:grid;place-items:center}
+.timer svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.timer b{font-size:clamp(64px,18vw,140px);font-weight:900;font-variant-numeric:tabular-nums;direction:ltr}
+.timer.end b{color:var(--c1);animation:blink .6s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+/* noise */
+.meter{width:100%;height:60px;border-radius:99px;background:var(--line);overflow:hidden;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--c3),var(--c2) 60%,var(--c1));transition:width .12s linear}
+.meter s{position:absolute;top:0;bottom:0;width:4px;background:var(--ink);opacity:.6}
+.face{font-size:clamp(90px,22vw,180px);line-height:1}
+.shh{font-size:clamp(40px,9vw,80px);font-weight:900;color:var(--c1)}
+/* points */
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.team{border-radius:22px;padding:14px;color:#fff;display:grid;gap:8px;justify-items:center;text-align:center}
+.team b{font-size:22px}.team .sc{font-size:clamp(54px,9vw,84px);font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+.team .pm{display:flex;gap:8px}.team .pm button{appearance:none;border:0;width:56px;height:56px;border-radius:50%;background:#ffffff33;color:#fff;font:inherit;font-size:28px;font-weight:900;cursor:pointer}
+.team.lead{outline:5px solid var(--c2);outline-offset:3px}
+/* worksheet */
+.sheet{background:#fff;color:#111;border-radius:12px;padding:28px 30px;box-shadow:0 6px 30px rgba(0,0,0,.12);font-size:17px;line-height:1.6}
+.sheet .hd{display:flex;gap:16px;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;font-size:15px;flex-wrap:wrap}
+.sheet h1{margin:4px 0;font-size:26px;text-align:center}
+.sheet .ins{text-align:center;color:#444;margin:0 0 14px}
+.sheet ol{margin:0;padding-inline-start:26px;display:grid;gap:14px}
+.sheet li{break-inside:avoid}
+.sheet .q[contenteditable]{outline:none;border-radius:6px}.sheet .q[contenteditable]:focus{background:#FFF7D6}
+.sheet .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 16px;margin-top:4px;list-style:none;padding:0}
+.sheet .line{border-bottom:1px solid #999;height:28px}
+.sheet .ans{margin-top:22px;border-top:2px dashed #999;padding-top:12px}
+.sheet .ans h2{font-size:20px;margin:0 0 8px}
+.lib{display:grid;gap:6px}
+.lib button{appearance:none;text-align:start;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+@media print{
+  body{background:#fff}.wrap>*:not(#view),#view>*:not(.printable){display:none!important}
+  .wrap{padding:0;max-width:none}.sheet{box-shadow:none;border-radius:0;padding:0}
+  .sheet .ans.page{break-before:page}
+  .sheet .q[contenteditable]:focus{background:none}
+}
+@media (prefers-reduced-motion:reduce){.timer.end b{animation:none}}
+</style>
+
+<div class="wrap">
+  <header><b>Hania<span>Kita</span></b><select id="cls" aria-label="הכיתה"></select><div class="sp"><button class="btn sm ghost" type="button" id="fs" aria-label="מסך מלא">⛶ מסך מלא</button><a class="btn sm ghost" href="https://hania360.com/">Hania360</a></div></header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <div id="view"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { var v = a[k]; if (v == null || v === false) return; if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else if (k === "text") e.textContent = v; else if (k === "value") e.value = v; else e.setAttribute(k, v === true ? "" : v); }); (kids || []).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c); }); return e; }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  function jget(k, d) { try { return JSON.parse(ls(k) || "") || d; } catch (e) { return d; } }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2400); }
+  var COL = ["var(--c1)", "var(--c4)", "var(--c3)", "var(--c5)", "var(--c2)", "var(--c6)", "var(--c7)", "var(--c8)"];
+  var DEV = ls("kt.dev"); if (!DEV) { DEV = Array.from(crypto.getRandomValues(new Uint8Array(18)), function (x) { return "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x % 57]; }).join(""); ls("kt.dev", DEV); }
+  var shuffle = function (a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+
+  // ---- classes -------------------------------------------------------------------------------------
+  var CL = jget("kt.classes", []), CUR = ls("kt.cur") || "";
+  if (!CL.length) { CL = [{ id: "c1", name: "הכיתה שלי", students: [] }]; }
+  function cls() { return CL.filter(function (c) { return c.id === CUR; })[0] || CL[0]; }
+  function saveCl() { ls("kt.classes", JSON.stringify(CL)); ls("kt.cur", cls().id); paintCls(); }
+  function paintCls() { $("cls").replaceChildren.apply($("cls"), CL.map(function (c) { return el("option", { value: c.id, text: c.name + " (" + c.students.length + ")" }); })); $("cls").value = cls().id; }
+  $("cls").addEventListener("change", function () { CUR = $("cls").value; ls("kt.cur", CUR); picked = []; groups = null; render(); });
+  $("fs").addEventListener("click", function () { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) {} });
+
+  var TABS = [["pick", "🎲 תלמיד"], ["groups", "👥 קבוצות"], ["timer", "⏱️ טיימר"], ["noise", "🔊 רעש"], ["points", "🏆 נקודות"], ["sheet", "📄 דף עבודה"], ["class", "⚙️ כיתות"]];
+  var TAB = ls("kt.tab") || "pick";
+  function paintTabs() { $("tabs").replaceChildren.apply($("tabs"), TABS.map(function (t) { return el("button", { type: "button", role: "tab", "aria-selected": String(TAB === t[0]), onclick: function () { stopAll(); TAB = t[0]; ls("kt.tab", TAB); render(); } }, [t[1]]); })); }
+  function need() { return el("div", { class: "card center" }, [el("h2", { text: "קודם מוסיפים את שמות התלמידים" }), el("button", { class: "btn", type: "button", text: "⚙️ לרשימת הכיתה", onclick: function () { TAB = "class"; render(); } })]); }
+
+  // ---- 🎲 random student, nobody twice until everybody had a turn --------------------------------------------
+  var picked = [];
+  function pickTab() {
+    var S = cls().students; if (!S.length) return [need()];
+    var box = el("div", { class: "pick", "aria-live": "polite", text: picked.length ? picked[picked.length - 1] : "?" });
+    var go = el("button", { class: "btn big", type: "button", text: "🎲 מי הבא?", onclick: function () {
+      var left = S.filter(function (s) { return picked.indexOf(s) < 0; }); if (!left.length) { picked = []; left = S.slice(); toast("כולם קיבלו תור. מתחילים סבב חדש"); }
+      var win = left[Math.floor(Math.random() * left.length)], n = 0, steps = 16 + Math.floor(Math.random() * 6);
+      go.disabled = true; box.classList.add("spin");
+      (function spin() { n++; box.textContent = S[Math.floor(Math.random() * S.length)]; if (n < steps) setTimeout(spin, 40 + n * n * 0.45); else { box.textContent = win; box.classList.remove("spin"); picked.push(win); go.disabled = false; beep(880, 0.12); paintPicked(); } })();
+    } });
+    var list = el("div", { class: "picked" });
+    function paintPicked() { list.replaceChildren.apply(list, [el("span", { text: "קיבלו תור: " + picked.length + "/" + S.length })].concat(picked.slice().reverse().map(function (p) { return el("span", { text: p }); }))); }
+    paintPicked();
+    return [el("div", { class: "card center" }, [box, go, list, el("button", { class: "btn sm ghost", type: "button", text: "↺ סבב חדש", onclick: function () { picked = []; render(); } })])];
+  }
+
+  // ---- 👥 groups ----------------------------------------------------------------------------------
+  var groups = null, gMode = "count", gN = 4;
+  function groupsTab() {
+    var S = cls().students; if (!S.length) return [need()];
+    var nIn = el("input", { type: "number", min: "2", max: "30", value: gN, "aria-label": "מספר" });
+    nIn.addEventListener("input", function () { gN = Math.max(2, Math.min(30, +nIn.value || 2)); });
+    var make = function () {
+      var sh = shuffle(S), k = gMode === "count" ? Math.min(gN, S.length) : Math.max(1, Math.ceil(S.length / gN));
+      groups = Array.from({ length: k }, function () { return []; }); sh.forEach(function (s, i) { groups[i % k].push(s); }); ls("kt.groups." + cls().id, JSON.stringify(groups)); render();
+    };
+    var out = [el("div", { class: "card" }, [el("div", { class: "chips" }, [["count", "לפי מספר קבוצות"], ["size", "לפי גודל קבוצה"]].map(function (o) { return el("button", { type: "button", "aria-pressed": String(gMode === o[0]), onclick: function () { gMode = o[0]; render(); } }, [o[1]]); })),
+      el("div", { class: "row" }, [el("label", { class: "f" }, [gMode === "count" ? "כמה קבוצות" : "כמה בכל קבוצה", nIn]), el("div", { style: "display:flex;align-items:end" }, [el("button", { class: "btn", type: "button", style: "width:100%", text: groups ? "🔀 חלוקה מחדש" : "👥 חלוקה", onclick: make })])])])];
+    groups = groups || jget("kt.groups." + cls().id, null);
+    if (groups) out.push(el("div", { class: "groups" }, groups.map(function (g, i) { return el("div", { class: "grp", style: "background:" + COL[i % COL.length] }, [el("b", { text: "קבוצה " + (i + 1) })].concat(g.map(function (s) { return el("span", { text: s }); }))); })),
+      el("div", { class: "btns" }, [el("button", { class: "btn ghost", type: "button", text: "🏆 לקבוצות נקודות", onclick: function () { teams = groups.map(function (g, i) { return { name: "קבוצה " + (i + 1), s: 0 }; }); saveTeams(); TAB = "points"; render(); } })]));
+    return out;
+  }
+
+  // ---- ⏱️ timer -----------------------------------------------------------------------------------
+  var T = { total: 300, left: 300, run: false, iv: null };
+  function timerTab() {
+    var R = 46, C = 2 * Math.PI * R, ring = document.createElementNS("http://www.w3.org/2000/svg", "circle"), svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    var bgc = document.createElementNS("http://www.w3.org/2000/svg", "circle"); [["cx", 50], ["cy", 50], ["r", R], ["fill", "none"], ["stroke", "var(--line)"], ["stroke-width", 6]].forEach(function (a) { bgc.setAttribute(a[0], a[1]); });
+    [["cx", 50], ["cy", 50], ["r", R], ["fill", "none"], ["stroke", "var(--c3)"], ["stroke-width", 6], ["stroke-linecap", "round"], ["stroke-dasharray", C]].forEach(function (a) { ring.setAttribute(a[0], a[1]); });
+    svg.append(bgc, ring);
+    var num = el("b"), box = el("div", { class: "timer" }, [svg, num]);
+    function paint() { var m = Math.floor(T.left / 60), s = T.left % 60; num.textContent = m + ":" + String(s).padStart(2, "0"); var f = T.total ? T.left / T.total : 0; ring.setAttribute("stroke-dashoffset", String(C * (1 - f))); ring.setAttribute("stroke", f > 0.5 ? "var(--c3)" : f > 0.2 ? "var(--c2)" : "var(--c1)"); box.classList.toggle("end", T.left === 0 && T.total > 0); start.textContent = T.run ? "⏸ עצירה" : T.left === 0 ? "↺ שוב" : "▶ התחלה"; }
+    var start = el("button", { class: "btn big", type: "button", onclick: function () {
+      if (T.run) { clearInterval(T.iv); T.run = false; paint(); return; }
+      if (T.left === 0) T.left = T.total;
+      T.run = true; var end = Date.now() + T.left * 1000;
+      T.iv = setInterval(function () { T.left = Math.max(0, Math.round((end - Date.now()) / 1000)); if (T.left === 0) { clearInterval(T.iv); T.run = false; [0, 400, 800].forEach(function (d) { setTimeout(function () { beep(988, 0.3); }, d); }); } paint(); }, 250);
+      paint();
+    } });
+    var set = function (sec) { clearInterval(T.iv); T.run = false; T.total = T.left = sec; paint(); };
+    paint();
+    return [el("div", { class: "card center" }, [el("div", { class: "chips" }, [1, 2, 3, 5, 10, 15, 20].map(function (m) { return el("button", { type: "button", "aria-pressed": String(T.total === m * 60), onclick: function () { set(m * 60); render(); } }, [m + " דק׳"]); })),
+      box, el("div", { class: "btns" }, [el("button", { class: "btn ghost", type: "button", text: "−1", onclick: function () { if (!T.run) set(Math.max(30, T.total - 60)); } }), start, el("button", { class: "btn ghost", type: "button", text: "+1", onclick: function () { if (!T.run) set(T.total + 60); } })])])];
+  }
+
+  // ---- 🔊 noise meter (the microphone stays on this device) ------------------------------------------------
+  var N = null;
+  function noiseTab() {
+    var limit = +(ls("kt.limit") || 60);
+    var bar = el("i"), mark = el("s", { style: "left:" + limit + "%" }), meter = el("div", { class: "meter", role: "meter", "aria-label": "עוצמת רעש" }, [bar, mark]);
+    var face = el("div", { class: "face", text: "😊" }), shh = el("div", { class: "shh", hidden: true, text: "🤫 שקט בבקשה" }), count = el("p", { class: "note" });
+    var slider = el("input", { type: "range", min: "20", max: "95", value: limit, "aria-label": "רגישות", style: "max-width:420px" });
+    slider.addEventListener("input", function () { limit = +slider.value; ls("kt.limit", limit); mark.style.left = limit + "%"; });
+    var btn = el("button", { class: "btn big", type: "button", text: "🎤 הפעלה", onclick: function () {
+      if (N) { stopNoise(); btn.textContent = "🎤 הפעלה"; return; }
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }).then(function (st) {
+        var ac = new (window.AudioContext || window.webkitAudioContext)(), an = ac.createAnalyser(); an.fftSize = 1024; ac.createMediaStreamSource(st).connect(an);
+        var buf = new Float32Array(an.fftSize), lvl = 0, over = 0, events = 0;
+        N = { st: st, ac: ac, raf: 0 }; btn.textContent = "⏹ כיבוי";
+        (function loop() {
+          if (!N) return;
+          an.getFloatTimeDomainData(buf); var sum = 0; for (var i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+          var db = 20 * Math.log10(Math.sqrt(sum / buf.length) + 1e-7), v = Math.max(0, Math.min(100, (db + 60) * 1.9));
+          lvl = lvl * 0.85 + v * 0.15; bar.style.width = lvl + "%";
+          face.textContent = lvl < limit * 0.6 ? "😊" : lvl < limit ? "😐" : "😱";
+          if (lvl >= limit) { over++; if (over === 45) { events++; beep(440, 0.25); } } else if (over) over = Math.max(0, over - 2);
+          shh.hidden = over < 45; count.textContent = events ? "רעש חזק נמדד " + events + " פעמים" : "";
+          N.raf = requestAnimationFrame(loop);
+        })();
+      }).catch(function () { toast("צריך לאשר מיקרופון"); });
+    } });
+    return [el("div", { class: "card center" }, [face, shh, meter, btn, el("label", { class: "f", style: "width:100%;max-width:420px" }, ["הקו השחור: מאיפה זה כבר רעש", slider]), count, el("p", { class: "note", text: "המיקרופון רק מודד עוצמה. שום דבר לא מוקלט או נשלח." })])];
+  }
+  function stopNoise() { if (N) { cancelAnimationFrame(N.raf); N.st.getTracks().forEach(function (t) { t.stop(); }); try { N.ac.close(); } catch (e) {} N = null; } }
+
+  // ---- 🏆 points ----------------------------------------------------------------------------------
+  var teams = null;
+  function saveTeams() { ls("kt.teams." + cls().id, JSON.stringify(teams)); }
+  function pointsTab() {
+    teams = teams || jget("kt.teams." + cls().id, null) || [{ name: "קבוצה 1", s: 0 }, { name: "קבוצה 2", s: 0 }, { name: "קבוצה 3", s: 0 }, { name: "קבוצה 4", s: 0 }];
+    var top = Math.max.apply(null, teams.map(function (t) { return t.s; }));
+    return [el("div", { class: "teams" }, teams.map(function (t, i) {
+      var sc = el("div", { class: "sc", text: String(t.s) });
+      return el("div", { class: "team" + (t.s === top && top > 0 ? " lead" : ""), style: "background:" + COL[i % COL.length] }, [el("b", { text: t.name, onclick: function () { var n = prompt("שם הקבוצה", t.name); if (n && n.trim()) { t.name = n.trim().slice(0, 20); saveTeams(); render(); } } }), sc,
+        el("div", { class: "pm" }, [el("button", { type: "button", "aria-label": "פחות נקודה ל" + t.name, text: "−", onclick: function () { t.s--; saveTeams(); render(); } }), el("button", { type: "button", "aria-label": "עוד נקודה ל" + t.name, text: "+", onclick: function () { t.s++; beep(1320, 0.08); saveTeams(); render(); } })])]);
+    })), el("div", { class: "btns" }, [el("button", { class: "btn ghost", type: "button", text: "➕ קבוצה", onclick: function () { teams.push({ name: "קבוצה " + (teams.length + 1), s: 0 }); saveTeams(); render(); } }), teams.length > 2 ? el("button", { class: "btn ghost", type: "button", text: "➖ קבוצה", onclick: function () { teams.pop(); saveTeams(); render(); } }) : null, el("button", { class: "btn ghost", type: "button", text: "↺ איפוס", onclick: function () { if (confirm("לאפס את הנקודות?")) { teams.forEach(function (t) { t.s = 0; }); saveTeams(); render(); } } })]), el("p", { class: "note", style: "text-align:center", text: "לחיצה על שם הקבוצה משנה אותו." })];
+  }
+
+  // ---- 📄 worksheet ---------------------------------------------------------------------------------
+  var GRADES = ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "יא", "יב"], SUBJ = [["math", "חשבון"], ["hebrew", "עברית"], ["english", "אנגלית"], ["science", "מדעים"], ["history", "היסטוריה"], ["tanach", "תנ\"ך"], ["geo", "גאוגרפיה"], ["civics", "אזרחות"], ["other", "אחר"]];
+  var W = jget("kt.wform", { grade: "ד", subject: "math", topic: "", level: "mid", type: "mix", n: 8, key: true }), CURSHEET = null;
+  function sheetTab() {
+    var sel = function (key, opts) { var s = el("select", {}, opts.map(function (o) { return el("option", { value: o[0], text: o[1] }); })); s.value = W[key]; s.addEventListener("change", function () { W[key] = s.value; ls("kt.wform", JSON.stringify(W)); }); return s; };
+    var topic = el("input", { maxlength: "80", value: W.topic, placeholder: "למשל: שברים פשוטים, יציאת מצרים, Present Simple" });
+    topic.addEventListener("input", function () { W.topic = topic.value; ls("kt.wform", JSON.stringify(W)); });
+    var key = el("input", { type: "checkbox", style: "width:auto" }); key.checked = W.key !== false; key.addEventListener("change", function () { W.key = key.checked; ls("kt.wform", JSON.stringify(W)); if (CURSHEET) render(); });
+    var go = el("button", { class: "btn", type: "button", text: "✨ הכנת דף עבודה", onclick: function () {
+      if (W.topic.trim().length < 2) { toast("כותבים נושא"); topic.focus(); return; }
+      go.disabled = true; go.textContent = "כותבים את הדף… עד חצי דקה";
+      fetch("/api/kita/sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ device: DEV }, W)) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "x"); return j; }); })
+        .then(function (j) { j.at = Date.now(); CURSHEET = j; var L = jget("kt.sheets", []); L.unshift(j); ls("kt.sheets", JSON.stringify(L.slice(0, 30))); render(); setTimeout(function () { var s = document.querySelector(".sheet"); s && s.scrollIntoView({ behavior: "smooth" }); }, 50); })
+        .catch(function (e) { toast(e.message === "device" ? "היום כבר הוכנו 15 דפים במכשיר הזה. מחר יש עוד" : e.message === "day" ? "הרבה דפים היום. נסו מחר" : "לא הצלחנו להכין עכשיו. נסו שוב"); go.disabled = false; go.textContent = "✨ הכנת דף עבודה"; });
+    } });
+    var form = el("div", { class: "card" }, [el("h2", { text: "📄 דף עבודה בלחיצה" }),
+      el("div", { class: "row" }, [el("label", { class: "f" }, ["כיתה", sel("grade", GRADES.map(function (g) { return [g, "כיתה " + g]; }))]), el("label", { class: "f" }, ["מקצוע", sel("subject", SUBJ)]), el("label", { class: "f" }, ["רמה", sel("level", [["easy", "קלה"], ["mid", "בינונית"], ["hard", "מאתגרת"]])])]),
+      el("label", { class: "f" }, ["נושא", topic]),
+      el("div", { class: "row" }, [el("label", { class: "f" }, ["סוג שאלות", sel("type", [["mix", "מעורב"], ["open", "פתוחות"], ["mc", "אמריקאיות"], ["fill", "השלמה"]])]), el("label", { class: "f" }, ["כמה שאלות", sel("n", [4, 6, 8, 10, 12, 15].map(function (n) { return [String(n), String(n)]; }))])]),
+      el("label", { class: "f", style: "display:flex;gap:8px;align-items:center;color:var(--ink)" }, [key, "דף תשובות למורה (בעמוד נפרד)"]), go,
+      el("p", { class: "note", text: "הדף נכתב בבינה מלאכותית. תמיד עוברים עליו לפני שמחלקים, ובמיוחד בודקים את התשובות. אפשר לתקן כל שאלה בלחיצה עליה." })]);
+    var out = [form];
+    if (CURSHEET) out.push(el("div", { class: "btns" }, [el("button", { class: "btn", type: "button", text: "🖨️ הדפסה / PDF", onclick: function () { window.print(); } }), el("button", { class: "btn ghost", type: "button", text: "✕ סגירת הדף", onclick: function () { CURSHEET = null; render(); } })]), sheetEl(CURSHEET));
+    var L = jget("kt.sheets", []);
+    if (L.length) out.push(el("div", { class: "card" }, [el("h2", { text: "📚 דפים קודמים" }), el("div", { class: "lib" }, L.map(function (s) { return el("button", { type: "button", onclick: function () { CURSHEET = s; render(); } }, [el("span", { text: s.title }), el("small", { text: "כיתה " + s.grade + " · " + new Date(s.at).toLocaleDateString("he-IL") })]); }))]));
+    return out;
+  }
+  function sheetEl(s) {
+    var letters = ["א", "ב", "ג", "ד"];
+    var qs = el("ol", {}, s.questions.map(function (q, i) {
+      var kids = [el("div", { class: "q", dir: "auto", contenteditable: "true", spellcheck: "false", text: q.q, onblur: function (e) { q.q = e.target.textContent; } })];
+      if (q.type === "mc") kids.push(el("ul", { class: "opts" }, q.options.map(function (o, k) { return el("li", { dir: "auto", text: letters[k] + ". " + o }); })));
+      if (q.type === "open") kids.push(el("div", { class: "line" }), el("div", { class: "line" }));
+      return el("li", {}, kids);
+    }));
+    var parts = [el("div", { class: "hd" }, [el("span", { text: "שם: ____________________" }), el("span", { text: "כיתה: " + s.grade + "  ·  תאריך: ___________" })]), el("h1", { contenteditable: "true", text: s.title }), s.instructions ? el("p", { class: "ins", text: s.instructions }) : null, qs];
+    if (W.key !== false) parts.push(el("div", { class: "ans page" }, [el("h2", { text: "דף תשובות למורה · " + s.title }), el("ol", {}, s.questions.map(function (q) { return el("li", { text: q.answer || "—" }); }))]));
+    return el("article", { class: "sheet printable" }, parts);
+  }
+
+  // ---- ⚙️ classes -----------------------------------------------------------------------------------
+  function classTab() {
+    var c = cls(), name = el("input", { value: c.name, maxlength: "30" }), list = el("textarea", { placeholder: "שם בכל שורה. אפשר להדביק מאקסל או מוואטסאפ." });
+    list.value = c.students.join("\n");
+    return [el("div", { class: "card" }, [el("h2", { text: "⚙️ " + c.name }), el("label", { class: "f" }, ["שם הכיתה", name]), el("label", { class: "f" }, ["תלמידים", list]),
+      el("div", { class: "btns" }, [el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { c.name = name.value.trim().slice(0, 30) || "כיתה"; c.students = Array.from(new Set(list.value.split(/[\n,;\t]+/).map(function (x) { return x.replace(/^\s*\d+[.)]\s*/, "").trim().slice(0, 30); }).filter(Boolean))).slice(0, 60); picked = []; groups = null; saveCl(); toast(c.students.length + " תלמידים נשמרו"); render(); } }),
+        el("button", { class: "btn ghost", type: "button", text: "➕ כיתה חדשה", onclick: function () { var n = prompt("שם הכיתה", "ה'2"); if (!n) return; var k = { id: "c" + Date.now().toString(36), name: n.trim().slice(0, 30), students: [] }; CL.push(k); CUR = k.id; saveCl(); render(); } }),
+        CL.length > 1 ? el("button", { class: "btn ghost", type: "button", text: "🗑️ מחיקת הכיתה", onclick: function () { if (!confirm("למחוק את " + c.name + "?")) return; CL = CL.filter(function (x) { return x !== c; }); CUR = CL[0].id; saveCl(); render(); } }) : null]),
+      el("p", { class: "note", text: "הרשימות נשמרות רק במכשיר הזה. שמות התלמידים לא נשלחים לשום מקום." })])];
+  }
+
+  // ---- shell ------------------------------------------------------------------------------------------
+  var ac = null;
+  function beep(f, d) { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.4, ac.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + d + 0.02); } catch (e) {} }
+  function stopAll() { stopNoise(); }
+  function render() {
+    paintTabs();
+    var f = { pick: pickTab, groups: groupsTab, timer: timerTab, noise: noiseTab, points: pointsTab, sheet: sheetTab, "class": classTab }[TAB] || pickTab;
+    $("view").replaceChildren.apply($("view"), f().filter(Boolean));
+  }
+  paintCls(); render();
+  if (!cls().students.length && TAB !== "sheet") { TAB = "class"; render(); }
+})();
+</script>
