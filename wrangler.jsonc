@@ -4,12 +4,12 @@
   "main": "worker.js",
   "compatibility_date": "2026-09-30",
   // HaniaQuiz: one Durable Object per game room (quiz/room.js).
-  "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }, { "name": "TISA", "class_name": "FlightHub" }, { "name": "HAZMANA", "class_name": "EventRoom" }, { "name": "SIPUR", "class_name": "StoryLimits" }, { "name": "STATS", "class_name": "StatsHub" }, { "name": "KIBUD", "class_name": "KibudCircle" }] },
+  "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }, { "name": "TISA", "class_name": "FlightHub" }, { "name": "HAZMANA", "class_name": "EventRoom" }, { "name": "SIPUR", "class_name": "StoryLimits" }, { "name": "STATS", "class_name": "StatsHub" }, { "name": "KIBUD", "class_name": "KibudCircle" }, { "name": "PLAYDB", "class_name": "PlayStore" }, { "name": "PLAYROOM", "class_name": "GameRoom" }] },
   // Hania Pass, asked who is signed in (HaniaTisa and HaniaCheck keep flights and cars for Hania Today).
   "services": [{ "binding": "PASS", "service": "hania-pass" }],
   // Workers AI: HaniaSipur writes bedtime stories (counted per phone and per day in StoryLimits).
   "ai": { "binding": "AI" },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }, { "tag": "v2", "new_sqlite_classes": ["ParkHub"] }, { "tag": "v3", "new_sqlite_classes": ["ShabbatHub"] }, { "tag": "v4", "new_sqlite_classes": ["GiftGroup"] }, { "tag": "v5", "new_sqlite_classes": ["RideGroup"] }, { "tag": "v6", "new_sqlite_classes": ["FlightHub"] }, { "tag": "v7", "new_sqlite_classes": ["EventRoom"] }, { "tag": "v8", "new_sqlite_classes": ["StoryLimits"] }, { "tag": "v9", "new_sqlite_classes": ["StatsHub"] }, { "tag": "v10", "new_sqlite_classes": ["KibudCircle"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }, { "tag": "v2", "new_sqlite_classes": ["ParkHub"] }, { "tag": "v3", "new_sqlite_classes": ["ShabbatHub"] }, { "tag": "v4", "new_sqlite_classes": ["GiftGroup"] }, { "tag": "v5", "new_sqlite_classes": ["RideGroup"] }, { "tag": "v6", "new_sqlite_classes": ["FlightHub"] }, { "tag": "v7", "new_sqlite_classes": ["EventRoom"] }, { "tag": "v8", "new_sqlite_classes": ["StoryLimits"] }, { "tag": "v9", "new_sqlite_classes": ["StatsHub"] }, { "tag": "v10", "new_sqlite_classes": ["KibudCircle"] }, { "tag": "v11", "new_sqlite_classes": ["PlayStore", "GameRoom"] }],
   "env": {
     // Staging: its own workers.dev address, never indexed by search engines.
     "staging": {
@@ -17,7 +17,7 @@
       "vars": { "ENVIRONMENT": "staging" },
       "services": [{ "binding": "PASS", "service": "hania-pass-staging" }],
       "ai": { "binding": "AI" },
-      "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }, { "name": "TISA", "class_name": "FlightHub" }, { "name": "HAZMANA", "class_name": "EventRoom" }, { "name": "SIPUR", "class_name": "StoryLimits" }, { "name": "STATS", "class_name": "StatsHub" }, { "name": "KIBUD", "class_name": "KibudCircle" }] }
+      "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }, { "name": "TISA", "class_name": "FlightHub" }, { "name": "HAZMANA", "class_name": "EventRoom" }, { "name": "SIPUR", "class_name": "StoryLimits" }, { "name": "STATS", "class_name": "StatsHub" }, { "name": "KIBUD", "class_name": "KibudCircle" }, { "name": "PLAYDB", "class_name": "PlayStore" }, { "name": "PLAYROOM", "class_name": "GameRoom" }] }
     }
   }
 }
