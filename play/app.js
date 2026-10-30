@@ -3,13 +3,14 @@
 import { cleanConfig, priceOf, promptFor, validate, extractJSON, InputError, PASSES, punchCovers, subCovers } from './games.js';
 import { sampleFor } from './samples.js';
 import { db } from './store.js';
+import { settings, payReady, payBlock, manualPay, claim, notify, adminApi, pushMsg, ADMIN_PAGE, SW } from './pay.js';
 import PAGE, { FILES, IMAGES } from './page.js';
 
 const AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const AI_FALLBACK_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 // Workers AI נותן מכסה יומית חינמית אחת לכל האפליקציות, אז סופרים יצירות לכל משתמש ולכל האתר.
 const AI_PER_USER = 8, AI_PER_DAY = 60;
-const CONFIG = { ENVIRONMENT: 'production', APP_URL: 'https://play.hania360.com', PASS_URL: 'https://pass.hania360.com', PAYMENTS_MODE: 'demo', FREE_FIRST_GAME: '1', FREE_DAILY_LIMIT: '30' };
+const CONFIG = { ENVIRONMENT: 'production', APP_URL: 'https://play.hania360.com', PASS_URL: 'https://pass.hania360.com', PAYMENTS_MODE: 'manual', FREE_FIRST_GAME: '1', FREE_DAILY_LIMIT: '30' };
 
 const json = (data, status = 200, headers = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers } });
@@ -63,7 +64,12 @@ function canDemoPay(env, user) {
   const list = String(env.DEMO_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
   return list.includes('*') || list.includes(String(user.email || '').toLowerCase());
 }
-function requirePayable(env, user) {
+async function requirePayable(env, user) {
+  if (env.PAYMENTS_MODE === 'manual') {
+    if (!payReady(await settings(env))) throw new HttpError(403, 'payments_soon', 'התשלום באתר ייפתח בקרוב. בינתיים המשחק הראשון במסלול הפרטי עלינו.');
+    const b = await payBlock(env, user); if (b) throw new HttpError(402, b.code, b.message);
+    return;
+  }
   if (env.PAYMENTS_MODE === 'demo' && !canDemoPay(env, user))
     throw new HttpError(403, 'payments_soon', 'התשלום באתר ייפתח בקרוב. בינתיים המשחק הראשון במסלול הפרטי עלינו.');
 }
@@ -112,10 +118,11 @@ async function buyPass(request, env) {
   const kind = String(body.kind || '');
   const p = PASSES[kind];
   if (!p) throw new InputError('מוצר לא מוכר.');
-  requirePayable(env, user);
+  await requirePayable(env, user);
   const id = 'ord_' + rid(10);
   await env.DB.prepare('INSERT INTO orders(id,user_id,email,kind,game,cfg_json,tier,price,status,provider,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id, user.id, user.email || '', kind, 'pass', '{}', p.tier, p.price, 'pending', env.PAYMENTS_MODE === 'demo' ? 'demo' : '', now()).run();
+  if (env.PAYMENTS_MODE === 'manual') return json({ order: { id, kind, tier: p.tier, price: p.price, status: 'pending' }, pay: await manualPay(env, id) });
   if (env.PAYMENTS_MODE === 'demo') return json({ order: { id, kind, tier: p.tier, price: p.price, status: 'pending' }, pay: { mode: 'demo' } });
   throw new HttpError(501, 'payments_not_configured', 'התשלום עדיין לא מחובר לסולקת.');
 }
@@ -161,11 +168,17 @@ async function createOrder(request, env) {
     return json({ order: orderView(await loadOrder(env, user, id)), covered: 'free', ent });
   }
   // כרטיסייה בתוקף מאפשרת להמשיך גם כשהתשלום עוד סגור
-  if (!(punchCovers(game, cfg) && ent.punch.remaining > 0)) requirePayable(env, user);
+  if (!(punchCovers(game, cfg) && ent.punch.remaining > 0)) await requirePayable(env, user);
   await env.DB.prepare('INSERT INTO orders(id,user_id,email,game,cfg_json,tier,price,status,provider,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
     .bind(id, user.id, user.email || '', game, JSON.stringify(cfg), tier, price, 'pending', env.PAYMENTS_MODE === 'demo' ? 'demo' : '', now()).run();
   const options = { punch: punchCovers(game, cfg) ? ent.punch.remaining : 0 };
 
+  if (env.PAYMENTS_MODE === 'manual') {
+    // כרטיסייה שנשארה מספיקה גם כשהתשלום עוד לא מוגדר או חסום
+    let pay = { mode: 'closed' };
+    try { await requirePayable(env, user); pay = await manualPay(env, id); } catch (e) { if (!(e instanceof HttpError)) throw e; }
+    return json({ order: { id, game, cfg, tier, price, status: 'pending' }, pay, options });
+  }
   if (env.PAYMENTS_MODE === 'demo') return json({ order: { id, game, cfg, tier, price, status: 'pending' }, pay: { mode: canDemoPay(env, user) ? 'demo' : 'closed' }, options });
   // כאן מתחברים לסולקת האמיתית: יוצרים דף תשלום ומחזירים את הקישור אליו.
   // ראו README, סעיף "חיבור סולקת אמיתית".
@@ -186,13 +199,23 @@ async function demoPay(request, env, id) {
   requireSameSite(request, env);
   if (env.PAYMENTS_MODE !== 'demo') throw new HttpError(404, 'not_found');
   const user = await requireUser(request, env);
-  requirePayable(env, user);
+  await requirePayable(env, user);
   const o = await loadOrder(env, user, id);
   if (o.status === 'pending') {
     const r = await env.DB.prepare("UPDATE orders SET status='paid', paid_at=?, provider='demo', provider_ref=? WHERE id=? AND status='pending'")
       .bind(now(), 'DEMO-' + rid(4), o.id).run();
     if (r.meta && r.meta.changes === 1) await grantPass(env, o);   // אחרי חיבור סולקת: אותה קריאה מתוך ה־webhook
   }
+  return json({ order: orderView(await loadOrder(env, user, id)), ent: await entitlements(env, user.id) });
+}
+
+async function claimPay(request, env, id) {
+  requireSameSite(request, env);
+  const user = await requireUser(request, env);
+  const body = await readBody(request);
+  const o = await loadOrder(env, user, id);
+  try { await claim(env, user, o, body.method, grantPass); }
+  catch (e) { throw new HttpError(e.status || 409, e.code || 'bad_state', e.message !== 'bad_state' ? e.message : 'ההזמנה כבר טופלה.'); }
   return json({ order: orderView(await loadOrder(env, user, id)), ent: await entitlements(env, user.id) });
 }
 
@@ -323,7 +346,7 @@ export async function playApp(request, baseEnv) {
         return json({
           signedIn: !!u, user: u ? { email: u.email, displayName: u.displayName || '' } : null,
           loginUrl: `${env.PASS_URL}/?return=${encodeURIComponent(env.APP_URL + '/')}`,
-          payments: env.PAYMENTS_MODE === 'demo' ? (u && canDemoPay(env, u) ? 'demo' : 'soon') : 'live',
+          payments: env.PAYMENTS_MODE === 'manual' ? (payReady(await settings(env)) ? 'manual' : 'soon') : env.PAYMENTS_MODE === 'demo' ? (u && canDemoPay(env, u) ? 'demo' : 'soon') : 'live',
           firstFree: env.FREE_FIRST_GAME === '1' && (!u || await freeGameAvailable(env, u.id)),
         });
       }
@@ -336,6 +359,12 @@ export async function playApp(request, baseEnv) {
       if ((m = path.match(/^\/api\/orders\/(ord_[0-9a-f]{20})\/generate$/)) && method === 'POST') return await generate(request, env, m[1]);
       if ((m = path.match(/^\/api\/orders\/(ord_[0-9a-f]{20})\/use-credit$/)) && method === 'POST') return await useCredit(request, env, m[1]);
       if ((m = path.match(/^\/api\/games\/(gm_[0-9a-f]{20})$/)) && method === 'GET') return await getGame(request, env, m[1]);
+      if ((m = path.match(/^\/api\/orders\/(ord_[0-9a-f]{20})\/claim$/)) && method === 'POST') return await claimPay(request, env, m[1]);
+      if (path === '/api/pay/notify' && method === 'POST') return await notify(request, env, grantPass);
+      if (path === '/api/admin/msg' && method === 'POST') { const b = await readBody(request); return json(await pushMsg(env, String(b.endpoint || ''))); }
+      if (path.startsWith('/api/admin/')) return await adminApi(request, env, path, grantPass);
+      if (path === '/admin') return new Response(ADMIN_PAGE, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex', 'x-og': '1', 'referrer-policy': 'no-referrer' } });
+      if (path === '/sw.js') return new Response(SW, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-cache' } });
       if (path === '/api/rooms' && method === 'POST') return await createRoom(request, env);
       if ((m = path.match(/^\/ws\/(\d{4})$/))) return await roomSocket(request, env, m[1]);
       if (path === '/api/payments/webhook' && method === 'POST') {

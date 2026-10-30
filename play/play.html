@@ -134,6 +134,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 @media (prefers-reduced-motion:no-preference){.stage{animation:deal .35s ease-out}}
 @media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s}}
 @keyframes deal{from{transform:translateY(8px)}to{transform:none}}
+.paysteps{margin:0;padding-inline-start:22px;display:grid;gap:10px;line-height:1.6}.paycode{font-size:1.6rem;letter-spacing:.15em;color:#5a4318;background:#f3e6c4;padding:2px 10px;border-radius:8px}.phone{white-space:nowrap}.mini{padding:2px 10px!important;font-size:.8rem!important;min-height:0!important;width:auto!important;display:inline-block!important}
 </style>
 </head>
 <body>
@@ -360,7 +361,7 @@ function home(){
     <div class="offer"><span class="eyebrow">כרטיסייה</span><h3>5 משחקים פרטיים</h3><span class="small">כל משחק במסלול הפרטי: ערב חברים, טריוויה עד 6 קבוצות, שיר יום הולדת, חדר בריחה משפחתי. בתוקף שנה.</span><b class="big">199 ₪</b><span class="small">במקום עד 345 ₪</span>${ME.payments==='soon'?'<button class="ghost" disabled>בקרוב</button>':'<button class="primary" data-pass="punch">לרכישת כרטיסייה</button>'}</div>
     <div class="offer"><span class="eyebrow">מנוי עסקים</span><h3>ברים, מסעדות ומפיקים</h3><span class="small">טריוויה וחדר בריחה ללא הגבלה, בכל גודל, עם קבוצות שעונות מהטלפון. ערב חידון חדש כל שבוע.</span><b class="big">249 ₪ לחודש</b><span class="small">אירוע אחד של 20 קבוצות עולה 149 ₪</span>${ME.payments==='soon'?'<button class="ghost" disabled>בקרוב</button>':'<button class="primary" data-pass="sub">להצטרפות למנוי</button>'}</div>
   </div>
-  ${ME.payments==='demo'?'<div class="note">התשלום כרגע במצב הדגמה ולא מחייב כרטיס.</div>':ME.payments==='soon'?'<div class="note">התשלום באתר ייפתח בקרוב. בינתיים המשחק הראשון במסלול הפרטי עלינו.</div>':''}`);
+  ${ME.payments==='manual'?'<div class="note">משלמים בביט או בפייבוקס, והמשחק נפתח מיד.</div>':ME.payments==='demo'?'<div class="note">התשלום כרגע במצב הדגמה ולא מחייב כרטיס.</div>':ME.payments==='soon'?'<div class="note">התשלום באתר ייפתח בקרוב. בינתיים המשחק הראשון במסלול הפרטי עלינו.</div>':''}`);
   app.querySelectorAll('.game').forEach(b=>b.onclick=()=>({murder:cfgMurder,trivia:cfgTrivia,song:cfgSong,escape:cfgEscape})[b.dataset.g]());
   $('join').onclick=joinView;
   if($('mine'))$('mine').onclick=myView;
@@ -416,7 +417,7 @@ function cfgMurder(){
   };
 }
 
-/* ---------- payment (demo) ---------- */
+/* ---------- payment (Bit / PayBox) ---------- */
 const cfgOf=k=>({murder:cfgMurder,trivia:cfgTrivia,song:cfgSong,escape:cfgEscape})[k];
 function payError(key,msg){
   view(`<div class="center"><h2>לא הצלחנו להמשיך</h2><p class="lead">${esc(msg)}</p><button class="ghost" id="back">חזרה להגדרות</button></div>`);
@@ -429,34 +430,39 @@ function needLogin(pending,back){
     <a class="primary btnlink" href="${esc(ME.loginUrl)}">כניסה עם מייל</a><button class="ghost" id="back">חזרה</button></div>`);
   $('back').onclick=back;
 }
-/** טופס התשלום (מצב הדגמה). top = תוכן נוסף מעל הטופס, onPaid נקרא אחרי אישור מהשרת. */
-function payForm({order,lines,top,back,onPaid}){
-  let method='card';
-  const render=()=>{view(`
-  <div class="stack"><div class="eyebrow">תשלום · מצב הדגמה</div><h2>כמעט מתחילים</h2></div>
+/** מסך התשלום: ביט או פייבוקס עם קוד בהערה, ואז "שילמתי" והמשחק נפתח מיד. top = תוכן נוסף מעל, onPaid אחרי אישור מהשרת. */
+function payForm({order,pay,lines,top,back,onPaid}){
+  let method=pay&&pay.bit?'bit':'paybox';
+  const copy=(t,b)=>{try{navigator.clipboard.writeText(t.replace(/-/g,'')).then(()=>{b.textContent='הועתק ✓';setTimeout(()=>b.textContent='העתקה',1500)})}catch{}};
+  const render=()=>{const ph=method==='bit'?pay.bit:pay.paybox, app=method==='bit'?'ביט':'פייבוקס';
+  view(`
+  <div class="stack"><div class="eyebrow">תשלום</div><h2>כמעט מתחילים</h2></div>
   ${top||''}
   <div class="card paper">
     <div class="summary">${lines.map(l=>`<div><span class="small">${esc(l[0])}</span><span>${esc(l[1])}</span></div>`).join('')}
       <div class="total"><span>לתשלום</span><b>${order.price} ₪</b></div>
     </div>
-    ${seg('pm',method,[["card","כרטיס אשראי",""],["bit","ביט",""]])}
-    ${method==='card'?`
-      <div class="field"><label for="pn">שם בעל הכרטיס</label><input id="pn" value="ישראל ישראלי" autocomplete="off"></div>
-      <div class="field"><label for="pc">מספר כרטיס</label><input id="pc" value="4242 4242 4242 4242" inputmode="numeric" dir="ltr" autocomplete="off"></div>
-      <div class="two"><div class="field"><label for="pe">תוקף</label><input id="pe" value="12/28" dir="ltr" autocomplete="off"></div><div class="field"><label for="pv">CVV</label><input id="pv" value="123" dir="ltr" autocomplete="off"></div></div>`:`
-      <div class="field"><label for="pp">מספר טלפון לביט</label><input id="pp" value="050-0000000" dir="ltr" autocomplete="off"></div>`}
-    <button class="primary" id="paybtn">שלמו ${order.price} ₪</button>
-    <p class="small">מצב הדגמה: אף כרטיס לא יחויב, והפרטים בטופס לא נשלחים לשום מקום.</p>
+    ${pay.bit&&(pay.paybox||pay.payboxLink)?seg('pm',method,[["bit","ביט",""],["paybox","פייבוקס",""]]):''}
+    <ol class="paysteps">
+      <li>${method==='paybox'&&pay.payboxLink&&!ph?`פותחים את <a href="${esc(pay.payboxLink)}" target="_blank" rel="noopener">קישור התשלום בפייבוקס</a> ומעבירים <b>${order.price} ₪</b>`:`מעבירים <b>${order.price} ₪</b> ב${app} למספר <b dir="ltr" class="phone">${esc(ph)}</b>${pay.name?` (${esc(pay.name)})`:''} <button type="button" class="ghost mini" id="cp">העתקה</button>`}</li>
+      <li>בהערה להעברה כותבים את הקוד: <b class="paycode" dir="ltr">${esc(pay.code)}</b></li>
+      <li>לוחצים "שילמתי", והמשחק נפתח מיד.</li>
+    </ol>
+    ${method==='paybox'&&pay.payboxLink&&ph?`<a class="ghost btnlink" href="${esc(pay.payboxLink)}" target="_blank" rel="noopener">פתיחת קישור התשלום בפייבוקס</a>`:''}
+    <button class="primary" id="paybtn">✓ שילמתי ${order.price} ₪</button>
+    <p class="small">אנחנו בודקים כל תשלום מול ${app}. הקוד בהערה עוזר לנו לזהות שזה אתם.</p>
   </div>
   <button class="ghost" id="back">חזרה</button>`);
-    bindSeg('pm',v=>{method=v;render()});
+    if($('pm'))bindSeg('pm',v=>{method=v;render()});
+    if($('cp'))$('cp').onclick=e=>copy(ph,e.currentTarget);
     $('back').onclick=back;
     if($('usecredit'))$('usecredit').onclick=top.onCredit;
-    $('paybtn').onclick=async()=>{view(`<div class="center"><div class="spinner"></div><h3>מעבדים את התשלום</h3></div>`);
-      const d=await api(`/api/orders/${order.id}/demo-pay`,{});
-      if(!d.ok||!d.order||d.order.status!=='paid'){payError(back,d.message||'התשלום לא עבר. נסו שוב.');return}
+    $('paybtn').onclick=async()=>{view(`<div class="center"><div class="spinner"></div><h3>פותחים את המשחק</h3></div>`);
+      const d=await api(`/api/orders/${order.id}/claim`,{method});
+      if(!d.ok||!d.order||d.order.status!=='paid'){payError(back,d.message||'לא הצלחנו להמשיך. נסו שוב.');return}
       onPaid(d)};
   };
+  if(!pay||pay.mode!=='manual'){payError(back,'התשלום באתר ייפתח בקרוב.');return}
   render();
 }
 function payError(back,msg){
@@ -486,9 +492,9 @@ async function pay(key,lines,price,next){
     if(!u.ok){payError(back,u.message||'לא הצלחנו להשתמש בכרטיסייה.');return}
     Object.assign(ORDER,u.order);
     paidView('נוצל משחק מהכרטיסייה',`נשארו ${u.ent.punch.remaining} משחקים.`,'צרו את המשחק',()=>next())};
-  if(r.pay&&r.pay.mode==='closed'){view(`<div class="stack"><div class="eyebrow">תשלום</div><h2>כמעט מתחילים</h2></div>${top}<button class="ghost" id="back">חזרה</button>`);$('back').onclick=back;$('usecredit').onclick=topObj.onCredit;return}
-  payForm({order:ORDER,lines,top:topObj,back,onPaid:d=>{Object.assign(ORDER,d.order);
-    paidView('התשלום התקבל',`${ORDER.price} ₪ · הזמנה ${ORDER.id.slice(-8).toUpperCase()}. אפשר לחלק את העלות עם החברים בבקשת ביט.`,'צרו את המשחק',()=>next())}});
+  if(r.pay&&r.pay.mode==='closed'){view(`<div class="stack"><div class="eyebrow">תשלום</div><h2>כמעט מתחילים</h2></div>${top}${credits?'':'<p class="lead">התשלום באתר ייפתח בקרוב.</p>'}<button class="ghost" id="back">חזרה</button>`);$('back').onclick=back;if($('usecredit'))$('usecredit').onclick=topObj.onCredit;return}
+  payForm({order:ORDER,pay:r.pay,lines,top:topObj,back,onPaid:d=>{Object.assign(ORDER,d.order);
+    paidView('תודה! המשחק פתוח',`${ORDER.price} ₪ · הזמנה ${ORDER.id.slice(-8).toUpperCase()}. אפשר לחלק את העלות עם החברים בבקשת ביט.`,'צרו את המשחק',()=>next())}});
 }
 async function buyPass(kind){
   if(!ME.signedIn){needLogin({pass:kind},home);return}
@@ -496,7 +502,7 @@ async function buyPass(kind){
   const r=await api('/api/passes',{kind});
   if(!r.ok){if(r.status===401){ME.signedIn=false;buyPass(kind);return}payError(home,r.message||'משהו השתבש. נסו שוב בעוד רגע.');return}
   if(r.pay&&r.pay.url){location.href=r.pay.url;return}
-  payForm({order:r.order,lines:[["מוצר",r.order.tier]],back:home,onPaid:d=>{
+  payForm({order:r.order,pay:r.pay,lines:[["מוצר",r.order.tier]],back:home,onPaid:d=>{
     const e=d.ent||{};
     if(kind==='punch')paidView('הכרטיסייה פעילה',`יש לכם ${e.punch?e.punch.remaining:5} משחקים פרטיים. בכל משחק תוכלו לבחור "השתמשו בכרטיסייה".`,'לבחירת משחק',home);
     else paidView('המנוי פעיל',`טריוויה וחדר בריחה ללא הגבלה עד ${e.sub?fmtDate(e.sub.until):''}.`,'לבחירת משחק',home)}});
