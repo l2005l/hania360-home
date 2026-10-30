@@ -156,6 +156,7 @@ async function api(path,body){
   try{
     const res=await fetch(path,body===undefined?{credentials:'same-origin'}:{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json','x-hania-play':'1'},body:JSON.stringify(body)});
     const data=await res.json().catch(()=>({}));
+    if(res.ok&&/\/generate$/.test(path)&&ME.firstFree)fetch('/api/me',{credentials:'same-origin'}).then(r=>r.json()).then(m=>{if(m&&m.signedIn)ME.firstFree=m.firstFree}).catch(()=>{});
     return Object.assign({ok:res.ok,status:res.status},data);
   }catch{return{ok:false,status:0,error:'network',message:'אין חיבור לאינטרנט. בדקו את החיבור ונסו שוב.'}}
 }
@@ -376,7 +377,7 @@ $('homeBtn').onclick=home;
 /* ---------- shared config bits ---------- */
 function seg(id,val,opts){return `<div class="seg" id="${id}">${opts.map(o=>`<button type="button" data-v="${o[0]}" aria-pressed="${val===o[0]}">${o[1]}<small>${o[2]||''}</small></button>`).join('')}</div>`}
 function bindSeg(id,fn){$(id).querySelectorAll('button').forEach(b=>b.onclick=()=>fn(b.dataset.v))}
-function priceBar(key,c){const p=priceOf(key,c);const free=ME.firstFree&&p.price<=69;return `<div class="note" id="pbar"><b style="color:var(--ivory)">${p.tier}</b> · ${free?`<b style="color:var(--ok)">המשחק הראשון שלכם עלינו</b> (במקום ${p.price} ₪)`:`${p.price} ₪ למשחק כולו, לא לכל משתתף`}</div>`}
+function priceBar(key,c){const p=priceOf(key,c);const free=ME.firstFree&&p.price<=69;setTimeout(()=>{const g=$('go');if(g)g.textContent=free?'✨ צרו את המשחק, הראשון עלינו':'המשך לתשלום'},0);return `<div class="note" id="pbar"><b style="color:var(--ivory)">${p.tier}</b> · ${free?`<b style="color:var(--ok)">המשחק הראשון שלכם עלינו</b> (במקום ${p.price} ₪)`:`${p.price} ₪ למשחק כולו, לא לכל משתתף`}</div>`}
 function header(key){const g=GAMES[key];return `<div class="stack"><div class="eyebrow">${g.kicker}</div><h2>${g.name}</h2></div>`}
 
 /* ---------- murder: config ---------- */
@@ -484,7 +485,7 @@ async function pay(key,lines,price,next){
   const r=await api('/api/orders',{game:key,cfg:CFG[key]});
   if(!r.ok){if(r.status===401){ME.signedIn=false;pay(key,lines,price,next);return}payError(back,r.message||'משהו השתבש. נסו שוב בעוד רגע.');return}
   ORDER=r.order;
-  if(r.covered==='free'){ME.firstFree=false;paidView('המשחק הראשון עלינו','בלי תשלום ובלי כרטיס. תהנו!','צרו את המשחק',()=>next());return}
+  if(r.covered==='free'){next();return}
   if(r.covered==='sub'){paidView('כלול במנוי העסקים שלכם','אין חיוב נוסף על המשחק הזה.','צרו את המשחק',()=>next());return}
   if(r.pay&&r.pay.url){location.href=r.pay.url;return}
   const credits=(r.options&&r.options.punch)||0;
