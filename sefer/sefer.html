@@ -1,0 +1,436 @@
+<title>HaniaSefer · הספר שלי</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Rubik:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: a warm paper desk. Home = the shelf of books; the maker = three steps (drawings, story, book);
+   the reader = one page at a time, full screen, turned by swipe or arrows. Printing lays every page on A5. */
+:root{
+  --desk:#FFF7EC; --paper:#FFFFFF; --ink:#2B2118; --muted:#7A6A5B; --line:#EEDFCB; --soft:#FBEEDC;
+  --red:#E4572E; --blue:#3B7DD8; --yellow:#F3B61F; --green:#3FA34D; --purple:#8A5CC2;
+  --acc:var(--red); --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif; --book:"Fredoka","Rubik",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--desk:#1D1712;--paper:#2A221B;--ink:#F7EDE2;--muted:#C2AF9C;--line:#3D3127;--soft:#33291F;color-scheme:dark}}
+:root[data-theme="dark"]{--desk:#1D1712;--paper:#2A221B;--ink:#F7EDE2;--muted:#C2AF9C;--line:#3D3127;--soft:#33291F;color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--desk);color:var(--ink)}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 48px}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:8px;font-family:var(--book);font-weight:700;font-size:25px;cursor:pointer;background:none;border:0;color:inherit;padding:0}
+.logo b{color:var(--red)}.logo svg{width:36px;height:36px}
+header .act{margin-inline-start:auto}
+h1,h2,h3{margin:0;text-wrap:balance;font-family:var(--book)}
+h1{font-size:clamp(28px,8vw,42px);font-weight:700;line-height:1.1}
+h2{font-size:21px;font-weight:600;display:flex;align-items:center;gap:8px}
+h2 .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--desk);font-size:16px;flex:none}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.muted{color:var(--muted)}.fine{font-size:13.5px;color:var(--muted);margin:0}
+.btn{appearance:none;border:0;border-radius:16px;padding:13px 18px;font:inherit;font-weight:800;font-size:17px;background:var(--red);color:#fff;cursor:pointer;box-shadow:0 4px 0 #B23F1E;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;text-align:center;min-height:50px}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #B23F1E}
+.btn.blue{background:var(--blue);box-shadow:0 4px 0 #285CA6}.btn.green{background:var(--green);box-shadow:0 4px 0 #2B7A36}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:none;border:1.5px solid var(--line);font-size:15px;padding:9px 14px;font-weight:700;min-height:42px}
+.btn.sm{font-size:14px;padding:6px 11px;min-height:36px;border-radius:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+input,textarea{font:inherit;font-size:16px;border:1.5px solid var(--line);background:var(--desk);color:var(--ink);border-radius:12px;padding:10px 12px;min-width:0;width:100%}
+textarea{min-height:160px;font-family:var(--book);font-size:18px;line-height:1.7}
+label.f{display:grid;gap:5px;font-size:14px;font-weight:600;color:var(--muted)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--desk);padding:10px 16px;border-radius:12px;font-weight:600;z-index:60;max-width:90%;text-align:center}
+/* home */
+.hero{display:grid;gap:10px;justify-items:center;text-align:center;padding:8px 0}
+.hero p{margin:0;max-width:480px}
+.crayons{display:flex;gap:6px;justify-content:center}.crayons i{width:34px;height:10px;border-radius:5px 2px 2px 5px;display:block}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.bk{appearance:none;border:0;background:none;padding:0;cursor:pointer;display:grid;gap:6px;text-align:start;color:inherit;font:inherit}
+.bk .cv{aspect-ratio:3/4;border-radius:6px 14px 14px 6px;overflow:hidden;background:var(--paper);box-shadow:-6px 0 0 rgba(0,0,0,.12) inset,0 8px 20px rgba(60,30,0,.15);display:grid;grid-template-rows:1fr auto;border:1px solid var(--line)}
+.bk .cv img{width:100%;height:100%;object-fit:contain;background:#fff;min-height:0}
+.bk .cv b{font-family:var(--book);font-size:15px;padding:6px 8px;background:var(--yellow);color:#2B2118;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk small{color:var(--muted)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.how div{background:var(--soft);border-radius:16px;padding:12px;display:grid;gap:4px}.how b{font-family:var(--book);font-size:17px}
+/* drawings */
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.th{position:relative;border-radius:14px;overflow:hidden;background:#fff;border:1.5px solid var(--line);aspect-ratio:4/3;display:grid}
+.th img{width:100%;height:100%;object-fit:contain;min-height:0}
+.th .no{position:absolute;top:6px;inset-inline-start:6px;background:var(--ink);color:var(--desk);border-radius:99px;font-weight:800;font-size:13px;padding:1px 9px}
+.th .cvr{position:absolute;top:6px;inset-inline-end:6px;background:var(--yellow);color:#2B2118;border-radius:99px;font-weight:800;font-size:12px;padding:1px 8px}
+.th .tools{position:absolute;inset:auto 0 0 0;display:flex;justify-content:space-between;gap:2px;padding:4px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.th .tools button{appearance:none;border:0;background:rgba(255,255,255,.92);color:#2B2118;border-radius:9px;min-width:30px;height:30px;font-size:15px;cursor:pointer;padding:0 6px}
+.add{border:2.5px dashed var(--line);border-radius:14px;aspect-ratio:4/3;display:grid;place-items:center;text-align:center;cursor:pointer;color:var(--muted);font-weight:700;background:transparent;font:inherit;padding:8px}
+.add span{font-size:34px;display:block;line-height:1}
+.busy{display:flex;align-items:center;gap:10px;color:var(--muted);font-weight:600}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--red);animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* telling */
+.mic{width:96px;height:96px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:40px;cursor:pointer;box-shadow:0 6px 0 #B23F1E;display:grid;place-items:center;margin:0 auto}
+.mic.on{background:var(--green);box-shadow:0 0 0 0 rgba(63,163,77,.6);animation:pulse 1.3s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 22px rgba(63,163,77,0)}100%{box-shadow:0 0 0 0 rgba(63,163,77,0)}}
+.tell{display:grid;gap:10px;justify-items:center;text-align:center;background:var(--soft);border-radius:18px;padding:14px}
+.ask{display:flex;gap:10px;align-items:center;background:var(--paper);border:2px solid var(--yellow);border-radius:18px;padding:10px 14px;font-family:var(--book);font-size:20px;font-weight:600;width:100%;justify-content:space-between}
+.chk{display:flex;gap:8px;align-items:center;font-size:14.5px}.chk input{width:auto}
+/* reader */
+.reader{position:fixed;inset:0;z-index:40;background:#1d1611;color:#fff;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+.rbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rbar .btn.ghost{color:#fff;border-color:#4a3c30}
+.rbar .sp{flex:1}
+.stage{display:grid;place-items:center;min-height:0;touch-action:pan-y;overflow:hidden}
+.page{background:#fff;color:#2B2118;border-radius:10px;box-shadow:0 20px 50px rgba(0,0,0,.45);width:min(100%,calc((100dvh - 150px) * 1.42));max-height:100%;aspect-ratio:1.42;display:grid;grid-template-columns:1.25fr 1fr;grid-template-rows:minmax(0,1fr);overflow:hidden;position:relative}
+.page .pic{background:#fff;display:grid;place-items:center;padding:4%;min-height:0;border-inline-end:1px solid #eee}
+.page .pic img{width:100%;height:100%;object-fit:contain;min-height:0}
+.page .txt{display:grid;place-items:center;padding:7%;font-family:var(--book);font-size:clamp(17px,2.6vw,30px);line-height:1.6;text-align:center;overflow:auto;min-height:0;background:linear-gradient(90deg,#fffdf8,#fff 30%)}
+.page .txt div{white-space:pre-wrap;overflow-wrap:anywhere;outline:none;border-radius:8px;min-width:60%;padding:2px 6px}
+.page .pn{position:absolute;bottom:8px;inset-inline-end:14px;font-size:13px;color:#a08d7b;font-family:var(--book)}
+.page.cover{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;background:var(--cv,#3B7DD8);color:#fff;text-align:center;padding:4% 6%;gap:2%}
+.page.cover h1{font-size:clamp(26px,5vw,56px);outline:none;border-radius:8px;text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.page.cover .frame{background:#fff;border-radius:10px;padding:2%;display:grid;place-items:center;min-height:0;overflow:hidden;width:min(100%,130vh);justify-self:center;box-shadow:0 8px 20px rgba(0,0,0,.2);transform:rotate(-1.2deg)}
+.page.cover .frame img{width:100%;height:100%;object-fit:contain;min-height:0}
+.page.cover .by{font-family:var(--book);font-size:clamp(14px,2.2vw,22px);font-weight:600}
+.page.end{grid-template-columns:1fr;place-items:center;text-align:center;font-family:var(--book);background:#FFF7EC}
+.page.end b{font-size:clamp(40px,8vw,90px);color:var(--red)}
+.big .page .txt{font-size:clamp(22px,3.4vw,40px)}
+.editing [contenteditable]{background:#FFF4C2;box-shadow:0 0 0 2px #F3B61F}
+.nav{display:flex;gap:10px;align-items:center;justify-content:center;padding-top:8px}
+.nav button{appearance:none;border:0;width:56px;height:56px;border-radius:50%;background:#fff;color:#2B2118;font-size:26px;font-weight:800;cursor:pointer}
+.nav button:disabled{opacity:.3}
+.nav span{min-width:90px;text-align:center;font-weight:700;color:#e8d9c8}
+.flip-n{animation:fn .35s ease}.flip-p{animation:fp .35s ease}
+@keyframes fn{from{transform:translateX(-30%) rotateY(25deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes fp{from{transform:translateX(30%) rotateY(-25deg);opacity:0}to{transform:none;opacity:1}}
+@media (max-width:640px) and (orientation:portrait){
+  .page{grid-template-columns:1fr;grid-template-rows:minmax(0,1.3fr) minmax(0,1fr);aspect-ratio:auto;width:100%;height:100%}
+  .page .pic{border:0;border-bottom:1px solid #eee}
+  .page .txt{background:#fffdf8}
+  .page.cover{grid-template-rows:auto minmax(0,1fr) auto}
+}
+@media (prefers-reduced-motion:reduce){.flip-n,.flip-p,.mic.on,.spin{animation:none}}
+/* print: every page on its own A5 landscape sheet */
+#printBook{display:none}
+@media print{
+  @page{size:A5 landscape;margin:0}
+  html,body{background:#fff!important;padding:0!important;margin:0}
+  body>*:not(#printBook){display:none!important}
+  #printBook{display:block}
+  #printBook .page{width:210mm;height:148mm;max-height:none;aspect-ratio:auto;border-radius:0;box-shadow:none;break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #printBook .page .txt{font-size:20pt}
+  #printBook .page.cover h1{font-size:34pt}
+  #printBook .page.end b{font-size:60pt}
+}
+</style>
+
+<div class="wrap" id="app">
+  <header><button class="logo" type="button" id="homeBtn" aria-label="לדף הבית"><svg viewBox="0 0 36 36" aria-hidden="true"><rect x="3" y="6" width="15" height="24" rx="2" fill="#3B7DD8"/><rect x="18" y="6" width="15" height="24" rx="2" fill="#E4572E"/><path d="M18 7v22" stroke="#fff" stroke-width="1.5"/><circle cx="25" cy="15" r="3.5" fill="#F3B61F"/><path d="M7 22l3-5 3 4 2-2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg><span>Hania<b>Sefer</b></span></button><a class="btn ghost sm act" href="https://hania360.com/">Hania360</a></header>
+
+  <!-- home -->
+  <section id="vHome" style="display:grid;gap:16px">
+    <div class="hero">
+      <div class="crayons" aria-hidden="true"><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i><i style="background:var(--blue)"></i><i style="background:var(--green)"></i><i style="background:var(--purple)"></i></div>
+      <h1>הציורים של הילד<br>הופכים לספר אמיתי</h1>
+      <p class="muted">מצלמים ציורים, הילד מספר את הסיפור בקול, ומקבלים ספר מעוצב לדפדוף, עם שם הילד כסופר וכמאייר. הציורים נשארים של הילד. ה־AI רק מסדר, לא מצייר ולא ממציא.</p>
+      <div class="btns" style="justify-content:center"><button class="btn" type="button" id="newBtn">📚 ספר חדש</button><button class="btn ghost" type="button" id="demoBtn">👀 ספר לדוגמה</button></div>
+    </div>
+    <div class="card" id="shelfCard" hidden><h2>📚 הספרים שלי</h2><div class="shelf" id="shelf"></div></div>
+    <div class="how">
+      <div><b>📸 מצלמים</b><span class="fine">ציור בכל צילום. הרקע מתנקה לבד לנייר לבן.</span></div>
+      <div><b>🎤 הילד מספר</b><span class="fine">מקליטים או כותבים. ה־AI שואל "ומה קרה אחר כך?"</span></div>
+      <div><b>📖 מדפדפים</b><span class="fine">כל ציור בעמוד, עם המילים של הילד. מקריאים, מדפיסים, שולחים לסבתא.</span></div>
+    </div>
+    <p class="fine" style="text-align:center">הציורים והספרים נשמרים רק בטלפון הזה. כדי לחלק את הסיפור לעמודים, עותק קטן של כל ציור נשלח לבינה המלאכותית לתיאור קצר, והוא לא נשמר.</p>
+  </section>
+
+  <!-- maker -->
+  <section id="vMake" hidden style="display:grid;gap:16px">
+    <div class="card">
+      <h2><span class="n">1</span> הציורים</h2>
+      <p class="fine">ציור אחד בכל צילום, מלמעלה ובאור טוב. הסדר כאן הוא סדר העמודים, והראשון הוא הכריכה. עד 16 ציורים.</p>
+      <div class="thumbs" id="thumbs"></div>
+      <div class="busy" id="imgBusy" hidden><span class="spin"></span><span>מנקים את הרקע…</span></div>
+      <label class="chk"><input type="checkbox" id="cleanOn" checked> ניקוי רקע לנייר לבן</label>
+      <input type="file" id="file" accept="image/*" multiple hidden>
+    </div>
+    <div class="card">
+      <h2><span class="n">2</span> הסיפור</h2>
+      <div class="row"><label class="f">שם הסופר/ת<input id="kName" maxlength="20" placeholder="למשל: נועה"></label><label class="f">גיל<input id="kAge" type="number" min="3" max="12" inputmode="numeric" placeholder="6"></label></div>
+      <label class="f">שם הספר (לא חובה, ה־AI יציע)<input id="bTitle" maxlength="40" placeholder="למשל: הדרקון שפחד מהחושך"></label>
+      <div class="tell">
+        <button class="mic" type="button" id="micBtn" aria-label="הקלטה">🎤</button>
+        <b id="micLbl">הילד לוחץ ומספר</b>
+        <span class="fine" id="micHint">עד דקה בכל פעם. אפשר להקליט כמה פעמים, וכל הקלטה נוספת לסיפור.</span>
+        <div class="ask" id="ask" hidden><span id="askQ"></span><button class="btn ghost sm" type="button" id="askSay" aria-label="להקריא את השאלה">🔊</button></div>
+        <label class="chk"><input type="checkbox" id="tidy" checked> סידור קל: בלי "אה" ובלי מילים כפולות, אותן מילים בדיוק</label>
+      </div>
+      <label class="f">הסיפור, במילים של הילד<textarea id="story" placeholder="אפשר גם לכתוב כאן. למשל: פעם היה דרקון קטן בשם פיצי. הוא פחד מהחושך…"></textarea></label>
+    </div>
+    <div class="card">
+      <h2><span class="n">3</span> הספר</h2>
+      <button class="btn" type="button" id="makeBtn">✨ יצירת הספר</button>
+      <div class="busy" id="makeBusy" hidden><span class="spin"></span><span>מסתכלים על הציורים ומחלקים את הסיפור לעמודים…</span></div>
+      <p class="fine">אחר כך אפשר לתקן כל מילה, להחליף סדר ולהדפיס.</p>
+    </div>
+  </section>
+</div>
+
+<!-- reader -->
+<div class="reader" id="reader" hidden role="dialog" aria-modal="true" aria-label="הספר">
+  <div class="rbar">
+    <button class="btn ghost sm" type="button" id="rClose">✕ סגירה</button>
+    <span class="sp"></span>
+    <button class="btn ghost sm" type="button" id="rSay">🔊 הקראה</button>
+    <button class="btn ghost sm" type="button" id="rBig" aria-pressed="false">אא אותיות גדולות</button>
+    <button class="btn ghost sm" type="button" id="rEdit" aria-pressed="false">✏️ תיקון</button>
+    <button class="btn ghost sm" type="button" id="rMake">🎨 ציורים וסיפור</button>
+    <button class="btn ghost sm" type="button" id="rPrint">🖨️ הדפסה / PDF</button>
+  </div>
+  <div class="stage" id="stage"></div>
+  <div class="nav"><button type="button" id="rNext" aria-label="העמוד הבא">‹</button><span id="rPos"></span><button type="button" id="rPrev" aria-label="העמוד הקודם">›</button></div>
+</div>
+<div id="printBook"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { var v = a[k]; if (v == null || v === false) return; if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else if (k === "text") e.textContent = v; else e.setAttribute(k, v === true ? "" : v); }); (kids || []).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c); }); return e; }
+  function toast(t) { var x = el("div", { class: "toast", text: t, role: "status" }); document.body.append(x); setTimeout(function () { x.remove(); }, 2800); }
+  var ls = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  var DEV = ls.get("sf.dev"); if (!DEV) { DEV = Array.from(crypto.getRandomValues(new Uint8Array(20)), function (x) { return "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x % 57]; }).join(""); ls.set("sf.dev", DEV); }
+  var uid = function () { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); };
+
+  // ---- storage: books and drawings in IndexedDB (in memory if the browser blocks it) ------------------
+  var MEM = { books: {}, imgs: {} }, dbp = null;
+  function idb() {
+    if (!dbp) dbp = new Promise(function (res) { try { var r = indexedDB.open("haniasefer", 1); r.onupgradeneeded = function () { r.result.createObjectStore("books", { keyPath: "id" }); r.result.createObjectStore("imgs"); }; r.onsuccess = function () { res(r.result); }; r.onerror = function () { res(null); }; } catch (e) { res(null); } });
+    return dbp;
+  }
+  function tx(store, mode, fn) { return idb().then(function (d) { if (!d) return fn(null); return new Promise(function (res, rej) { var t = d.transaction(store, mode), r = fn(t.objectStore(store)); t.oncomplete = function () { res(r && r.result); }; t.onerror = function () { rej(t.error); }; }); }); }
+  var DB = {
+    put: function (s, v, k) { return tx(s, "readwrite", function (st) { if (!st) { MEM[s][k || v.id] = v; return null; } return k ? st.put(v, k) : st.put(v); }); },
+    get: function (s, k) { return tx(s, "readonly", function (st) { if (!st) return { result: MEM[s][k] }; return st.get(k); }); },
+    del: function (s, k) { return tx(s, "readwrite", function (st) { if (!st) { delete MEM[s][k]; return null; } return st.delete(k); }); },
+    all: function (s) { return tx(s, "readonly", function (st) { if (!st) return { result: Object.values(MEM[s]) }; return st.getAll(); }); }
+  };
+  var urls = {};
+  function imgUrl(key) { if (urls[key]) return Promise.resolve(urls[key]); return DB.get("imgs", key).then(function (b) { if (!b) return ""; urls[key] = URL.createObjectURL(b); return urls[key]; }); }
+
+  // ---- drawings: straighten the light, paper to white ---------------------------------------------------
+  function loadImage(src) { return new Promise(function (res, rej) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = rej; i.src = src; }); }
+  function canvasOf(img, max) { var s = Math.min(1, max / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height)), c = document.createElement("canvas"); c.width = Math.round((img.naturalWidth || img.width) * s); c.height = Math.round((img.naturalHeight || img.height) * s); var x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height); return c; }
+  function whiten(c) {
+    var x = c.getContext("2d", { willReadFrequently: true }), d = x.getImageData(0, 0, c.width, c.height), p = d.data, n = p.length / 4;
+    var H = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)], step = Math.max(1, Math.floor(n / 60000));
+    for (var i = 0; i < n; i += step) { H[0][p[i * 4]]++; H[1][p[i * 4 + 1]]++; H[2][p[i * 4 + 2]]++; }
+    // The paper is most of the photo: the brightest quarter of each channel is taken as "white".
+    var W = H.map(function (h) { var tot = 0, k; for (k = 0; k < 256; k++) tot += h[k]; var acc = 0; for (k = 255; k > 0; k--) { acc += h[k]; if (acc >= tot * 0.28) return Math.max(k, 90); } return 255; });
+    for (i = 0; i < n; i++) {
+      var o = i * 4, r = Math.min(255, p[o] * 255 / W[0]), g = Math.min(255, p[o + 1] * 255 / W[1]), b = Math.min(255, p[o + 2] * 255 / W[2]);
+      var hi = Math.max(r, g, b), lo = Math.min(r, g, b), sat = hi - lo;
+      // Light, colourless pixels (paper, shadows on paper) fade to pure white; crayon and pencil stay.
+      var t = Math.max(0, Math.min(1, (hi - 185) / 45)) * Math.max(0, Math.min(1, 1 - sat / 38));
+      p[o] = r + (255 - r) * t; p[o + 1] = g + (255 - g) * t; p[o + 2] = b + (255 - b) * t;
+    }
+    x.putImageData(d, 0, 0);
+    return c;
+  }
+  function toBlob(c, q) { return new Promise(function (res) { c.toBlob(res, "image/jpeg", q || 0.86); }); }
+  function addFiles(files) {
+    var list = Array.from(files || []).filter(function (f) { return /^image\//.test(f.type); });
+    if (!list.length) return;
+    var room = 16 - M.pages.length; if (room <= 0) { toast("עד 16 ציורים בספר"); return; }
+    list = list.slice(0, room); $("imgBusy").hidden = false;
+    if (M.demo) { M.pages = []; M.demo = false; M.story = ""; $("story").value = ""; }
+    var chain = Promise.resolve();
+    list.forEach(function (f) {
+      chain = chain.then(function () {
+        var u = URL.createObjectURL(f);
+        return loadImage(u).then(function (img) { var c = canvasOf(img, 1600); if ($("cleanOn").checked) whiten(c); URL.revokeObjectURL(u); return toBlob(c); })
+          .then(function (b) { var key = "i" + uid(); return DB.put("imgs", b, key).then(function () { M.pages.push({ img: key, text: "" }); paintThumbs(); }); })
+          .catch(function () { toast("את אחד הקבצים לא הצלחנו לפתוח"); });
+      });
+    });
+    chain.then(function () { $("imgBusy").hidden = true; saveDraft(); });
+  }
+  function rotate(i) {
+    var pg = M.pages[i];
+    DB.get("imgs", pg.img).then(function (b) { return loadImage(URL.createObjectURL(b)); }).then(function (img) {
+      var c = document.createElement("canvas"); c.width = img.naturalHeight; c.height = img.naturalWidth; var x = c.getContext("2d"); x.translate(c.width / 2, c.height / 2); x.rotate(Math.PI / 2); x.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2); return toBlob(c);
+    }).then(function (b) { var key = "i" + uid(); return DB.put("imgs", b, key).then(function () { DB.del("imgs", pg.img); pg.img = key; paintThumbs(); saveDraft(); }); });
+  }
+  function thumbB64(key) {
+    return DB.get("imgs", key).then(function (b) { return loadImage(URL.createObjectURL(b)); }).then(function (img) { var c = canvasOf(img, 448); return c.toDataURL("image/jpeg", 0.7).split(",")[1]; }).catch(function () { return ""; });
+  }
+
+  // ---- the book being made ----------------------------------------------------------------------------------
+  var M = null; // { id, title, name, age, story, pages:[{img,text}], demo }
+  function blank() { return { id: "b" + uid(), title: "", name: "", age: "", story: "", pages: [], created: Date.now() }; }
+  function saveDraft() { if (!M || M.demo) return; M.title = $("bTitle").value.trim(); M.name = $("kName").value.trim(); M.age = $("kAge").value; M.story = $("story").value; M.updated = Date.now(); ls.set("sf.draft", M.id); return DB.put("books", M); }
+  function paintThumbs() {
+    var box = $("thumbs"), kids = [];
+    M.pages.forEach(function (pg, i) {
+      var img = el("img", { alt: "ציור " + (i + 1) }); imgUrl(pg.img).then(function (u) { img.src = u; });
+      kids.push(el("div", { class: "th" }, [img, el("span", { class: "no", text: String(i + 1) }), i === 0 ? el("span", { class: "cvr", text: "כריכה" }) : null,
+        el("div", { class: "tools" }, [
+          el("button", { type: "button", "aria-label": "קדימה", text: "→", disabled: i === 0 ? true : null, onclick: function () { var t = M.pages[i - 1]; M.pages[i - 1] = M.pages[i]; M.pages[i] = t; paintThumbs(); saveDraft(); } }),
+          el("button", { type: "button", "aria-label": "סיבוב", text: "⟳", onclick: function () { rotate(i); } }),
+          el("button", { type: "button", "aria-label": "מחיקה", text: "🗑", onclick: function () { if (!confirm("למחוק את הציור?")) return; DB.del("imgs", pg.img); M.pages.splice(i, 1); paintThumbs(); saveDraft(); } }),
+          el("button", { type: "button", "aria-label": "אחורה", text: "←", disabled: i === M.pages.length - 1 ? true : null, onclick: function () { var t = M.pages[i + 1]; M.pages[i + 1] = M.pages[i]; M.pages[i] = t; paintThumbs(); saveDraft(); } })])]));
+    });
+    if (M.pages.length < 16) kids.push(el("button", { class: "add", type: "button", onclick: function () { $("file").click(); } }, [el("span", { text: "📸" }), M.pages.length ? "עוד ציור" : "צילום או בחירת ציורים"]));
+    box.replaceChildren.apply(box, kids);
+  }
+  $("file").addEventListener("change", function () { addFiles($("file").files); $("file").value = ""; });
+  ["bTitle", "kName", "kAge", "story"].forEach(function (id) { $(id).addEventListener("input", function () { clearTimeout(saveDraft.t); saveDraft.t = setTimeout(saveDraft, 500); }); });
+  function openMaker(b) {
+    M = b; $("bTitle").value = b.title || ""; $("kName").value = b.name || ""; $("kAge").value = b.age || ""; $("story").value = b.story || ""; $("ask").hidden = true;
+    paintThumbs(); show("vMake"); window.scrollTo(0, 0);
+  }
+
+  // ---- the child tells the story ------------------------------------------------------------------------------
+  var REC = null;
+  function say(t) { try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = "he-IL"; u.rate = 0.92; var v = speechSynthesis.getVoices().filter(function (x) { return /^he|iw/i.test(x.lang); })[0]; if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {} }
+  function b64(blob) { return new Promise(function (res) { var r = new FileReader(); r.onload = function () { res(String(r.result).split(",")[1] || ""); }; r.readAsDataURL(blob); }); }
+  $("micBtn").addEventListener("click", function () {
+    if (REC) { REC.stop(); return; }
+    if (!navigator.mediaDevices || !window.MediaRecorder) { toast("הדפדפן הזה לא מקליט. אפשר לכתוב את הסיפור"); return; }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
+      var type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].filter(function (t) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
+      var rec = new MediaRecorder(st, type ? { mimeType: type } : undefined), parts = [], left = 60;
+      REC = rec; $("micBtn").classList.add("on"); $("micBtn").textContent = "⏹"; $("micLbl").textContent = "מקשיבים… לוחצים שוב כשסיימת";
+      var iv = setInterval(function () { left--; $("micHint").textContent = "נשארו " + left + " שניות"; if (left <= 0) rec.stop(); }, 1000);
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) parts.push(e.data); };
+      rec.onstop = function () {
+        clearInterval(iv); st.getTracks().forEach(function (t) { t.stop(); }); REC = null;
+        $("micBtn").classList.remove("on"); $("micBtn").textContent = "🎤"; $("micLbl").textContent = "כותבים את מה שסיפרת…"; $("micBtn").disabled = true;
+        b64(new Blob(parts, { type: rec.mimeType || type || "audio/webm" })).then(function (a) {
+          return fetch("/api/sefer/hear", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: DEV, audio: a, story: $("story").value, name: $("kName").value, age: $("kAge").value, tidy: $("tidy").checked }) });
+        }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "x"); return j; }); })
+          .then(function (j) {
+            if (j.text) { var s = $("story"); s.value = (s.value.trim() ? s.value.trim() + (/[.!?…]$/.test(s.value.trim()) ? " " : ". ") : "") + j.text; saveDraft(); }
+            else toast("לא שמענו מילים. מנסים שוב, קרוב יותר לטלפון");
+            if (j.q) { $("askQ").textContent = "🤔 " + j.q; $("ask").hidden = false; say(j.q); }
+          })
+          .catch(function (e) { toast(e.message === "device" || e.message === "day" ? "הרבה הקלטות היום. אפשר להמשיך בכתיבה" : "לא הצלחנו לשמוע הפעם. אפשר לנסות שוב או לכתוב"); })
+          .then(function () { $("micBtn").disabled = false; $("micLbl").textContent = "עוד? לוחצים ומספרים"; $("micHint").textContent = "כל הקלטה נוספת לסוף הסיפור."; });
+      };
+      rec.start(1000);
+    }).catch(function () { toast("צריך לאשר את המיקרופון"); });
+  });
+  $("askSay").addEventListener("click", function () { say($("askQ").textContent.replace("🤔", "")); });
+
+  // ---- making the book -------------------------------------------------------------------------------------------
+  function pieces(story) { var out = []; String(story).replace(/\r/g, "").split(/\n+/).forEach(function (line) { var t = line.trim(); if (!t) return; (t.match(/[^.!?…]+(?:[.!?…]+["'״”)]*|$)/g) || [t]).forEach(function (p) { p = p.trim(); if (p) out.push(p); }); }); return out; }
+  function localSplit(story, k) { var ps = pieces(story), out = []; for (var i = 0; i < k; i++) { var a = Math.floor(i * ps.length / k), b = Math.floor((i + 1) * ps.length / k); out.push(ps.slice(a, b).join(" ")); } return out; }
+  $("makeBtn").addEventListener("click", function () {
+    saveDraft();
+    if (!M.pages.length) { toast("קודם מוסיפים ציור אחד לפחות"); return; }
+    if ($("story").value.trim().length < 3) { toast("עכשיו הסיפור: מקליטים או כותבים"); $("story").focus(); return; }
+    if (M.demo) { M.pages.forEach(function (p, i) { p.text = DEMO.texts[i]; }); M.title = DEMO.title; openReader(M, 0); return; }
+    $("makeBtn").disabled = true; $("makeBusy").hidden = false;
+    var pagesForText = M.pages.slice(1).length ? M.pages.slice(1) : M.pages; // the cover drawing has no text
+    Promise.all(pagesForText.map(function (p) { return thumbB64(p.img); })).then(function (imgs) {
+      return fetch("/api/sefer/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: DEV, story: $("story").value, title: $("bTitle").value, pages: pagesForText.length, images: imgs }) })
+        .then(function (r) { return r.json(); });
+    }).catch(function () { return {}; }).then(function (j) {
+      var texts = Array.isArray(j.pages) && j.pages.length === pagesForText.length ? j.pages : localSplit($("story").value, pagesForText.length);
+      pagesForText.forEach(function (p, i) { p.text = texts[i] || ""; });
+      if (!M.title) M.title = j.title || ($("kName").value ? "הספר של " + $("kName").value : "הספר שלי");
+      $("bTitle").value = M.title; M.made = Date.now(); saveDraft();
+      $("makeBtn").disabled = false; $("makeBusy").hidden = true;
+      if (j.error === "device" || j.error === "day") toast("הרבה ספרים היום, אז חילקנו את הסיפור באופן שווה. אפשר לתקן בלחיצה");
+      openReader(M, 0);
+    });
+  });
+
+  // ---- the reader ------------------------------------------------------------------------------------------------
+  var R = { b: null, i: 0, edit: false };
+  var COVERS = ["#3B7DD8", "#E4572E", "#3FA34D", "#8A5CC2", "#D9480F"];
+  function bookPages(b) { var inner = b.pages.length > 1 ? b.pages.slice(1) : b.pages; return [{ kind: "cover" }].concat(inner.map(function (p) { return { kind: "page", p: p }; })).concat([{ kind: "end" }]); }
+  function pageEl(b, it, idx, total) {
+    if (it.kind === "cover") {
+      var img = el("img", { alt: "" }); if (b.pages[0]) imgUrl(b.pages[0].img).then(function (u) { img.src = u; });
+      var h = el("h1", { text: b.title || "הספר שלי", "data-k": "title" });
+      var by = el("div", { class: "by", text: (b.name ? "נכתב ואויר על ידי " + b.name + (b.age ? ", בגיל " + b.age : "") : "נכתב ואויר על ידי") });
+      var pg = el("div", { class: "page cover" }, [h, el("div", { class: "frame" }, [img]), by]);
+      pg.style.setProperty("--cv", COVERS[(b.id || "").length % COVERS.length]);
+      return pg;
+    }
+    if (it.kind === "end") return el("div", { class: "page end" }, [el("div", {}, [el("b", { text: "הסוף" }), el("p", { text: (b.name ? b.name + " · " : "") + new Date(b.made || b.created || Date.now()).toLocaleDateString("he-IL", { month: "long", year: "numeric" }) })])]);
+    var im = el("img", { alt: "ציור" }); imgUrl(it.p.img).then(function (u) { im.src = u; });
+    var t = el("div", { text: it.p.text || "", "data-k": "text" });
+    return el("div", { class: "page" }, [el("div", { class: "pic" }, [im]), el("div", { class: "txt" }, [t]), el("span", { class: "pn", text: String(idx) })]);
+  }
+  function paintPage(dir) {
+    var list = bookPages(R.b), it = list[R.i], pg = pageEl(R.b, it, R.i, list.length);
+    if (dir) pg.classList.add(dir > 0 ? "flip-n" : "flip-p");
+    pg.querySelectorAll("[data-k]").forEach(function (e) {
+      if (!R.edit) return; e.contentEditable = "true"; e.spellcheck = false;
+      e.addEventListener("blur", function () { if (e.dataset.k === "title") R.b.title = e.textContent.trim(); else it.p.text = e.textContent.trim(); R.b.updated = Date.now(); if (!R.b.demo) DB.put("books", R.b); });
+    });
+    $("stage").replaceChildren(pg);
+    $("rPos").textContent = R.i === 0 ? "כריכה" : R.i === list.length - 1 ? "סוף" : "עמוד " + R.i + " מתוך " + (list.length - 2);
+    $("rPrev").disabled = R.i === 0; $("rNext").disabled = R.i === list.length - 1;
+  }
+  function go(d) { var n = bookPages(R.b).length, j = Math.max(0, Math.min(n - 1, R.i + d)); if (j === R.i) return; try { speechSynthesis.cancel(); } catch (e) {} if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); R.i = j; paintPage(d); }
+  function openReader(b, i) { R.b = b; R.i = i || 0; R.edit = false; $("rEdit").setAttribute("aria-pressed", "false"); $("reader").classList.remove("editing"); $("reader").hidden = false; document.body.style.overflow = "hidden"; paintPage(0); }
+  function closeReader() { try { speechSynthesis.cancel(); } catch (e) {} $("reader").hidden = true; document.body.style.overflow = ""; home(); }
+  $("rClose").addEventListener("click", closeReader);
+  $("rNext").addEventListener("click", function () { go(1); });
+  $("rPrev").addEventListener("click", function () { go(-1); });
+  addEventListener("keydown", function (e) { if ($("reader").hidden || (document.activeElement && document.activeElement.isContentEditable)) return; if (e.key === "ArrowLeft") go(1); else if (e.key === "ArrowRight") go(-1); else if (e.key === "Escape") closeReader(); });
+  (function () { var x0 = null, y0 = 0; var s = $("stage"); s.addEventListener("pointerdown", function (e) { x0 = e.clientX; y0 = e.clientY; }); s.addEventListener("pointerup", function (e) { if (x0 == null || R.edit) return; var dx = e.clientX - x0, dy = e.clientY - y0; x0 = null; if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) go(dx > 0 ? 1 : -1); }); })();
+  $("rSay").addEventListener("click", function () { var it = bookPages(R.b)[R.i]; say(it.kind === "cover" ? (R.b.title || "") + (R.b.name ? ". מאת " + R.b.name : "") : it.kind === "end" ? "הסוף" : (it.p.text || "")); });
+  $("rBig").addEventListener("click", function () { var on = !$("reader").classList.contains("big"); $("reader").classList.toggle("big", on); $("rBig").setAttribute("aria-pressed", String(on)); });
+  $("rEdit").addEventListener("click", function () { R.edit = !R.edit; $("rEdit").setAttribute("aria-pressed", String(R.edit)); $("reader").classList.toggle("editing", R.edit); $("rEdit").textContent = R.edit ? "✓ סיום תיקון" : "✏️ תיקון"; if (R.edit) toast("לוחצים על הכותרת או על טקסט ומתקנים"); paintPage(0); });
+  $("rMake").addEventListener("click", function () { var b = R.b; closeReader(); openMaker(b); });
+  $("rPrint").addEventListener("click", function () {
+    var b = R.b, list = bookPages(b), box = $("printBook");
+    box.replaceChildren.apply(box, list.map(function (it, i) { return pageEl(b, it, i, list.length); }));
+    var imgs = Array.from(box.querySelectorAll("img"));
+    Promise.all(list.map(function (it) { return it.kind === "page" ? imgUrl(it.p.img) : it.kind === "cover" && b.pages[0] ? imgUrl(b.pages[0].img) : null; })).then(function () {
+      return Promise.all(imgs.map(function (im) { return im.complete && im.src ? null : new Promise(function (r) { im.onload = im.onerror = r; setTimeout(r, 1500); }); }));
+    }).then(function () { toast("במסך ההדפסה בוחרים \"שמירה כ־PDF\" כדי לשלוח לסבתא"); setTimeout(function () { window.print(); }, 300); });
+  });
+
+  // ---- home and shelf -------------------------------------------------------------------------------------------------
+  function show(v) { $("vHome").hidden = v !== "vHome"; $("vMake").hidden = v !== "vMake"; }
+  function home() { show("vHome"); paintShelf(); window.scrollTo(0, 0); }
+  function paintShelf() {
+    DB.all("books").then(function (all) {
+      all = (all || []).filter(function (b) { return b.pages && b.pages.length; }).sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); });
+      $("shelfCard").hidden = !all.length;
+      $("shelf").replaceChildren.apply($("shelf"), all.map(function (b) {
+        var img = el("img", { alt: "" }); imgUrl(b.pages[0].img).then(function (u) { img.src = u; });
+        return el("div", { style: "display:grid;gap:6px" }, [
+          el("button", { class: "bk", type: "button", onclick: function () { if (b.made) openReader(b, 0); else openMaker(b); } }, [el("div", { class: "cv" }, [img, el("b", { text: b.title || "ספר בהכנה" })]), el("small", { text: (b.name ? b.name + " · " : "") + b.pages.length + " ציורים" + (b.made ? "" : " · בהכנה") })]),
+          el("div", { class: "btns" }, [el("button", { class: "btn ghost sm", type: "button", text: "✏️", "aria-label": "עריכה", onclick: function () { openMaker(b); } }), el("button", { class: "btn ghost sm", type: "button", text: "🗑", "aria-label": "מחיקה", onclick: function () { if (!confirm("למחוק את הספר \"" + (b.title || "בהכנה") + "\"?")) return; b.pages.forEach(function (p) { DB.del("imgs", p.img); }); DB.del("books", b.id).then(paintShelf); } })])]);
+      }));
+    }).catch(function () {});
+  }
+  $("homeBtn").addEventListener("click", home);
+  $("newBtn").addEventListener("click", function () { var b = blank(); openMaker(b); });
+
+  // ---- an example book, drawn here (no AI), so there is something to see right away ----------------------------------------
+  var DEMO = { title: "פיצי הדרקון והחושך", name: "יעלי", age: "6", texts: ["פעם היה דרקון קטן וירוק בשם פיצי. הוא אהב לעוף מעל הבתים.", "אבל בלילה פיצי פחד. החושך היה גדול, והכוכבים היו רחוקים.", "יום אחד הגיע חתול כתום. \"אני לא מפחד מהחושך\", אמר החתול, \"בוא נספור כוכבים ביחד\".", "הם ספרו עד מאה, ופיצי נרדם עם חיוך. מאז הוא כבר לא מפחד."], story: "פעם היה דרקון קטן וירוק בשם פיצי. הוא אהב לעוף מעל הבתים. אבל בלילה פיצי פחד. החושך היה גדול, והכוכבים היו רחוקים. יום אחד הגיע חתול כתום. \"אני לא מפחד מהחושך\", אמר החתול, \"בוא נספור כוכבים ביחד\". הם ספרו עד מאה, ופיצי נרדם עם חיוך. מאז הוא כבר לא מפחד." };
+  var DRAW = [
+    '<rect width="400" height="300" fill="#fff"/><path d="M20 40 Q200 0 380 40" stroke="#3B7DD8" stroke-width="5" fill="none"/><circle cx="330" cy="60" r="28" fill="#F3B61F"/><path d="M120 180 q40-70 110-40 q50 20 40 60 q-20 40-90 30 q-60-5-60-50z" fill="#3FA34D" stroke="#1d6b2a" stroke-width="4"/><circle cx="240" cy="160" r="7" fill="#222"/><path d="M150 150 l-30-50 l50 30z M190 135 l10-55 l25 50z" fill="#9BD08F" stroke="#1d6b2a" stroke-width="3"/><path d="M265 185 q20 5 30-5" stroke="#E4572E" stroke-width="5" fill="none"/><rect x="40" y="230" width="60" height="50" fill="#E4572E"/><path d="M35 232 l35-30 l35 30z" fill="#8A5CC2"/><rect x="300" y="235" width="55" height="45" fill="#F3B61F"/><path d="M295 237 l32-26 l32 26z" fill="#E4572E"/>',
+    '<rect width="400" height="300" fill="#fff"/><rect x="10" y="10" width="380" height="280" rx="20" fill="#1f2a5a"/><circle cx="80" cy="60" r="4" fill="#F3B61F"/><circle cx="300" cy="50" r="5" fill="#F3B61F"/><circle cx="350" cy="120" r="3" fill="#F3B61F"/><circle cx="200" cy="40" r="3" fill="#F3B61F"/><path d="M300 90 a30 30 0 1 0 25 45 a24 24 0 1 1 -25 -45z" fill="#FFF3B0"/><path d="M130 220 q30-60 90-35 q40 20 30 50 q-20 30-75 25 q-50-5-45-40z" fill="#3FA34D" stroke="#9BD08F" stroke-width="4"/><circle cx="225" cy="205" r="8" fill="#fff"/><circle cx="227" cy="207" r="4" fill="#222"/><path d="M235 230 q-10-8-20 0" stroke="#fff" stroke-width="4" fill="none"/>',
+    '<rect width="400" height="300" fill="#fff"/><path d="M20 260 L380 260" stroke="#3FA34D" stroke-width="8"/><path d="M60 230 q25-55 85-30 q35 15 25 45 q-15 25-65 20 q-45-5-45-35z" fill="#3FA34D" stroke="#1d6b2a" stroke-width="4"/><circle cx="150" cy="215" r="6" fill="#222"/><path d="M155 238 q10 6 18 0" stroke="#E4572E" stroke-width="4" fill="none"/><ellipse cx="280" cy="225" rx="50" ry="35" fill="#F28C28" stroke="#b85f12" stroke-width="4"/><circle cx="320" cy="185" r="28" fill="#F28C28" stroke="#b85f12" stroke-width="4"/><path d="M300 165 l5-25 l15 18z M330 160 l12-22 l6 25z" fill="#F28C28" stroke="#b85f12" stroke-width="3"/><circle cx="312" cy="182" r="4" fill="#222"/><circle cx="330" cy="182" r="4" fill="#222"/><path d="M314 196 q8 6 16 0" stroke="#222" stroke-width="3" fill="none"/><path d="M232 230 q-40 -10 -35 -50" stroke="#b85f12" stroke-width="6" fill="none"/>',
+    '<rect width="400" height="300" fill="#fff"/><rect x="10" y="10" width="380" height="280" rx="20" fill="#2a3570"/><g fill="#F3B61F"><circle cx="60" cy="50" r="5"/><circle cx="120" cy="80" r="4"/><circle cx="190" cy="40" r="6"/><circle cx="260" cy="70" r="4"/><circle cx="330" cy="45" r="5"/><circle cx="360" cy="110" r="4"/><circle cx="90" cy="120" r="3"/></g><path d="M90 240 q30-45 90-25 q35 15 25 40 q-15 20-65 18 q-50-3-50-33z" fill="#3FA34D" stroke="#9BD08F" stroke-width="4"/><path d="M165 232 q8 4 14 0" stroke="#fff" stroke-width="3" fill="none"/><path d="M150 228 q5 -4 10 0" stroke="#fff" stroke-width="3" fill="none"/><ellipse cx="270" cy="250" rx="42" ry="22" fill="#F28C28"/><circle cx="300" cy="232" r="18" fill="#F28C28"/><path d="M292 232 q4 3 8 0 M302 232 q4 3 8 0" stroke="#222" stroke-width="2.5" fill="none"/><text x="230" y="160" font-size="30" fill="#fff" font-family="sans-serif">Z z</text>'
+  ];
+  $("demoBtn").addEventListener("click", function () {
+    var b = { id: "demo", demo: true, title: DEMO.title, name: DEMO.name, age: DEMO.age, story: DEMO.story, pages: [], made: Date.now() };
+    var cover = '<rect width="400" height="300" fill="#fff"/>' + DRAW[0].replace('<rect width="400" height="300" fill="#fff"/>', "");
+    Promise.all([cover].concat(DRAW).map(function (svg, i) {
+      return loadImage("data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="800" height="600">' + svg + "</svg>")).then(function (img) { return toBlob(canvasOf(img, 800)); }).then(function (bl) { var k = "demo" + i; urls[k] && URL.revokeObjectURL(urls[k]); urls[k] = URL.createObjectURL(bl); return k; });
+    })).then(function (keys) {
+      b.pages = keys.map(function (k, i) { return { img: k, text: i ? DEMO.texts[i - 1] : "" }; });
+      openReader(b, 0);
+    });
+  });
+
+  // ---- start: an unfinished book opens where it was left ----------------------------------------------------------------
+  home();
+  var draft = ls.get("sf.draft");
+  if (draft) DB.get("books", draft).then(function (b) { if (b && !b.made && (b.pages.length || b.story)) toast("יש ספר בהכנה. הוא נמצא על המדף"); });
+})();
+</script>
