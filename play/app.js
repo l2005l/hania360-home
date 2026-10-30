@@ -369,7 +369,7 @@ export async function playApp(request, baseEnv) {
       if (path === '/api/pay/qr' && method === 'GET') return await payQr(env, url.searchParams.get('m'));
       if (path === '/api/pay/notify' && method === 'POST') return await notify(request, env, grantPass);
       if (path === '/api/admin/msg' && method === 'POST') { const b = await readBody(request); return json(await pushMsg(env, String(b.endpoint || ''))); }
-      if (path.startsWith('/api/admin/')) return await adminApi(request, env, path, grantPass);
+      if (path.startsWith('/api/admin/')) return await adminApi(request, env, path, grantPass, await currentUser(request, env));
       if (path === '/admin') return new Response(ADMIN_PAGE, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex', 'x-og': '1', 'referrer-policy': 'no-referrer' } });
       if (path === '/sw.js') return new Response(SW, { headers: { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-cache' } });
       if (path === '/api/rooms' && method === 'POST') return await createRoom(request, env);
