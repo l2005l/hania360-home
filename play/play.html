@@ -560,7 +560,9 @@ async function replay(gameId){
 }
 
 /* ---------- AI generation (server) ---------- */
-function loading(what){view(`<div class="center"><div class="spinner"></div><h3>ה־AI כותב ${what}</h3><p class="small">זה לוקח בדרך כלל 20 עד 60 שניות. אל תסגרו את הדף.</p></div>`)}
+function loading(what){view(`<div class="center"><div class="spinner"></div><h3>ה־AI כותב ${what}</h3><p class="lead" id="ldStep">קורא את מה שביקשתם…</p><p class="small"><span id="ldSec">0</span> שניות · בדרך כלל פחות מדקה. אל תסגרו את הדף.</p></div>`);
+  const steps=['קורא את מה שביקשתם…','בונה את הדמויות והעולם…','כותב את הפרטים…','מוסיף רמזים והפתעות…','בודק שהכול הגיוני…','עוד רגע, מלטש…'],t0=Date.now();
+  const iv=setInterval(()=>{const s=$('ldSec');if(!s){clearInterval(iv);return}const sec=Math.round((Date.now()-t0)/1000);s.textContent=sec;$('ldStep').textContent=steps[Math.min(steps.length-1,Math.floor(sec/9))]},1000)}
 async function serverGen(useSample){
   const r=await api(`/api/orders/${ORDER.id}/generate`,{useSample:!!useSample});
   if(!r.ok)return{error:{code:r.error,message:r.message}};
