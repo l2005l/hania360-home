@@ -4,6 +4,8 @@
 // אישור אוטומטי: אפליקציה באנדרואיד (למשל MacroDroid) שולחת את ההתראה של ביט או פייבוקס
 // ל־/api/pay/notify, והשרת מחפש בה את הקוד ואת הסכום.
 
+import qrcode from './qrcode.js';
+
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
 const rid = (n = 16) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, '0')).join('');
 const now = () => new Date().toISOString();
@@ -198,3 +200,11 @@ self.addEventListener("install",()=>self.skipWaiting());self.addEventListener("a
 self.addEventListener("push",(e)=>{e.waitUntil((async()=>{let m=null;try{const s=await self.registration.pushManager.getSubscription();const r=await fetch("/api/admin/msg",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({endpoint:s&&s.endpoint})});m=r.ok?await r.json():null}catch{}
 if(!m||!m.title)m={title:"💰 תשלום חדש במועדון הערב",body:"לבדוק ולסמן."};await self.registration.showNotification(m.title,{body:m.body,icon:"/icons/play-192.png",lang:"he",dir:"rtl",tag:"pay",renotify:true,data:{url:"/admin"}})})())});
 self.addEventListener("notificationclick",(e)=>{e.notification.close();e.waitUntil(self.clients.matchAll({type:"window",includeUncontrolled:true}).then((ws)=>{for(const w of ws)if(w.url.includes("/admin")&&"focus"in w)return w.focus();return self.clients.openWindow("/admin")}))});`;
+
+/** QR של קישור התשלום שנשמר (רק שלו), למי שמשלם מהמחשב וסורק בטלפון */
+export async function payQr(env, m) {
+  const s = await settings(env), link = m === 'paybox' ? s.paybox_link : s.bit_link;
+  if (!link) return new Response('no link', { status: 404 });
+  const q = qrcode(0, 'M'); q.addData(link); q.make();
+  return new Response(q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }), { headers: { 'content-type': 'image/svg+xml', 'cache-control': 'no-cache', 'x-content-type-options': 'nosniff' } });
+}

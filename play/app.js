@@ -3,7 +3,7 @@
 import { cleanConfig, priceOf, promptFor, validate, extractJSON, InputError, PASSES, punchCovers, subCovers } from './games.js';
 import { sampleFor } from './samples.js';
 import { db } from './store.js';
-import { settings, payReady, payBlock, manualPay, claim, notify, adminApi, pushMsg, ADMIN_PAGE, SW } from './pay.js';
+import { settings, payReady, payBlock, manualPay, claim, notify, adminApi, pushMsg, ADMIN_PAGE, SW, payQr } from './pay.js';
 import PAGE, { FILES, IMAGES } from './page.js';
 
 const AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
@@ -360,6 +360,7 @@ export async function playApp(request, baseEnv) {
       if ((m = path.match(/^\/api\/orders\/(ord_[0-9a-f]{20})\/use-credit$/)) && method === 'POST') return await useCredit(request, env, m[1]);
       if ((m = path.match(/^\/api\/games\/(gm_[0-9a-f]{20})$/)) && method === 'GET') return await getGame(request, env, m[1]);
       if ((m = path.match(/^\/api\/orders\/(ord_[0-9a-f]{20})\/claim$/)) && method === 'POST') return await claimPay(request, env, m[1]);
+      if (path === '/api/pay/qr' && method === 'GET') return await payQr(env, url.searchParams.get('m'));
       if (path === '/api/pay/notify' && method === 'POST') return await notify(request, env, grantPass);
       if (path === '/api/admin/msg' && method === 'POST') { const b = await readBody(request); return json(await pushMsg(env, String(b.endpoint || ''))); }
       if (path.startsWith('/api/admin/')) return await adminApi(request, env, path, grantPass);
