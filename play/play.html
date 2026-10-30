@@ -446,7 +446,7 @@ function payForm({order,pay,lines,top,back,onPaid}){
     ${has.bit&&has.paybox?seg('pm',method,[["bit","ביט",""],["paybox","פייבוקס",""]]):''}
     <ol class="paysteps">
       <li>${link?`פותחים את ${app} בכפתור שלמטה ומעבירים <b>${order.price} ₪</b>`:`מעבירים <b>${order.price} ₪</b> ב${app} למספר <b dir="ltr" class="phone">${esc(ph)}</b>${pay.name?` (${esc(pay.name)})`:''} <button type="button" class="ghost mini" id="cp">העתקה</button>`}</li>
-      <li>בהערה להעברה כותבים את הקוד: <b class="paycode" dir="ltr">${esc(pay.code)}</b></li>
+      <li>${method==='paybox'&&link?'כשפייבוקס שואל "קוד הזמנה", כותבים:':'בהערה להעברה כותבים את הקוד:'} <b class="paycode" dir="ltr">${esc(pay.code)}</b></li>
       <li>חוזרים לכאן ולוחצים "שילמתי", והמשחק נפתח מיד.</li>
     </ol>
     ${link?`<a class="primary btnlink" href="${esc(link)}" target="_blank" rel="noopener">לתשלום ב${app} ←</a>`:''}
