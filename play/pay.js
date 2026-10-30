@@ -95,8 +95,8 @@ export async function notify(request, env, grantPass) {
 
 // ---- admin (/admin?k=STATS_KEY) --------------------------------------------------------------------
 const isAdmin = (request, env) => {
-  const k = request.headers.get('x-admin-key') || new URL(request.url).searchParams.get('k') || '';
-  return !!(env.STATS_KEY && k && k.length === env.STATS_KEY.length && k === env.STATS_KEY);
+  const k = (new URL(request.url).searchParams.get('k') || request.headers.get('x-admin-key') || '').trim(), want = String(env.STATS_KEY || '').trim();
+  return !!(want && k && k.length === want.length && k === want);
 };
 export async function adminApi(request, env, path, grantPass) {
   if (!isAdmin(request, env)) return json({ error: 'forbidden' }, 403);
@@ -151,7 +151,7 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px
 .o b{font-size:16px}.o small{color:var(--muted);display:block;overflow-wrap:anywhere}.btns{display:flex;gap:6px}.ok{background:var(--ok)}.bad{background:var(--bad);color:#fff}
 .m{color:var(--muted);font-size:13.5px;margin:0}code{background:var(--bg);padding:6px 8px;border-radius:8px;display:block;overflow-wrap:anywhere;direction:ltr;text-align:left;font-size:12.5px}
 .big{font-size:26px;font-weight:800;color:var(--gold)}@media(max-width:480px){.o{grid-template-columns:1fr}}ol{margin:0;padding-inline-start:20px;display:grid;gap:4px;font-size:14px}</style></head><body><div class="w">
-<h1>🎲 מועדון הערב · תשלומים</h1><div id="err" class="c" hidden>הקישור לא תקין. פותחים את הדף עם ?k= והמפתח של הסטטיסטיקה.</div>
+<h1>🎲 מועדון הערב · תשלומים</h1><div id="err" class="c" hidden><b>המפתח לא מתאים.</b><p class="m">פותחים את הכתובת play.hania360.com/admin?k= ומיד אחרי ה־= מדביקים את אותו מפתח שפותח את hania360.com/stats. אפשר גם להדביק כאן:</p><input id="kin" dir="ltr" placeholder="המפתח"><button id="kgo">כניסה</button></div>
 <div id="app" hidden style="display:grid;gap:12px">
 <div class="c"><h2>מחכים לבדיקה <span id="sum" class="m"></span></h2><p class="m">המשחק כבר נפתח ללקוח. בודקים בביט או בפייבוקס שהכסף הגיע, עם הקוד בהערה, ומסמנים.</p><div id="waiting" style="display:grid;gap:8px"></div></div>
 <div class="c"><h2>🔔 התראות לטלפון הזה</h2><button id="pushBtn">להפעיל התראה על כל "שילמתי"</button></div>
@@ -170,7 +170,7 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px
 </div></div>
 <script>(function(){var K=new URLSearchParams(location.search).get("k")||"";try{if(K)localStorage.setItem("play_admin",K);else K=localStorage.getItem("play_admin")||""}catch(e){}if(location.search)history.replaceState(null,"","/admin");var $=function(i){return document.getElementById(i)};
 function el(t,a,k){var e=document.createElement(t);for(var x in a||{}){if(x==="text")e.textContent=a[x];else if(x.slice(0,2)==="on")e.addEventListener(x.slice(2),a[x]);else e.setAttribute(x,a[x])}(k||[]).forEach(function(c){if(c)e.append(c)});return e}
-function api(p,b){return fetch(p,b?{method:"POST",headers:{"content-type":"application/json","x-admin-key":K},body:JSON.stringify(b)}:{headers:{"x-admin-key":K}}).then(function(r){if(r.status===403)throw new Error("k");return r.json()})}
+function api(p,b){var u=p+"?k="+encodeURIComponent(K.trim());return fetch(u,b?{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)}:{}).then(function(r){if(r.status===403)throw new Error("k");return r.json()})}
 var when=function(t){try{return new Date(t).toLocaleString("he-IL",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return""}};
 function row(o,acts){return el("div",{class:"o"},[el("div",{},[el("b",{text:o.price+" ₪ · קוד "+(o.code||"—")+(o.method?" · "+({bit:"ביט",paybox:"פייבוקס",auto:"אוטומטי",admin:"ידני"}[o.method]||o.method):"")}),el("small",{text:o.email+" · "+o.tier+" · "+when(o.at)})]),acts?el("div",{class:"btns"},acts):null])}
 function rev(id,v){api("/api/admin/review",{id:id,v:v}).then(paint)}
@@ -181,7 +181,8 @@ $("bad").replaceChildren.apply($("bad"),d.bad.length?d.bad.map(function(o){retur
 $("open").replaceChildren.apply($("open"),d.open.length?d.open.map(function(o){return row(o,[el("button",{class:"g",text:"✓ שולם",onclick:function(){rev(o.id,"ok")}})])}):[el("p",{class:"m",text:"אין."})]);
 $("done").replaceChildren.apply($("done"),d.done.map(function(o){return row(o)}));
 $("log").replaceChildren.apply($("log"),d.log.length?d.log.map(function(l){return el("small",{class:"m",text:when(l.at)+" · "+(l.order_id?"✓ אושר לפי "+l.how:"לא נמצאה הזמנה")+" · "+l.text})}):[el("p",{class:"m",text:"עוד לא הגיעו."})]);}
-function load(){api("/api/admin/state").then(paint).catch(function(){$("err").hidden=false})}
+function load(){api("/api/admin/state").then(function(d){$("err").hidden=true;paint(d)}).catch(function(){$("err").hidden=false;$("app").hidden=true})}
+$("kgo").onclick=function(){K=$("kin").value.trim();try{localStorage.setItem("play_admin",K)}catch(e){}load()};
 $("save").onclick=function(){api("/api/admin/settings",{bit_phone:$("bit").value,paybox_phone:$("pb").value,paybox_link:$("pbl").value,payee_name:$("nm").value}).then(function(d){paint(d);alert("נשמר")})};
 $("copy").onclick=function(){navigator.clipboard.writeText($("nurl").textContent).then(function(){$("copy").textContent="הועתק ✓"})};
 $("newtok").onclick=function(){if(confirm("ליצור כתובת חדשה? הישנה תפסיק לעבוד."))api("/api/admin/settings",{new_token:1}).then(paint)};
