@@ -100,7 +100,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .summary .total b{font-family:var(--display);font-size:1.6rem;font-variant-numeric:tabular-nums}
 .paper input{background:#fff;color:var(--paper-ink);border-color:#cbbd9f}
 .paper .seg button{background:#fff;color:var(--paper-ink);border-color:#cbbd9f}
-.paper .seg button[aria-pressed="true"]{border-color:#8a6a2c;background:#f6edd9;color:#5a4318}
+.paper .seg button[aria-pressed="true"]{border-color:#3d2c0d;background:#5a4318;color:#fff;box-shadow:0 0 0 2px #5a4318}
+.paper .seg button[aria-pressed="true"]::before{content:"✓ "}
 .paper .primary{border-color:#8a6a2c}
 .spinner{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--brass);animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
