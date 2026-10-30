@@ -231,6 +231,24 @@ async function askAI(env, prompt, wantJson) {
   try { const t = asText(text(await env.AI.run(AI_FALLBACK_MODEL, { messages, max_tokens: 4096 }))); if (t.trim()) return t; } catch (e) { console.error('ai_fallback_error', String(e).slice(0, 200)); }
   throw new HttpError(502, 'ai_failed');
 }
+/** שני מודלים במרוץ: הראשון מתחיל מיד, השני מצטרף אחרי 20 שניות (או מיד אם הראשון נכשל).
+ *  כל תשובה נבדקת לפני שהיא מתקבלת, והראשונה שתקינה מנצחת. כך לא מחכים פעמיים למודל איטי. */
+async function hedgedAI(env, game, cfg, prompt, wantJson) {
+  if (!env.AI) throw new HttpError(503, 'ai_unavailable');
+  const text = (out) => out && (out.response ?? (out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content));
+  const asText = (r) => (r && typeof r === 'object' ? JSON.stringify(r) : r == null ? '' : String(r));
+  const messages = [{ role: 'system', content: 'You write party games in natural, fluent Hebrew. Follow the requested format exactly. Be concise.' }, { role: 'user', content: prompt }];
+  const t0 = Date.now(); let done = false;
+  const run = (m) => env.AI.run(m, { messages, max_tokens: 3500 }).then((out) => {
+    const t = asText(text(out)), c = validate(game, cfg, wantJson ? extractJSON(t) : t);
+    console.log('ai', m.split('/').pop(), game, c ? 'ok' : 'invalid', Date.now() - t0 + 'ms');
+    if (!c) throw new Error('invalid'); done = true; return c;
+  });
+  const first = run(AI_MODEL);
+  const second = Promise.race([new Promise((r) => setTimeout(r, 20000)), first.then(() => {}, () => {})]).then(() => { if (done) throw new Error('not needed'); return run(AI_FALLBACK_MODEL); });
+  try { return await Promise.any([first, second]); }
+  catch { try { return await run(AI_FALLBACK_MODEL); } catch { throw new HttpError(502, 'ai_failed'); } }
+}
 /** סופר יצירות AI לכל משתמש ולכל האתר (באותו מונה של HaniaSipur ו־HaniaKita, בשם נפרד) */
 async function aiAllowed(env, user) {
   if (!env.SIPUR) return true;
@@ -260,16 +278,8 @@ async function generate(request, env, id) {
     if (!(await aiAllowed(env, user))) throw new HttpError(429, 'ai_busy', 'היום כבר נוצרו הרבה משחקים. אפשר לשחק עכשיו בתוכן מוכן, או לנסות שוב מחר.');
     const { prompt, json: wantJson } = promptFor(o.game, cfg);
     let lastErr = 'ai_failed';
-    for (let attempt = 0; attempt < 2 && !content; attempt++) {
-      try {
-        const text = await askAI(env, prompt, wantJson);
-        content = validate(o.game, cfg, wantJson ? extractJSON(text) : text);
-        if (!content) console.warn('ai_invalid', o.game, o.id, attempt);
-      } catch (e) {
-        lastErr = e.code || 'ai_failed';
-        if (e.code === 'ai_unavailable') break;
-      }
-    }
+    try { content = await hedgedAI(env, o.game, cfg, prompt, wantJson); }
+    catch (e) { lastErr = e.code || 'ai_failed'; }
     if (!content) throw new HttpError(502, lastErr, 'היצירה לא הצליחה הפעם. אפשר לנסות שוב או לשחק בתוכן מוכן.');
   }
 
