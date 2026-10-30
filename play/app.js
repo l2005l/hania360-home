@@ -76,10 +76,11 @@ async function requirePayable(env, user) {
 /** האם המשתמש עוד לא ניצל את המשחק הראשון בחינם, והמכסה היומית לא נגמרה */
 async function freeGameAvailable(env, userId) {
   if (env.FREE_FIRST_GAME !== '1') return false;
-  const used = await env.DB.prepare("SELECT 1 FROM orders WHERE user_id=? AND provider='free' LIMIT 1").bind(userId).first();
+  // המשחק החינמי נחשב מנוצל רק אחרי שנוצר בפועל (gens>0), לא כשרק נפתחה הזמנה
+  const used = await env.DB.prepare("SELECT 1 FROM orders WHERE user_id=? AND provider='free' AND gens>0 LIMIT 1").bind(userId).first();
   if (used) return false;
   const dayAgo = new Date(Date.now() - 864e5).toISOString();
-  const today = await env.DB.prepare("SELECT COUNT(*) n FROM orders WHERE provider='free' AND created_at>?").bind(dayAgo).first();
+  const today = await env.DB.prepare("SELECT COUNT(*) n FROM orders WHERE provider='free' AND gens>0 AND created_at>?").bind(dayAgo).first();
   return (today?.n || 0) < Number(env.FREE_DAILY_LIMIT || 200);
 }
 
@@ -163,6 +164,7 @@ async function createOrder(request, env) {
   }
   if (punchCovers(game, cfg) && await freeGameAvailable(env, user.id)) {
     // המשחק הראשון במסלול הפרטי עלינו
+    await env.DB.prepare("DELETE FROM orders WHERE user_id=? AND provider='free' AND gens=0").bind(user.id).run();   // הזמנה חינמית קודמת שלא נוצלה
     await env.DB.prepare("INSERT INTO orders(id,user_id,email,kind,game,cfg_json,tier,price,status,provider,created_at,paid_at) VALUES(?,?,?,'game',?,?,?,?,'paid','free',?,?)")
       .bind(id, user.id, user.email || '', game, JSON.stringify(cfg), tier, 0, now(), now()).run();
     return json({ order: orderView(await loadOrder(env, user, id)), covered: 'free', ent });
@@ -242,6 +244,10 @@ async function generate(request, env, id) {
   if (o.kind !== 'game') throw new HttpError(400, 'not_a_game');
   if (o.status !== 'paid') throw new HttpError(402, 'not_paid', 'ההזמנה עוד לא שולמה.');
   if (o.gens >= MAX_GENERATIONS) throw new HttpError(409, 'no_generations_left', 'נוצלו כל היצירות להזמנה הזו.');
+  if (o.provider === 'free' && o.gens === 0) {
+    const other = await env.DB.prepare("SELECT 1 FROM orders WHERE user_id=? AND provider='free' AND gens>0 AND id!=? LIMIT 1").bind(user.id, o.id).first();
+    if (other) throw new HttpError(402, 'free_used', 'המשחק הראשון בחינם כבר נוצל.');
+  }
   const body = await readBody(request);
   const cfg = JSON.parse(o.cfg_json);
 
