@@ -55,7 +55,7 @@ export async function claim(env, user, o, method, grantPass) {
   if (r.meta && r.meta.changes === 1) {
     await grantPass(env, o);
     const fresh = await env.DB.prepare('SELECT review FROM orders WHERE id=?').bind(o.id).first();
-    if (fresh && fresh.review === 'pending') await push(env, { title: `💰 ${o.price} ₪ ב${method === 'paybox' ? 'פייבוקס' : 'ביט'} · קוד ${o.pay_code}`, body: `${user.email || 'משתמש'} סימן/ה ששילם/ה על ${o.tier}. לבדוק ולסמן ✓.` });
+    if (fresh && fresh.review === 'pending' && !ownerSet(await settings(env)).has(String(user.email || '').toLowerCase())) await push(env, { title: `💰 ${o.price} ₪ ב${method === 'paybox' ? 'פייבוקס' : 'ביט'} · קוד ${o.pay_code}`, body: `${user.email || 'משתמש'} סימן/ה ששילם/ה על ${o.tier}. לבדוק ולסמן ✓.` });
   }
 }
 
@@ -100,9 +100,18 @@ const isAdmin = (request, env) => {
   const k = (new URL(request.url).searchParams.get('k') || request.headers.get('x-admin-key') || '').trim(), want = String(env.STATS_KEY || '').trim();
   return !!(want && k && k.length === want.length && k === want);
 };
-export async function adminApi(request, env, path, grantPass) {
+/** המיילים של המנהל: ההזמנות שלו מסומנות "אני" ולא נספרות בסיכום */
+export const ownerSet = (s) => new Set(String(s.owner_emails || '').toLowerCase().split(',').map((e) => e.trim()).filter(Boolean));
+const cleanEmails = (v) => [...new Set(String(v || '').toLowerCase().split(/[\s,;]+/).filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)))].slice(0, 10).join(',');
+
+export async function adminApi(request, env, path, grantPass, me) {
   if (!isAdmin(request, env)) return json({ error: 'forbidden' }, 403);
   const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+  {
+    // מי שפותח את דף הניהול כשהוא מחובר ל־Hania360 – המייל שלו נוסף לבד לרשימת "אני"
+    const s0 = await settings(env), mine = ownerSet(s0), em = me && String(me.email || '').toLowerCase();
+    if (em && !mine.has(em) && !s0.owner_set_manually) await env.DB.prepare('INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').bind('owner_emails', cleanEmails([...mine, em].join(','))).run();
+  }
   if (path === '/api/admin/settings' && request.method === 'POST') {
     const put = (k, v) => env.DB.prepare('INSERT INTO settings(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').bind(k, v).run();
     if (body.bit_phone !== undefined) await put('bit_phone', phoneOk(body.bit_phone));
@@ -111,6 +120,7 @@ export async function adminApi(request, env, path, grantPass) {
     if (body.bit_link !== undefined) await put('bit_link', linkOk(body.bit_link));
     if (body.payee_name !== undefined) await put('payee_name', String(body.payee_name || '').replace(/[<>]/g, '').trim().slice(0, 30));
     if (body.new_token) await put('notify_token', rid(16));
+    if (body.owner_emails !== undefined) { await put('owner_emails', cleanEmails(body.owner_emails)); await put('owner_set_manually', '1'); }
   }
   if (path === '/api/admin/review' && request.method === 'POST') {
     const o = await env.DB.prepare('SELECT * FROM orders WHERE id=?').bind(String(body.id || '')).first();
@@ -121,17 +131,17 @@ export async function adminApi(request, env, path, grantPass) {
   }
   if (path === '/api/admin/push' && request.method === 'POST') { await pushSub(env, body.sub); }
   if (path === '/api/admin/push-key') return json({ key: await pushKey(env) });
-  const s = await settings(env);
-  const list = (q) => env.DB.prepare(q).all().then((r) => (r.results || []).map((o) => ({ id: o.id, email: o.email, tier: o.tier, price: o.price, code: o.pay_code, method: o.provider_ref, review: o.review, status: o.status, at: o.claimed_at || o.created_at })));
+  const s = await settings(env), mine = ownerSet(s);
+  const list = (q) => env.DB.prepare(q).all().then((r) => (r.results || []).map((o) => ({ id: o.id, email: o.email, mine: mine.has(String(o.email || '').toLowerCase()), tier: o.tier, price: o.price, code: o.pay_code, method: o.provider_ref, review: o.review, status: o.status, at: o.claimed_at || o.created_at })));
   return json({
-    settings: { bit_phone: s.bit_phone || '', paybox_phone: s.paybox_phone || '', paybox_link: s.paybox_link || '', bit_link: s.bit_link || '', payee_name: s.payee_name || '' },
+    settings: { bit_phone: s.bit_phone || '', paybox_phone: s.paybox_phone || '', paybox_link: s.paybox_link || '', bit_link: s.bit_link || '', payee_name: s.payee_name || '', owner_emails: s.owner_emails || '' },
     notifyUrl: new URL(request.url).origin + '/api/pay/notify?t=' + s.notify_token,
     waiting: await list("SELECT * FROM orders WHERE review='pending' ORDER BY claimed_at DESC LIMIT 50"),
     bad: await list("SELECT * FROM orders WHERE review='bad' ORDER BY created_at DESC LIMIT 50"),
     open: await list("SELECT * FROM orders WHERE status='pending' AND pay_code!='' AND created_at>'" + new Date(Date.now() - 3 * 864e5).toISOString() + "' ORDER BY created_at DESC LIMIT 30"),
     done: await list("SELECT * FROM orders WHERE review='ok' ORDER BY claimed_at DESC LIMIT 30"),
     log: ((await env.DB.prepare('SELECT * FROM pay_log ORDER BY at DESC LIMIT 20').all()).results || []),
-    totals: await env.DB.prepare("SELECT COUNT(*) n, COALESCE(SUM(price),0) sum FROM orders WHERE review='ok'").first(),
+    totals: ((await env.DB.prepare("SELECT email, price FROM orders WHERE review='ok'").all()).results || []).reduce((t, o) => { const k = mine.has(String(o.email || '').toLowerCase()) ? 'me' : 'others'; t[k].n++; t[k].sum += o.price; return t; }, { others: { n: 0, sum: 0 }, me: { n: 0, sum: 0 } }),
   });
 }
 
@@ -153,6 +163,7 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px
 .o{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:10px;border-radius:12px;background:var(--bg)}
 .o b{font-size:16px}.o small{color:var(--muted);display:block;overflow-wrap:anywhere}.btns{display:flex;gap:6px}.ok{background:var(--ok)}.bad{background:var(--bad);color:#fff}
 .m{color:var(--muted);font-size:13.5px;margin:0}code{background:var(--bg);padding:6px 8px;border-radius:8px;display:block;overflow-wrap:anywhere;direction:ltr;text-align:left;font-size:12.5px}
+.o.me{outline:2px solid var(--gold);opacity:.85}.tag{display:inline-block;background:var(--gold);color:#1a1a1a;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:800;margin-inline-end:6px}
 .big{font-size:26px;font-weight:800;color:var(--gold)}@media(max-width:480px){.o{grid-template-columns:1fr}}ol{margin:0;padding-inline-start:20px;display:grid;gap:4px;font-size:14px}</style></head><body><div class="w">
 <h1>🎲 מועדון הערב · תשלומים</h1><div id="err" class="c" hidden><b>המפתח לא מתאים.</b><p class="m">פותחים את הכתובת play.hania360.com/admin?k= ומיד אחרי ה־= מדביקים את אותו מפתח שפותח את hania360.com/stats. אפשר גם להדביק כאן:</p><input id="kin" dir="ltr" placeholder="המפתח"><button id="kgo">כניסה</button></div>
 <div id="app" hidden style="display:grid;gap:12px">
@@ -161,7 +172,7 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px
 <div class="c"><h2>פרטי התשלום שהלקוחות רואים</h2>
 <p class="m">עדיף קישור: כשיש קישור, הלקוח רואה רק כפתור תשלום ולא את מספר הטלפון שלך.</p>
 <label>קישור תשלום בפייבוקס<input id="pbl" dir="ltr" placeholder="https://payboxapp.page.link/..."></label><label>קישור תשלום בביט<input id="bl" dir="ltr" placeholder="https://..."></label>
-<label>מספר לביט (רק אם אין קישור)<input id="bit" inputmode="tel" dir="ltr"></label><label>מספר לפייבוקס (רק אם אין קישור)<input id="pb" inputmode="tel" dir="ltr"></label><label>השם שיופיע (לא חובה)<input id="nm" maxlength="30"></label>
+<label>מספר לביט (רק אם אין קישור)<input id="bit" inputmode="tel" dir="ltr"></label><label>מספר לפייבוקס (רק אם אין קישור)<input id="pb" inputmode="tel" dir="ltr"></label><label>השם שיופיע (לא חובה)<input id="nm" maxlength="30"></label><label>המיילים שלי (ההזמנות שלהם מסומנות 👤 אני ולא נספרות)<input id="me" dir="ltr"></label>
 <button id="save">שמירה</button><p class="m">בלי מספר אחד לפחות, הלקוחות רואים "התשלום ייפתח בקרוב".</p></div>
 <div class="c"><h2>🤖 אישור אוטומטי מאנדרואיד</h2><p class="m">אפליקציה בטלפון שולחת לכאן כל התראה של ביט או פייבוקס, והשרת מאשר לבד את ההזמנה עם הקוד או הסכום.</p>
 <ol><li>מתקינים את MacroDroid מ־Google Play.</li><li>טריגר: "התראה התקבלה" (Notification Received), מהאפליקציות bit ו־PayBox.</li><li>פעולה: "בקשת HTTP" (HTTP Request), שיטה POST, לכתובת שלמטה, ובגוף ההודעה (Body) המשתנים [notification_title] [notification].</li><li>שומרים, ומאשרים ל־MacroDroid גישה להתראות.</li></ol>
@@ -176,10 +187,10 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px
 function el(t,a,k){var e=document.createElement(t);for(var x in a||{}){if(x==="text")e.textContent=a[x];else if(x.slice(0,2)==="on")e.addEventListener(x.slice(2),a[x]);else e.setAttribute(x,a[x])}(k||[]).forEach(function(c){if(c)e.append(c)});return e}
 function api(p,b){var u=p+"?k="+encodeURIComponent(K.trim());return fetch(u,b?{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(b)}:{}).then(function(r){if(r.status===403)throw new Error("k");return r.json()})}
 var when=function(t){try{return new Date(t).toLocaleString("he-IL",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return""}};
-function row(o,acts){return el("div",{class:"o"},[el("div",{},[el("b",{text:o.price+" ₪ · קוד "+(o.code||"—")+(o.method?" · "+({bit:"ביט",paybox:"פייבוקס",auto:"אוטומטי",admin:"ידני"}[o.method]||o.method):"")}),el("small",{text:o.email+" · "+o.tier+" · "+when(o.at)})]),acts?el("div",{class:"btns"},acts):null])}
+function row(o,acts){return el("div",{class:"o"+(o.mine?" me":"")},[el("div",{},[o.mine?el("span",{class:"tag",text:"👤 אני"}):null,el("b",{text:o.price+" ₪ · קוד "+(o.code||"—")+(o.method?" · "+({bit:"ביט",paybox:"פייבוקס",auto:"אוטומטי",admin:"ידני"}[o.method]||o.method):"")}),el("small",{text:o.email+" · "+o.tier+" · "+when(o.at)})]),acts?el("div",{class:"btns"},acts):null])}
 function rev(id,v){api("/api/admin/review",{id:id,v:v}).then(paint)}
 function paint(d){$("app").hidden=false;var S=d.settings;["bit","pb","pbl","bl","nm"].forEach(function(i,n){var k=["bit_phone","paybox_phone","paybox_link","bit_link","payee_name"][n];if(document.activeElement!==$(i))$(i).value=S[k]});
-$("nurl").textContent=d.notifyUrl;$("sum").textContent="אושרו "+d.totals.n+" · "+d.totals.sum+" ₪";
+$("nurl").textContent=d.notifyUrl;$("sum").textContent="לקוחות: "+d.totals.others.n+" · "+d.totals.others.sum+" ₪"+(d.totals.me.n?" (שלי: "+d.totals.me.n+")":"");if(document.activeElement!==$("me"))$("me").value=(S.owner_emails||"").split(",").join(", ");
 $("waiting").replaceChildren.apply($("waiting"),d.waiting.length?d.waiting.map(function(o){return row(o,[el("button",{class:"ok",text:"✓ הגיע",onclick:function(){rev(o.id,"ok")}}),el("button",{class:"bad",text:"✗ לא הגיע",onclick:function(){if(confirm("לסמן שלא שולם? הלקוח לא יוכל להזמין עוד עד שיסדיר."))rev(o.id,"bad")}})])}):[el("p",{class:"m",text:"אין כרגע. 👌"})]);
 $("bad").replaceChildren.apply($("bad"),d.bad.length?d.bad.map(function(o){return row(o,[el("button",{class:"ok",text:"✓ הסדיר",onclick:function(){rev(o.id,"ok")}})])}):[el("p",{class:"m",text:"אין."})]);
 $("open").replaceChildren.apply($("open"),d.open.length?d.open.map(function(o){return row(o,[el("button",{class:"g",text:"✓ שולם",onclick:function(){rev(o.id,"ok")}})])}):[el("p",{class:"m",text:"אין."})]);
@@ -187,7 +198,7 @@ $("done").replaceChildren.apply($("done"),d.done.map(function(o){return row(o)})
 $("log").replaceChildren.apply($("log"),d.log.length?d.log.map(function(l){return el("small",{class:"m",text:when(l.at)+" · "+(l.order_id?"✓ אושר לפי "+l.how:"לא נמצאה הזמנה")+" · "+l.text})}):[el("p",{class:"m",text:"עוד לא הגיעו."})]);}
 function load(){api("/api/admin/state").then(function(d){$("err").hidden=true;paint(d)}).catch(function(){$("err").hidden=false;$("app").hidden=true})}
 $("kgo").onclick=function(){K=$("kin").value.trim();try{localStorage.setItem("play_admin",K)}catch(e){}load()};
-$("save").onclick=function(){api("/api/admin/settings",{bit_phone:$("bit").value,paybox_phone:$("pb").value,paybox_link:$("pbl").value,bit_link:$("bl").value,payee_name:$("nm").value}).then(function(d){paint(d);alert("נשמר")})};
+$("save").onclick=function(){api("/api/admin/settings",{bit_phone:$("bit").value,paybox_phone:$("pb").value,paybox_link:$("pbl").value,bit_link:$("bl").value,payee_name:$("nm").value,owner_emails:$("me").value}).then(function(d){paint(d);alert("נשמר")})};
 $("copy").onclick=function(){navigator.clipboard.writeText($("nurl").textContent).then(function(){$("copy").textContent="הועתק ✓"})};
 $("newtok").onclick=function(){if(confirm("ליצור כתובת חדשה? הישנה תפסיק לעבוד."))api("/api/admin/settings",{new_token:1}).then(paint)};
 $("pushBtn").onclick=function(){if(!("serviceWorker"in navigator)||!("PushManager"in window)){alert("הדפדפן לא תומך בהתראות");return}
