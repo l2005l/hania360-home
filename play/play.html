@@ -432,9 +432,10 @@ function needLogin(pending,back){
 }
 /** מסך התשלום: ביט או פייבוקס עם קוד בהערה, ואז "שילמתי" והמשחק נפתח מיד. top = תוכן נוסף מעל, onPaid אחרי אישור מהשרת. */
 function payForm({order,pay,lines,top,back,onPaid}){
-  let method=pay&&pay.bit?'bit':'paybox';
+  const has={bit:!!(pay&&(pay.bitLink||pay.bit)),paybox:!!(pay&&(pay.payboxLink||pay.paybox))};
+  let method=has.bit?'bit':'paybox';
   const copy=(t,b)=>{try{navigator.clipboard.writeText(t.replace(/-/g,'')).then(()=>{b.textContent='הועתק ✓';setTimeout(()=>b.textContent='העתקה',1500)})}catch{}};
-  const render=()=>{const ph=method==='bit'?pay.bit:pay.paybox, app=method==='bit'?'ביט':'פייבוקס';
+  const render=()=>{const link=method==='bit'?pay.bitLink:pay.payboxLink, ph=link?'':(method==='bit'?pay.bit:pay.paybox), app=method==='bit'?'ביט':'פייבוקס';
   view(`
   <div class="stack"><div class="eyebrow">תשלום</div><h2>כמעט מתחילים</h2></div>
   ${top||''}
@@ -442,14 +443,14 @@ function payForm({order,pay,lines,top,back,onPaid}){
     <div class="summary">${lines.map(l=>`<div><span class="small">${esc(l[0])}</span><span>${esc(l[1])}</span></div>`).join('')}
       <div class="total"><span>לתשלום</span><b>${order.price} ₪</b></div>
     </div>
-    ${pay.bit&&(pay.paybox||pay.payboxLink)?seg('pm',method,[["bit","ביט",""],["paybox","פייבוקס",""]]):''}
+    ${has.bit&&has.paybox?seg('pm',method,[["bit","ביט",""],["paybox","פייבוקס",""]]):''}
     <ol class="paysteps">
-      <li>${method==='paybox'&&pay.payboxLink&&!ph?`פותחים את <a href="${esc(pay.payboxLink)}" target="_blank" rel="noopener">קישור התשלום בפייבוקס</a> ומעבירים <b>${order.price} ₪</b>`:`מעבירים <b>${order.price} ₪</b> ב${app} למספר <b dir="ltr" class="phone">${esc(ph)}</b>${pay.name?` (${esc(pay.name)})`:''} <button type="button" class="ghost mini" id="cp">העתקה</button>`}</li>
+      <li>${link?`פותחים את ${app} בכפתור שלמטה ומעבירים <b>${order.price} ₪</b>`:`מעבירים <b>${order.price} ₪</b> ב${app} למספר <b dir="ltr" class="phone">${esc(ph)}</b>${pay.name?` (${esc(pay.name)})`:''} <button type="button" class="ghost mini" id="cp">העתקה</button>`}</li>
       <li>בהערה להעברה כותבים את הקוד: <b class="paycode" dir="ltr">${esc(pay.code)}</b></li>
-      <li>לוחצים "שילמתי", והמשחק נפתח מיד.</li>
+      <li>חוזרים לכאן ולוחצים "שילמתי", והמשחק נפתח מיד.</li>
     </ol>
-    ${method==='paybox'&&pay.payboxLink&&ph?`<a class="ghost btnlink" href="${esc(pay.payboxLink)}" target="_blank" rel="noopener">פתיחת קישור התשלום בפייבוקס</a>`:''}
-    <button class="primary" id="paybtn">✓ שילמתי ${order.price} ₪</button>
+    ${link?`<a class="primary btnlink" href="${esc(link)}" target="_blank" rel="noopener">לתשלום ב${app} ←</a>`:''}
+    <button class="${link?'ghost':'primary'}" id="paybtn">✓ שילמתי ${order.price} ₪</button>
     <p class="small">אנחנו בודקים כל תשלום מול ${app}. הקוד בהערה עוזר לנו לזהות שזה אתם.</p>
   </div>
   <button class="ghost" id="back">חזרה</button>`);
