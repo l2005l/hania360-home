@@ -16,9 +16,9 @@ export async function settings(env) {
   if (!s.notify_token) { s.notify_token = rid(16); await env.DB.prepare('INSERT OR IGNORE INTO settings(k,v) VALUES(?,?)').bind('notify_token', s.notify_token).run(); }
   return s;
 }
-export const payReady = (s) => !!(s.bit_phone || s.paybox_phone || s.paybox_link);
+export const payReady = (s) => !!(s.bit_phone || s.paybox_phone || s.paybox_link || s.bit_link);
 const phoneOk = (v) => { const d = String(v || '').replace(/[^\d]/g, ''); return /^0\d{8,9}$/.test(d) ? d.replace(/^(\d{3})(\d+)$/, '$1-$2') : ''; };
-const linkOk = (v) => { try { const u = new URL(String(v || '').trim()); return u.protocol === 'https:' && /(^|\.)payboxapp\.(page\.link|com)$|(^|\.)paybox\.co\.il$|(^|\.)bitpay\.co\.il$/.test(u.hostname) ? u.href : ''; } catch { return ''; } };
+const linkOk = (v) => { try { const u = new URL(String(v || '').trim()); return u.protocol === 'https:' && u.href.length <= 400 ? u.href : ''; } catch { return ''; } };
 
 /** מי שסומן ✗ או שיש לו יותר מדי תשלומים שעוד לא אושרו – לא מזמין עכשיו */
 export async function payBlock(env, user) {
@@ -39,7 +39,7 @@ export async function manualPay(env, orderId) {
     if (!used) code = c;
   }
   await env.DB.prepare('UPDATE orders SET pay_code=? WHERE id=?').bind(code, orderId).run();
-  return { mode: 'manual', code, bit: s.bit_phone || '', paybox: s.paybox_phone || '', payboxLink: s.paybox_link || '', name: s.payee_name || '' };
+  return { mode: 'manual', code, bit: s.bit_link ? '' : s.bit_phone || '', paybox: s.paybox_link ? '' : s.paybox_phone || '', payboxLink: s.paybox_link || '', bitLink: s.bit_link || '', name: s.payee_name || '' };
 }
 
 /** "שילמתי": המשחק נפתח מיד, והמנהל מקבל התראה לבדוק */
@@ -106,6 +106,7 @@ export async function adminApi(request, env, path, grantPass) {
     if (body.bit_phone !== undefined) await put('bit_phone', phoneOk(body.bit_phone));
     if (body.paybox_phone !== undefined) await put('paybox_phone', phoneOk(body.paybox_phone));
     if (body.paybox_link !== undefined) await put('paybox_link', linkOk(body.paybox_link));
+    if (body.bit_link !== undefined) await put('bit_link', linkOk(body.bit_link));
     if (body.payee_name !== undefined) await put('payee_name', String(body.payee_name || '').replace(/[<>]/g, '').trim().slice(0, 30));
     if (body.new_token) await put('notify_token', rid(16));
   }
@@ -121,7 +122,7 @@ export async function adminApi(request, env, path, grantPass) {
   const s = await settings(env);
   const list = (q) => env.DB.prepare(q).all().then((r) => (r.results || []).map((o) => ({ id: o.id, email: o.email, tier: o.tier, price: o.price, code: o.pay_code, method: o.provider_ref, review: o.review, status: o.status, at: o.claimed_at || o.created_at })));
   return json({
-    settings: { bit_phone: s.bit_phone || '', paybox_phone: s.paybox_phone || '', paybox_link: s.paybox_link || '', payee_name: s.payee_name || '' },
+    settings: { bit_phone: s.bit_phone || '', paybox_phone: s.paybox_phone || '', paybox_link: s.paybox_link || '', bit_link: s.bit_link || '', payee_name: s.payee_name || '' },
     notifyUrl: new URL(request.url).origin + '/api/pay/notify?t=' + s.notify_token,
     waiting: await list("SELECT * FROM orders WHERE review='pending' ORDER BY claimed_at DESC LIMIT 50"),
     bad: await list("SELECT * FROM orders WHERE review='bad' ORDER BY created_at DESC LIMIT 50"),
@@ -156,8 +157,9 @@ button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:9px 14px
 <div class="c"><h2>מחכים לבדיקה <span id="sum" class="m"></span></h2><p class="m">המשחק כבר נפתח ללקוח. בודקים בביט או בפייבוקס שהכסף הגיע, עם הקוד בהערה, ומסמנים.</p><div id="waiting" style="display:grid;gap:8px"></div></div>
 <div class="c"><h2>🔔 התראות לטלפון הזה</h2><button id="pushBtn">להפעיל התראה על כל "שילמתי"</button></div>
 <div class="c"><h2>פרטי התשלום שהלקוחות רואים</h2>
-<label>מספר לביט<input id="bit" inputmode="tel" dir="ltr"></label><label>מספר לפייבוקס<input id="pb" inputmode="tel" dir="ltr"></label>
-<label>קישור תשלום בפייבוקס (לא חובה)<input id="pbl" dir="ltr" placeholder="https://payboxapp.page.link/..."></label><label>השם שיופיע (לא חובה)<input id="nm" maxlength="30"></label>
+<p class="m">עדיף קישור: כשיש קישור, הלקוח רואה רק כפתור תשלום ולא את מספר הטלפון שלך.</p>
+<label>קישור תשלום בפייבוקס<input id="pbl" dir="ltr" placeholder="https://payboxapp.page.link/..."></label><label>קישור תשלום בביט<input id="bl" dir="ltr" placeholder="https://..."></label>
+<label>מספר לביט (רק אם אין קישור)<input id="bit" inputmode="tel" dir="ltr"></label><label>מספר לפייבוקס (רק אם אין קישור)<input id="pb" inputmode="tel" dir="ltr"></label><label>השם שיופיע (לא חובה)<input id="nm" maxlength="30"></label>
 <button id="save">שמירה</button><p class="m">בלי מספר אחד לפחות, הלקוחות רואים "התשלום ייפתח בקרוב".</p></div>
 <div class="c"><h2>🤖 אישור אוטומטי מאנדרואיד</h2><p class="m">אפליקציה בטלפון שולחת לכאן כל התראה של ביט או פייבוקס, והשרת מאשר לבד את ההזמנה עם הקוד או הסכום.</p>
 <ol><li>מתקינים את MacroDroid מ־Google Play.</li><li>טריגר: "התראה התקבלה" (Notification Received), מהאפליקציות bit ו־PayBox.</li><li>פעולה: "בקשת HTTP" (HTTP Request), שיטה POST, לכתובת שלמטה, ובגוף ההודעה (Body) המשתנים [notification_title] [notification].</li><li>שומרים, ומאשרים ל־MacroDroid גישה להתראות.</li></ol>
@@ -174,7 +176,7 @@ function api(p,b){var u=p+"?k="+encodeURIComponent(K.trim());return fetch(u,b?{m
 var when=function(t){try{return new Date(t).toLocaleString("he-IL",{day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}catch(e){return""}};
 function row(o,acts){return el("div",{class:"o"},[el("div",{},[el("b",{text:o.price+" ₪ · קוד "+(o.code||"—")+(o.method?" · "+({bit:"ביט",paybox:"פייבוקס",auto:"אוטומטי",admin:"ידני"}[o.method]||o.method):"")}),el("small",{text:o.email+" · "+o.tier+" · "+when(o.at)})]),acts?el("div",{class:"btns"},acts):null])}
 function rev(id,v){api("/api/admin/review",{id:id,v:v}).then(paint)}
-function paint(d){$("app").hidden=false;var S=d.settings;["bit","pb","pbl","nm"].forEach(function(i,n){var k=["bit_phone","paybox_phone","paybox_link","payee_name"][n];if(document.activeElement!==$(i))$(i).value=S[k]});
+function paint(d){$("app").hidden=false;var S=d.settings;["bit","pb","pbl","bl","nm"].forEach(function(i,n){var k=["bit_phone","paybox_phone","paybox_link","bit_link","payee_name"][n];if(document.activeElement!==$(i))$(i).value=S[k]});
 $("nurl").textContent=d.notifyUrl;$("sum").textContent="אושרו "+d.totals.n+" · "+d.totals.sum+" ₪";
 $("waiting").replaceChildren.apply($("waiting"),d.waiting.length?d.waiting.map(function(o){return row(o,[el("button",{class:"ok",text:"✓ הגיע",onclick:function(){rev(o.id,"ok")}}),el("button",{class:"bad",text:"✗ לא הגיע",onclick:function(){if(confirm("לסמן שלא שולם? הלקוח לא יוכל להזמין עוד עד שיסדיר."))rev(o.id,"bad")}})])}):[el("p",{class:"m",text:"אין כרגע. 👌"})]);
 $("bad").replaceChildren.apply($("bad"),d.bad.length?d.bad.map(function(o){return row(o,[el("button",{class:"ok",text:"✓ הסדיר",onclick:function(){rev(o.id,"ok")}})])}):[el("p",{class:"m",text:"אין."})]);
@@ -183,7 +185,7 @@ $("done").replaceChildren.apply($("done"),d.done.map(function(o){return row(o)})
 $("log").replaceChildren.apply($("log"),d.log.length?d.log.map(function(l){return el("small",{class:"m",text:when(l.at)+" · "+(l.order_id?"✓ אושר לפי "+l.how:"לא נמצאה הזמנה")+" · "+l.text})}):[el("p",{class:"m",text:"עוד לא הגיעו."})]);}
 function load(){api("/api/admin/state").then(function(d){$("err").hidden=true;paint(d)}).catch(function(){$("err").hidden=false;$("app").hidden=true})}
 $("kgo").onclick=function(){K=$("kin").value.trim();try{localStorage.setItem("play_admin",K)}catch(e){}load()};
-$("save").onclick=function(){api("/api/admin/settings",{bit_phone:$("bit").value,paybox_phone:$("pb").value,paybox_link:$("pbl").value,payee_name:$("nm").value}).then(function(d){paint(d);alert("נשמר")})};
+$("save").onclick=function(){api("/api/admin/settings",{bit_phone:$("bit").value,paybox_phone:$("pb").value,paybox_link:$("pbl").value,bit_link:$("bl").value,payee_name:$("nm").value}).then(function(d){paint(d);alert("נשמר")})};
 $("copy").onclick=function(){navigator.clipboard.writeText($("nurl").textContent).then(function(){$("copy").textContent="הועתק ✓"})};
 $("newtok").onclick=function(){if(confirm("ליצור כתובת חדשה? הישנה תפסיק לעבוד."))api("/api/admin/settings",{new_token:1}).then(paint)};
 $("pushBtn").onclick=function(){if(!("serviceWorker"in navigator)||!("PushManager"in window)){alert("הדפדפן לא תומך בהתראות");return}
