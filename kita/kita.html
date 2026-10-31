@@ -82,6 +82,31 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .lib{display:grid;gap:6px}
 .lib button{appearance:none;text-align:start;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:40;max-width:90%}
+/* math game */
+.fr{display:inline-grid;vertical-align:middle;text-align:center;line-height:1.05;margin:0 .12em;font-size:.85em}.fr i{font-style:normal;padding:0 .15em}.fr i:first-child{border-bottom:.08em solid currentColor}
+.mcard{border:3px solid var(--tc,var(--line))}
+.turn{display:flex;justify-content:space-between;gap:10px;width:100%;font-weight:800;font-size:clamp(17px,2.4vw,24px);flex-wrap:wrap}
+.qtimer{font-variant-numeric:tabular-nums;color:var(--c1)}
+.mq{font-size:clamp(34px,8vw,84px);font-weight:900;line-height:1.25;text-align:center;font-variant-numeric:tabular-nums}
+.mq.long{font-size:clamp(22px,4vw,44px);font-weight:800;max-width:900px}
+.mopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%}
+.mo{appearance:none;border:0;border-radius:20px;min-height:clamp(70px,13vh,130px);font:inherit;font-weight:900;font-size:clamp(24px,5vw,54px);color:#fff;background:var(--oc);cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.18);direction:ltr;unicode-bidi:plaintext;padding:6px}
+.mo:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.mo.ok{background:var(--c3);outline:5px solid #0b6b3a;outline-offset:2px}.mo.no{background:#9aa3ad;text-decoration:line-through}.mo.dim{opacity:.35}
+.mo:disabled{cursor:default}
+.mex{font-size:clamp(17px,2.4vw,24px);text-align:center}
+.track{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px}
+.lane{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) auto;gap:10px;align-items:center;border-radius:14px;padding:4px 8px}
+.lane b{color:var(--tc);font-size:clamp(15px,2vw,20px)}.lane.now{background:color-mix(in srgb,var(--tc) 14%,transparent)}
+.road{position:relative;height:46px;border-radius:99px;background:repeating-linear-gradient(90deg,var(--line) 0 18px,transparent 18px 30px),var(--bg)}
+.car{position:absolute;top:2px;font-size:34px;line-height:1;transition:inset-inline-start .6s cubic-bezier(.3,1.4,.6,1);transform:scaleX(-1)}
+.flag{position:absolute;inset-inline-end:4px;top:6px;font-size:28px}
+.lane .sc{font-weight:800;font-variant-numeric:tabular-nums}
+.prog{width:100%;height:10px;border-radius:99px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;background:var(--c3);border-radius:99px;transition:width .3s}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}.confetti i{position:absolute;top:-50px;font-style:normal;animation:fall 2.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.kid header select,.kid header .sp a,.kid .tabs{display:none}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}.car{transition:none}}
 @media print{
   body{background:#fff}.wrap>*:not(#view),#view>*:not(.printable){display:none!important}
   .wrap{padding:0;max-width:none}.sheet{box-shadow:none;border-radius:0;padding:0}
@@ -118,7 +143,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   $("cls").addEventListener("change", function () { CUR = $("cls").value; ls("kt.cur", CUR); picked = []; groups = null; render(); });
   $("fs").addEventListener("click", function () { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) {} });
 
-  var TABS = [["pick", "🎲 תלמיד"], ["groups", "👥 קבוצות"], ["timer", "⏱️ טיימר"], ["noise", "🔊 רעש"], ["points", "🏆 נקודות"], ["sheet", "📄 דף עבודה"], ["class", "⚙️ כיתות"]];
+  var TABS = [["pick", "🎲 תלמיד"], ["groups", "👥 קבוצות"], ["timer", "⏱️ טיימר"], ["noise", "🔊 רעש"], ["points", "🏆 נקודות"], ["sheet", "📄 דף עבודה"], ["math", "🎮 משחק חשבון"], ["class", "⚙️ כיתות"]];
   var TAB = ls("kt.tab") || "pick";
   function paintTabs() { $("tabs").replaceChildren.apply($("tabs"), TABS.map(function (t) { return el("button", { type: "button", role: "tab", "aria-selected": String(TAB === t[0]), onclick: function () { stopAll(); TAB = t[0]; ls("kt.tab", TAB); render(); } }, [t[1]]); })); }
   function need() { return el("div", { class: "card center" }, [el("h2", { text: "קודם מוסיפים את שמות התלמידים" }), el("button", { class: "btn", type: "button", text: "⚙️ לרשימת הכיתה", onclick: function () { TAB = "class"; render(); } })]); }
@@ -276,16 +301,144 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
       el("p", { class: "note", text: "הרשימות נשמרות רק במכשיר הזה. שמות התלמידים לא נשלחים לשום מקום." })])];
   }
 
+  // ---- 🎮 math game: a class race on the projector, or one child on a phone ----------------------------------------
+  // Exercises are made here, by grade and topic (no AI): every question has one right answer, three likely mistakes,
+  // and a short explanation that is shown after a wrong answer.
+  var RI = function (a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }, ONE = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+  var FR = function (n, d) { return '<span class="fr"><i>' + n + '</i><i>' + d + '</i></span>'; };
+  var COP = function (d) { var g = function (a, b) { return b ? g(b, a % b) : a; }, n, k = 0; do { n = RI(1, d - 1); } while (g(n, d) !== 1 && k++ < 30); return n; };
+  var DEC = function (x) { return String(Math.round(x * 1000) / 1000); };
+  function Q(q, a, wrong, ex, html) {
+    var opts = [String(a)]; wrong.map(String).forEach(function (w) { if (opts.indexOf(w) < 0 && opts.length < 4 && w !== "NaN" && !/^-/.test(w)) opts.push(w); });
+    var n = +a, k = 1; while (opts.length < 4 && !isNaN(n)) { [n + k, n - k].forEach(function (w) { if (opts.length < 4 && w >= 0 && opts.indexOf(String(w)) < 0) opts.push(String(w)); }); k++; }
+    return { q: q, a: String(a), opts: shuffle(opts), ex: ex || "", html: !!html };
+  }
+  var KIDS = ["דנה", "יוסי", "נועה", "איתי", "מאיה", "עומר", "תמר", "אורי", "ליה", "רועי"], THINGS = ["מדבקות", "סוכריות", "גולות", "קלפים", "בלונים", "צדפים"];
+  var MATH = {
+    "ב": {
+      add: ["➕ חיבור עד 100", function (L) { var a, b; if (L === 1) { a = RI(10, 89); b = RI(1, 9 - a % 10 || 1); } else if (L === 2) { a = RI(11, 89); b = RI(10 - a % 10, 9); if (a + b > 100) b = 100 - a; } else { a = RI(12, 68); b = RI(11, 99 - a); } var s = a + b; return Q(a + " + " + b + " = ?", s, [s - 10, s + 10, s + 1, s - 1], "מחברים קודם את היחידות ואז את העשרות: " + a + " + " + b + " = " + s); }],
+      sub: ["➖ חיסור עד 100", function (L) { var a, b; if (L === 1) { a = RI(21, 99); b = RI(1, a % 10 || 1); } else if (L === 2) { a = RI(21, 99); b = RI(a % 10 + 1, 9); } else { a = RI(40, 99); b = RI(11, a - 5); } var d = a - b; return Q(a + " − " + b + " = ?", d, [d + 10, d - 10, d + 1, a + b], "בודקים: " + d + " + " + b + " = " + a); }],
+      miss: ["❓ המספר החסר", function (L) { var max = L === 1 ? 20 : L === 2 ? 50 : 100, c = RI(10, max), a = RI(1, c - 1), b = c - a; return Q(ONE([a + " + ▢ = " + c, "▢ + " + a + " = " + c]), b, [c + a, b + 1, b - 1, b + 10], c + " − " + a + " = " + b); }],
+      mult: ["✖️ לוח הכפל", function (L) { var a = L === 1 ? ONE([2, 5, 10]) : L === 2 ? ONE([3, 4, 2, 5]) : RI(2, 10), b = RI(1, 10), p = a * b; return Q(a + " × " + b + " = ?", p, [a * (b + 1), a * (b - 1), a + b, (a + 1) * b], a + " × " + b + " זה " + b + " פעמים " + a + " = " + p); }],
+      cmp: ["⚖️ גדול, קטן או שווה", function (L) { var a = RI(10, 99), b = L === 1 ? RI(10, 99) : Number(String(a).split("").reverse().join("")) || a; if (Math.random() < 0.15) b = a; var r = a > b ? ">" : a < b ? "<" : "="; return { q: a + " ◯ " + b, a: r, opts: [">", "<", "="], ex: a === b ? "המספרים שווים" : "משווים קודם את העשרות: " + a + " " + r + " " + b }; }],
+      place: ["🔟 עשרות ויחידות", function (L) { var t = RI(1, 9), u = RI(0, 9), n = t * 10 + u; if (L === 1 || Math.random() < 0.5) return Q(t + " עשרות ו־" + u + " יחידות הם:", n, [u * 10 + t, t + u, t * 100 + u], t + " עשרות = " + t * 10 + ", ועוד " + u + " = " + n); return Q("כמה עשרות יש במספר " + n + "?", t, [u, n, t * 10], "במספר " + n + " ספרת העשרות היא " + t); }],
+      half: ["🍕 כפול וחצי", function (L) { var n = L === 1 ? RI(1, 10) * 2 : L === 2 ? RI(6, 25) * 2 : RI(13, 50) * 2; return Math.random() < 0.5 ? Q("חצי של " + n + " = ?", n / 2, [n * 2, n / 2 + 1, n - 2], n / 2 + " + " + n / 2 + " = " + n) : Q("כפול " + n / 2 + " = ?", n, [n / 2 + 2, n + 2, n / 2 * 3], n / 2 + " + " + n / 2 + " = " + n); }],
+      story: ["📖 שאלות סיפוריות", function (L) {
+        var k = ONE(KIDS), t = ONE(THINGS), a = RI(L === 1 ? 5 : 15, L === 1 ? 15 : 45), b = RI(3, L === 1 ? 9 : 25), kind = L === 3 ? RI(0, 2) : RI(0, 1);
+        if (kind === 0) return Q("ל" + k + " " + a + " " + t + ". " + (/ה$|ת$/.test(k) || k === "מאיה" ? "היא קיבלה" : "הוא קיבל") + " עוד " + b + ". כמה " + t + " יש עכשיו?", a + b, [a - b, a + b + 10, a + b - 1], a + " + " + b + " = " + (a + b));
+        if (kind === 1) { if (b > a) { var x = a; a = b; b = x; } return Q("ל" + k + " היו " + a + " " + t + ". " + b + " " + t + " נתנו לחברים. כמה נשארו?", a - b, [a + b, a - b + 10, a - b - 1], a + " − " + b + " = " + (a - b)); }
+        var g = RI(2, 5), per = ONE([2, 5, 10, 3, 4]); return Q("בכל קופסה יש " + per + " " + t + ". כמה " + t + " יש ב־" + g + " קופסאות?", g * per, [g + per, g * per + per, g * per - per], g + " × " + per + " = " + g * per);
+      }]
+    },
+    "ה": {
+      mul: ["✖️ כפל במאונך", function (L) { var a = L === 1 ? RI(12, 99) : L === 2 ? RI(102, 999) : RI(12, 99), b = L === 3 ? RI(11, 39) : RI(3, 9), p = a * b; return Q(a + " × " + b + " = ?", p, [p + 10, p - b, p + a, p + 100], L === 3 ? a + " × " + b + " = " + a + " × " + Math.floor(b / 10) * 10 + " + " + a + " × " + b % 10 + " = " + p : "מכפילים כל ספרה ושומרים על המעבר: " + p); }],
+      div: ["➗ חילוק", function (L) { var b = RI(3, 9), q = L === 3 ? RI(21, 120) : RI(4, 20), r = L === 2 ? RI(1, b - 1) : 0, a = b * q + r; if (r) return { q: a + " : " + b + " = ?", a: q + " (שארית " + r + ")", opts: shuffle([q + " (שארית " + r + ")", q + 1 + " (שארית " + r + ")", q + " (שארית " + (r + 1 < b ? r + 1 : r - 1) + ")", q - 1 + " (שארית " + (r + b < 10 ? r + b : r) + ")"].filter(function (v, i, s) { return s.indexOf(v) === i; })), ex: b + " × " + q + " = " + b * q + ", ונשארו " + r }; return Q(a + " : " + b + " = ?", q, [q + 1, q - 1, q * 10, a - b], "בודקים בכפל: " + q + " × " + b + " = " + a); }],
+      frEq: ["🍰 שברים שווים", function (L) { var d = RI(2, L === 1 ? 5 : 9), n = RI(1, d - 1), k = RI(2, L === 3 ? 6 : 4); return Q(FR(n, d) + " = " + FR("?", d * k), n * k, [n + k, n * k + 1, d * k - n, n * (k + 1)], "את המכנה הכפילו ב־" + k + ", אז גם את המונה: " + n + " × " + k + " = " + n * k, true); }],
+      frAdd: ["➕ חיבור שברים", function (L) { var d = RI(4, 12), a = RI(1, d - 2), b = RI(1, L === 1 ? d - a - 1 : d - 1), s = a + b; if (L === 1 && s >= d) { b = 1; s = a + 1; } var right = FR(s, d); return { q: FR(a, d) + " + " + FR(b, d) + " = ?", a: right, html: true, opts: shuffle([right, FR(s, d * 2), FR(s + 1, d), FR(Math.abs(a - b) || 1, d)].filter(function (v, i, x) { return x.indexOf(v) === i; })), ex: "כשהמכנה זהה מחברים רק את המונים: " + a + " + " + b + " = " + s + (s >= d ? ". (" + s + "/" + d + " גדול משלם)" : "") }; }],
+      frOf: ["🧩 שבר מכמות", function (L) { var d = ONE(L === 1 ? [2, 4, 5, 10] : [3, 4, 5, 6, 8]), n = COP(d), m = d * RI(2, L === 3 ? 15 : 8), r = m / d * n; return Q(FR(n, d) + " מ־" + m + " = ?", r, [m / d, m - r, r + n, m * n], m + " : " + d + " = " + m / d + ", ואז × " + n + " = " + r, true); }],
+      frCmp: ["⚖️ השוואת שברים", function (L) { var d1, n1, d2, n2, guard = 0; do { d1 = RI(3, 9); n1 = RI(1, d1 - 1); d2 = L === 1 ? d1 : RI(2, 9); n2 = RI(1, d2 - 1); } while ((n1 * d2 === n2 * d1) && guard++ < 50); var big = n1 * d2 > n2 * d1 ? FR(n1, d1) : FR(n2, d2); return { q: "איזה שבר גדול יותר?", a: big, html: true, opts: shuffle([FR(n1, d1), FR(n2, d2)]), ex: d1 === d2 ? "מכנה זהה: המונה הגדול יותר גדול" : "מכנה משותף " + d1 * d2 + ": " + n1 * d2 + " מול " + n2 * d1 }; }],
+      dec: ["🔢 שברים עשרוניים", function (L) { if (L === 1) { var a = RI(1, 9) / 10, b = RI(1, 9) / 10; return Q(DEC(a) + " + " + DEC(b) + " = ?", DEC(a + b), [DEC(a + b + 0.1), DEC((a + b) / 10), DEC(a * 10 + b * 10)], "עשיריות + עשיריות: " + a * 10 + " + " + b * 10 + " = " + Math.round((a + b) * 10) + " עשיריות"); } if (L === 2) { var x = RI(101, 499) / 100, y = RI(1, 9) / 10; return Q(DEC(x) + " + " + DEC(y) + " = ?", DEC(x + y), [DEC(x + y / 10), DEC(x + y + 0.01), DEC(x + y + 1)], "מיישרים את הנקודות: " + DEC(x) + " + " + DEC(y) + " = " + DEC(x + y)); } var n = RI(10, 99) / 10, alts = [n, n / 10 + Math.floor(n), Math.round(n * 10 + 1) / 100 + Math.floor(n), n - 0.05].map(DEC), mx = alts.slice().sort(function (p, q) { return q - p; })[0]; return { q: "איזה מספר הכי גדול?", a: mx, opts: shuffle(alts.filter(function (v, i, s) { return s.indexOf(v) === i; })), ex: "משווים ספרה ספרה אחרי הנקודה: " + mx + " הכי גדול" }; }],
+      ops: ["🧮 סדר פעולות", function (L) { var a = RI(2, 9), b = RI(2, 9), c = RI(2, 9); if (L === 1) return Q(a + " + " + b + " × " + c + " = ?", a + b * c, [(a + b) * c, a * b + c, a + b + c], "קודם כפל: " + b + " × " + c + " = " + b * c + ", ואז + " + a + " = " + (a + b * c)); if (L === 2) return Q("(" + (a + c) + " − " + c + ") × " + b + " = ?", a * b, [a + c - c * b, (a + c) * b - c, a * b + c], "קודם הסוגריים: " + (a + c) + " − " + c + " = " + a + ", ואז × " + b + " = " + a * b); var d = b * c; return Q(a * 10 + " − " + d + " : " + b + " = ?", a * 10 - c, [(a * 10 - d) / b, a * 10 - d, a * 10 + c], "קודם חילוק: " + d + " : " + b + " = " + c + ", ואז " + a * 10 + " − " + c + " = " + (a * 10 - c)); }],
+      divis: ["🔍 סימני התחלקות", function (L) { var k = ONE(L === 1 ? [2, 5, 10] : [3, 9, 5, 2]), yes = k * RI(L === 3 ? 50 : 11, L === 3 ? 333 : 99), no = []; while (no.length < 3) { var z = RI(yes - 60, yes + 60); if (z > 10 && z % k && no.indexOf(z) < 0) no.push(z); } var rule = { 2: "מספר זוגי (ספרת אחדות זוגית)", 5: "ספרת האחדות 0 או 5", 10: "ספרת האחדות 0", 3: "סכום הספרות מתחלק ב־3", 9: "סכום הספרות מתחלק ב־9" }[k]; return Q("איזה מספר מתחלק ב־" + k + " בלי שארית?", yes, no, "הסימן: " + rule); }],
+      geo: ["📐 שטח והיקף", function (L) { var a = RI(3, L === 1 ? 9 : 15), b = RI(2, a), area = Math.random() < 0.5; return area ? Q("מלבן באורך " + a + " ס״מ וברוחב " + b + " ס״מ. מה השטח (סמ״ר)?", a * b, [2 * (a + b), a + b, a * b + a], "שטח מלבן = אורך × רוחב = " + a + " × " + b + " = " + a * b) : Q("מלבן באורך " + a + " ס״מ וברוחב " + b + " ס״מ. מה ההיקף (ס״מ)?", 2 * (a + b), [a * b, a + b, 2 * a + b], "היקף = " + a + " + " + b + " + " + a + " + " + b + " = " + 2 * (a + b)); }],
+      mixed: ["🥧 מספר מעורב", function (L) { var d = RI(2, L === 1 ? 5 : 9), w = RI(1, L === 3 ? 6 : 3), n = COP(d), top = w * d + n, right = FR(top, d); return { q: w + " ו־" + FR(n, d) + " = ?", a: right, html: true, opts: shuffle([right, FR(w + n, d), FR(w * n + d, d), FR(top, d + w)].filter(function (v, i, s) { return s.indexOf(v) === i; })), ex: w + " שלמים = " + w * d + "/" + d + ", ועוד " + n + "/" + d + " = " + top + "/" + d }; }]
+    }
+  };
+  var GM = jget("kt.math", { grade: "ב", topics: null, level: 2, mode: "race", teams: 3, goal: 8, secs: 0 });
+  var RACE = null, SOLO = null, KID = /^#kid-/.test(location.hash) ? (location.hash.slice(5) === "5" ? "ה" : "ב") : "";
+  var CAR = ["🚀", "🚗", "🦄", "🐢"], TCOL = ["var(--c4)", "var(--c1)", "var(--c3)", "var(--c5)"], TNAME = ["הכחולים", "האדומים", "הירוקים", "הסגולים"];
+  function gmSave() { ls("kt.math", JSON.stringify(GM)); }
+  function topicsOf(g) { return GM.topics && GM.topics[g] && GM.topics[g].length ? GM.topics[g] : Object.keys(MATH[g]); }
+  function nextQ(level) { var g = GM.grade, t = ONE(topicsOf(g)), L = level || GM.level; var q = MATH[g][t][1](L); q.topic = MATH[g][t][0]; return q; }
+  function confetti() { var box = el("div", { class: "confetti", "aria-hidden": "true" }); for (var i = 0; i < 40; i++) { var s = el("i", { text: ONE(["🎉", "⭐", "✨", "🎈", "🏅"]) }); s.style.left = RI(0, 100) + "%"; s.style.animationDelay = (Math.random() * 0.6) + "s"; s.style.fontSize = RI(20, 40) + "px"; box.append(s); } document.body.append(box); setTimeout(function () { box.remove(); }, 3200); }
+  function qEl(q) { var d = el("div", { class: "mq" + (q.q.replace(/<[^>]+>/g, "").length > 22 ? " long" : ""), dir: "auto" }); if (q.html) d.innerHTML = q.q; else d.textContent = q.q; return d; }
+  function optBtn(o, q, onPick, i) { var b = el("button", { type: "button", class: "mo", style: "--oc:" + ["var(--c4)", "var(--c1)", "var(--c3)", "var(--c2)"][i % 4] }); if (q.html) b.innerHTML = o; else b.textContent = o; b.addEventListener("click", function () { onPick(o, b); }); return b; }
+  function reveal(box, q, picked) { box.querySelectorAll(".mo").forEach(function (b) { b.disabled = true; var v = q.html ? b.innerHTML : b.textContent; if (v === q.a) b.classList.add("ok"); else if (b === picked) b.classList.add("no"); else b.classList.add("dim"); }); }
+
+  function mathTab() {
+    if (RACE && RACE.on) return raceView();
+    if (SOLO && SOLO.on) return soloView();
+    return mathSetup();
+  }
+  function mathSetup() {
+    var g = KID || GM.grade; GM.grade = g;
+    var chips = function (key, list, multi) { return el("div", { class: "chips" }, list.map(function (o) { var on = multi ? topicsOf(g).indexOf(o[0]) >= 0 : String(GM[key]) === String(o[0]); return el("button", { type: "button", "aria-pressed": String(on), onclick: function () { if (multi) { var cur = topicsOf(g).slice(), i = cur.indexOf(o[0]); if (i >= 0) { if (cur.length > 1) cur.splice(i, 1); } else cur.push(o[0]); GM.topics = GM.topics || {}; GM.topics[g] = cur; } else GM[key] = o[0]; gmSave(); render(); } }, [o[1]]); })); };
+    var kidLink = location.origin + location.pathname + "#kid-" + (g === "ה" ? "5" : "2");
+    var parts = [el("div", { class: "card" }, [el("h2", { text: "🎮 משחק חשבון" + (KID ? " · כיתה " + g + "'" : "") }),
+      KID ? null : el("div", { class: "row" }, [el("div", {}, [el("span", { class: "note", text: "כיתה" }), chips("grade", [["ב", "כיתה ב'"], ["ה", "כיתה ה'"]])]), el("div", {}, [el("span", { class: "note", text: "איך משחקים" }), chips("mode", [["race", "🏁 מירוץ קבוצות"], ["solo", "🎯 משחק אישי"]])])]),
+      el("div", {}, [el("span", { class: "note", text: "נושאים (אפשר כמה)" }), chips("topics", Object.keys(MATH[g]).map(function (k) { return [k, MATH[g][k][0]]; }), true)]),
+      el("div", {}, [el("span", { class: "note", text: "רמה" }), chips("level", [[1, "קלה"], [2, "בינונית"], [3, "מאתגרת"]])]),
+      (GM.mode === "race" && !KID) ? el("div", { class: "row" }, [el("div", {}, [el("span", { class: "note", text: "קבוצות" }), chips("teams", [[2, "2"], [3, "3"], [4, "4"]])]), el("div", {}, [el("span", { class: "note", text: "צעדים לניצחון" }), chips("goal", [[5, "5"], [8, "8"], [12, "12"]])]), el("div", {}, [el("span", { class: "note", text: "זמן לשאלה" }), chips("secs", [[0, "בלי"], [20, "20 שנ׳"], [40, "40 שנ׳"]])])]) : null,
+      el("button", { class: "btn big", type: "button", text: GM.mode === "race" && !KID ? "🏁 יוצאים למירוץ" : "🎯 מתחילים", onclick: function () { if (GM.mode === "race" && !KID) startRace(); else startSolo(); } }),
+      KID ? null : el("div", { class: "btns" }, [el("button", { class: "btn sm ghost", type: "button", text: "📤 קישור לתלמידים לבית (כיתה " + g + "')", onclick: function () { var t = "🎮 משחק חשבון לכיתה " + g + "': " + kidLink; if (navigator.share) navigator.share({ text: t }).catch(function () {}); else { try { navigator.clipboard.writeText(kidLink); toast("הקישור הועתק"); } catch (e) {} } } })]),
+      el("p", { class: "note", text: "התרגילים נוצרים לבד לפי תוכנית הלימודים, בלי חיבור לאינטרנט ובלי לאסוף שום מידע על התלמידים." })])];
+    if (GM.mode !== "race" || KID) { var best = jget("kt.mbest." + g, null); if (best) parts.push(el("p", { class: "note", style: "text-align:center", text: "השיא שלך: " + best.score + " נקודות · " + "⭐".repeat(best.stars) })); }
+    return parts;
+  }
+  // race
+  function startRace() {
+    var names = groups && groups.length ? groups.map(function (g, i) { return "קבוצה " + (i + 1); }) : TNAME;
+    RACE = { on: true, teams: Array.from({ length: GM.teams }, function (_, i) { return { name: (teams && teams[i] && teams[i].name) || names[i] || TNAME[i], pos: 0, ok: 0 }; }), turn: 0, q: nextQ(), done: false, win: null };
+    render();
+  }
+  function raceView() {
+    var R2 = RACE, cur = R2.teams[R2.turn];
+    var track = el("div", { class: "track" }, R2.teams.map(function (t, i) { var lane = el("div", { class: "lane" + (i === R2.turn && !R2.win ? " now" : ""), style: "--tc:" + TCOL[i] }, [el("b", { text: t.name }), el("div", { class: "road" }, [el("span", { class: "car", style: "inset-inline-start:calc(" + (t.pos / GM.goal * 100) + "% - " + (t.pos / GM.goal * 44) + "px)", text: CAR[i] }), el("span", { class: "flag", text: "🏁" })]), el("span", { class: "sc", text: t.pos + "/" + GM.goal })]); return lane; }));
+    if (R2.win) { setTimeout(confetti, 50); return [el("div", { class: "card center" }, [el("div", { class: "face", text: "🏆" }), el("h2", { style: "font-size:clamp(28px,6vw,52px)", text: R2.win.name + " ניצחו!" }), track, el("div", { class: "btns" }, [el("button", { class: "btn big", type: "button", text: "🔁 עוד מירוץ", onclick: startRace }), el("button", { class: "btn ghost", type: "button", text: "⚙️ הגדרות", onclick: function () { RACE = null; render(); } })])])]; }
+    var q = R2.q, box = el("div", { class: "mopts" }), timer = el("div", { class: "qtimer" }), info = el("div", { class: "mex", hidden: true }), next = el("button", { class: "btn big", type: "button", hidden: true, text: "הבא ←" });
+    var stop = function () { clearInterval(R2.iv); };
+    var pick = function (o, b) {
+      stop(); var ok = o === q.a; reveal(box, q, b);
+      if (ok) { cur.pos++; cur.ok++; beep(1046, 0.12); setTimeout(function () { beep(1318, 0.16); }, 120); } else beep(220, 0.3);
+      info.hidden = false; info.replaceChildren.apply(info, [el("b", { text: ok ? "✔ נכון! " + cur.name + " מתקדמים" : "✘ לא הפעם." }), ok ? null : el("span", { text: " " + q.ex })].filter(Boolean));
+      if (cur.pos >= GM.goal) { R2.win = cur; next.textContent = "🏆 לתוצאות"; }
+      next.hidden = false; next.focus();
+    };
+    q.opts.forEach(function (o, i) { box.append(optBtn(o, q, pick, i)); });
+    next.addEventListener("click", function () { if (!R2.win) { R2.turn = (R2.turn + 1) % R2.teams.length; R2.q = nextQ(); } render(); });
+    if (GM.secs) { var left = GM.secs; timer.textContent = "⏱️ " + left; R2.iv = setInterval(function () { left--; timer.textContent = "⏱️ " + left; if (left <= 5 && left > 0) beep(660, 0.05); if (left <= 0) { stop(); pick("__", null); info.replaceChildren(el("b", { text: "⏱️ נגמר הזמן." }), el("span", { text: " " + q.ex })); } }, 1000); }
+    return [track, el("div", { class: "card center mcard", style: "--tc:" + TCOL[R2.turn] }, [el("div", { class: "turn" }, [el("span", { text: CAR[R2.turn] + " התור של " + cur.name }), GM.secs ? timer : null]), el("span", { class: "note", text: q.topic }), qEl(q), box, info, next]),
+      el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "⏭ שאלה אחרת", onclick: function () { stop(); R2.q = nextQ(); render(); } }), el("button", { class: "btn sm ghost", type: "button", text: "✕ סיום מירוץ", onclick: function () { stop(); RACE = null; render(); } })])];
+  }
+  // solo
+  function startSolo() { SOLO = { on: true, n: 0, total: 10, score: 0, ok: 0, streak: 0, level: GM.level, q: nextQ(GM.level), t0: Date.now(), wrong: [], done: false }; render(); }
+  function soloView() {
+    var S2 = SOLO, g = KID || GM.grade;
+    if (S2.done) {
+      var stars = S2.ok >= 9 ? 3 : S2.ok >= 7 ? 2 : S2.ok >= 4 ? 1 : 0, best = jget("kt.mbest." + g, null);
+      if (!best || S2.score > best.score) { ls("kt.mbest." + g, JSON.stringify({ score: S2.score, stars: stars })); if (best) setTimeout(function () { toast("🏅 שיא חדש!"); }, 600); }
+      if (stars >= 2) setTimeout(confetti, 50);
+      return [el("div", { class: "card center" }, [el("div", { class: "face", text: ["💪", "🙂", "😃", "🤩"][stars] }), el("h2", { style: "font-size:clamp(26px,6vw,44px)", text: S2.ok + " מתוך " + S2.total + " נכון" }), el("div", { style: "font-size:44px", text: "⭐".repeat(stars) + "☆".repeat(3 - stars) }), el("p", { class: "note", style: "font-size:18px", text: S2.score + " נקודות" }),
+        S2.wrong.length ? el("div", { class: "card", style: "text-align:start;width:100%" }, [el("b", { text: "כדאי לחזור על:" })].concat(S2.wrong.map(function (w) { var d = el("div", { class: "note", style: "font-size:15px" }); var E = function (t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }; d.innerHTML = (w.html ? w.q : E(w.q)) + " → <b>" + (w.html ? w.a : E(w.a)) + "</b> · " + E(w.ex); return d; }))) : null,
+        el("div", { class: "btns" }, [el("button", { class: "btn big", type: "button", text: "🔁 עוד סיבוב", onclick: startSolo }), el("button", { class: "btn ghost", type: "button", text: "⚙️ נושאים", onclick: function () { SOLO = null; render(); } })])])];
+    }
+    var q = S2.q, box = el("div", { class: "mopts" }), info = el("div", { class: "mex", hidden: true }), next = el("button", { class: "btn big", type: "button", hidden: true, text: S2.n + 1 >= S2.total ? "🏁 לתוצאות" : "הבא ←" }), t0 = Date.now();
+    var pick = function (o, b) {
+      var ok = o === q.a; reveal(box, q, b);
+      if (ok) { var bonus = Math.max(0, 10 - Math.floor((Date.now() - t0) / 1000)); S2.ok++; S2.streak++; S2.score += 10 + bonus + (S2.streak >= 3 ? 5 : 0); beep(1046, 0.1); setTimeout(function () { beep(1318, 0.14); }, 110); if (S2.streak % 3 === 0) S2.level = Math.min(3, S2.level + 1); }
+      else { S2.streak = 0; S2.wrong.push(q); S2.level = Math.max(1, S2.level - 1); beep(220, 0.3); }
+      info.hidden = false; info.replaceChildren.apply(info, [el("b", { text: ok ? ONE(["✔ מעולה!", "✔ נכון!", "✔ יפה מאוד!", "✔ אלוף!"]) + (S2.streak >= 3 ? " 🔥 " + S2.streak + " ברצף" : "") : "✘ כמעט." }), ok ? null : el("span", { text: " " + q.ex })].filter(Boolean));
+      next.hidden = false; next.focus();
+    };
+    q.opts.forEach(function (o, i) { box.append(optBtn(o, q, pick, i)); });
+    next.addEventListener("click", function () { S2.n++; if (S2.n >= S2.total) S2.done = true; else S2.q = nextQ(S2.level); render(); });
+    var bar = el("div", { class: "prog" }, [el("i", { style: "width:" + (S2.n / S2.total * 100) + "%" })]);
+    return [el("div", { class: "card center mcard" }, [el("div", { class: "turn" }, [el("span", { text: "שאלה " + (S2.n + 1) + " מתוך " + S2.total }), el("span", { text: "⭐ " + S2.score + (S2.streak >= 2 ? " · 🔥" + S2.streak : "") })]), bar, el("span", { class: "note", text: q.topic }), qEl(q), box, info, next]),
+      el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "✕ יציאה", onclick: function () { SOLO = null; render(); } })])];
+  }
+
   // ---- shell ------------------------------------------------------------------------------------------
   var ac = null;
   function beep(f, d) { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.4, ac.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + d + 0.02); } catch (e) {} }
-  function stopAll() { stopNoise(); }
+  function stopAll() { stopNoise(); if (RACE && RACE.iv) clearInterval(RACE.iv); }
   function render() {
     paintTabs();
-    var f = { pick: pickTab, groups: groupsTab, timer: timerTab, noise: noiseTab, points: pointsTab, sheet: sheetTab, "class": classTab }[TAB] || pickTab;
+    var f = { pick: pickTab, groups: groupsTab, timer: timerTab, noise: noiseTab, points: pointsTab, sheet: sheetTab, math: mathTab, "class": classTab }[TAB] || pickTab;
     $("view").replaceChildren.apply($("view"), f().filter(Boolean));
   }
+  if (KID) { TAB = "math"; GM.mode = "solo"; document.documentElement.classList.add("kid"); }
+  else if (location.hash === "#math") TAB = "math";
   paintCls(); render();
-  if (!cls().students.length && TAB !== "sheet") { TAB = "class"; render(); }
+  if (!KID && !cls().students.length && TAB !== "sheet" && TAB !== "math") { TAB = "class"; render(); }
 })();
 </script>
