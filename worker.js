@@ -376,6 +376,12 @@ export default {
     if (url.hostname === "home.hania360.com" || url.searchParams.get("app") === "home" && /workers\.dev$/.test(url.hostname)) return homeApp(url);
     if (url.hostname === "caption.hania360.com" || url.searchParams.get("app") === "caption" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CAPTIONAPP, CAPTION_FILES, CAPTION_IMAGES, "https://caption.hania360.com/");
     if (url.hostname === "ezra.hania360.com" || url.searchParams.get("app") === "ezra" && /workers\.dev$/.test(url.hostname)) return smallApp(url, EZRAAPP, EZRA_FILES, EZRA_IMAGES, "https://ezra.hania360.com/");
+    if ((url.hostname === "hania360.com" || url.hostname === "www.hania360.com" || /workers\.dev$/.test(url.hostname)) && url.pathname === "/api/ai-usage") {
+      // How many Workers AI jobs each app ran per day (no personal data), for the daily cost check.
+      if (!env || !env.SIPUR) return Response.json({ error: "unavailable" }, { status: 503 });
+      const r = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/usage");
+      return new Response(r.body, { headers: { "content-type": "application/json", "cache-control": "public, max-age=300", "access-control-allow-origin": "*" } });
+    }
     if (url.hostname === "sefer.hania360.com" || url.searchParams.get("app") === "sefer" && /workers\.dev$/.test(url.hostname)) return url.pathname === "/api/sefer/book" ? seferApi(request, env || {}) : url.pathname === "/api/sefer/hear" ? hearApi(request, env || {}) : smallApp(url, SEFERAPP, SEFER_FILES, SEFER_IMAGES, "https://sefer.hania360.com/");
     if (url.hostname === "play.hania360.com" || url.searchParams.get("app") === "play" && /workers\.dev$/.test(url.hostname)) return playApp(request, env || {});
     if (url.hostname === "kibud.hania360.com" || url.searchParams.get("app") === "kibud" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/kibud/") ? kibudApi(request, env || {}, url) : smallApp(url, KIBUDAPP, KIBUD_FILES, KIBUD_IMAGES, "https://kibud.hania360.com/");

@@ -16,6 +16,12 @@ const day = () => new Date(Date.now() + 2 * 3600e3).toISOString().slice(0, 10);
 export class StoryLimits {
   constructor(ctx) { this.ctx = ctx; ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS n (k TEXT PRIMARY KEY, c INTEGER)"); }
   async fetch(req) {
+    // Daily totals per app for the cost check (hania360.com/api/ai-usage): counts only, nothing per device.
+    if (req.method === "GET") {
+      const rows = [...this.ctx.storage.sql.exec("SELECT k, c FROM n WHERE k LIKE '%all:%'")], out = {};
+      for (const r of rows) { const m = r.k.match(/^([a-z]*):?all:(\d{4}-\d{2}-\d{2})$/); if (!m) continue; (out[m[2]] = out[m[2]] || {})[m[1] || "sipur"] = r.c; }
+      return json({ days: out });
+    }
     // ns separates the apps sharing these limits (HaniaSipur has none, HaniaKita "kita:").
     const b = await req.json(), d = day(), sql = this.ctx.storage.sql, ns = /^[a-z]{0,10}:?$/.test(b.ns || "") ? b.ns || "" : "", device = b.device;
     const perDay = b.perDay || PER_DAY, perDevice = b.perDevice || PER_DEVICE;
@@ -23,7 +29,9 @@ export class StoryLimits {
     if (get(ns + "all:" + d) >= perDay) return json({ ok: false, why: "day" });
     if (get(ns + device + ":" + d) >= perDevice) return json({ ok: false, why: "device" });
     for (const k of [ns + "all:" + d, ns + device + ":" + d]) sql.exec("INSERT INTO n (k, c) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET c = c + 1", k);
-    sql.exec("DELETE FROM n WHERE k NOT LIKE ?", "%" + d);
+    // Per-device counts are kept for today only; the daily totals for a week (for the cost check).
+    const week = new Date(Date.parse(d + "T12:00:00Z") - 7 * 864e5).toISOString().slice(0, 10);
+    sql.exec("DELETE FROM n WHERE (k NOT LIKE '%all:%' AND k NOT LIKE ?) OR (k LIKE '%all:%' AND substr(k, -10) < ?)", "%" + d, week);
     return json({ ok: true });
   }
 }
