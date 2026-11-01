@@ -1,6 +1,6 @@
 // HaniaShabbat offline: the page from the network when there is one, from the cache when not.
 // Candle-lighting reminders arrive as an empty push; the message waits on the server.
-const C = "haniashabbat-v2", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js", "/hebcal.js", "/parasha.js"];
+const C = "haniadat-v1", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js", "/hebcal.js", "/parasha.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(C).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", (e) => {
@@ -17,7 +17,7 @@ self.addEventListener("push", (e) => {
       const r = await fetch("/api/shabbat/msg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ endpoint: sub && sub.endpoint }) });
       m = r.ok ? await r.json() : null;
     } catch { m = null; }
-    if (!m || !m.title) m = { title: "🕯️ שבת מתקרבת", body: "עוד מעט הדלקת נרות.", url: "/" };
+    if (!m || !m.title) m = { title: "HaniaDat", body: "תזכורת לזמן שבחרתם.", url: "/" };
     await self.registration.showNotification(m.title, { body: m.body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", lang: "he", dir: "rtl", tag: "shabbat", renotify: true, vibrate: [120, 80, 120],
       data: { url: m.url || "/", d: m.d || "" } });
   })());

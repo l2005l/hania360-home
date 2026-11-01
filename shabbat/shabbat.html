@@ -1,4 +1,4 @@
-<title>HaniaShabbat</title>
+<title>HaniaDat · זמני היום, שבת וחגים</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Rubik:wght@400;500;700&display=swap">
 <style>
@@ -60,15 +60,57 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:29}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--wax);color:var(--night);padding:10px 16px;border-radius:12px;font-weight:600;z-index:40;max-width:90%}
 @media (prefers-reduced-motion:reduce){.flames span::before{animation:none}}
+/* today: the Hebrew date, the next zman with a ring, all of today's zmanim */
+.day{border-radius:28px;padding:20px;background:linear-gradient(170deg,#1F2A3A,#121A26);border:1px solid rgba(160,190,230,.18);display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.day .hd{font-family:var(--display);font-weight:900;font-size:clamp(30px,8.5vw,42px);line-height:1.1;margin:0}
+.day .eyebrow{color:#A9BCD6}
+.special{display:flex;gap:6px;flex-wrap:wrap}.special span{border-radius:99px;padding:4px 12px;background:rgba(247,181,72,.15);border:1px solid rgba(247,181,72,.4);font-weight:700;font-size:14px}
+.next{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(160,190,230,.18);border-radius:22px;padding:14px}
+.ring{width:96px;height:96px;position:relative}.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:var(--display);font-weight:900;font-size:26px;line-height:1}.ring b small{display:block;font-family:var(--body);font-size:11px;font-weight:600;color:#A9BCD6}
+.next .lbl{color:#A9BCD6;font-size:13px;font-weight:700}.next .nm{font-weight:700;font-size:19px}.next .tm{font-family:var(--display);font-weight:900;font-size:44px;line-height:1;color:var(--flame);font-variant-numeric:tabular-nums}
+.zl{list-style:none;margin:0;padding:0;display:grid}
+.zl li{display:flex;justify-content:space-between;gap:10px;padding:9px 2px;border-top:1px solid rgba(160,190,230,.12);font-size:15px}
+.zl li:first-child{border-top:0}.zl li b{font-variant-numeric:tabular-nums;font-weight:700}
+.zl li.past{opacity:.45}.zl li.now{color:var(--flame);font-weight:700}
+.zl li.now b{color:var(--flame)}
+details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;justify-content:space-between}details.zd summary::-webkit-details-marker{display:none}details.zd summary::after{content:"▾";color:#A9BCD6}details.zd[open] summary::after{content:"▴"}
+.compass{display:grid;justify-items:center;gap:8px;text-align:center}
+.dial{width:170px;height:170px;border-radius:50%;border:2px solid var(--line);position:relative;background:radial-gradient(circle,rgba(247,181,72,.08),transparent 70%)}
+.dial .n{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);font-weight:700}
+.dial .arr{position:absolute;inset:0;display:grid;place-items:center;transition:transform .2s linear}
+.dial .arr i{display:block;width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:70px solid var(--flame);transform:translateY(-34px);filter:drop-shadow(0 0 10px rgba(247,181,72,.6))}
 </style>
 
 <div class="wrap">
   <header>
-    <div class="logo"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="7" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><rect x="16" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><path d="M9.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5zM18.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5z" fill="#F7B548"/></svg><span>Hania<b>Shabbat</b></span></div>
+    <div class="logo"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="7" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><rect x="16" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><path d="M9.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5zM18.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5z" fill="#F7B548"/></svg><span>Hania<b>Dat</b></span></div>
     <button class="city" type="button" id="cityBtn">📍 …</button>
   </header>
 
   <div class="chips" id="savedCities" hidden></div>
+
+  <section class="day" id="daySec" aria-live="polite">
+    <span class="eyebrow" id="gDate"></span>
+    <h1 class="hd" id="hDate">…</h1>
+    <div class="special" id="special" hidden></div>
+    <div class="next"><div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(160,190,230,.18)" stroke-width="8"/><circle id="ringArc" cx="50" cy="50" r="44" fill="none" stroke="#F7B548" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5"/></svg><b id="nLeft">--</b></div>
+      <div><div class="lbl">הזמן הבא</div><div class="nm" id="nName">…</div><div class="tm" id="nTime">--:--</div></div></div>
+    <details class="zd" open><summary>כל זמני היום <small class="fine" id="zCity"></small></summary><ul class="zl" id="zList"></ul></details>
+  </section>
+
+  <section class="card">
+    <h2>⏰ תזכורת לזמן היום <small id="zmState"></small></h2>
+    <div class="chips" id="zmChips"></div>
+    <p class="fine" id="zmNote">התראה לטלפון רבע שעה לפני, בכל יום, גם כשהאפליקציה סגורה.</p>
+  </section>
+
+  <section class="card compass">
+    <h2 style="width:100%">🧭 כיוון לכותל <small id="kDeg"></small></h2>
+    <div class="dial"><span class="n">צפון</span><div class="arr" id="kArr"><i></i></div></div>
+    <button class="chip" type="button" id="kBtn">להפעלת המצפן</button>
+    <p class="fine" id="kNote">מחזיקים את הטלפון שטוח. החץ מצביע לכיוון הכותל המערבי.</p>
+  </section>
 
   <section class="candle" aria-live="polite">
     <div class="flames" aria-hidden="true"><span></span><span></span></div>
@@ -183,7 +225,7 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
 
   // ---- city: the choice stays on this phone, and the last few towns are one tap away ------------
   function pickCity(name) {
-    S.city = name; S.saved = [name].concat(S.saved.filter(function (x) { return x !== name; })).slice(0, 4); save(); render(); resync();
+    S.city = name; S.saved = [name].concat(S.saved.filter(function (x) { return x !== name; })).slice(0, 4); save(); render(); resync(); resyncZ();
   }
   function renderSaved() {
     var box = $("savedCities"), list = S.saved.filter(function (x) { return x === "__here" ? !!S.here : CITIES.some(function (c) { return c[0] === x; }); });
@@ -238,7 +280,7 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
       b.addEventListener("click", function () { setBefore(o[0]); }); return b;
     }));
     $("rmState").textContent = S.before ? "✓ פעיל" : "";
-    $("rmNote").textContent = !canPush ? (IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaShabbat למסך הבית (שיתוף ← הוספה למסך הבית), ואז אפשר להפעיל תזכורות." : "הדפדפן הזה לא תומך בהתראות.") : S.before ? "תגיע התראה " + (S.before === 60 ? "שעה" : S.before === 120 ? "שעתיים" : "חצי שעה") + " לפני כל הדלקת נרות, גם כשהאפליקציה סגורה." : "התראה לטלפון לפני כל שבת וחג, גם כשהאפליקציה סגורה.";
+    $("rmNote").textContent = !canPush ? (IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaDat למסך הבית (שיתוף ← הוספה למסך הבית), ואז אפשר להפעיל תזכורות." : "הדפדפן הזה לא תומך בהתראות.") : S.before ? "תגיע התראה " + (S.before === 60 ? "שעה" : S.before === 120 ? "שעתיים" : "חצי שעה") + " לפני כל הדלקת נרות, גם כשהאפליקציה סגורה." : "התראה לטלפון לפני כל שבת וחג, גם כשהאפליקציה סגורה.";
   }
   function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
   function items() { return upcoming(10).map(function (w) { return { t: w.candles.getTime(), label: w.parasha ? "פרשת " + w.parasha.replace(/^פרשת\s*/, "") : (w.label[0] || "שבת") }; }); }
@@ -263,8 +305,90 @@ select,input{font:inherit;font-size:16px;border:1px solid var(--line);background
   // Keeps the server's list of times fresh (city, Havdalah choice, the next weeks).
   function resync() { if (!S.before || !canPush) return; getSub(false).then(function (s) { if (s) api("sub", { sub: s.toJSON(), before: S.before, city: place().name, items: items() }); }).catch(function () {}); }
 
+
+  // ---- Today: the Hebrew date, the next zman and all of today's zmanim ----
+  var ZM = [["alot", "עלות השחר", function (z) { return z.alotHaShachar(); }], ["misheyakir", "זמן טלית ותפילין", function (z) { return z.misheyakir(); }], ["netz", "הנץ החמה", function (z) { return z.neitzHaChama(); }],
+    ["shmaMGA", "סוף זמן ק״ש (מג״א)", function (z) { return z.sofZmanShmaMGA(); }], ["shma", "סוף זמן ק״ש (גר״א)", function (z) { return z.sofZmanShma(); }], ["tfilaMGA", "סוף זמן תפילה (מג״א)", function (z) { return z.sofZmanTfillaMGA(); }], ["tfila", "סוף זמן תפילה (גר״א)", function (z) { return z.sofZmanTfilla(); }],
+    ["chatzot", "חצות היום", function (z) { return z.chatzot(); }], ["minchaG", "מנחה גדולה", function (z) { return z.minchaGedola(); }], ["minchaK", "מנחה קטנה", function (z) { return z.minchaKetana(); }], ["plag", "פלג המנחה", function (z) { return z.plagHaMincha(); }],
+    ["shkia", "שקיעה", function (z) { return z.shkiah(); }], ["tzeit", "צאת הכוכבים", function (z) { return z.tzeit(8.5); }]];
+  function zmanimOn(date) {
+    var p = place(), loc = new HB.Location(p.lat, p.lon, true, "Asia/Jerusalem", p.name, "IL"), z = new HB.Zmanim(loc, date, false);
+    return ZM.map(function (x) { var t = null; try { t = x[2](z); } catch (e) {} return { k: x[0], label: x[1], t: t && !isNaN(t) ? t : null }; }).filter(function (x) { return x.t; });
+  }
+  function specialsOn(d) {
+    var out = [];
+    try {
+      HB.HebrewCalendar.calendar({ start: d, end: d, il: true, omer: true, noModern: false, shabbatMevarchim: false }).forEach(function (e) {
+        var desc = e.getDesc ? e.getDesc() : ""; if (/^(Candle lighting|Havdalah|Parashat)/.test(desc)) return;
+        var t = strip(e.render("he")); if (t && out.indexOf(t) < 0) out.push(t);
+      });
+    } catch (e) {}
+    return out;
+  }
+  function renderDay() {
+    var now = new Date(), list = zmanimOn(now), p = place();
+    $("gDate").textContent = now.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jerusalem" });
+    var hd = new HB.HDate(now), shk = list.filter(function (x) { return x.k === "shkia"; })[0];
+    var eve = shk && now > shk.t, hd2 = eve ? hd.next() : null;
+    $("hDate").textContent = strip(hd.renderGematriya());
+    var sp = specialsOn(now); if (eve) sp = ["מהשקיעה: " + strip(hd2.renderGematriya())].concat(specialsOn(new Date(now.getTime() + 864e5)).map(function (x) { return "בערב: " + x; }).slice(0, 2)).concat(sp);
+    $("special").hidden = !sp.length; $("special").replaceChildren.apply($("special"), sp.slice(0, 4).map(function (t) { return el("span", t); }));
+    $("zCity").textContent = p.name;
+    var nextI = -1; for (var i = 0; i < list.length; i++) if (list[i].t > now) { nextI = i; break; }
+    var nx = nextI >= 0 ? list[nextI] : zmanimOn(new Date(now.getTime() + 864e5))[0], prev = nextI > 0 ? list[nextI - 1].t : nextI === 0 ? new Date(now.getTime() - 6 * 36e5) : list[list.length - 1].t;
+    $("nName").textContent = nx.label + (nextI < 0 ? " (מחר)" : ""); $("nTime").textContent = hm(nx.t);
+    var left = Math.max(0, Math.round((nx.t - now) / 6e4)), span = Math.max(1, (nx.t - prev) / 6e4);
+    $("nLeft").innerHTML = ""; $("nLeft").append(left < 60 ? String(left) : Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0"), el("small", left < 60 ? "דק׳" : "שע׳"));
+    $("ringArc").setAttribute("stroke-dashoffset", String(276.5 * Math.min(1, left / span)));
+    $("zList").replaceChildren.apply($("zList"), list.map(function (x, i) { return el("li", { class: i === nextI ? "now" : x.t < now ? "past" : "" }, [el("span", x.label), el("b", hm(x.t))]); }));
+  }
+
+  // ---- A daily reminder before a zman (on its own subscription list, "z", next to the candle lighting one) ----
+  var ZOPT = [["", "בלי"], ["shma", "סוף זמן ק״ש"], ["tfila", "סוף זמן תפילה"], ["shkia", "שקיעה (מנחה)"]];
+  function zItems() {
+    if (!S.z) return [];
+    var out = [], label = ZOPT.filter(function (o) { return o[0] === S.z; })[0][1];
+    for (var d = 0; d < 30; d++) { var day0 = new Date(Date.now() + d * 864e5), x = zmanimOn(day0).filter(function (q) { return q.k === S.z; })[0]; if (x && x.t > Date.now()) out.push({ t: x.t.getTime(), label: label }); }
+    return out;
+  }
+  function renderZm() {
+    $("zmChips").replaceChildren.apply($("zmChips"), ZOPT.map(function (o) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String((S.z || "") === o[0]) }, [o[1]]); b.addEventListener("click", function () { setZ(o[0]); }); return b; }));
+    $("zmState").textContent = S.z ? "✓ פעיל" : "";
+  }
+  function setZ(k) {
+    if (!k) { S.z = ""; save(); renderZm(); if (canPush) getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint, kind: "z" }); }).catch(function () {}); toast("התזכורת היומית כבויה"); return; }
+    if (!canPush) { toast(IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaDat למסך הבית" : "הדפדפן הזה לא תומך בהתראות"); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+      S.z = k;
+      return getSub(true).then(function (s) { return api("sub", { kind: "z", sub: s.toJSON(), before: 15, city: place().name, items: zItems() }); }).then(function (j) { if (!j.ok) throw new Error("x"); save(); renderZm(); toast("⏰ תזכורת יומית רבע שעה לפני"); });
+    }).catch(function () { S.z = ""; renderZm(); toast("לא הצלחנו להפעיל תזכורת"); });
+  }
+  function resyncZ() { if (!S.z || !canPush) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "z", sub: s.toJSON(), before: 15, city: place().name, items: zItems() }); }).catch(function () {}); }
+
+  // ---- Compass to the Western Wall ----
+  var KOTEL = [31.7767, 35.2345], kBear = null;
+  function bearing(lat1, lon1, lat2, lon2) { var r = Math.PI / 180, y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r), x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r); return (Math.atan2(y, x) / r + 360) % 360; }
+  var DIRS = ["צפון", "צפון־מזרח", "מזרח", "דרום־מזרח", "דרום", "דרום־מערב", "מערב", "צפון־מערב"];
+  function renderK() {
+    var p = place(); kBear = bearing(p.lat, p.lon, KOTEL[0], KOTEL[1]);
+    var near = Math.abs(p.lat - KOTEL[0]) < 0.01 && Math.abs(p.lon - KOTEL[1]) < 0.01;
+    $("kDeg").textContent = near ? "אתם ליד הכותל" : Math.round(kBear) + "° · " + DIRS[Math.round(kBear / 45) % 8];
+    $("kArr").style.transform = "rotate(" + kBear + "deg)";
+  }
+  function onOrient(e) {
+    var h = typeof e.webkitCompassHeading === "number" ? e.webkitCompassHeading : (e.absolute || e.type === "deviceorientationabsolute") && e.alpha != null ? (360 - e.alpha) % 360 : null;
+    if (h == null || kBear == null) return;
+    $("kArr").style.transform = "rotate(" + ((kBear - h + 360) % 360) + "deg)";
+  }
+  $("kBtn").addEventListener("click", function () {
+    var go = function () { window.addEventListener("deviceorientationabsolute", onOrient); window.addEventListener("deviceorientation", onOrient); $("kBtn").hidden = true; $("kNote").textContent = "מחזיקים את הטלפון שטוח ומסובבים. החץ מצביע לכותל. ליד מתכת או מגנט הכיוון עלול לסטות."; };
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") DeviceOrientationEvent.requestPermission().then(function (r) { if (r === "granted") go(); else toast("בלי אישור לחיישן אפשר להיעזר במעלות שלמעלה"); }).catch(function () { toast("המצפן לא זמין"); });
+    else if (window.DeviceOrientationEvent) go(); else toast("למכשיר הזה אין מצפן. אפשר להיעזר במעלות שלמעלה");
+  });
+  var _render = render; render = function () { _render(); try { renderDay(); renderZm(); renderK(); } catch (e) {} };
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
-  render(); resync();
+  render(); resync(); resyncZ();
   setInterval(render, 60000);
 })();
 </script>
