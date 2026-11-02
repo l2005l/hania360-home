@@ -42,9 +42,9 @@ export class MasachFamily {
     return o;
   }
   view(kid) {
-    const f = this.f, watch = f.watch || [];
-    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, now: Date.now() };
-    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, feed: f.feed.slice(-30), now: Date.now() };
+    const f = this.f, watch = f.watch || [], hasKey = !!(this.env && this.env.YT_KEY), search = hasKey && !!f.search;
+    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, now: Date.now() };
+    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, feed: f.feed.slice(-30), now: Date.now() };
   }
 
   async notify(to, msg) {
@@ -110,6 +110,7 @@ export class MasachFamily {
     const parent = b.key && b.key === f.key;
     const kid = !parent && b.t ? Object.keys(f.kids).find((id) => f.kids[id].t === b.t) : null;
     if (!parent && !kid) return json({ error: "auth" }, 403);
+    if (p === "/search") return json(await this.search(b, kid, parent));
     if (p === "/state") { const v = this.view(kid); await this.save(); return json(v); }
     if (p !== "/op") return json({ error: "not found" }, 404);
 
@@ -164,6 +165,7 @@ export class MasachFamily {
             if (!f.watch.some((x) => x.type === w.type && x.id === w.id)) f.watch.unshift(w);
             break;
           }
+          case "searchOn": f.search = !!b.on; break;
           case "watchDel": f.watch = (f.watch || []).filter((x) => !(x.type === b.type && x.id === b.id)); break;
           case "pairTv": { // sends one child's screen to a TV that shows a 4-digit code
             if (!k || !/^\d{4}$/.test(String(b.code || ""))) return json({ error: "code" }, 400);
@@ -177,6 +179,30 @@ export class MasachFamily {
     }
     this.tidy(); await this.save(); await this.schedule();
     return json(this.view(kid));
+  }
+  // YouTube search for the children, when the parents allowed it: strict SafeSearch, only videos that can be
+  // embedded, Hebrew first. Each search costs the shared daily quota, so results are cached for a day and
+  // each family has a daily limit.
+  async search(b, kid, parent) {
+    const f = this.f, key = this.env && this.env.YT_KEY;
+    if (!key) return { error: "nokey" };
+    if (!f.search && !parent) return { error: "off" };
+    const q = clean(b.q, 60).toLowerCase(); if (q.length < 2) return { items: [] };
+    const today = IL(); if (f.sDay !== today) { f.sDay = today; f.sCount = 0; }
+    const url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&safeSearch=strict&maxResults=24&regionCode=IL&relevanceLanguage=he&q=" + encodeURIComponent(q);
+    const ck = new Request("https://masach.hania360.com/yt-search?q=" + encodeURIComponent(q)), cache = caches.default;
+    let hit = await cache.match(ck).catch(() => null), j = hit ? await hit.json().catch(() => null) : null;
+    if (!j) {
+      if (f.sCount >= 60) return { error: "limit" };
+      f.sCount++; await this.save();
+      const r = await fetch(url + "&key=" + encodeURIComponent(key)).catch(() => null);
+      if (!r || !r.ok) return { error: "yt" };
+      const raw = await r.json().catch(() => null);
+      j = { items: ((raw && raw.items) || []).filter((x) => x.id && x.id.videoId && x.snippet && x.snippet.liveBroadcastContent !== "live").map((x) => ({ type: "v", id: x.id.videoId, title: clean(x.snippet.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"), 80), ch: clean(x.snippet.channelTitle, 40), thumb: "https://i.ytimg.com/vi/" + x.id.videoId + "/mqdefault.jpg" })) };
+      await cache.put(ck, new Response(JSON.stringify(j), { headers: { "content-type": "application/json", "cache-control": "public, max-age=86400" } })).catch(() => {});
+    }
+    if (kid) { f.feed.push({ at: Date.now(), k: kid, text: "חיפש/ה ביוטיוב: " + q }); this.tidy(); await this.save(); }
+    return j;
   }
   addKid(name, daily) {
     const i = this.f.next++;
@@ -240,7 +266,7 @@ export async function ytItem(raw) {
 export async function masachApi(req, env, url) {
   if (!env.MASACH) return Response.json({ error: "not configured" }, { status: 503 });
   const stub = (id) => env.MASACH.get(env.MASACH.idFromName("f:" + id));
-  const mm = url.pathname.match(/^\/api\/masach\/(new|state|op|key|msg|tv)$/);
+  const mm = url.pathname.match(/^\/api\/masach\/(new|state|op|key|msg|tv|search)$/);
   if (!mm) return Response.json({ error: "not found" }, { status: 404 });
   if (req.method !== "POST") return Response.json({ error: "method" }, { status: 405 });
   const body = await req.text();
