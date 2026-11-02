@@ -1,0 +1,407 @@
+<title>HaniaMasach · זמן מסך שהילדים רואים</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<style>
+/* Layout: a playroom at night. The child sees one huge ring that empties; the parent sees a card per child. */
+:root{
+  --bg:#14123A; --bg2:#1D1A4F; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --ink:#F6F3FF; --muted:#B9B3E0;
+  --sun:#FFC83D; --ok:#3EDC97; --warn:#FF9F43; --bad:#FF5D73; --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px;
+  background:radial-gradient(70% 45% at 85% 0%,rgba(255,200,61,.14),transparent 70%),radial-gradient(60% 40% at 0% 20%,rgba(62,220,151,.10),transparent 70%),var(--bg);background-attachment:fixed}
+.wrap{max-width:620px;margin:0 auto;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+main{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.logo{font-weight:900;font-size:24px;display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit}.logo b{color:var(--sun)}
+.logo img{width:32px;height:32px;border-radius:9px}
+header .sp{margin-inline-start:auto}
+h1{font-weight:900;font-size:clamp(28px,8vw,40px);line-height:1.1;margin:0}
+h2{font-weight:800;font-size:20px;margin:0}
+p{margin:0}
+.lead{color:var(--muted);font-size:17px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.btn{appearance:none;border:0;border-radius:16px;padding:14px 18px;font:inherit;font-weight:800;font-size:17px;cursor:pointer;background:var(--sun);color:#2A1D00;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.small{padding:9px 12px;font-size:15px;border-radius:12px}
+.btn:focus-visible,.chip:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 12px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--sun);color:#2A1D00;border-color:var(--sun)}
+input,select{font:inherit;font-size:16px;border:1.5px solid var(--line);background:#0E0C2A;color:var(--ink);border-radius:12px;padding:11px 12px;width:100%}
+label{display:grid;gap:6px;font-weight:700;font-size:14px;color:var(--muted)}
+.fine{font-size:13px;color:var(--muted)}
+.fine a{color:var(--muted)}
+.steps{margin:0;padding-inline-start:20px;display:grid;gap:6px;line-height:1.6}
+/* parent: one card per child */
+.kid{border-radius:24px;padding:16px;display:grid;gap:10px;background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid var(--line);position:relative;overflow:hidden}
+.kid::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--c)}
+.kid .top{display:flex;align-items:center;gap:10px}
+.kid .em{font-size:30px;line-height:1}
+.kid .nm{font-weight:800;font-size:20px}
+.kid .st{margin-inline-start:auto;font-size:13px;font-weight:700;border-radius:99px;padding:3px 10px;background:rgba(255,255,255,.08)}
+.kid .st.on{background:rgba(62,220,151,.18);color:var(--ok)}
+.kid .big{font-weight:900;font-size:44px;line-height:1;font-variant-numeric:tabular-nums;direction:ltr;text-align:right}
+.bar{height:10px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}.bar i{display:block;height:100%;background:var(--c);border-radius:99px;transition:width .5s}
+.week{display:flex;gap:6px;align-items:flex-end;height:56px;direction:rtl}
+.week span{flex:1;display:grid;justify-items:center;gap:3px;font-size:11px;color:var(--muted)}
+.week span i{display:block;width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:var(--c);opacity:.75;min-height:3px}
+.week span.today i{opacity:1}
+.feed{list-style:none;margin:0;padding:0;display:grid}.feed li{padding:8px 0;border-top:1px solid var(--line);font-size:14.5px;display:flex;gap:8px}.feed li:first-child{border-top:0}.feed small{color:var(--muted);margin-inline-start:auto;white-space:nowrap}
+/* child: the ring */
+.kidv{display:grid;justify-items:center;gap:14px;text-align:center;padding-top:8px}
+.ring{width:min(78vw,340px);aspect-ratio:1;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .in{position:absolute;inset:0;display:grid;place-content:center;gap:4px}
+.ring .t{font-weight:900;font-size:clamp(54px,18vw,92px);line-height:1;font-variant-numeric:tabular-nums;direction:ltr}
+.ring .u{font-size:16px;color:var(--muted);font-weight:700}
+.kidv .who{font-size:24px;font-weight:800}
+.kidv .go{font-size:22px;padding:18px 34px;border-radius:22px;min-width:240px}
+.kidv.warn .arc{stroke:var(--warn)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+body.tv .wrap{max-width:none}
+body.tv header,body.tv .tools,body.tv .kidfoot{display:none}
+body.tv .ring{width:min(70vh,70vw)}body.tv .ring .t{font-size:calc(min(70vh,70vw) * .2)}body.tv .ring .u{font-size:calc(min(70vh,70vw) * .05)}body.tv .kidv .who{font-size:5vh}
+/* the break */
+.brk{position:fixed;inset:0;z-index:50;background:radial-gradient(80% 60% at 50% 0%,rgba(255,200,61,.25),transparent 70%),#14123A;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;text-align:center}
+.brk .em{font-size:84px;line-height:1}
+.brk .act{font-size:clamp(24px,6.5vw,38px);font-weight:900;max-width:640px}
+.tvcode{font-weight:900;font-size:min(28vw,30vh);letter-spacing:.08em;direction:ltr;line-height:1;color:var(--sun)}
+.sheet{position:fixed;inset:auto 0 0 0;z-index:30;background:#221F58;border-radius:24px 24px 0 0;padding:20px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:12px;max-width:640px;margin:0 auto;max-height:85vh;overflow:auto;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:29}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:60;max-width:90%}
+.hero-art{display:flex;gap:10px;align-items:center;justify-content:center;font-size:44px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header><a class="logo" href="/" dir="ltr"><img src="/icons/icon-192.png" alt="">Hania<b>Masach</b></a><span class="sp"></span><a class="chip" href="https://hania360.com/" style="text-decoration:none">Hania360</a></header>
+
+  <!-- start: what it is, and a family in one step -->
+  <main id="home" hidden>
+    <section class="card">
+      <div class="hero-art" aria-hidden="true">📺 ⏳ 🤸</div>
+      <h1>זמן מסך שהילדים רואים</h1>
+      <p class="lead">שעון גדול שיורד על הטאבלט, בטלפון או בטלוויזיה. כשנגמר, מופיעה הפסקה עם משימה קטנה בלי מסך, ומי שעשה מרוויח עוד כמה דקות. אתם שולטים מהטלפון שלכם.</p>
+    </section>
+    <form class="card" id="newForm">
+      <h2>מתחילים: מי הילדים?</h2>
+      <div id="kidInputs" class="grid2"></div>
+      <button class="chip" type="button" id="moreKid">➕ עוד ילד/ה</button>
+      <label>כמה זמן מסך ביום, לכל ילד/ה
+        <select id="daily"><option value="30">חצי שעה</option><option value="45">45 דקות</option><option value="60" selected>שעה</option><option value="90">שעה וחצי</option><option value="120">שעתיים</option></select></label>
+      <button class="btn" type="submit">יוצרים</button>
+      <p class="fine">בלי הרשמה. הקישור שלכם נשמר בטלפון הזה, ואפשר לשלוח אותו גם להורה השני.</p>
+    </form>
+    <section class="card">
+      <h2>איך זה עובד</h2>
+      <ol class="steps"><li>כל ילד/ה מקבל/ת קישור משלו: פותחים אותו בטאבלט, בטלפון שלו או בטלוויזיה.</li><li>לוחצים "מתחילים מסך" והשעון יורד. אפשר להפעיל ולעצור גם מהטלפון שלכם.</li><li>5 דקות לפני הסוף השעון נצבע כתום. בסוף מופיעה הפסקה עם משימה: 20 קפיצות, לסדר את החדר, לשתות מים.</li><li>מי שעשה לוחץ "עשיתי" ומקבל עוד 10 דקות (עד 3 פעמים ביום). אתם מקבלים הודעה.</li></ol>
+      <p class="fine">חשוב לדעת: האפליקציה לא נועלת אפליקציות אחרות. היא עובדת על הסכמה ועל שעון שרואים. לנעילה אמיתית יש את <a href="https://families.google/familylink/" target="_blank" rel="noopener">Google Family Link</a> באנדרואיד ואת "זמן מסך" באייפון, ואפשר להשתמש בשניהם יחד.</p>
+    </section>
+  </main>
+
+  <!-- parent -->
+  <main id="parent" hidden>
+    <div class="row"><h1 id="famName" style="font-size:26px">המשפחה שלי</h1><span class="sp" style="margin-inline-start:auto"></span><button class="chip" type="button" id="bellP">🔔 התראות</button></div>
+    <div id="kids" style="display:grid;gap:14px"></div>
+    <button class="btn ghost" type="button" id="addKid">➕ ילד/ה</button>
+    <section class="card" id="feedCard" hidden><h2>מה קרה השבוע</h2><ul class="feed" id="feed"></ul></section>
+    <section class="card">
+      <h2>📺 על המסך של הילד</h2>
+      <ol class="steps">
+        <li><b>טאבלט או טלפון של הילד:</b> שולחים לו את הקישור שלו (כפתור "📱 קישור"). בכרום באנדרואיד ובמחשב יש "🪟 חלון צף": השעון נשאר בפינה מעל יוטיוב ומשחקים.</li>
+        <li><b>טלוויזיה חכמה עם דפדפן:</b> פותחים בה <b dir="ltr">masach.hania360.com/tv</b>, מופיעים 4 ספרות, ולוחצים כאן "📺 לטלוויזיה" ומקלידים אותן.</li>
+        <li><b>Chromecast או Android TV:</b> פותחים את הקישור של הילד בכרום בטלפון, ואז ⋮ ← "העברה" (Cast) ← הטלוויזיה.</li>
+        <li><b>אייפון ו־Apple TV:</b> פותחים את הקישור של הילד, ואז מרכז הבקרה ← "שיקוף מסך".</li>
+      </ol>
+    </section>
+    <section class="card">
+      <h2>להורה השני</h2>
+      <p class="fine">אותו קישור נותן שליטה מלאה. שולחים רק להורים.</p>
+      <div class="row"><button class="btn small" type="button" id="shareP">שליחה בוואטסאפ</button><button class="btn small ghost" type="button" id="copyP">העתקה</button></div>
+    </section>
+    <p class="fine">האפליקציה לא נועלת אפליקציות אחרות: השעון גלוי לילד, וכשהזמן נגמר מופיעה הפסקה. לנעילה אמיתית: <a href="https://families.google/familylink/" target="_blank" rel="noopener">Google Family Link</a> או "זמן מסך" באייפון.</p>
+  </main>
+
+  <!-- child -->
+  <main id="kidv" class="kidv" hidden>
+    <div class="who" id="kWho"></div>
+    <div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="9"/><circle class="arc" id="kArc" cx="50" cy="50" r="44" fill="none" stroke="var(--ok)" stroke-width="9" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg>
+      <div class="in"><div class="t" id="kTime">--:--</div><div class="u" id="kSub"></div></div></div>
+    <button class="btn go" type="button" id="kGo">▶ מתחילים מסך</button>
+    <div class="tools">
+      <button class="chip" type="button" id="kPip">🪟 חלון צף</button>
+      <button class="chip" type="button" id="kFull">⛶ מסך מלא</button>
+      <button class="chip" type="button" id="kTv">📺 בטלוויזיה</button>
+      <button class="chip" type="button" id="bellK">🔔 תזכורת 5 דק׳ לפני</button>
+    </div>
+    <p class="fine kidfoot" id="kFoot"></p>
+  </main>
+
+  <!-- TV: a code for the parent to type -->
+  <main id="tv" hidden style="text-align:center;display:grid;gap:18px;justify-items:center;padding-top:6vh">
+    <h1>📺 מסך לטלוויזיה</h1>
+    <p class="lead">בטלפון של ההורה, ב־HaniaMasach, לוחצים "📺 לטלוויזיה" ליד הילד ומקלידים:</p>
+    <div class="tvcode" id="tvCode">····</div>
+    <p class="fine" id="tvNote">הקוד מתחלף כל רבע שעה.</p>
+  </main>
+</div>
+<div id="sheetHost"></div>
+<div id="brkHost"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, a, kids) {
+    var e = document.createElement(tag);
+    if (typeof a === "string") { e.textContent = a; return e; }
+    Object.keys(a || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), a[k]); else if (k === "text") e.textContent = a[k]; else e.setAttribute(k, a[k]); });
+    [].concat(kids == null ? [] : kids).forEach(function (k) { if (k != null && k !== false) e.append(typeof k === "string" || typeof k === "number" ? document.createTextNode(String(k)) : k); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2800); }
+  var KEY = "masach.v1", S;
+  try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.fams = S.fams || [];
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function api(path, body) {
+    return fetch("/api/masach/" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j.error || r.status); e.code = j.error; throw e; } return j; }); });
+  }
+  function mmss(sec) { sec = Math.max(0, Math.round(sec)); var h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60; return h ? h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") : m + ":" + String(s).padStart(2, "0"); }
+  function minsText(m) { return m >= 60 ? (m % 60 ? Math.floor(m / 60) + ":" + String(m % 60).padStart(2, "0") + " שע׳" : (m === 60 ? "שעה" : m === 120 ? "שעתיים" : m / 60 + " שעות")) : m + " דק׳"; }
+  function show(id) { ["home", "parent", "kidv", "tv"].forEach(function (x) { $(x).hidden = x !== id; }); }
+  function sheet(title, kids) {
+    var host = $("sheetHost"), close = function () { host.textContent = ""; };
+    var sc = el("div", { class: "scrim", onclick: close }), sh = el("div", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": title }, [el("h2", title)].concat(kids).concat([el("button", { class: "btn ghost", type: "button", text: "סגירה", onclick: close })]));
+    host.replaceChildren(sc, sh); return close;
+  }
+  var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  var IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
+  // The service worker asks each family what a push was about.
+  function remember(f) { try { caches.open("masach-meta").then(function (c) { return c.match("/masach-fams").then(function (r) { return r ? r.json() : []; }).then(function (a) { if (a.indexOf(f) < 0) a.push(f); return c.put("/masach-fams", new Response(JSON.stringify(a.slice(-6)))); }); }); } catch (e) {} }
+  function subscribe(auth) {
+    if (!canPush) { toast(IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaMasach למסך הבית" : "הדפדפן הזה לא תומך בהתראות"); return Promise.resolve(false); }
+    return Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return false; }
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (s) {
+          if (s) return s;
+          return api("key", auth).then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); });
+        });
+      }).then(function (s) { remember(auth.f); return api("op", Object.assign({ op: "sub", sub: s.toJSON() }, auth)); }).then(function () { return true; });
+    }).catch(function () { toast("לא הצלחנו להפעיל התראות"); return false; });
+  }
+
+  // ---- start ------------------------------------------------------------------------------
+  function kidInput(v) { return el("input", { type: "text", maxlength: "20", placeholder: "שם", value: v || "", "aria-label": "שם הילד/ה" }); }
+  $("kidInputs").append(kidInput(), kidInput());
+  $("moreKid").addEventListener("click", function () { if ($("kidInputs").children.length < 6) { var i = kidInput(); $("kidInputs").append(i); i.focus(); } });
+  $("newForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var kids = [].map.call($("kidInputs").querySelectorAll("input"), function (i) { return i.value.trim(); }).filter(Boolean);
+    if (!kids.length) { toast("כותבים לפחות שם אחד"); return; }
+    api("new", { kids: kids, daily: +$("daily").value }).then(function (j) {
+      S.fams = [{ f: j.id, key: j.key }].concat(S.fams.filter(function (x) { return x.f !== j.id; })).slice(0, 4); save();
+      location.hash = "p-" + j.id + "-" + j.key;
+    }).catch(function () { toast("לא הצלחנו ליצור. מנסים שוב"); });
+  });
+
+  // ---- parent ------------------------------------------------------------------------------
+  var P = null, pTimer = 0, pData = null, pAt = 0;
+  function pAuth() { return { f: P.f, key: P.key }; }
+  function pLink() { return location.origin + "/#p-" + P.f + "-" + P.key; }
+  function kLink(k) { return location.origin + "/#k-" + P.f + "-" + k.t; }
+  function openParent(f, key) {
+    P = { f: f, key: key }; S.fams = [{ f: f, key: key }].concat(S.fams.filter(function (x) { return x.f !== f; })).slice(0, 4); save();
+    show("parent"); loadParent(); clearInterval(pTimer); pTimer = setInterval(function () { if (document.visibilityState === "visible") loadParent(); }, 10000);
+    $("bellP").setAttribute("aria-pressed", String(!!S.bellP));
+  }
+  function loadParent() { return api("state", pAuth()).then(drawParent).catch(function (e) { if (e.code === "auth" || e.code === "no family") { toast("הקישור לא תקף"); S.fams = S.fams.filter(function (x) { return x.f !== P.f; }); save(); location.hash = ""; } }); }
+  function op(body) { return api("op", Object.assign(body, pAuth())).then(drawParent).catch(function () { toast("לא הצלחנו. מנסים שוב"); }); }
+  var DAYS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+  function ilDay(t) { return new Date(t).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" }); }
+  function drawParent(j) {
+    pData = j; pAt = Date.now();
+    $("famName").textContent = j.family || "המשפחה שלי";
+    $("kids").replaceChildren.apply($("kids"), j.kids.map(function (k) {
+      var total = (k.daily + k.bonus) * 60, left = k.left, pct = total ? Math.max(0, Math.min(100, left / total * 100)) : 0;
+      var week = el("div", { class: "week", "aria-label": "השבוע" }), max = 1, days = [];
+      for (var i = 6; i >= 0; i--) { var t = Date.now() - i * 864e5, d = ilDay(t), v = i === 0 ? Math.round(k.used / 60) : (k.hist[d] || 0); days.push([new Date(t).getDay(), v, i === 0]); max = Math.max(max, v); }
+      days.forEach(function (x) { week.append(el("span", { class: x[2] ? "today" : "", title: x[1] + " דק׳" }, [el("i", { style: "height:" + Math.max(3, Math.round(x[1] / max * 40)) + "px" }), DAYS[x[0]]])); });
+      return el("div", { class: "kid", style: "--c:" + k.color, "data-k": k.id }, [
+        el("div", { class: "top" }, [el("span", { class: "em", text: k.emoji }), el("span", { class: "nm", text: k.name }), el("span", { class: "st" + (k.running ? " on" : ""), text: k.running ? "● צופה עכשיו" : left <= 0 ? "הזמן נגמר" : "בהפסקה" })]),
+        el("div", { class: "big", "data-left": "1", text: mmss(left) }),
+        el("div", { class: "fine", text: "נשאר מתוך " + minsText(k.daily) + (k.bonus ? " (" + (k.bonus > 0 ? "+" : "") + k.bonus + " דק׳ היום)" : "") + (k.bonusOn ? " · משימות: " + k.tasks + "/" + k.maxTasks : "") }),
+        el("div", { class: "bar" }, [el("i", { style: "width:" + pct + "%" })]),
+        el("div", { class: "row" }, [
+          el("button", { class: "btn small", type: "button", text: k.running ? "⏸ עצירה" : "▶ הפעלה", onclick: function () { op({ op: k.running ? "pause" : "start", k: k.id }); } }),
+          el("button", { class: "chip", type: "button", text: "−10", "aria-label": "פחות 10 דקות", onclick: function () { op({ op: "add", k: k.id, min: -10 }); } }),
+          el("button", { class: "chip", type: "button", text: "+10", "aria-label": "עוד 10 דקות", onclick: function () { op({ op: "add", k: k.id, min: 10 }); } }),
+          el("button", { class: "chip", type: "button", text: "+30", "aria-label": "עוד 30 דקות", onclick: function () { op({ op: "add", k: k.id, min: 30 }); } }),
+          el("button", { class: "chip", type: "button", text: "⚙️", "aria-label": "הגדרות", onclick: function () { kidSettings(k); } })]),
+        el("div", { class: "row" }, [
+          el("button", { class: "chip", type: "button", text: "📱 קישור ל" + k.name, onclick: function () { shareKid(k); } }),
+          el("button", { class: "chip", type: "button", text: "📺 לטלוויזיה", onclick: function () { pairTv(k); } })]),
+        week]);
+    }));
+    var names = {}; j.kids.forEach(function (k) { names[k.id] = k; });
+    var fd = (j.feed || []).slice().reverse().filter(function (x) { return names[x.k]; }).slice(0, 12);
+    $("feedCard").hidden = !fd.length;
+    $("feed").replaceChildren.apply($("feed"), fd.map(function (x) { return el("li", null, [names[x.k].emoji + " " + names[x.k].name + ": " + x.text, el("small", new Date(x.at).toLocaleString("he-IL", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" }))]); }));
+  }
+  // Between polls, running clocks keep moving on screen.
+  setInterval(function () {
+    if (!pData || $("parent").hidden) return;
+    var gone = (Date.now() - pAt) / 1000;
+    pData.kids.forEach(function (k) { var c = document.querySelector('.kid[data-k="' + k.id + '"] [data-left]'); if (c) c.textContent = mmss(k.running ? k.left - gone : k.left); });
+  }, 1000);
+  function shareKid(k) {
+    var link = kLink(k), text = k.emoji + " " + k.name + ", זה השעון שלך למסך: " + link;
+    sheet("📱 הקישור של " + k.name, [
+      el("p", { class: "fine", text: "פותחים אותו בטאבלט, בטלפון של " + k.name + " או במחשב. אפשר להוסיף למסך הבית כמו אפליקציה." }),
+      el("div", { class: "row" }, [el("a", { class: "btn small", href: "https://wa.me/?text=" + encodeURIComponent(text), target: "_blank", rel: "noopener", text: "וואטסאפ" }),
+        el("button", { class: "btn small ghost", type: "button", text: "העתקה", onclick: function () { copy(link); } }),
+        el("a", { class: "btn small ghost", href: link, target: "_blank", rel: "noopener", text: "פתיחה כאן" })])]);
+  }
+  function copy(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast("הועתק"); }).catch(function () { prompt("מעתיקים:", t); }); }
+  function pairTv(k) {
+    var inp = el("input", { type: "text", inputmode: "numeric", maxlength: "4", placeholder: "4 ספרות", dir: "ltr", style: "font-size:28px;text-align:center;letter-spacing:.2em" });
+    var close = sheet("📺 " + k.name + " בטלוויזיה", [
+      el("p", { class: "fine" }, ["בטלוויזיה פותחים את הדפדפן ונכנסים ל־", el("b", { dir: "ltr", text: "masach.hania360.com/tv" }), ". מופיעות 4 ספרות. מקלידים אותן כאן:"]),
+      inp, el("button", { class: "btn", type: "button", text: "שליחה לטלוויזיה", onclick: function () {
+        var code = inp.value.replace(/\D/g, ""); if (code.length !== 4) { toast("4 ספרות"); return; }
+        api("op", Object.assign({ op: "pairTv", k: k.id, code: code }, pAuth())).then(function () { close(); toast("📺 נשלח לטלוויזיה"); }).catch(function () { toast("הקוד לא נמצא. בודקים את הספרות"); });
+      } })]);
+    setTimeout(function () { inp.focus(); }, 50);
+  }
+  function kidSettings(k) {
+    var name = el("input", { type: "text", maxlength: "20", value: k.name }), daily = el("select", null, [15, 20, 30, 45, 60, 75, 90, 120, 150, 180].map(function (m) { var o = el("option", { value: String(m), text: minsText(m) }); if (m === k.daily) o.selected = true; return o; }));
+    if (![15, 20, 30, 45, 60, 75, 90, 120, 150, 180].includes(k.daily)) daily.append(el("option", { value: String(k.daily), selected: "", text: minsText(k.daily) }));
+    var bon = el("select", null, [["0", "בלי"], ["5", "5 דקות"], ["10", "10 דקות"], ["15", "15 דקות"], ["20", "20 דקות"]].map(function (o) { var x = el("option", { value: o[0], text: o[1] }); if ((k.bonusOn ? String(k.bonusMin) : "0") === o[0]) x.selected = true; return x; }));
+    var max = el("select", null, [1, 2, 3, 4, 5].map(function (n) { var x = el("option", { value: String(n), text: n + " פעמים ביום" }); if (n === k.maxTasks) x.selected = true; return x; }));
+    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]),
+      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value }).then(close); } }),
+      el("div", { class: "row" }, [el("button", { class: "chip", type: "button", text: "🔄 להתחיל את היום מאפס", onclick: function () { op({ op: "reset", k: k.id }).then(close); } }),
+        el("button", { class: "chip", type: "button", text: "🗑️ הסרה", onclick: function () { if (confirm("להסיר את " + k.name + "?")) op({ op: "kid", k: k.id, remove: true }).then(close); } })])]);
+  }
+  $("addKid").addEventListener("click", function () {
+    var name = el("input", { type: "text", maxlength: "20", placeholder: "שם" });
+    var close = sheet("➕ ילד/ה", [name, el("button", { class: "btn", type: "button", text: "הוספה", onclick: function () { if (!name.value.trim()) return; op({ op: "kid", name: name.value, daily: pData && pData.kids[0] ? pData.kids[0].daily : 60 }).then(close); } })]);
+    setTimeout(function () { name.focus(); }, 50);
+  });
+  $("shareP").addEventListener("click", function () { window.open("https://wa.me/?text=" + encodeURIComponent("📺 זמן המסך של הילדים, עם שליטה מלאה: " + pLink()), "_blank", "noopener"); });
+  $("copyP").addEventListener("click", function () { copy(pLink()); });
+  $("bellP").addEventListener("click", function () { subscribe(pAuth()).then(function (ok) { if (ok) { S.bellP = true; save(); $("bellP").setAttribute("aria-pressed", "true"); toast("🔔 נודיע כשהזמן נגמר וכשמרוויחים דקות"); } }); });
+
+  // ---- child ------------------------------------------------------------------------------
+  var K = null, kData = null, kAt = 0, kTimer = 0, lastLeft = null, audio = null, lock = null, pipV = null, pipC = null;
+  var ACTS = [["🤸", "20 קפיצות במקום"], ["🎨", "לצייר משהו שראית היום"], ["🧹", "לסדר 10 דברים בחדר"], ["💧", "לשתות כוס מים"], ["📚", "לקרוא 2 עמודים בספר"], ["🧩", "לבנות משהו מלגו או מקוביות"], ["💬", "לשאול מישהו בבית איך עבר עליו היום"], ["🌳", "לחפש בחלון או במרפסת 5 דברים ירוקים"], ["🙆", "10 מתיחות של כל הגוף"], ["🎵", "לשיר שיר שלם בקול"], ["🍽️", "לעזור לערוך את השולחן"], ["✍️", "לכתוב 3 דברים טובים שקרו היום"], ["🧦", "לקפל את הבגדים שלך"], ["⚽", "5 דקות משחק עם כדור"], ["🦩", "לעמוד על רגל אחת 30 שניות, ואז על השנייה"], ["🐢", "לשכב על הגב ולנשום לאט 10 נשימות"]];
+  function kAuth() { return { f: K.f, t: K.t }; }
+  function openKid(f, t, tv) {
+    K = { f: f, t: t }; S.kid = { f: f, t: t }; save(); remember(f);
+    document.body.classList.toggle("tv", !!tv || S.tv === f + t); if (tv) { S.tv = f + t; save(); }
+    show("kidv"); loadKid(); clearInterval(kTimer); kTimer = setInterval(function () { if (document.visibilityState === "visible") loadKid(); }, 15000);
+    $("bellK").setAttribute("aria-pressed", String(!!S.bellK));
+  }
+  function loadKid() { return api("state", kAuth()).then(drawKid).catch(function (e) { if (e.code === "auth" || e.code === "no family") { $("kWho").textContent = "הקישור הזה כבר לא פעיל"; S.kid = null; save(); } }); }
+  function kOp(body) { return api("op", Object.assign(body, kAuth())).then(drawKid).catch(function (e) { toast(e.code === "no bonus" ? "להיום כבר אין עוד דקות להרוויח" : "לא הצלחנו. מנסים שוב"); }); }
+  function drawKid(j) { kData = j.kids[0]; kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
+  function kLeft() { return kData ? (kData.running ? kData.left - (Date.now() - kAt) / 1000 : kData.left) : 0; }
+  function beep(n) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); for (var i = 0; i < n; i++) { var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination); o.start(audio.currentTime + i * 0.35); o.stop(audio.currentTime + i * 0.35 + 0.18); } } catch (e) {} }
+  function tickKid() {
+    if (!kData) return;
+    var left = kLeft(), total = Math.max(60, (kData.daily + kData.bonus) * 60), warn = left > 0 && left <= 300;
+    $("kTime").textContent = mmss(left);
+    $("kSub").textContent = left <= 0 ? "הזמן נגמר" : kData.running ? "נשאר היום" : "בהפסקה";
+    $("kArc").setAttribute("stroke-dashoffset", String(276.5 * (1 - Math.max(0, Math.min(1, left / total)))));
+    $("kArc").style.stroke = left <= 0 ? "var(--bad)" : warn ? "var(--warn)" : kData.color;
+    $("kGo").textContent = kData.running ? "⏸ הפסקה" : "▶ מתחילים מסך";
+    $("kGo").hidden = left <= 0;
+    $("kFoot").textContent = kData.bonusOn ? "כשהזמן נגמר אפשר להרוויח עוד " + kData.bonusMin + " דקות במשימה בלי מסך (" + (kData.maxTasks - kData.tasks) + " נשארו היום)." : "";
+    if (lastLeft != null && kData.running) { if (lastLeft > 300 && left <= 300) beep(2); if (lastLeft > 0 && left <= 0) { beep(3); loadKid(); } }
+    lastLeft = left;
+    drawBreak(left <= 0);
+    drawPip(left);
+    if (kData.running && left > 0) wake(true); else wake(false);
+  }
+  setInterval(function () { if (!$("kidv").hidden) tickKid(); }, 1000);
+  function wake(on) { try { if (on && !lock && navigator.wakeLock && document.visibilityState === "visible") navigator.wakeLock.request("screen").then(function (l) { lock = l; l.addEventListener("release", function () { lock = null; }); }).catch(function () {}); if (!on && lock) { lock.release(); lock = null; } } catch (e) {} }
+  var brkAct = null;
+  function drawBreak(on) {
+    var host = $("brkHost");
+    if (!on) { if (host.firstChild) host.textContent = ""; brkAct = null; return; }
+    if (host.firstChild) return;
+    brkAct = brkAct || ACTS[Math.floor(Math.random() * ACTS.length)];
+    var can = kData.bonusOn && kData.tasks < kData.maxTasks;
+    var actEl = el("div", { class: "act", text: brkAct[1] }), emEl = el("div", { class: "em", text: brkAct[0] });
+    host.append(el("div", { class: "brk", role: "dialog", "aria-label": "הפסקה" }, [
+      el("h1", "⏰ הזמן נגמר!"),
+      can ? el("p", { class: "lead", text: "רוצה עוד " + kData.bonusMin + " דקות? קודם משימה קטנה בלי מסך:" }) : el("p", { class: "lead", text: "כל הכבוד! מחר יש עוד. בינתיים, משהו כיף בלי מסך:" }),
+      emEl, actEl,
+      can ? el("button", { class: "btn go", type: "button", text: "✅ עשיתי! (+" + kData.bonusMin + " דק׳)", onclick: function () { kOp({ op: "task", text: brkAct[0] + " " + brkAct[1] }).then(function () { host.textContent = ""; toast("⭐ כל הכבוד! קיבלת " + kData.bonusMin + " דקות"); }); } }) : null,
+      el("button", { class: "chip", type: "button", text: "🔀 משימה אחרת", onclick: function () { brkAct = ACTS[Math.floor(Math.random() * ACTS.length)]; emEl.textContent = brkAct[0]; actEl.textContent = brkAct[1]; } })]));
+  }
+  $("kGo").addEventListener("click", function () { beep(0); kOp({ op: kData && kData.running ? "pause" : "start" }); });
+  $("kFull").addEventListener("click", function () { var d = document.documentElement; (d.requestFullscreen ? d.requestFullscreen() : Promise.reject()).catch(function () { toast("המסך המלא לא זמין כאן"); }); });
+  $("bellK").addEventListener("click", function () { subscribe(kAuth()).then(function (ok) { if (ok) { S.bellK = true; save(); $("bellK").setAttribute("aria-pressed", "true"); toast("🔔 נזכיר 5 דקות לפני הסוף"); } }); });
+  $("kTv").addEventListener("click", function () {
+    sheet("📺 השעון בטלוויזיה", [el("ol", { class: "steps" }, [
+      el("li", null, [el("b", "טלוויזיה חכמה עם דפדפן: "), "פותחים ", el("b", { dir: "ltr", text: "masach.hania360.com/tv" }), ", ואמא או אבא מקלידים בטלפון שלהם את 4 הספרות."]),
+      el("li", null, [el("b", "Chromecast או Android TV: "), "בכרום בטלפון ⋮ ← \"העברה\" (Cast) ← הטלוויזיה."]),
+      el("li", null, [el("b", "אייפון ו־Apple TV: "), "מרכז הבקרה ← \"שיקוף מסך\"."]),
+      el("li", null, [el("b", "בטאבלט מעל יוטיוב ומשחקים: "), "\"🪟 חלון צף\" משאיר את השעון קטן בפינה."])])]);
+  });
+  // A floating window over other apps: a tiny video of the clock (Picture-in-Picture).
+  function drawPip(left) {
+    if (!pipC) return;
+    var x = pipC.getContext("2d"), w = pipC.width, h = pipC.height, m = Math.max(0, Math.ceil(left / 60));
+    x.fillStyle = "#14123A"; x.fillRect(0, 0, w, h);
+    x.fillStyle = left <= 0 ? "#FF5D73" : left <= 300 ? "#FF9F43" : (kData && kData.color) || "#3EDC97";
+    x.fillRect(0, h - 22, w * Math.max(0, Math.min(1, left / Math.max(60, (kData.daily + kData.bonus) * 60))), 22);
+    x.fillStyle = "#F6F3FF"; x.textAlign = "center"; x.textBaseline = "middle";
+    x.font = "900 120px Rubik, sans-serif"; x.fillText(left <= 0 ? "0" : String(m), w / 2, h / 2 - 22);
+    x.font = "700 34px Rubik, sans-serif"; x.fillText(left <= 0 ? "הזמן נגמר" : kData.running ? "דקות נשארו" : "בהפסקה", w / 2, h - 60);
+  }
+  $("kPip").addEventListener("click", function () {
+    if (!document.pictureInPictureEnabled || !HTMLCanvasElement.prototype.captureStream) { toast(IOS ? "באייפון: \"שיקוף מסך\" או להשאיר את הדף פתוח" : "החלון הצף לא זמין בדפדפן הזה. בכרום הוא עובד"); return; }
+    if (document.pictureInPictureElement) { document.exitPictureInPicture(); return; }
+    pipC = pipC || el("canvas", { width: "400", height: "260" });
+    drawPip(kLeft());
+    if (!pipV) { pipV = el("video", { muted: "", playsinline: "", style: "position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;bottom:0" }); pipV.muted = true; pipV.srcObject = pipC.captureStream(2); document.body.append(pipV); }
+    pipV.play().then(function () { return pipV.requestPictureInPicture(); }).then(function () { toast("🪟 השעון בחלון צף. אפשר לעבור לאפליקציה אחרת"); }).catch(function () { toast("לא הצלחנו לפתוח חלון צף"); });
+  });
+
+  // ---- TV pairing ------------------------------------------------------------------------------
+  var tvT = 0;
+  function openTv() {
+    show("tv"); document.body.classList.add("tv");
+    var fresh = function () { api("tv", { op: "new" }).then(function (j) { $("tvCode").textContent = j.code; var start = Date.now();
+      clearInterval(tvT); tvT = setInterval(function () {
+        if (Date.now() - start > 14 * 60000) { clearInterval(tvT); fresh(); return; }
+        api("tv", { op: "wait", code: j.code, secret: j.secret }).then(function (r) { if (r.link) { clearInterval(tvT); var m = r.link.match(/#k-([A-Za-z0-9]+)-([A-Za-z0-9]+)/); if (m) { history.replaceState(null, "", "/#k-" + m[1] + "-" + m[2]); openKid(m[1], m[2], true); } } else if (r.gone) { clearInterval(tvT); fresh(); } }).catch(function () {});
+      }, 3000); }).catch(function () { $("tvNote").textContent = "אין חיבור. מנסים שוב בעוד רגע"; setTimeout(fresh, 5000); }); };
+    fresh();
+  }
+
+  // ---- route ------------------------------------------------------------------------------
+  function route() {
+    var h = location.hash.slice(1), m;
+    clearInterval(pTimer); clearInterval(kTimer); clearInterval(tvT); document.body.classList.remove("tv");
+    if ((m = h.match(/^p-([A-Za-z0-9]{6,20})-([A-Za-z0-9]{8,30})$/))) return openParent(m[1], m[2]);
+    if ((m = h.match(/^k-([A-Za-z0-9]{6,20})-([A-Za-z0-9]{6,20})$/))) return openKid(m[1], m[2]);
+    if (h === "tv" || location.pathname === "/tv") return openTv();
+    if (h === "new") { show("home"); return; }
+    if (S.fams[0]) { history.replaceState(null, "", "/#p-" + S.fams[0].f + "-" + S.fams[0].key); return openParent(S.fams[0].f, S.fams[0].key); }
+    if (S.kid) { history.replaceState(null, "", "/#k-" + S.kid.f + "-" + S.kid.t); return openKid(S.kid.f, S.kid.t); }
+    show("home");
+  }
+  addEventListener("hashchange", route);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { if (!$("parent").hidden) loadParent(); if (!$("kidv").hidden) loadKid(); } });
+  route();
+})();
+</script>
