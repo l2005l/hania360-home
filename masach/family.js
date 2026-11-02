@@ -13,6 +13,9 @@ const token = (n) => { const a = new Uint8Array(n); crypto.getRandomValues(a); r
 const IL = (t = Date.now()) => { const f = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(t)); const o = {}; for (const p of f) o[p.type] = p.value; return o.year + "-" + o.month + "-" + o.day; };
 // Milliseconds since midnight in Israel (for a clock that was running across midnight).
 const sinceMidnight = () => { const f = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date()); const o = {}; for (const p of f) o[p.type] = +p.value; return ((o.hour * 60 + o.minute) * 60 + o.second) * 1000; };
+// Bedtime: from the chosen hour until five in the morning the screen stays closed, whatever minutes are left.
+const bedMin = (k) => { const m = /^(\d{2}):(\d{2})$/.exec(k.bed || ""); return m ? +m[1] * 60 + +m[2] : null; };
+const asleep = (k) => { const b = bedMin(k); if (b == null) return false; const m = Math.floor(sinceMidnight() / 60000); return m >= b || m < 300; };
 const EMOJI = ["🦊", "🐼", "🦁", "🐸", "🦄", "🐙", "🐯", "🐨", "🐵", "🐬"];
 const COLORS = ["#FF7A59", "#3BA3FF", "#21B573", "#B66DFF", "#FFB020", "#FF5D8F"];
 const MAX_KIDS = 6, WARN = 5 * 60000, KEEP_DAYS = 14;
@@ -37,7 +40,7 @@ export class MasachFamily {
   left(k) { return (k.daily + k.bonus) * 60000 - this.used(k); }
   kidView(id, k, withToken) {
     this.roll(k);
-    const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist };
+    const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist, bed: k.bed || "", asleep: asleep(k) };
     if (withToken) o.t = k.t;
     return o;
   }
@@ -62,6 +65,7 @@ export class MasachFamily {
       if (!k.run) continue;
       const left = this.left(k), at = Date.now() + (left > WARN && !k.warned ? left - WARN : left > 60000 && !k.warned1 ? left - 60000 : Math.max(0, left));
       if (!next || at < next) next = at;
+      const b = bedMin(k); if (b != null) { const bt = Date.now() + (b * 60000 - sinceMidnight()); if (bt > Date.now() && bt < next) next = bt; }
     }
     if (next) await this.ctx.storage.setAlarm(Math.max(Date.now() + 1000, next)); else await this.ctx.storage.deleteAlarm();
   }
@@ -71,7 +75,11 @@ export class MasachFamily {
       this.roll(k);
       if (!k.run) continue;
       const left = this.left(k);
-      if (left <= 1500) {
+      if (asleep(k)) {
+        k.used += Date.now() - k.run; k.run = 0;
+        this.f.feed.push({ at: Date.now(), k: id, text: "🌙 שעת שינה, המסך נסגר" });
+        await this.notify(["p", id], { title: "🌙 שעת שינה של " + k.name, body: "המסך נסגר. לילה טוב!" });
+      } else if (left <= 1500) {
         k.used = (k.daily + k.bonus) * 60000; k.run = 0; k.ended = true;
         this.f.feed.push({ at: Date.now(), k: id, text: "הזמן נגמר" });
         await this.notify(["p", id], { title: "⏰ הזמן של " + k.name + " נגמר", body: k.bonusOn && k.tasks < k.maxTasks ? "אפשר להרוויח עוד " + k.bonusMin + " דקות בפעילות בלי מסך." : "זהו להיום. כל הכבוד!" });
@@ -117,7 +125,7 @@ export class MasachFamily {
     const id = kid || (f.kids[b.k] ? b.k : ""), k = id ? f.kids[id] : null;
     if (k) this.roll(k);
     switch (b.op) {
-      case "start": if (!k) return json({ error: "kid" }, 400); if (!k.run && this.left(k) > 0) { k.run = Date.now(); k.ended = false; } break;
+      case "start": if (!k) return json({ error: "kid" }, 400); if (asleep(k) && kid) return json({ error: "bed" }, 400); if (!k.run && this.left(k) > 0) { k.run = Date.now(); k.ended = false; } break;
       case "pause": if (!k) return json({ error: "kid" }, 400); if (k.run) { k.used += Date.now() - k.run; k.run = 0; } break;
       case "sub": { // pushes: the parents hear when time is up and when minutes were earned; a child hears "5 minutes left"
         const ep = b.sub && b.sub.endpoint; if (!okEndpoint(ep)) return json({ error: "endpoint" }, 400);
@@ -127,7 +135,7 @@ export class MasachFamily {
       case "unsub": if (b.endpoint) delete f.subs[await subId(b.endpoint)]; await this.save(); return json({ ok: true });
       case "task": { // the child did something away from the screen and earns minutes
         if (!kid) return json({ error: "kid" }, 400);
-        if (!k.bonusOn || k.tasks >= k.maxTasks) return json({ error: "no bonus" }, 400);
+        if (!k.bonusOn || k.tasks >= k.maxTasks || asleep(k)) return json({ error: "no bonus" }, 400);
         k.tasks++; k.bonus += k.bonusMin; k.warned = false; k.warned1 = false; k.ended = false;
         const t = clean(b.text, 60) || "פעילות בלי מסך";
         f.feed.push({ at: Date.now(), k: id, text: t + " · +" + k.bonusMin + " דק׳" });
@@ -147,6 +155,7 @@ export class MasachFamily {
               if (b.daily !== undefined) k.daily = mins(b.daily, 5, 600, k.daily);
               if (b.bonusOn !== undefined) k.bonusOn = !!b.bonusOn;
               if (b.bonusMin !== undefined) k.bonusMin = mins(b.bonusMin, 5, 60, k.bonusMin);
+              if (b.bed !== undefined) k.bed = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(b.bed)) ? String(b.bed) : "";
               if (b.maxTasks !== undefined) k.maxTasks = mins(b.maxTasks, 1, 6, k.maxTasks);
               if (b.emoji !== undefined && EMOJI.includes(b.emoji)) k.emoji = b.emoji;
             } else {
