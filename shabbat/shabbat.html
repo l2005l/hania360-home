@@ -310,7 +310,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   var ZM = [["alot", "עלות השחר", function (z) { return z.alotHaShachar(); }], ["misheyakir", "זמן טלית ותפילין", function (z) { return z.misheyakir(); }], ["netz", "הנץ החמה", function (z) { return z.neitzHaChama(); }],
     ["shmaMGA", "סוף זמן ק״ש (מג״א)", function (z) { return z.sofZmanShmaMGA(); }], ["shma", "סוף זמן ק״ש (גר״א)", function (z) { return z.sofZmanShma(); }], ["tfilaMGA", "סוף זמן תפילה (מג״א)", function (z) { return z.sofZmanTfillaMGA(); }], ["tfila", "סוף זמן תפילה (גר״א)", function (z) { return z.sofZmanTfilla(); }],
     ["chatzot", "חצות היום", function (z) { return z.chatzot(); }], ["minchaG", "מנחה גדולה", function (z) { return z.minchaGedola(); }], ["minchaK", "מנחה קטנה", function (z) { return z.minchaKetana(); }], ["plag", "פלג המנחה", function (z) { return z.plagHaMincha(); }],
-    ["shkia", "שקיעה", function (z) { return z.shkiah(); }], ["tzeit", "צאת הכוכבים", function (z) { return z.tzeit(8.5); }]];
+    ["shkia", "שקיעה", function (z) { return z.shkiah(); }], ["tzeit", "צאת הכוכבים", function (z) { return z.tzeit(4.8); }]];
   function zmanimOn(date) {
     var p = place(), loc = new HB.Location(p.lat, p.lon, true, "Asia/Jerusalem", p.name, "IL"), z = new HB.Zmanim(loc, date, false);
     return ZM.map(function (x) { var t = null; try { t = x[2](z); } catch (e) {} return { k: x[0], label: x[1], t: t && !isNaN(t) ? t : null }; }).filter(function (x) { return x.t; });
