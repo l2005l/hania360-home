@@ -1,0 +1,12 @@
+name: probe-yt2
+on: { push: { branches: [probe-yt2] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          B=https://masach.hania360.com/api/masach
+          j=$(curl -s $B/new -H 'content-type: application/json' -d '{"kids":["בדיקה"],"daily":30}'); F=$(echo $j | jq -r .id); K=$(echo $j | jq -r .key)
+          r=$(curl -s $B/search -d "{\"f\":\"$F\",\"key\":\"$K\",\"q\":\"טרוטרו\",\"all\":true}"); echo "$r" | jq -c '{error, items:[.items[]?|{type,title,thumb:(.thumb|.[0:30])}]}'
+          C=$(echo "$r" | jq -r '[.items[]|select(.type=="c")][0].id'); echo "channel $C"
+          curl -s $B/op -d "{\"f\":\"$F\",\"key\":\"$K\",\"op\":\"watchAdd\",\"url\":\"https://www.youtube.com/channel/$C\"}" | jq -c '.watch'
