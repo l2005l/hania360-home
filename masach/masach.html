@@ -127,6 +127,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       <p class="fine">מדביקים קישור מיוטיוב: סרטון, רשימת השמעה או ערוץ שלם. הילדים רואים רק את מה שכאן, עם השעון בפינה, וכשהזמן נגמר הסרטון נעצר וקופצת ההפסקה.</p>
       <div class="row" style="flex-wrap:nowrap"><input id="wUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/..." dir="ltr"><button class="btn small" type="button" id="wAdd">הוספה</button></div>
       <div class="row"><span class="fine">הצעות:</span><button class="chip" type="button" data-yt="https://www.youtube.com/@hopchannel">ערוץ הופ!</button></div>
+      <button class="chip" type="button" id="sOn" aria-pressed="false">🔎 לאפשר לילדים לחפש ביוטיוב בעצמם</button>
+      <p class="fine" id="sNote" hidden></p>
       <div class="wlist" id="wList"></div>
     </section>
     <section class="card" id="feedCard" hidden><h2>מה קרה השבוע</h2><ul class="feed" id="feed"></ul></section>
@@ -169,7 +171,10 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       <button class="chip" type="button" id="bellK">🔔 תזכורת 5 דק׳ לפני</button>
     </div>
     <p class="fine kidfoot" id="kFoot"></p>
-    <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים?</h2><div class="wgrid" id="kWGrid"></div></section>
+    <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים?</h2>
+      <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small" type="submit">חיפוש</button></form>
+      <div class="wgrid" id="kSGrid" hidden></div>
+      <div class="wgrid" id="kWGrid"></div></section>
   </main>
 
   <!-- TV: a code for the parent to type -->
@@ -260,6 +265,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   function drawParent(j) {
     pData = j; pAt = Date.now();
     $("famName").textContent = j.family || "המשפחה שלי";
+    $("sOn").setAttribute("aria-pressed", String(!!j.searchOn)); $("sOn").textContent = j.searchOn ? "🔎 הילדים יכולים לחפש ביוטיוב (בסינון מחמיר) · לכיבוי" : "🔎 לאפשר לילדים לחפש ביוטיוב בעצמם";
+    $("sNote").hidden = !(j.searchOn && !j.hasKey); $("sNote").textContent = "החיפוש יופעל ברגע שיוגדר מפתח יוטיוב בשרת.";
     $("wList").replaceChildren.apply($("wList"), (j.watch || []).map(function (w) { return el("div", { class: "it" }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : el("span", { text: "📺" }), el("b", { text: (w.type === "p" ? "📃 " : "") + w.title }), el("button", { class: "chip", type: "button", "aria-label": "הסרה", text: "🗑️", onclick: function () { op({ op: "watchDel", type: w.type, id: w.id }); } })]); }));
     $("kids").replaceChildren.apply($("kids"), j.kids.map(function (k) {
       var total = (k.daily + k.bonus) * 60, left = k.left, pct = total ? Math.max(0, Math.min(100, left / total * 100)) : 0;
@@ -328,6 +335,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     api("op", Object.assign({ op: "watchAdd", url: url }, pAuth())).then(function (j) { drawParent(j); $("wUrl").value = ""; toast("✅ נוסף לרשימה"); })
       .catch(function (e) { toast(e.code === "full" ? "הרשימה מלאה" : "לא מצאנו את הסרטון או הערוץ. בודקים את הקישור"); }).then(function () { $("wAdd").disabled = false; });
   }
+  $("sOn").addEventListener("click", function () { var on = $("sOn").getAttribute("aria-pressed") !== "true"; op({ op: "searchOn", on: on }).then(function () { toast(on ? "🔎 החיפוש פתוח לילדים, בסינון מחמיר. כל חיפוש מופיע לכם ביומן" : "החיפוש סגור. הילדים רואים רק את הרשימה"); }); });
   $("wAdd").addEventListener("click", function () { addWatch($("wUrl").value.trim()); });
   $("wUrl").addEventListener("keydown", function (e) { if (e.key === "Enter") addWatch($("wUrl").value.trim()); });
   [].forEach.call(document.querySelectorAll("[data-yt]"), function (b) { b.addEventListener("click", function () { addWatch(b.getAttribute("data-yt")); }); });
@@ -352,7 +360,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   }
   function loadKid() { return api("state", kAuth()).then(drawKid).catch(function (e) { if (e.code === "auth" || e.code === "no family") { $("kWho").textContent = "הקישור הזה כבר לא פעיל"; S.kid = null; save(); } }); }
   function kOp(body) { return api("op", Object.assign(body, kAuth())).then(drawKid).catch(function (e) { toast(e.code === "no bonus" ? "להיום כבר אין עוד דקות להרוויח" : "לא הצלחנו. מנסים שוב"); }); }
-  function drawKid(j) { drawWatch(j.watch || []); kData = j.kids[0]; kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
+  function drawKid(j) { drawWatch(j.watch || [], !!j.search); kData = j.kids[0]; kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
   function kLeft() { return kData ? (kData.running ? kData.left - (Date.now() - kAt) / 1000 : kData.left) : 0; }
   function beep(n) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); for (var i = 0; i < n; i++) { var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination); o.start(audio.currentTime + i * 0.35); o.stop(audio.currentTime + i * 0.35 + 0.18); } } catch (e) {} }
   // A bell: three soft notes, louder than the beep, repeated n times.
@@ -403,12 +411,23 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   });
   // ---- Watching inside the app: YouTube with the clock in the corner; at zero the video stops ----
   var watchSig = "", yt = null, playerEl = null;
-  function drawWatch(list) {
-    var sig = list.map(function (w) { return w.type + w.id; }).join(",");
+  function tile(w) { return el("button", { class: "wt", type: "button", onclick: function () { openPlayer(w); } }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : null, el("span", { text: w.title })]); }
+  function drawWatch(list, search) {
+    var sig = list.map(function (w) { return w.type + w.id; }).join(",") + (search ? "+s" : "");
     if (sig === watchSig) return; watchSig = sig;
-    $("kWatch").hidden = !list.length; document.body.classList.toggle("haswatch", !!list.length);
-    $("kWGrid").replaceChildren.apply($("kWGrid"), list.map(function (w) { return el("button", { class: "wt", type: "button", onclick: function () { openPlayer(w); } }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : null, el("span", { text: w.title })]); }));
+    $("kSearch").hidden = !search;
+    $("kWatch").hidden = !list.length && !search; document.body.classList.toggle("haswatch", !!list.length || !!search);
+    $("kWGrid").replaceChildren.apply($("kWGrid"), list.map(tile));
   }
+  $("kSearch").addEventListener("submit", function (e) {
+    e.preventDefault(); var q = $("kQ").value.trim(); if (q.length < 2) return; $("kQ").blur();
+    api("search", Object.assign({ q: q }, kAuth())).then(function (j) {
+      if (j.error) { toast(j.error === "limit" ? "להיום נגמרו החיפושים. בוחרים מהרשימה" : "החיפוש לא זמין כרגע"); return; }
+      $("kSGrid").hidden = false;
+      $("kSGrid").replaceChildren.apply($("kSGrid"), (j.items || []).length ? j.items.map(tile) : [el("p", { class: "fine", text: "לא מצאנו. מנסים מילה אחרת" })]);
+      var first = $("kSGrid").querySelector("button"); if (first) first.focus();
+    }).catch(function () { toast("החיפוש לא זמין כרגע"); });
+  });
   function openPlayer(w) {
     chime(0); beep(0);
     if (kLeft() <= 0) { toast("הזמן להיום נגמר"); return; }
@@ -442,8 +461,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   // TV remotes: the arrows move between buttons by where they are on the screen.
   addEventListener("keydown", function (e) {
     var dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
-    if (!dir || playerEl || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || "")) return;
-    var all = [].filter.call(document.querySelectorAll("button, a[href]"), function (x) { return x.offsetParent !== null && !x.disabled; });
+    if (!dir || playerEl || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || "") && !dir[1]) return;
+    var all = [].filter.call(document.querySelectorAll("button, a[href], input[type=search]"), function (x) { return x.offsetParent !== null && !x.disabled; });
     var cur = document.activeElement && all.indexOf(document.activeElement) >= 0 ? document.activeElement : null;
     if (!cur) { if (all[0]) { all[0].focus(); e.preventDefault(); } return; }
     var a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2, best = null, bd = 1e9;
