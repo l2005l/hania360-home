@@ -402,21 +402,12 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       el("li", null, [el("b", "בטאבלט מעל יוטיוב ומשחקים: "), "\"🪟 חלון צף\" משאיר את השעון קטן בפינה."])])]);
   });
   // ---- Watching inside the app: YouTube with the clock in the corner; at zero the video stops ----
-  var watchSig = "", yt = null, ytReady = null, playerEl = null;
+  var watchSig = "", yt = null, playerEl = null;
   function drawWatch(list) {
     var sig = list.map(function (w) { return w.type + w.id; }).join(",");
     if (sig === watchSig) return; watchSig = sig;
     $("kWatch").hidden = !list.length; document.body.classList.toggle("haswatch", !!list.length);
     $("kWGrid").replaceChildren.apply($("kWGrid"), list.map(function (w) { return el("button", { class: "wt", type: "button", onclick: function () { openPlayer(w); } }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : null, el("span", { text: w.title })]); }));
-  }
-  function loadYT() {
-    if (ytReady) return ytReady;
-    ytReady = new Promise(function (ok, no) {
-      if (window.YT && window.YT.Player) return ok(window.YT);
-      window.onYouTubeIframeAPIReady = function () { ok(window.YT); };
-      var sc = document.createElement("script"); sc.src = "https://www.youtube.com/iframe_api"; sc.onerror = function () { ytReady = null; no(); }; document.head.append(sc);
-    });
-    return ytReady;
   }
   function openPlayer(w) {
     chime(0); beep(0);
@@ -428,13 +419,9 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     playerEl._badge = badge; playerEl._last = last;
     document.body.append(playerEl);
     try { if (playerEl.requestFullscreen) playerEl.requestFullscreen().catch(function () {}); } catch (e) {}
-    loadYT().then(function (YT) {
-      if (!playerEl) return;
-      var vars = { autoplay: 1, rel: 0, fs: 0, playsinline: 1, modestbranding: 1, iv_load_policy: 3, hl: "he" };
-      if (w.type === "p") { vars.listType = "playlist"; vars.list = w.id; }
-      yt = new YT.Player(box, { host: "https://www.youtube-nocookie.com", videoId: w.type === "v" ? w.id : undefined, playerVars: vars,
-        events: { onStateChange: function (e) { if (e.data === 0 && w.type === "v") closePlayer(); } } });
-    }).catch(function () { closePlayer(); toast("יוטיוב לא נטען. בודקים את החיבור"); });
+    // A plain embedded player (no YouTube script needed, so it works in TV browsers too); closing removes it, which stops it.
+    var q = "autoplay=1&rel=0&fs=0&playsinline=1&modestbranding=1&iv_load_policy=3&hl=he";
+    box.append(el("iframe", { src: "https://www.youtube.com/embed/" + (w.type === "p" ? "videoseries?list=" + encodeURIComponent(w.id) + "&" : encodeURIComponent(w.id) + "?") + q, title: w.title, allow: "autoplay; encrypted-media; picture-in-picture", referrerpolicy: "strict-origin-when-cross-origin", allowfullscreen: "" }));
     tickPlayer(kLeft());
   }
   function tickPlayer(left) {
