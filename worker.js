@@ -219,7 +219,7 @@ function smallApp(url, page, files, images, home) {
 
 /** HaniaPlate's fallback when a phone cannot reach data.gov.il itself: only the Ministry of Transport
  *  vehicle tables, only a plate or model filter, cached for six hours. */
-const PLATE_RES = new Set(["053cea08-09bc-40ec-8f7a-156f0677aff3","56063a99-8a3e-4ff4-912e-5966c0279bad","bb2355dc-9ec7-4f06-9c3f-3344672171da","36bf1404-0be4-49d2-82dc-2f1ead4a8b93","c8b9f9c8-4612-4068-934f-d4acd2e3c06e","bf9df4e2-d90d-4c0a-a400-19e15af8e95f","cd3acc5c-03c3-4c89-9c54-d40f93c0d790","03adc637-b6fe-402b-9937-7c3d3afc9140","f6efe89a-fb3d-43a4-bb61-9bf12a9b9099","851ecab1-0622-4dbe-a6c7-f950cf82abf9","142afde2-6228-49f9-8a29-9b6c3a0cbe40"]);
+const PLATE_RES = new Set(["39f455bf-6db0-4926-859d-017f34eacbcb","053cea08-09bc-40ec-8f7a-156f0677aff3","56063a99-8a3e-4ff4-912e-5966c0279bad","bb2355dc-9ec7-4f06-9c3f-3344672171da","36bf1404-0be4-49d2-82dc-2f1ead4a8b93","c8b9f9c8-4612-4068-934f-d4acd2e3c06e","bf9df4e2-d90d-4c0a-a400-19e15af8e95f","cd3acc5c-03c3-4c89-9c54-d40f93c0d790","03adc637-b6fe-402b-9937-7c3d3afc9140","f6efe89a-fb3d-43a4-bb61-9bf12a9b9099","851ecab1-0622-4dbe-a6c7-f950cf82abf9","142afde2-6228-49f9-8a29-9b6c3a0cbe40"]);
 const PLATE_KEYS = new Set(["mispar_rechev","MISPAR_RECHEV","MISPAR RECHEV","tozeret_cd","degem_cd","shnat_yitzur"]);
 async function plateProxy(url, ctx) {
   const bad = (m) => new Response(JSON.stringify({ success: false, error: m }), { status: 400, headers: { "content-type": "application/json" } });
