@@ -360,6 +360,7 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
   }
   function ytUrl(w) { return w.type === "v" ? "https://www.youtube.com/watch?v=" + w.id : w.type === "c" ? "https://www.youtube.com/channel/" + w.id : "https://www.youtube.com/playlist?list=" + w.id; }
   // One box: a word searches YouTube (channels, series, videos); a pasted link is added as it is.
+  function closeSearch() { $("wRes").hidden = true; $("wRes").textContent = ""; $("wUrl").value = ""; $("wMine").scrollIntoView({ behavior: "smooth", block: "center" }); }
   function parentSearch(q) {
     q = q.trim(); if (q.length < 2) return;
     if (/youtu\.?be/.test(q)) { addWatch(q).then(function () { $("wUrl").value = ""; }); return; }
@@ -372,11 +373,12 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
       items.forEach(function (w) { if (w.type === "c") seen[w.id] = 1; });
       items.forEach(function (w) { if (w.type === "v" && w.chId && !seen[w.chId]) { seen[w.chId] = 1; chans.push({ type: "c", id: w.chId, title: w.ch, thumb: w.thumb, fromVideos: 1 }); } });
       items = items.filter(function (w) { return w.type === "c"; }).concat(chans.slice(0, 4), items.filter(function (w) { return w.type !== "c"; }));
-      $("wRes").replaceChildren.apply($("wRes"), items.length ? items.map(function (w) {
+      var closeRow = el("div", { class: "row", style: "justify-content:space-between" }, [el("b", { text: "תוצאות עבור \"" + q + "\"" }), el("button", { class: "chip", type: "button", text: "✕ סגירת החיפוש", onclick: closeSearch })]);
+      $("wRes").replaceChildren.apply($("wRes"), [closeRow].concat(items.length ? items.map(function (w) {
         var added = have[w.id] || (w.type === "c" && have["UU" + w.id.slice(2)]);
         var b = el("button", { class: "btn small", type: "button", text: added ? "✓ ברשימה" : w.type === "c" ? "+ כל הערוץ" : "+ הוספה", onclick: function () { addWatch(ytUrl(w), b); } }); if (added) b.disabled = true;
         return el("div", { class: "it" }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy", style: w.type === "c" ? "object-fit:contain;background:#000" : "" }) : el("span", { text: "📺" }), el("div", null, [el("b", { text: (w.type === "c" ? "📺 ערוץ: " : w.type === "p" ? "📃 " : "") + w.title }), el("div", { class: "fine", text: w.type === "c" ? "ערוץ שלם: כל הפרקים, גם החדשים" : w.ch || "" })]), b]);
-      }) : [el("p", { class: "fine", text: "לא מצאנו. מנסים מילה אחרת" })]);
+      }) : [el("p", { class: "fine", text: "לא מצאנו. מנסים מילה אחרת" })]));
     }).catch(function () { $("wRes").replaceChildren(el("p", { class: "fine", text: "החיפוש לא זמין כרגע." })); }).then(function () { $("wAdd").disabled = false; });
   }
   $("sOn").addEventListener("click", function () { var on = $("sOn").getAttribute("aria-pressed") !== "true"; op({ op: "searchOn", on: on }).then(function () { toast(on ? "🔎 החיפוש פתוח לילדים, בסינון מחמיר. כל חיפוש מופיע לכם ביומן" : "החיפוש סגור. הילדים רואים רק את הרשימה"); }); });
