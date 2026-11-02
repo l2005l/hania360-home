@@ -82,6 +82,17 @@ body.tv{--rw:min(70vh,70vw)}body.tv.haswatch{--rw:min(36vh,36vw)}body.tv .ring{w
 .player .x{position:absolute;top:12px;inset-inline-end:12px;z-index:2}
 .player .last{position:absolute;inset:auto 0 8% 0;margin:auto;width:max-content;max-width:90%;z-index:2;background:var(--warn);color:#2A1D00;border-radius:22px;padding:14px 26px;font-weight:900;font-size:clamp(22px,5vw,54px);box-shadow:0 10px 40px rgba(0,0,0,.5);pointer-events:none}
 body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+/* compact lists: small tiles for the parents, rows that scroll sideways for the children */
+.wmini{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.wmini .mi{position:relative;border-radius:12px;overflow:hidden;background:#0E0C2A;border:1px solid var(--line)}
+.wmini img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.wmini .mt{font-size:12px;font-weight:700;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wmini .x{position:absolute;top:4px;inset-inline-start:4px;appearance:none;border:0;border-radius:99px;width:28px;height:28px;background:rgba(0,0,0,.7);color:#fff;font-size:14px;cursor:pointer}
+.wrow{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(160px,40%);gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:8px;scrollbar-width:thin}
+.wrow>.wt{scroll-snap-align:start}
+.wrowh{font-size:15px;font-weight:800;color:var(--muted);margin:4px 0 -4px;text-align:start}
+@media (min-width:700px){.wrow{grid-auto-columns:minmax(200px,22%)}}
+body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
 /* the break */
 .brk{position:fixed;inset:0;z-index:50;background:radial-gradient(80% 60% at 50% 0%,rgba(255,200,61,.25),transparent 70%),#14123A;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;text-align:center}
 .brk .em{font-size:84px;line-height:1}
@@ -179,7 +190,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים? <small class="fine">בוחרים, והשעון מתחיל לבד</small></h2>
       <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small ghost" type="button" id="kMic" aria-label="חיפוש בקול" hidden>🎤</button><button class="btn small" type="submit">חיפוש</button></form>
       <div class="wgrid" id="kSGrid" hidden></div>
-      <div class="wgrid" id="kWGrid"></div></section>
+      <div id="kWGrid" style="display:grid;gap:12px"></div></section>
   </main>
 
   <!-- TV: a code for the parent to type -->
@@ -275,7 +286,11 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     $("ccOn").setAttribute("aria-pressed", String(j.cc !== false)); $("ccOn").textContent = j.cc !== false ? "💬 כתוביות בסרטונים: מופעלות · לכיבוי" : "💬 כתוביות בסרטונים: כבויות · להפעלה";
     $("sNote").hidden = !(j.searchOn && !j.hasKey); $("sNote").textContent = "החיפוש יופעל ברגע שיוגדר מפתח יוטיוב בשרת.";
     $("wMine").hidden = !(j.watch || []).length;
-    $("wList").replaceChildren.apply($("wList"), (j.watch || []).map(function (w) { return el("div", { class: "it" }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : el("span", { text: "📺" }), el("b", { text: (w.type === "p" ? "📃 " : "") + w.title }), el("button", { class: "chip", type: "button", "aria-label": "הסרה", text: "🗑️", onclick: function () { op({ op: "watchDel", type: w.type, id: w.id }); } })]); }));
+    var wl = j.watch || [], showAll = $("wList").getAttribute("data-all") === "1";
+    $("wMine").textContent = "ברשימה של הילדים (" + wl.length + "):";
+    var minis = (showAll ? wl : wl.slice(0, 8)).map(function (w) { return el("div", { class: "mi", title: w.title }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : el("div", { style: "aspect-ratio:16/9;display:grid;place-items:center", text: "📺" }), el("div", { class: "mt", text: (w.type === "p" ? "📃 " : "") + w.title }), el("button", { class: "x", type: "button", "aria-label": "הסרת " + w.title, text: "✕", onclick: function () { op({ op: "watchDel", type: w.type, id: w.id }); } })]); });
+    $("wList").className = "wmini";
+    $("wList").replaceChildren.apply($("wList"), minis.concat(wl.length > 8 ? [el("button", { class: "chip", type: "button", style: "grid-column:1/-1", text: showAll ? "פחות ▴" : "הצגת כל " + wl.length + " ▾", onclick: function () { $("wList").setAttribute("data-all", showAll ? "0" : "1"); drawParent(pData); } })] : []));
     $("kids").replaceChildren.apply($("kids"), j.kids.map(function (k) {
       var total = (k.daily + k.bonus) * 60, left = k.left, pct = total ? Math.max(0, Math.min(100, left / total * 100)) : 0;
       return el("div", { class: "kid", style: "--c:" + k.color, "data-k": k.id }, [
@@ -460,7 +475,10 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     if (sig === watchSig) return; watchSig = sig;
     $("kSearch").hidden = !search;
     $("kWatch").hidden = !list.length && !search; document.body.classList.toggle("haswatch", !!list.length || !!search);
-    $("kWGrid").replaceChildren.apply($("kWGrid"), list.map(tile));
+    var series = list.filter(function (w) { return w.type === "p"; }), clips = list.filter(function (w) { return w.type !== "p"; }), rows = [];
+    if (series.length) rows.push(el("div", { class: "wrowh", text: "📺 ערוצים וסדרות" }), el("div", { class: "wrow" }, series.map(tile)));
+    if (clips.length) rows.push(el("div", { class: "wrowh", text: "🎬 סרטונים" }), el("div", { class: "wrow" }, clips.map(tile)));
+    $("kWGrid").replaceChildren.apply($("kWGrid"), rows);
   }
   // Saying it instead of typing: the browser's own speech recognition, in Hebrew, where there is one.
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -528,7 +546,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     all.forEach(function (x) { if (x === cur) return; var r = x.getBoundingClientRect(), dx = r.left + r.width / 2 - ax, dy = r.top + r.height / 2 - ay;
       if (dir[0] && Math.sign(dx) !== dir[0] || dir[1] && Math.sign(dy) !== dir[1]) return; if (dir[0] && Math.abs(dx) < 4 || dir[1] && Math.abs(dy) < 4) return;
       var d = dir[0] ? Math.abs(dx) + 2 * Math.abs(dy) : Math.abs(dy) + 2 * Math.abs(dx); if (d < bd) { bd = d; best = x; } });
-    if (best) { e.preventDefault(); best.focus(); best.scrollIntoView({ block: "nearest" }); }
+    if (best) { e.preventDefault(); best.focus(); best.scrollIntoView({ block: "nearest", inline: "nearest" }); }
   });
 
   // A floating window over other apps: a tiny video of the clock (Picture-in-Picture).
