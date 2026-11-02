@@ -170,6 +170,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       <button class="chip" type="button" id="kFull">⛶ מסך מלא</button>
       <button class="chip" type="button" id="kTv">📺 בטלוויזיה</button>
       <button class="chip" type="button" id="bellK">🔔 תזכורת 5 דק׳ לפני</button>
+      <button class="chip" type="button" id="kBack" hidden>🔒 חזרה להורה</button>
     </div>
     <p class="fine kidfoot" id="kFoot"></p>
     <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים?</h2>
@@ -288,7 +289,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
           el("button", { class: "chip", type: "button", text: "⚙️", "aria-label": "הגדרות", onclick: function () { kidSettings(k); } })]),
         el("div", { class: "row" }, [
           el("button", { class: "chip", type: "button", text: "📱 קישור ל" + k.name, onclick: function () { shareKid(k); } }),
-          el("button", { class: "chip", type: "button", text: "📺 לטלוויזיה", onclick: function () { pairTv(k); } })]),
+          el("button", { class: "chip", type: "button", text: "📺 לטלוויזיה", onclick: function () { pairTv(k); } }),
+          el("button", { class: "chip", type: "button", text: "🤳 עכשיו בטלפון הזה", onclick: function () { handOff(k); } })]),
         week]);
     }));
     var names = {}; j.kids.forEach(function (k) { names[k.id] = k; });
@@ -542,8 +544,37 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   }
 
   // ---- route ------------------------------------------------------------------------------
+  // ---- The parents' phone, lent to a child: it becomes that child's screen until a parent enters the code ----
+  function hash4(c) { var h = 7; for (var i = 0; i < c.length; i++) h = (h * 31 + c.charCodeAt(i)) % 1000003; return String(h); }
+  function pinSheet(title, done) {
+    var inp = el("input", { type: "password", inputmode: "numeric", maxlength: "4", placeholder: "4 ספרות", dir: "ltr", style: "font-size:28px;text-align:center;letter-spacing:.3em" });
+    var close = sheet(title, [inp, el("button", { class: "btn", type: "button", text: "אישור", onclick: function () { var c = inp.value.replace(/\D/g, ""); if (c.length !== 4) { toast("4 ספרות"); return; } close(); done(c); } })]);
+    setTimeout(function () { inp.focus(); }, 50);
+  }
+  function handOff(k) {
+    var go = function () {
+      S.handoff = { f: P.f, t: k.t, key: P.key }; save();
+      api("op", { op: "start", f: P.f, key: P.key, k: k.id }).catch(function () {});
+      location.hash = "k-" + P.f + "-" + k.t;
+      setTimeout(function () { sheet("🤳 " + k.name + " משחק/ת בטלפון הזה", [
+        el("p", { class: "fine", style: "font-size:15px;color:var(--ink)", text: "השעון רץ. כדי שיישאר מעל המשחקים וביוטיוב, לוחצים על החלון הצף. כשהזמן נגמר יופיע מסך ההפסקה." }),
+        el("button", { class: "btn", type: "button", text: "🪟 חלון צף מעל המשחקים", onclick: function () { $("kPip").click(); } }),
+        el("p", { class: "fine", text: "כדי לחזור לדף ההורים: \"🔒 חזרה להורה\" והקוד שלך." })]); }, 400);
+    };
+    if (S.pin) go(); else pinSheet("🔒 קוד הורים לטלפון הזה (פעם אחת)", function (c) { S.pin = hash4(c); save(); toast("הקוד נשמר. בלעדיו הילד לא חוזר לדף ההורים"); go(); });
+  }
+  $("kBack").addEventListener("click", function () {
+    pinSheet("🔒 קוד הורים", function (c) {
+      if (hash4(c) !== S.pin) { toast("קוד לא נכון"); return; }
+      var h = S.handoff; S.handoff = null; S.mode = "p"; save();
+      if (h) { api("op", { op: "pause", f: h.f, t: h.t }).catch(function () {}); location.hash = "p-" + h.f + "-" + h.key; }
+    });
+  });
   function route() {
     var h = location.hash.slice(1), m;
+    $("kBack").hidden = !S.handoff;
+    // While a child has the phone, only that child's screen opens (the code brings the parents back).
+    if (S.handoff && h !== "k-" + S.handoff.f + "-" + S.handoff.t) { history.replaceState(null, "", "/#k-" + S.handoff.f + "-" + S.handoff.t); h = location.hash.slice(1); }
     clearInterval(pTimer); clearInterval(kTimer); clearInterval(tvT); document.body.classList.remove("tv");
     if ((m = h.match(/^p-([A-Za-z0-9]{6,20})-([A-Za-z0-9]{8,30})$/))) return openParent(m[1], m[2]);
     if ((m = h.match(/^k-([A-Za-z0-9]{6,20})-([A-Za-z0-9]{6,20})$/))) return openKid(m[1], m[2]);
