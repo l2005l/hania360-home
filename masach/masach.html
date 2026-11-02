@@ -172,7 +172,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     </div>
     <p class="fine kidfoot" id="kFoot"></p>
     <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים?</h2>
-      <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small" type="submit">חיפוש</button></form>
+      <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small ghost" type="button" id="kMic" aria-label="חיפוש בקול" hidden>🎤</button><button class="btn small" type="submit">חיפוש</button></form>
       <div class="wgrid" id="kSGrid" hidden></div>
       <div class="wgrid" id="kWGrid"></div></section>
   </main>
@@ -419,6 +419,21 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     $("kSearch").hidden = !search;
     $("kWatch").hidden = !list.length && !search; document.body.classList.toggle("haswatch", !!list.length || !!search);
     $("kWGrid").replaceChildren.apply($("kWGrid"), list.map(tile));
+  }
+  // Saying it instead of typing: the browser's own speech recognition, in Hebrew, where there is one.
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    $("kMic").hidden = false;
+    $("kMic").addEventListener("click", function () {
+      try {
+        var r = new SR(); r.lang = "he-IL"; r.interimResults = false; r.maxAlternatives = 1;
+        $("kMic").textContent = "🔴"; $("kQ").placeholder = "מדברים עכשיו…";
+        r.onresult = function (e) { var t = e.results[0][0].transcript; $("kQ").value = t; $("kSearch").requestSubmit ? $("kSearch").requestSubmit() : $("kSearch").dispatchEvent(new Event("submit", { cancelable: true })); };
+        r.onerror = function () { toast("לא שמענו. מנסים שוב, או לוחצים לחיצה ארוכה על כפתור המיקרופון בשלט"); };
+        r.onend = function () { $("kMic").textContent = "🎤"; $("kQ").placeholder = "🔎 חיפוש ביוטיוב"; };
+        r.start();
+      } catch (e) { toast("המיקרופון לא זמין כאן. בשלט: לחיצה ארוכה על כפתור המיקרופון"); }
+    });
   }
   $("kSearch").addEventListener("submit", function (e) {
     e.preventDefault(); var q = $("kQ").value.trim(); if (q.length < 2) return; $("kQ").blur();
