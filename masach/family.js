@@ -199,8 +199,10 @@ export class MasachFamily {
     if (!f.search && !parent) return { error: "off" };
     const q = clean(b.q, 60).toLowerCase(); if (q.length < 2) return { items: [] };
     const today = IL(); if (f.sDay !== today) { f.sDay = today; f.sCount = 0; }
-    const url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&safeSearch=strict&maxResults=24&regionCode=IL&relevanceLanguage=he&q=" + encodeURIComponent(q);
-    const ck = new Request("https://masach.hania360.com/yt-search?q=" + encodeURIComponent(q)), cache = caches.default;
+    // The parents search channels, playlists and videos to add to the list; the children search videos only.
+    const all = !!(b.all && parent);
+    const url = "https://www.googleapis.com/youtube/v3/search?part=snippet" + (all ? "&type=channel,playlist,video" : "&type=video&videoEmbeddable=true") + "&safeSearch=strict&maxResults=" + (all ? 20 : 24) + "&regionCode=IL&relevanceLanguage=he&q=" + encodeURIComponent(q);
+    const ck = new Request("https://masach.hania360.com/yt-search?" + (all ? "all=1&" : "") + "q=" + encodeURIComponent(q)), cache = caches.default;
     let hit = await cache.match(ck).catch(() => null), j = hit ? await hit.json().catch(() => null) : null;
     if (!j) {
       if (f.sCount >= 60) return { error: "limit" };
@@ -208,7 +210,12 @@ export class MasachFamily {
       const r = await fetch(url + "&key=" + encodeURIComponent(key)).catch(() => null);
       if (!r || !r.ok) return { error: "yt" };
       const raw = await r.json().catch(() => null);
-      j = { items: ((raw && raw.items) || []).filter((x) => x.id && x.id.videoId && x.snippet && x.snippet.liveBroadcastContent !== "live").map((x) => ({ type: "v", id: x.id.videoId, title: clean(x.snippet.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"), 80), ch: clean(x.snippet.channelTitle, 40), thumb: "https://i.ytimg.com/vi/" + x.id.videoId + "/mqdefault.jpg" })) };
+      const t = (x) => clean(String(x || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"), 80);
+      const th = (x) => { const u = x.snippet.thumbnails && (x.snippet.thumbnails.medium || x.snippet.thumbnails.default); return u && /^https:\/\/(i\.ytimg\.com|yt\d\.ggpht\.com|yt\d\.googleusercontent\.com)\//.test(u.url) ? u.url : ""; };
+      j = { items: ((raw && raw.items) || []).filter((x) => x.id && x.snippet && x.snippet.liveBroadcastContent !== "live").map((x) =>
+        x.id.videoId ? { type: "v", id: x.id.videoId, title: t(x.snippet.title), ch: t(x.snippet.channelTitle), thumb: "https://i.ytimg.com/vi/" + x.id.videoId + "/mqdefault.jpg" }
+        : x.id.channelId ? { type: "c", id: x.id.channelId, title: t(x.snippet.title), ch: "ערוץ", thumb: th(x) }
+        : x.id.playlistId ? { type: "p", id: x.id.playlistId, title: t(x.snippet.title), ch: "רשימת השמעה · " + t(x.snippet.channelTitle), thumb: th(x) } : null).filter(Boolean) };
       await cache.put(ck, new Response(JSON.stringify(j), { headers: { "content-type": "application/json", "cache-control": "public, max-age=86400" } })).catch(() => {});
     }
     if (kid) { f.feed.push({ at: Date.now(), k: kid, text: "חיפש/ה ביוטיוב: " + q }); this.tidy(); await this.save(); }
