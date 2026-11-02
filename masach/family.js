@@ -30,7 +30,7 @@ export class MasachFamily {
     if (k.day) { k.hist[k.day] = Math.round((k.used + (k.run ? Date.now() - k.run : 0)) / 60000); }
     const cut = IL(Date.now() - KEEP_DAYS * 864e5);
     for (const d in k.hist) if (d < cut) delete k.hist[d];
-    k.day = today; k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.ended = false;
+    k.day = today; k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.warned1 = false; k.ended = false;
     if (k.run) k.run = Math.max(k.run, Date.now() - sinceMidnight());
   }
   used(k) { return k.used + (k.run ? Date.now() - k.run : 0); }
@@ -42,9 +42,9 @@ export class MasachFamily {
     return o;
   }
   view(kid) {
-    const f = this.f;
-    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], now: Date.now() };
-    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), feed: f.feed.slice(-30), now: Date.now() };
+    const f = this.f, watch = f.watch || [];
+    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, now: Date.now() };
+    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, feed: f.feed.slice(-30), now: Date.now() };
   }
 
   async notify(to, msg) {
@@ -60,7 +60,7 @@ export class MasachFamily {
     let next = 0;
     for (const k of Object.values(this.f.kids)) {
       if (!k.run) continue;
-      const left = this.left(k), at = Date.now() + (left > WARN && !k.warned ? left - WARN : Math.max(0, left));
+      const left = this.left(k), at = Date.now() + (left > WARN && !k.warned ? left - WARN : left > 60000 && !k.warned1 ? left - 60000 : Math.max(0, left));
       if (!next || at < next) next = at;
     }
     if (next) await this.ctx.storage.setAlarm(Math.max(Date.now() + 1000, next)); else await this.ctx.storage.deleteAlarm();
@@ -75,6 +75,9 @@ export class MasachFamily {
         k.used = (k.daily + k.bonus) * 60000; k.run = 0; k.ended = true;
         this.f.feed.push({ at: Date.now(), k: id, text: "הזמן נגמר" });
         await this.notify(["p", id], { title: "⏰ הזמן של " + k.name + " נגמר", body: k.bonusOn && k.tasks < k.maxTasks ? "אפשר להרוויח עוד " + k.bonusMin + " דקות בפעילות בלי מסך." : "זהו להיום. כל הכבוד!" });
+      } else if (left <= 61500 && !k.warned1) {
+        k.warned1 = true; k.warned = true;
+        await this.notify([id], { title: "⏳ עוד דקה אחת", body: k.name + ", הזמן כמעט נגמר." });
       } else if (left <= WARN + 1500 && !k.warned) {
         k.warned = true;
         await this.notify([id], { title: "⏳ עוד 5 דקות מסך", body: k.name + ", כדאי לסיים את מה שמתחילים." });
@@ -124,7 +127,7 @@ export class MasachFamily {
       case "task": { // the child did something away from the screen and earns minutes
         if (!kid) return json({ error: "kid" }, 400);
         if (!k.bonusOn || k.tasks >= k.maxTasks) return json({ error: "no bonus" }, 400);
-        k.tasks++; k.bonus += k.bonusMin; k.warned = false; k.ended = false;
+        k.tasks++; k.bonus += k.bonusMin; k.warned = false; k.warned1 = false; k.ended = false;
         const t = clean(b.text, 60) || "פעילות בלי מסך";
         f.feed.push({ at: Date.now(), k: id, text: t + " · +" + k.bonusMin + " דק׳" });
         await this.save();
@@ -134,8 +137,8 @@ export class MasachFamily {
       default: {
         if (!parent) return json({ error: "parent" }, 403);
         switch (b.op) {
-          case "add": if (!k) return json({ error: "kid" }, 400); { const m = mins(b.min, -600, 600, 0); k.bonus += m; if (m > 0) { k.warned = false; k.ended = false; } f.feed.push({ at: Date.now(), k: id, text: (m > 0 ? "+" : "") + m + " דק׳ מההורים" }); } break;
-          case "reset": if (!k) return json({ error: "kid" }, 400); k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.ended = false; if (k.run) k.run = Date.now(); break;
+          case "add": if (!k) return json({ error: "kid" }, 400); { const m = mins(b.min, -600, 600, 0); k.bonus += m; if (m > 0) { k.warned = false; k.warned1 = false; k.ended = false; } f.feed.push({ at: Date.now(), k: id, text: (m > 0 ? "+" : "") + m + " דק׳ מההורים" }); } break;
+          case "reset": if (!k) return json({ error: "kid" }, 400); k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.warned1 = false; k.ended = false; if (k.run) k.run = Date.now(); break;
           case "kid": {
             if (b.remove) { if (!k) return json({ error: "kid" }, 400); delete f.kids[id]; for (const [sid, s] of Object.entries(f.subs)) if (s.r === id) delete f.subs[sid]; break; }
             if (k) {
@@ -153,6 +156,15 @@ export class MasachFamily {
             break;
           }
           case "family": f.name = clean(b.name, 30); break;
+          case "watchAdd": { // a YouTube video, playlist or channel the parents chose; the children watch only these
+            f.watch = f.watch || [];
+            if (f.watch.length >= 60) return json({ error: "full" }, 400);
+            const w = await ytItem(String(b.url || ""));
+            if (!w) return json({ error: "link" }, 400);
+            if (!f.watch.some((x) => x.type === w.type && x.id === w.id)) f.watch.unshift(w);
+            break;
+          }
+          case "watchDel": f.watch = (f.watch || []).filter((x) => !(x.type === b.type && x.id === b.id)); break;
           case "pairTv": { // sends one child's screen to a TV that shows a 4-digit code
             if (!k || !/^\d{4}$/.test(String(b.code || ""))) return json({ error: "code" }, 400);
             const r = await this.env.MASACH.get(this.env.MASACH.idFromName("pair")).fetch("https://m/pair", { method: "POST", body: JSON.stringify({ op: "give", code: b.code, link: "/#k-" + f.id + "-" + k.t }) }).then((x) => x.json());
@@ -185,6 +197,43 @@ export class MasachFamily {
     if (b.op === "wait") { const c = all[b.code]; if (!c || c.secret !== b.secret) return json({ gone: true }); if (c.link) { delete all[b.code]; await this.ctx.storage.put("codes", all); return json({ link: c.link }); } return json({}); }
     return json({ error: "op" }, 400);
   }
+}
+
+// ---- YouTube links the parents add: a video, a playlist, or a channel (its uploads playlist) ----
+const YT_ID = /^[A-Za-z0-9_-]{11}$/, LIST_ID = /^[A-Za-z0-9_-]{12,64}$/;
+async function oembed(u) {
+  const r = await fetch("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent(u), { headers: { "user-agent": "Mozilla/5.0 (HaniaMasach)" } }).catch(() => null);
+  return r && r.ok ? r.json().catch(() => null) : null;
+}
+export async function ytItem(raw) {
+  let u; try { u = new URL(/^https?:\/\//.test(raw.trim()) ? raw.trim() : "https://" + raw.trim()); } catch { return null; }
+  const host = u.hostname.replace(/^(www|m|music)\./, "");
+  if (!["youtube.com", "youtu.be", "youtube-nocookie.com"].includes(host)) return null;
+  const path = u.pathname.split("/").filter(Boolean);
+  let v = host === "youtu.be" ? path[0] : u.searchParams.get("v") || (["shorts", "live", "embed"].includes(path[0]) ? path[1] : "");
+  const list = u.searchParams.get("list");
+  if (list && LIST_ID.test(list) && !/^(RD|WL|LL)/.test(list)) { // a playlist (also when the link is a video inside one)
+    const o = await oembed("https://www.youtube.com/playlist?list=" + list);
+    return { type: "p", id: list, title: clean(o && o.title, 80) || "רשימת השמעה", thumb: o && /^https:\/\/i\.ytimg\.com\//.test(o.thumbnail_url || "") ? o.thumbnail_url : (v && YT_ID.test(v) ? "https://i.ytimg.com/vi/" + v + "/hqdefault.jpg" : "") };
+  }
+  if (v && YT_ID.test(v)) {
+    const o = await oembed("https://www.youtube.com/watch?v=" + v);
+    if (!o) return null;
+    return { type: "v", id: v, title: clean(o.title, 80), thumb: "https://i.ytimg.com/vi/" + v + "/hqdefault.jpg" };
+  }
+  // A channel: /channel/UC..., /@name, /c/name or /user/name. Its uploads are the playlist "UU" + the rest of the id.
+  let uc = path[0] === "channel" && /^UC[A-Za-z0-9_-]{22}$/.test(path[1] || "") ? path[1] : "";
+  let title = "";
+  if (!uc && path[0] && (path[0].startsWith("@") || ["c", "user"].includes(path[0]))) {
+    const r = await fetch("https://www.youtube.com/" + path.slice(0, path[0].startsWith("@") ? 1 : 2).map(encodeURIComponent).join("/").replace("%40", "@"), { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36", "accept-language": "he,en;q=0.8", cookie: "CONSENT=YES+1" } }).catch(() => null);
+    const html = r && r.ok ? await r.text().catch(() => "") : "";
+    const m = html.match(/"(?:channelId|externalId)":"(UC[A-Za-z0-9_-]{22})"/) || html.match(/channel\/(UC[A-Za-z0-9_-]{22})/);
+    uc = m ? m[1] : "";
+    const t = html.match(/<meta property="og:title" content="([^"]{1,120})"/); title = t ? t[1].replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"') : "";
+  }
+  if (!uc) return null;
+  const up = "UU" + uc.slice(2), o = await oembed("https://www.youtube.com/playlist?list=" + up);
+  return { type: "p", id: up, title: clean(title || (o && o.title), 80) || "ערוץ ביוטיוב", thumb: o && /^https:\/\/i\.ytimg\.com\//.test(o.thumbnail_url || "") ? o.thumbnail_url : "" };
 }
 
 /** masach.hania360.com/api/masach/*: create a family, read it, change it, pair a TV. */
