@@ -173,7 +173,8 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     personal: ["03adc637-b6fe-402b-9937-7c3d3afc9140", "mispar_rechev"],
     inactive: ["f6efe89a-fb3d-43a4-bb61-9bf12a9b9099", "mispar_rechev"],
     cancelled: ["851ecab1-0622-4dbe-a6c7-f950cf82abf9", "mispar_rechev"],
-    wltp: ["142afde2-6228-49f9-8a29-9b6c3a0cbe40", null]
+    wltp: ["142afde2-6228-49f9-8a29-9b6c3a0cbe40", null],
+    price: ["39f455bf-6db0-4926-859d-017f34eacbcb", null]
   };
   var CKAN = "https://data.gov.il/api/3/action/datastore_search";
   // Straight from the phone (the API allows it); through our server when the phone cannot reach it.
@@ -227,9 +228,20 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
         // Specs of the model (horsepower, airbags, gearbox) from the WLTP table, when the codes are there.
         var f = { tozeret_cd: c.tozeret_cd, degem_cd: c.degem_cd }; if (c.shnat_yitzur) f.shnat_yitzur = c.shnat_yitzur;
         var spec = c.tozeret_cd && c.degem_cd ? ds("wltp", f, { limit: "1" }).then(function (x) { return x[0]; }).catch(function () { return null; }) : Promise.resolve(null);
-        return spec.then(function (s) { res.spec = s; status(""); show(d, res); });
+        // The importer's list price for this model when new (Ministry of Transport), the closest year when the exact one is missing.
+        var price = c.tozeret_cd && c.degem_cd ? ds("price", { tozeret_cd: c.tozeret_cd, degem_cd: c.degem_cd }, { limit: "50" }).then(function (x) { return pickPrice(x, c); }).catch(function () { return null; }) : Promise.resolve(null);
+        return Promise.all([spec, price]).then(function (v) { res.spec = v[0]; res.price = v[1]; status(""); show(d, res); });
       })
       .catch(function () { busy = false; status("אין חיבור למאגר של משרד התחבורה כרגע. מנסים שוב בעוד רגע."); });
+  }
+  function pickPrice(rows, c) {
+    rows = (rows || []).filter(function (x) { return +x.mehir > 0; });
+    if (c.sug_degem) { var same = rows.filter(function (x) { return x.sug_degem === c.sug_degem; }); if (same.length) rows = same; }
+    if (!rows.length) return null;
+    var y = +c.shnat_yitzur || 0;
+    rows.sort(function (a, b) { return Math.abs(+a.shnat_yitzur - y) - Math.abs(+b.shnat_yitzur - y) || +b.shnat_yitzur - +a.shnat_yitzur; });
+    var best = rows.filter(function (x) { return +x.shnat_yitzur === +rows[0].shnat_yitzur; }).map(function (x) { return +x.mehir; });
+    return { lo: Math.min.apply(null, best), hi: Math.max.apply(null, best), year: +rows[0].shnat_yitzur, exact: !y || +rows[0].shnat_yitzur === y, importer: rows[0].shem_yevuan || "" };
   }
   function no() { return []; }
   function status(t) { $("status").hidden = !t; $("status").textContent = t; }
@@ -277,6 +289,8 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
       ["ק״מ בטסט האחרון", kmv ? num(kmv) : "—", perY ? "כ־" + num(Math.round(perY / 500) * 500) + " בשנה" : ""],
       ["טסט אחרון", test ? fmtDay(test) : "—", ""]
     ];
+    var pr = r.price;
+    if (pr) stats.push(["מחירון (רכב חדש)", "₪" + num(pr.lo), (pr.hi > pr.lo ? "עד ₪" + num(pr.hi) + " לפי גרסה · " : "") + (pr.exact ? "מחיר היבואן לשנת " : "מחיר היבואן לדגם ") + pr.year]);
     if (s.koah_sus) stats.push(["כוח סוס", s.koah_sus, s.nefah_manoa ? num(s.nefah_manoa) + " סמ״ק" : ""]);
 
     var kids = [];
@@ -287,9 +301,10 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     kids.push(el("div", { class: "flags" }, flags.map(function (f) { return el("div", { class: "flag " + f[0] }, [el("span", { text: f[1] }), el("b", { text: f[2] }), f[3] ? el("small", { text: f[3] }) : null]); })));
     kids.push(el("div", { class: "stats" }, stats.map(function (x) { return el("div", { class: "stat" }, [el("small", { text: x[0] }), el("b", { text: String(x[1]) }), x[2] ? el("i", { text: x[2] }) : null]); })));
 
+    if (pr) kids.push(el("p", { style: "margin:0;font-size:13.5px;color:var(--muted)", text: "המחירון הוא מחיר הדגם כשהיה חדש, כפי שהיבואן דיווח למשרד התחבורה. שווי רכב משומש היום נמוך יותר, ותלוי בגיל, בק״מ וביד." }));
     if (owners.length) kids.push(el("details", {}, [el("summary", { text: "היסטוריית בעלות (" + owners.length + ")" }), el("ul", { class: "hands" }, owners.map(function (o, i) { return el("li", {}, [el("b", { text: "יד " + (i + 1) }), el("span", { text: (o.baalut || "—") + " · מ" + fmtYm(ym(o.baalut_dt)) })]); }))]));
     var tech = [["יצרן", c.tozeret_nm], ["ארץ ייצור", c.tozeret_eretz_nm], ["דגם", c.degem_nm], ["רמת גימור", c.ramat_gimur], ["דלק", c.sug_delek_nm], ["צמיג קדמי", c.zmig_kidmi], ["צמיג אחורי", c.zmig_ahori], ["מספר שלדה", c.misgeret], ["דגם מנוע", c.degem_manoa], ["קבוצת זיהום", c.kvutzat_zihum], ["רמת אבזור בטיחותי", c.ramat_eivzur_betihuty],
-      ["תיבת הילוכים", s.automatic_ind == null ? "" : (+s.automatic_ind ? "אוטומטית" : "ידנית")], ["כריות אוויר", s.mispar_kariot_avir], ["מרכב", s.merkav], ["הנעה", s.technologiat_hanaa_nm || s.hanaa_nm], ["משקל כולל", s.mishkal_kolel ? num(s.mishkal_kolel) + " ק״ג" : ""]]
+      ["תיבת הילוכים", s.automatic_ind == null ? "" : (+s.automatic_ind ? "אוטומטית" : "ידנית")], ["כריות אוויר", s.mispar_kariot_avir], ["מרכב", s.merkav], ["הנעה", s.technologiat_hanaa_nm || s.hanaa_nm], ["משקל כולל", s.mishkal_kolel ? num(s.mishkal_kolel) + " ק״ג" : ""], ["יבואן", pr && pr.importer]]
       .filter(function (x) { return x[1] !== undefined && x[1] !== null && String(x[1]).trim() !== ""; });
     kids.push(el("details", {}, [el("summary", { text: "כל הפרטים הטכניים" }), el("dl", {}, tech.reduce(function (a, x) { a.push(el("dt", { text: x[0] }), el("dd", { text: String(x[1]).trim() })); return a; }, []))]));
 
