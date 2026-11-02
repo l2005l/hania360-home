@@ -210,7 +210,8 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     var n = +d;
     history.replaceState(null, "", "#car-" + d);
     $("out").hidden = true; status("בודקים במשרד התחבורה…");
-    Promise.all([byPlate("active", n), byPlate("km", n).catch(no), byPlate("owners", n, { sort: "baalut_dt desc" }).catch(no), byPlate("recall", n).catch(no), byPlate("tag", n).catch(no)])
+    var active = function () { return byPlate("active", n).catch(function () { return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return byPlate("active", n); }); }); };
+    Promise.all([active(), byPlate("km", n).catch(no), byPlate("owners", n, { sort: "baalut_dt desc" }).catch(no), byPlate("recall", n).catch(no), byPlate("tag", n).catch(no)])
       .then(function (r) {
         if (r[0].length) return { car: r[0][0], kind: "", km: r[1][0], owners: r[2], recalls: r[3], tag: r[4][0] };
         // Not in the main registry: a motorbike, a truck, a personal import, or off the road.
@@ -230,7 +231,7 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
         var spec = c.tozeret_cd && c.degem_cd ? ds("wltp", f, { limit: "1" }).then(function (x) { return x[0]; }).catch(function () { return null; }) : Promise.resolve(null);
         // The importer's list price for this model when new (Ministry of Transport), the closest year when the exact one is missing.
         var price = c.tozeret_cd && c.degem_cd ? ds("price", { tozeret_cd: c.tozeret_cd, degem_cd: c.degem_cd }, { limit: "50" }).then(function (x) { return pickPrice(x, c); }).catch(function () { return null; }) : Promise.resolve(null);
-        return Promise.all([spec, price]).then(function (v) { res.spec = v[0]; res.price = v[1]; status(""); show(d, res); });
+        return Promise.all([spec, price]).then(function (v) { res.spec = v[0]; res.price = v[1]; status(""); try { show(d, res); } catch (e) { status("משהו השתבש בהצגת הרכב. מרעננים את הדף ומנסים שוב."); } });
       })
       .catch(function () { busy = false; status("אין חיבור למאגר של משרד התחבורה כרגע. מנסים שוב בעוד רגע."); });
   }
@@ -301,6 +302,11 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     kids.push(el("div", { class: "flags" }, flags.map(function (f) { return el("div", { class: "flag " + f[0] }, [el("span", { text: f[1] }), el("b", { text: f[2] }), f[3] ? el("small", { text: f[3] }) : null]); })));
     kids.push(el("div", { class: "stats" }, stats.map(function (x) { return el("div", { class: "stat" }, [el("small", { text: x[0] }), el("b", { text: String(x[1]) }), x[2] ? el("i", { text: x[2] }) : null]); })));
 
+    // What it is worth today: the government's free used-car price list (מחירון העם), with the details it asks for.
+    var ask = [c.degem_cd ? "קוד דגם " + c.degem_cd : "", c.tozeret_nm, c.kinuy_mishari, year ? "שנה " + year : "", c.ramat_gimur ? "גימור " + c.ramat_gimur : "", s.nefah_manoa ? num(s.nefah_manoa) + " סמ״ק" : "", s.automatic_ind == null ? "" : (+s.automatic_ind ? "אוטומט" : "ידני")].filter(Boolean).join(" · ");
+    kids.push(el("a", { class: "btn", href: "https://www.gov.il/apps/mot/carlistprice/", target: "_blank", rel: "noopener", style: "display:grid;gap:2px;text-align:center;text-decoration:none", onclick: function () { try { navigator.clipboard && navigator.clipboard.writeText(ask); } catch (e) {} } }, [
+      el("span", { text: "💰 כמה שווה היום? מחירון העם (משרד התחבורה)" }),
+      el("small", { style: "font-weight:500;opacity:.85", text: "מקלידים שם: " + ask }) ]));
     if (pr) kids.push(el("p", { style: "margin:0;font-size:13.5px;color:var(--muted)", text: "המחירון הוא מחיר הדגם כשהיה חדש, כפי שהיבואן דיווח למשרד התחבורה. שווי רכב משומש היום נמוך יותר, ותלוי בגיל, בק״מ וביד." }));
     if (owners.length) kids.push(el("details", {}, [el("summary", { text: "היסטוריית בעלות (" + owners.length + ")" }), el("ul", { class: "hands" }, owners.map(function (o, i) { return el("li", {}, [el("b", { text: "יד " + (i + 1) }), el("span", { text: (o.baalut || "—") + " · מ" + fmtYm(ym(o.baalut_dt)) })]); }))]));
     var tech = [["יצרן", c.tozeret_nm], ["ארץ ייצור", c.tozeret_eretz_nm], ["דגם", c.degem_nm], ["רמת גימור", c.ramat_gimur], ["דלק", c.sug_delek_nm], ["צמיג קדמי", c.zmig_kidmi], ["צמיג אחורי", c.zmig_ahori], ["מספר שלדה", c.misgeret], ["דגם מנוע", c.degem_manoa], ["קבוצת זיהום", c.kvutzat_zihum], ["רמת אבזור בטיחותי", c.ramat_eivzur_betihuty],
