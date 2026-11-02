@@ -276,7 +276,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       for (var i = 6; i >= 0; i--) { var t = Date.now() - i * 864e5, d = ilDay(t), v = i === 0 ? Math.round(k.used / 60) : (k.hist[d] || 0); days.push([new Date(t).getDay(), v, i === 0]); max = Math.max(max, v); }
       days.forEach(function (x) { week.append(el("span", { class: x[2] ? "today" : "", title: x[1] + " דק׳" }, [el("i", { style: "height:" + Math.max(3, Math.round(x[1] / max * 40)) + "px" }), DAYS[x[0]]])); });
       return el("div", { class: "kid", style: "--c:" + k.color, "data-k": k.id }, [
-        el("div", { class: "top" }, [el("span", { class: "em", text: k.emoji }), el("span", { class: "nm", text: k.name }), el("span", { class: "st" + (k.running ? " on" : ""), text: k.running ? "● צופה עכשיו" : left <= 0 ? "הזמן נגמר" : "בהפסקה" })]),
+        el("div", { class: "top" }, [el("span", { class: "em", text: k.emoji }), el("span", { class: "nm", text: k.name }), el("span", { class: "st" + (k.running ? " on" : ""), text: k.asleep ? "🌙 שעת שינה" : k.running ? "● צופה עכשיו" : left <= 0 ? "הזמן נגמר" : "בהפסקה" })]),
         el("div", { class: "big", "data-left": "1", text: mmss(left) }),
         el("div", { class: "fine", text: "נשאר מתוך " + minsText(k.daily) + (k.bonus ? " (" + (k.bonus > 0 ? "+" : "") + k.bonus + " דק׳ היום)" : "") + (k.bonusOn ? " · משימות: " + k.tasks + "/" + k.maxTasks : "") }),
         el("div", { class: "bar" }, [el("i", { style: "width:" + pct + "%" })]),
@@ -325,9 +325,11 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     var name = el("input", { type: "text", maxlength: "20", value: k.name }), daily = el("select", null, [15, 20, 30, 45, 60, 75, 90, 120, 150, 180].map(function (m) { var o = el("option", { value: String(m), text: minsText(m) }); if (m === k.daily) o.selected = true; return o; }));
     if (![15, 20, 30, 45, 60, 75, 90, 120, 150, 180].includes(k.daily)) daily.append(el("option", { value: String(k.daily), selected: "", text: minsText(k.daily) }));
     var bon = el("select", null, [["0", "בלי"], ["5", "5 דקות"], ["10", "10 דקות"], ["15", "15 דקות"], ["20", "20 דקות"]].map(function (o) { var x = el("option", { value: o[0], text: o[1] }); if ((k.bonusOn ? String(k.bonusMin) : "0") === o[0]) x.selected = true; return x; }));
+    var BEDS = ["", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"];
+    var bed = el("select", null, BEDS.map(function (t) { var x = el("option", { value: t, text: t ? "🌙 " + t + " (עד הבוקר)" : "בלי" }); if ((k.bed || "") === t) x.selected = true; return x; }));
     var max = el("select", null, [1, 2, 3, 4, 5].map(function (n) { var x = el("option", { value: String(n), text: n + " פעמים ביום" }); if (n === k.maxTasks) x.selected = true; return x; }));
-    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]),
-      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value }).then(close); } }),
+    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]), el("label", null, ["שעת שינה: מהשעה הזו המסך סגור, גם אם נשארו דקות", bed]),
+      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value, bed: bed.value }).then(close); } }),
       el("div", { class: "row" }, [el("button", { class: "chip", type: "button", text: "🔄 להתחיל את היום מאפס", onclick: function () { op({ op: "reset", k: k.id }).then(close); } }),
         el("button", { class: "chip", type: "button", text: "🗑️ הסרה", onclick: function () { if (confirm("להסיר את " + k.name + "?")) op({ op: "kid", k: k.id, remove: true }).then(close); } })])]);
   }
@@ -378,24 +380,38 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     $("kArc").setAttribute("stroke-dashoffset", String(276.5 * (1 - Math.max(0, Math.min(1, left / total)))));
     $("kArc").style.stroke = left <= 0 ? "var(--bad)" : warn ? "var(--warn)" : kData.color;
     $("kGo").textContent = kData.running ? "⏸ הפסקה" : "▶ מתחילים מסך";
-    $("kGo").hidden = left <= 0;
     $("kFoot").textContent = kData.bonusOn ? "כשהזמן נגמר אפשר להרוויח עוד " + kData.bonusMin + " דקות במשימה בלי מסך (" + (kData.maxTasks - kData.tasks) + " נשארו היום)." : "";
     if (lastLeft != null && kData.running) { if (lastLeft > 300 && left <= 300) beep(2); if (lastLeft > 60 && left <= 60) chime(1); if (lastLeft > 0 && left <= 0) { chime(3); closePlayer(); loadKid(); } }
     tickPlayer(left);
     lastLeft = left;
-    drawBreak(left <= 0);
+    var night = asleepNow();
+    if (night && playerEl) { closePlayer(); chime(2); }
+    $("kGo").hidden = left <= 0 || night;
+    drawBreak(left <= 0 || night, night);
     drawPip(left);
     if (kData.running && left > 0) wake(true); else wake(false);
   }
   setInterval(function () { if (!$("kidv").hidden) tickKid(); }, 1000);
   function wake(on) { try { if (on && !lock && navigator.wakeLock && document.visibilityState === "visible") navigator.wakeLock.request("screen").then(function (l) { lock = l; l.addEventListener("release", function () { lock = null; }); }).catch(function () {}); if (!on && lock) { lock.release(); lock = null; } } catch (e) {} }
   var brkAct = null;
-  function drawBreak(on) {
-    var host = $("brkHost");
-    if (!on) { if (host.firstChild) host.textContent = ""; brkAct = null; return; }
-    if (host.firstChild) return;
+  function asleepNow() {
+    if (!kData || !kData.bed) return false;
+    var p = kData.bed.split(":"), b = +p[0] * 60 + +p[1], t = new Date().toLocaleTimeString("en-GB", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).split(":"), m = +t[0] * 60 + +t[1];
+    return m >= b || m < 300;
+  }
+  function drawBreak(on, night) {
+    var host = $("brkHost"), can = kData && kData.bonusOn && kData.tasks < kData.maxTasks && !night, mode = !on ? "" : night ? "night" : can ? "task" : "done";
+    if (host.getAttribute("data-mode") === mode && (mode || !host.firstChild)) return;
+    host.setAttribute("data-mode", mode); host.textContent = "";
+    if (!on) { brkAct = null; return; }
+    if (mode !== "task") {
+      var eve = new Date().toLocaleTimeString("en-GB", { timeZone: "Asia/Jerusalem", hour: "2-digit", hourCycle: "h23" }) >= "18";
+      host.append(el("div", { class: "brk", role: "dialog", "aria-label": night ? "לילה טוב" : "הזמן נגמר" }, mode === "night"
+        ? [el("div", { class: "em", text: "🌙" }), el("h1", "לילה טוב, " + kData.name + "!"), el("p", { class: "act", text: "הגיע הזמן לישון." }), el("p", { class: "lead", text: "המסך ייפתח מחר בבוקר. חלומות פז ✨" })]
+        : [el("div", { class: "em", text: eve ? "🌙" : "⭐" }), el("h1", "⏰ הזמן נגמר!"), el("p", { class: "act", text: eve ? "זהו להיום. הגיע הזמן להתארגן לשינה." : "זהו להיום. כל הכבוד!" }), el("p", { class: "lead", text: "מחר יש עוד זמן מסך." })]));
+      return;
+    }
     brkAct = brkAct || ACTS[Math.floor(Math.random() * ACTS.length)];
-    var can = kData.bonusOn && kData.tasks < kData.maxTasks;
     var actEl = el("div", { class: "act", text: brkAct[1] }), emEl = el("div", { class: "em", text: brkAct[0] });
     host.append(el("div", { class: "brk", role: "dialog", "aria-label": "הפסקה" }, [
       el("h1", "⏰ הזמן נגמר!"),
