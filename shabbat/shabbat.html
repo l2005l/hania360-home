@@ -80,6 +80,20 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 .dial .n{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);font-weight:700}
 .dial .arr{position:absolute;inset:0;display:grid;place-items:center;transition:transform .2s linear}
 .dial .arr i{display:block;width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:70px solid var(--flame);transform:translateY(-34px);filter:drop-shadow(0 0 10px rgba(247,181,72,.6))}
+/* holidays in their season */
+.holbox{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.hol{background:linear-gradient(170deg,rgba(247,181,72,.12),rgba(247,181,72,.03));border-color:rgba(247,181,72,.35)}
+.hol .time b{font-size:30px}
+.htodo{margin:0;padding-inline-start:20px;display:grid;gap:4px;line-height:1.6}
+.bless{font-family:var(--display);font-size:18px;line-height:1.8;margin:0;display:grid;gap:6px}.bless p{margin:0}
+.hol details summary{cursor:pointer;font-weight:700;color:var(--flame)}
+.meno{direction:ltr;display:flex;justify-content:center;align-items:flex-end;gap:9px;height:96px;padding-top:26px;border-bottom:3px solid rgba(247,181,72,.5)}
+.meno .c{width:12px;height:44px;border-radius:3px;background:linear-gradient(var(--wax),#E9D7B5);position:relative;opacity:.35}
+.meno .c.shamash{height:62px}
+.meno .c.lit{opacity:1}
+.meno .c.lit::before{content:"";position:absolute;bottom:100%;left:50%;width:12px;height:20px;margin-left:-6px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:radial-gradient(circle at 50% 70%,#FFF8D0,var(--flame) 45%,var(--ember) 80%);box-shadow:0 0 16px 4px rgba(247,181,72,.45);animation:flick 2.4s ease-in-out infinite;transform-origin:50% 100%}
+.meno .c.new::after{content:"חדש";position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:10px;color:var(--flame);font-weight:700;margin-top:4px}
+@media (prefers-reduced-motion:reduce){.meno .c.lit::before{animation:none}}
 </style>
 
 <div class="wrap">
@@ -98,6 +112,8 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
       <div><div class="lbl">הזמן הבא</div><div class="nm" id="nName">…</div><div class="tm" id="nTime">--:--</div></div></div>
     <details class="zd" open><summary>כל זמני היום <small class="fine" id="zCity"></small></summary><ul class="zl" id="zList"></ul></details>
   </section>
+
+  <div class="holbox" id="holBox" hidden></div>
 
   <section class="card">
     <h2>⏰ תזכורת לזמן היום <small id="zmState"></small></h2>
@@ -187,10 +203,11 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     var ev = HB.HebrewCalendar.calendar(opts), out = [], cur = null;
     ev.forEach(function (e) {
       var f = e.getFlags(), desc = e.getDesc ? e.getDesc() : "";
-      if (f & HB.flags.LIGHT_CANDLES || /^Candle lighting/.test(desc)) {
+      // Erev-holiday events carry the candle flag too, but no time: only real candle-lighting times count.
+      if (e.eventTime && (f & HB.flags.LIGHT_CANDLES || /^Candle lighting/.test(desc))) {
         if (!cur || cur.end) { cur = { candles: e.eventTime, label: [], end: null }; out.push(cur); }
         else if (!cur.candles2) cur.candles2 = e.eventTime;
-      } else if (/^Havdalah/.test(desc)) { if (cur) cur.end = e.eventTime; }
+      } else if (/^Havdalah/.test(desc) && e.eventTime) { if (cur) cur.end = e.eventTime; }
       else if (f & HB.flags.PARSHA_HASHAVUA) { if (cur && !cur.end) cur.parasha = strip(e.render("he")); }
       else if (cur && !cur.end && (f & (HB.flags.CHAG | HB.flags.EREV | HB.flags.MAJOR_FAST))) cur.label.push(strip(e.render("he")));
     });
@@ -220,7 +237,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   function el(tag, a, kids) {
     if (typeof a === "string") return Object.assign(document.createElement(tag), { textContent: a });
     var e = document.createElement(tag); Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); });
-    (kids || []).forEach(function (k) { e.append(k); }); return e;
+    [].concat(kids == null ? [] : kids).forEach(function (k) { if (k != null && k !== false) e.append(k); }); return e;
   }
 
   // ---- city: the choice stays on this phone, and the last few towns are one tap away ------------
@@ -366,6 +383,147 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   }
   function resyncZ() { if (!S.z || !canPush) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "z", sub: s.toJSON(), before: 15, city: place().name, items: zItems() }); }).catch(function () {}); }
 
+  // ---- Holidays in their season: a card appears some days before, and goes when the holiday is over ----
+  var NUM = ["", "א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ז׳", "ח׳"];
+  var dayName = function (d) { return d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Asia/Jerusalem" }); };
+  var noon = function (d) { var x = new Date(d); x.setHours(12, 0, 0, 0); return x; };
+  function zOn(d) { var p = place(); return new HB.Zmanim(new HB.Location(p.lat, p.lon, true, "Asia/Jerusalem", p.name, "IL"), d, false); }
+  function safe(f) { try { var t = f(); return t && !isNaN(t) ? t : null; } catch (e) { return null; } }
+  function havdalahOn(d) { var z = zOn(d); return S.hav === "72" ? new Date(z.shkiah().getTime() + 72 * 6e4) : z.tzeit(8.5); }
+  function isRest(hd) { if (hd.getDay() === 6) return true; try { return HB.HebrewCalendar.getHolidaysOnDate(hd, true).some(function (e) { return e.getFlags() & HB.flags.CHAG; }); } catch (e) { return false; } }
+  // The Hebrew date whose night it is now: from dawn on, tonight belongs to tomorrow's date.
+  function tonightHd(now) { var hd = new HB.HDate(now), a = safe(function () { return zOn(now).alotHaShachar(); }); return a && now < a ? hd : hd.next(); }
+  function chanukahNight(hdNight) { return hdNight.abs() - new HB.HDate(25, 9, hdNight.getFullYear()).abs() + 1; }
+  function omerNight(hdNight) { return hdNight.abs() - new HB.HDate(16, 1, hdNight.getFullYear()).abs() + 1; }
+  // When to light on the evening of date d: before Shabbat on Friday, after Havdalah on Saturday night.
+  function lightOn(d) {
+    var z = zOn(d), shk = z.shkiah(), wd = d.getDay();
+    if (wd === 5) return { t: new Date(shk.getTime() - place().b * 6e4), note: "ערב שבת: מדליקים לפני נרות שבת", rows: [["🕯️ לפני נרות שבת", new Date(shk.getTime() - place().b * 6e4)]] };
+    if (wd === 6) { var h = havdalahOn(d); return { t: h, note: "מוצאי שבת: מדליקים אחרי ההבדלה", rows: [["✨ אחרי צאת שבת", h]] }; }
+    return { t: shk, note: "", rows: [["🌇 בשקיעה", shk], ["✨ בצאת הכוכבים", z.tzeit(4.8)]] };
+  }
+  function chagTimes(re) {
+    var w = upcoming(8).filter(function (x) { return re.test(x.label.join(" ")); })[0];
+    return w ? [["🕯️ כניסה · " + dayName(w.candles), w.candles], ["✨ יציאה · " + dayName(w.end), w.end]] : [];
+  }
+  var BLESS = {
+    light: function () { return "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ לְהַדְלִיק " + (S.nusach === "ashkenaz" ? "נֵר שֶׁל חֲנֻכָּה." : "נֵר חֲנֻכָּה."); },
+    nisim: "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁעָשָׂה נִסִּים לַאֲבוֹתֵינוּ בַּיָּמִים הָהֵם בַּזְּמַן הַזֶּה.",
+    shehech: "בָּרוּךְ אַתָּה ה׳ אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, שֶׁהֶחֱיָנוּ וְקִיְּמָנוּ וְהִגִּיעָנוּ לַזְּמַן הַזֶּה.",
+    halalu: "הַנֵּרוֹת הַלָּלוּ אָנוּ מַדְלִיקִין עַל הַנִּסִּים וְעַל הַנִּפְלָאוֹת וְעַל הַתְּשׁוּעוֹת וְעַל הַמִּלְחָמוֹת שֶׁעָשִׂיתָ לַאֲבוֹתֵינוּ בַּיָּמִים הָהֵם בַּזְּמַן הַזֶּה, עַל יְדֵי כֹּהֲנֶיךָ הַקְּדוֹשִׁים. וְכָל שְׁמוֹנַת יְמֵי חֲנֻכָּה הַנֵּרוֹת הַלָּלוּ קֹדֶשׁ הֵם, וְאֵין לָנוּ רְשׁוּת לְהִשְׁתַּמֵּשׁ בָּהֶם אֶלָּא לִרְאוֹתָם בִּלְבָד, כְּדֵי לְהוֹדוֹת וּלְהַלֵּל לְשִׁמְךָ הַגָּדוֹל עַל נִסֶּיךָ וְעַל נִפְלְאוֹתֶיךָ וְעַל יְשׁוּעָתֶךָ."
+  };
+  function fastTimes(evDate, majorStartPrevEvening) {
+    var z = zOn(evDate), start = majorStartPrevEvening ? zOn(new Date(evDate.getTime() - 864e5)).shkiah() : z.alotHaShachar();
+    return [["⏳ תחילת הצום · " + dayName(majorStartPrevEvening ? new Date(evDate.getTime() - 864e5) : evDate), start], ["🍽️ סיום הצום", z.tzeit(7.083)]];
+  }
+  // Each holiday: which hebcal event marks it, how many days before it shows, how many days it stays.
+  var HOL = [
+    { re: /^Chanukah: 1 Candle$/, id: "chanukah", lead: 21, len: 9 },
+    { re: /^Rosh Hashana \d/, id: "rh", lead: 21, len: 2, e: "🍎", t: "ראש השנה", times: function () { return chagTimes(/ראש השנה/); }, todo: ["תקיעת שופר ביום החג", "סימנים בליל החג: תפוח בדבש, רימון ועוד", "תשליך ביום הראשון (כשחל בשבת, דוחים ליום השני)"] },
+    { re: /^Tzom Gedaliah$/, id: "gedalia", lead: 1, len: 1, e: "🤍", t: "צום גדליה", fast: 1 },
+    { re: /^Yom Kippur$/, id: "yk", lead: 8, len: 1, e: "🤍", t: "יום כיפור", times: function () { return chagTimes(/כי?פור/); }, todo: ["הצום מתחיל עם כניסת החג ומסתיים ביציאה", "סעודה מפסקת לפני הכניסה", "גמר חתימה טובה"] },
+    { re: /^Sukkot I$/, id: "sukkot", lead: 4, len: 8, e: "🌿", t: "סוכות", times: function () { return chagTimes(/סו?כות|שמיני עצרת|שמחת תורה/); }, todo: ["ישיבה בסוכה כל ימי החג", "ארבעת המינים: לולב, אתרוג, הדסים וערבות (לא בשבת)", "הושענא רבה ביום השביעי, ולמחרת שמחת תורה"] },
+    { re: /^Asara B'Tevet$/, id: "tevet", lead: 2, len: 1, e: "🕊️", t: "עשרה בטבת", fast: 1 },
+    { re: /^Tu BiShvat$/, id: "tubishvat", lead: 10, len: 1, e: "🌳", t: "ט״ו בשבט", todo: ["ראש השנה לאילנות", "אוכלים מפירות שבעת המינים: חיטה, שעורה, גפן, תאנה, רימון, זית ותמר", "מברכים על פרי חדש שהחיינו"] },
+    { re: /^Ta'anit Esther$/, id: "esther", lead: 2, len: 1, e: "📜", t: "תענית אסתר", fast: 1 },
+    { re: /^Purim$/, id: "purim", lead: 14, len: 2, e: "🎭", t: "פורים", todo: ["קריאת המגילה בערב ובבוקר", "משלוח מנות: שתי מנות לחבר אחד לפחות", "מתנות לאביונים: לשני עניים לפחות", "סעודת פורים ביום", "בירושלים: פורים שושן, יום אחד אחרי"] },
+    { re: /^Pesach I$/, id: "pesach", lead: 21, len: 7, e: "🍷", t: "פסח", pesach: 1, times: function () { return chagTimes(/פסח/); }, todo: ["ליל הסדר בערב החג", "בדיקת חמץ בלילה שלפני ערב פסח, אחרי צאת הכוכבים", "מכירת חמץ דרך הרב או בית הכנסת, לפני החג"] },
+    { re: /^Yom HaShoah$/, id: "shoah", lead: 3, len: 1, e: "🕯️", t: "יום השואה", todo: ["צפירה בשעה 10:00 בבוקר", "הטקס הממלכתי בערב שלפני"] },
+    { re: /^Yom HaZikaron$/, id: "zikaron", lead: 4, len: 1, e: "🇮🇱", t: "יום הזיכרון", todo: ["צפירה בערב שלפני בשעה 20:00", "צפירה בשעה 11:00 בבוקר", "בערב מתחיל יום העצמאות"] },
+    { re: /^Yom HaAtzma'ut$/, id: "atzmaut", lead: 2, len: 1, e: "🎆", t: "יום העצמאות", todo: ["חג שמח!"] },
+    { re: /^Lag BaOmer$/, id: "lag", lead: 5, len: 1, e: "🔥", t: "ל״ג בעומר", todo: ["המדורות בערב שלפני", "שומרים על מרחק מבתים ומעצים, ומכבים עם מים"] },
+    { re: /^Yom Yerushalayim$/, id: "yy", lead: 2, len: 1, e: "🏛️", t: "יום ירושלים", todo: ["חג שמח!"] },
+    { re: /^Shavuot$/, id: "shavuot", lead: 7, len: 1, e: "🌾", t: "שבועות", times: function () { return chagTimes(/שבועות/); }, todo: ["תיקון ליל שבועות", "מאכלי חלב", "קריאת מגילת רות"] },
+    { re: /^Tzom Tammuz$/, id: "tammuz", lead: 2, len: 1, e: "🕊️", t: "י״ז בתמוז", fast: 1 },
+    { re: /^Tish'a B'Av$/, id: "av", lead: 9, len: 1, e: "🕊️", t: "תשעה באב", fast: 2 }
+  ];
+  function seasonCards(now) {
+    var today = new HB.HDate(now).abs(), out = [], seen = {};
+    var ev = HB.HebrewCalendar.calendar({ start: new Date(now.getTime() - 10 * 864e5), end: new Date(now.getTime() + 25 * 864e5), il: true, noModern: false });
+    ev.forEach(function (e) {
+      var desc = e.getDesc(), h = HOL.filter(function (x) { return x.re.test(desc); })[0]; if (!h || seen[h.id]) return;
+      var d = e.getDate().abs() - today; if (d > h.lead || d <= -h.len) return;
+      seen[h.id] = 1; out.push({ h: h, d: d, date: noon(e.getDate().greg()) });
+    });
+    return out.sort(function (a, b) { return a.d - b.d; }).slice(0, 2);
+  }
+  function put(sec) { [].slice.call(arguments, 1).forEach(function (k) { if (k != null && k !== false) sec.append(k); }); return sec; }
+  function chip(text, pressed, on) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(!!pressed) }, [text]); b.addEventListener("click", on); return b; }
+  function remChip() { return chip(S.hol ? "🔔 התזכורת פעילה (לביטול)" : "🔔 להזכיר לי בכל ערב", S.hol, function () { setHol(!S.hol); }); }
+  function rowsEl(rows) { return el("div", { class: "times" }, rows.filter(function (r) { return r[1]; }).map(function (r) { return el("div", { class: "time" }, [el("small", r[0]), el("b", hm(r[1]))]); })); }
+  function whenText(d, date) { return d > 1 ? "בעוד " + d + " ימים · " + dayName(date) : d === 1 ? "מחר · " + dayName(date) : d === 0 ? "היום" : "חג שמח"; }
+  function chanukahCard(now, c) {
+    var hn = tonightHd(now), n = chanukahNight(hn), sec = el("section", { class: "card hol" });
+    if (n < 1) {
+      var first = new Date(c.date);
+      put(sec, el("h2", null, ["🕎 חנוכה", el("small", "נר ראשון: " + dayName(first) + " בערב")]),
+        el("p", { class: "fine", style: "font-size:15px;color:var(--wax)" }, ["עוד " + (1 - n) + " ימים לנר הראשון. צריך חנוכייה, ונרות או שמן: 44 נרות לכל החג, כולל השמש."]),
+        el("div", { class: "chips" }, [remChip()]));
+      return sec;
+    }
+    if (n > 8) { put(sec, el("h2", null, ["🕎 זאת חנוכה", el("small", "היום האחרון")]), el("p", { class: "fine", style: "font-size:15px;color:var(--wax)" }, ["חנוכה שמח! הנרות של אתמול בערב היו האחרונים השנה."])); return sec; }
+    var eveDate = noon(new Date(now.getTime() - (now.getHours() < 5 ? 864e5 : 0))), l = lightOn(eveDate);
+    var meno = el("div", { class: "meno", "aria-hidden": "true" });
+    for (var j = 0; j < 8; j++) { if (j === 4) meno.append(el("span", { class: "c lit shamash" })); var k = 8 - j; meno.append(el("span", { class: "c" + (k <= n ? " lit" : "") + (k === n ? " new" : "") })); }
+    var bless = [BLESS.light(), BLESS.nisim].concat(n === 1 ? [BLESS.shehech] : []);
+    put(sec, el("h2", null, ["🕎 חנוכה: הלילה נר " + NUM[n], el("small", n + " נרות ושמש")]), meno,
+      l.note ? el("p", { class: "fine", style: "font-size:14px;color:var(--flame);font-weight:700" }, [l.note]) : null, rowsEl(l.rows),
+      el("p", { class: "fine" }, ["מוסיפים כל ערב נר משמאל, ומדליקים קודם את הנר החדש. נרות השבת ונרות החנוכה צריכים לדלוק חצי שעה לפחות אחרי צאת הכוכבים."]),
+      el("div", { class: "bless" }, bless.map(function (b) { return el("p", b); })),
+      el("details", null, [el("summary", "הנרות הללו"), el("p", { class: "bless" }, [BLESS.halalu])]),
+      el("div", { class: "chips" }, [remChip()]));
+    return sec;
+  }
+  function holCard(c) {
+    var h = c.h, sec = el("section", { class: "card hol" }), rows = h.times ? h.times() : [];
+    if (h.fast) rows = fastTimes(c.date, h.fast === 2);
+    if (h.pesach) {
+      var erev = new Date(c.date.getTime() - 864e5), z = zOn(erev), tf = z.sofZmanTfilla(), ch = z.chatzot(), tfm = z.sofZmanTfillaMGA();
+      rows = rows.concat([["🍞 סוף אכילת חמץ (גר״א)", tf], ["🔥 סוף ביעור חמץ (גר״א)", new Date(tf.getTime() + (ch - tf) / 2)], ["🍞 סוף אכילת חמץ (מג״א)", tfm], ["🔥 סוף ביעור חמץ (מג״א)", new Date(tfm.getTime() + (ch - tfm) / 2)]]);
+      if (erev.getDay() === 6) h.todo = h.todo.concat(["השנה ערב פסח חל בשבת: בודקים חמץ ביום חמישי בלילה, ושואלים את הרב על שאר הסדר"]);
+    }
+    put(sec, el("h2", null, [h.e + " " + h.t, el("small", whenText(c.d, c.date))]), rows.length ? rowsEl(rows) : null,
+      h.todo ? el("ul", { class: "htodo" }, h.todo.map(function (t) { return el("li", t); })) : null);
+    return sec;
+  }
+  function omerCard(now) {
+    var hn = tonightHd(now), n = omerNight(hn); if (n < 1 || n > 49) return null;
+    var text = strip(new HB.OmerEvent(hn, n).getTodayIs("he")); if (S.nusach === "ashkenaz") text = text.replace("לעומר", "בעומר");
+    var z = zOn(noon(now)), t = z.tzeit(4.8), sec = el("section", { class: "card hol" });
+    put(sec, el("h2", null, ["🌾 ספירת העומר", el("small", "הלילה: יום " + n + " מתוך 49")]),
+      el("p", { class: "bless", style: "font-size:20px" }, [text]),
+      el("p", { class: "fine" }, ["סופרים בלילה אחרי צאת הכוכבים (" + hm(t) + "), עם ברכה. מי ששכח בלילה סופר ביום בלי ברכה, ובלילה הבא ממשיך עם ברכה."]),
+      el("div", { class: "chips" }, [remChip()]));
+    return sec;
+  }
+  function renderHol() {
+    var now = new Date(), cards = [], om = omerCard(now);
+    seasonCards(now).forEach(function (c) { cards.push(c.h.id === "chanukah" ? chanukahCard(now, c) : holCard(c)); });
+    if (om) cards.push(om);
+    var box = $("holBox"); box.hidden = !cards.length; box.replaceChildren.apply(box, cards);
+  }
+  // Reminders on their own list ("h"): every evening of Chanukah and of the Omer, never on Shabbat or a festival night.
+  function hItems() {
+    var out = [], now = Date.now();
+    for (var i = 0; i < 120 && out.length < 40; i++) {
+      var d = noon(new Date(now + i * 864e5)), hd = new HB.HDate(d), night = hd.next(), c = chanukahNight(night), o = omerNight(night), t = null, label = "";
+      if (c >= 1 && c <= 8) { t = lightOn(d).t; label = "🕎 נר " + NUM[c] + " של חנוכה"; }
+      else if (o >= 1 && o <= 49 && !isRest(night)) { t = isRest(hd) ? havdalahOn(d) : zOn(d).tzeit(4.8); label = "🌾 ספירת העומר: יום " + o; }
+      if (t && t.getTime() > now) out.push({ t: t.getTime(), label: label });
+    }
+    return out;
+  }
+  function setHol(on) {
+    if (!on) { S.hol = false; save(); renderHol(); if (canPush) getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint, kind: "h" }); }).catch(function () {}); toast("התזכורת כבויה"); return; }
+    if (!canPush) { toast(IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaDat למסך הבית" : "הדפדפן הזה לא תומך בהתראות"); return; }
+    var it = hItems(); if (!it.length) { toast("אין כרגע ערבים להזכיר"); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+      return getSub(true).then(function (s) { return api("sub", { kind: "h", sub: s.toJSON(), before: 10, city: place().name, items: it }); }).then(function (j) { if (!j.ok) throw new Error("x"); S.hol = true; save(); renderHol(); toast("🔔 נזכיר עשר דקות לפני, בכל ערב"); });
+    }).catch(function () { toast("לא הצלחנו להפעיל תזכורת"); });
+  }
+  function resyncH() { if (!S.hol || !canPush) return; var it = hItems(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "h", sub: s.toJSON(), before: 10, city: place().name, items: it }); }).catch(function () {}); }
+
   // ---- Compass to the Western Wall ----
   var KOTEL = [31.7767, 35.2345], kBear = null;
   function bearing(lat1, lon1, lat2, lon2) { var r = Math.PI / 180, y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r), x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r); return (Math.atan2(y, x) / r + 360) % 360; }
@@ -386,9 +544,9 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") DeviceOrientationEvent.requestPermission().then(function (r) { if (r === "granted") go(); else toast("בלי אישור לחיישן אפשר להיעזר במעלות שלמעלה"); }).catch(function () { toast("המצפן לא זמין"); });
     else if (window.DeviceOrientationEvent) go(); else toast("למכשיר הזה אין מצפן. אפשר להיעזר במעלות שלמעלה");
   });
-  var _render = render; render = function () { _render(); try { renderDay(); renderZm(); renderK(); } catch (e) {} };
+  var _render = render; render = function () { _render(); try { renderDay(); renderZm(); renderK(); } catch (e) {} try { renderHol(); } catch (e) { $("holBox").hidden = true; } };
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
-  render(); resync(); resyncZ();
+  render(); resync(); resyncZ(); resyncH();
   setInterval(render, 60000);
 })();
 </script>
