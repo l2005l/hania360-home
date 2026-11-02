@@ -254,7 +254,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   function pLink() { return location.origin + "/#p-" + P.f + "-" + P.key; }
   function kLink(k) { return location.origin + "/#k-" + P.f + "-" + k.t; }
   function openParent(f, key) {
-    P = { f: f, key: key }; S.fams = [{ f: f, key: key }].concat(S.fams.filter(function (x) { return x.f !== f; })).slice(0, 4); save();
+    P = { f: f, key: key }; S.mode = "p"; S.fams = [{ f: f, key: key }].concat(S.fams.filter(function (x) { return x.f !== f; })).slice(0, 4); save();
     show("parent"); loadParent(); clearInterval(pTimer); pTimer = setInterval(function () { if (document.visibilityState === "visible") loadParent(); }, 10000);
     $("bellP").setAttribute("aria-pressed", String(!!S.bellP));
   }
@@ -353,7 +353,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   var ACTS = [["🤸", "20 קפיצות במקום"], ["🎨", "לצייר משהו שראית היום"], ["🧹", "לסדר 10 דברים בחדר"], ["💧", "לשתות כוס מים"], ["📚", "לקרוא 2 עמודים בספר"], ["🧩", "לבנות משהו מלגו או מקוביות"], ["💬", "לשאול מישהו בבית איך עבר עליו היום"], ["🌳", "לחפש בחלון או במרפסת 5 דברים ירוקים"], ["🙆", "10 מתיחות של כל הגוף"], ["🎵", "לשיר שיר שלם בקול"], ["🍽️", "לעזור לערוך את השולחן"], ["✍️", "לכתוב 3 דברים טובים שקרו היום"], ["🧦", "לקפל את הבגדים שלך"], ["⚽", "5 דקות משחק עם כדור"], ["🦩", "לעמוד על רגל אחת 30 שניות, ואז על השנייה"], ["🐢", "לשכב על הגב ולנשום לאט 10 נשימות"]];
   function kAuth() { return { f: K.f, t: K.t }; }
   function openKid(f, t, tv) {
-    K = { f: f, t: t }; S.kid = { f: f, t: t }; save(); remember(f);
+    // A screen that became a child's screen opens as one next time (and a TV paired by code forgets the parents' link).
+    K = { f: f, t: t }; S.kid = { f: f, t: t }; S.mode = "k"; if (tv) S.fams = []; save(); remember(f);
     document.body.classList.toggle("tv", !!tv || S.tv === f + t); if (tv) { S.tv = f + t; save(); }
     show("kidv"); loadKid(); clearInterval(kTimer); kTimer = setInterval(function () { if (document.visibilityState === "visible") loadKid(); }, 15000);
     $("bellK").setAttribute("aria-pressed", String(!!S.bellK));
@@ -512,6 +513,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     if ((m = h.match(/^k-([A-Za-z0-9]{6,20})-([A-Za-z0-9]{6,20})$/))) return openKid(m[1], m[2]);
     if (h === "tv" || location.pathname === "/tv") return openTv();
     if (h === "new") { show("home"); return; }
+    if (S.mode === "k" && S.kid) { history.replaceState(null, "", "/#k-" + S.kid.f + "-" + S.kid.t); return openKid(S.kid.f, S.kid.t); }
     if (S.fams[0]) { history.replaceState(null, "", "/#p-" + S.fams[0].f + "-" + S.fams[0].key); return openParent(S.fams[0].f, S.fams[0].key); }
     if (S.kid) { history.replaceState(null, "", "/#k-" + S.kid.f + "-" + S.kid.t); return openKid(S.kid.f, S.kid.t); }
     show("home");
