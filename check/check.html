@@ -302,11 +302,6 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     kids.push(el("div", { class: "flags" }, flags.map(function (f) { return el("div", { class: "flag " + f[0] }, [el("span", { text: f[1] }), el("b", { text: f[2] }), f[3] ? el("small", { text: f[3] }) : null]); })));
     kids.push(el("div", { class: "stats" }, stats.map(function (x) { return el("div", { class: "stat" }, [el("small", { text: x[0] }), el("b", { text: String(x[1]) }), x[2] ? el("i", { text: x[2] }) : null]); })));
 
-    // What it is worth today: the government's free used-car price list (מחירון העם), with the details it asks for.
-    var ask = [c.degem_cd ? "קוד דגם " + c.degem_cd : "", c.tozeret_nm, c.kinuy_mishari, year ? "שנה " + year : "", c.ramat_gimur ? "גימור " + c.ramat_gimur : "", s.nefah_manoa ? num(s.nefah_manoa) + " סמ״ק" : "", s.automatic_ind == null ? "" : (+s.automatic_ind ? "אוטומט" : "ידני")].filter(Boolean).join(" · ");
-    kids.push(el("a", { class: "btn", href: "https://www.gov.il/apps/mot/carlistprice/", target: "_blank", rel: "noopener", style: "display:grid;gap:2px;text-align:center;text-decoration:none", onclick: function () { try { navigator.clipboard && navigator.clipboard.writeText(ask); } catch (e) {} } }, [
-      el("span", { text: "💰 כמה שווה היום? מחירון העם (משרד התחבורה)" }),
-      el("small", { style: "font-weight:500;opacity:.85", text: "מקלידים שם: " + ask }) ]));
     if (pr) kids.push(el("p", { style: "margin:0;font-size:13.5px;color:var(--muted)", text: "המחירון הוא מחיר הדגם כשהיה חדש, כפי שהיבואן דיווח למשרד התחבורה. שווי רכב משומש היום נמוך יותר, ותלוי בגיל, בק״מ וביד." }));
     if (owners.length) kids.push(el("details", {}, [el("summary", { text: "היסטוריית בעלות (" + owners.length + ")" }), el("ul", { class: "hands" }, owners.map(function (o, i) { return el("li", {}, [el("b", { text: "יד " + (i + 1) }), el("span", { text: (o.baalut || "—") + " · מ" + fmtYm(ym(o.baalut_dt)) })]); }))]));
     var tech = [["יצרן", c.tozeret_nm], ["ארץ ייצור", c.tozeret_eretz_nm], ["דגם", c.degem_nm], ["רמת גימור", c.ramat_gimur], ["דלק", c.sug_delek_nm], ["צמיג קדמי", c.zmig_kidmi], ["צמיג אחורי", c.zmig_ahori], ["מספר שלדה", c.misgeret], ["דגם מנוע", c.degem_manoa], ["קבוצת זיהום", c.kvutzat_zihum], ["רמת אבזור בטיחותי", c.ramat_eivzur_betihuty],
