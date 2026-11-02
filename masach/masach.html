@@ -128,6 +128,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       <div class="row" style="flex-wrap:nowrap"><input id="wUrl" type="url" inputmode="url" placeholder="https://www.youtube.com/..." dir="ltr"><button class="btn small" type="button" id="wAdd">הוספה</button></div>
       <div class="row"><span class="fine">הצעות:</span><button class="chip" type="button" data-yt="https://www.youtube.com/@hopchannel">ערוץ הופ!</button></div>
       <button class="chip" type="button" id="sOn" aria-pressed="false">🔎 לאפשר לילדים לחפש ביוטיוב בעצמם</button>
+      <button class="chip" type="button" id="ccOn" aria-pressed="true">💬 כתוביות בסרטונים: מופעלות</button>
       <p class="fine" id="sNote" hidden></p>
       <div class="wlist" id="wList"></div>
     </section>
@@ -266,6 +267,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     pData = j; pAt = Date.now();
     $("famName").textContent = j.family || "המשפחה שלי";
     $("sOn").setAttribute("aria-pressed", String(!!j.searchOn)); $("sOn").textContent = j.searchOn ? "🔎 הילדים יכולים לחפש ביוטיוב (בסינון מחמיר) · לכיבוי" : "🔎 לאפשר לילדים לחפש ביוטיוב בעצמם";
+    $("ccOn").setAttribute("aria-pressed", String(j.cc !== false)); $("ccOn").textContent = j.cc !== false ? "💬 כתוביות בסרטונים: מופעלות · לכיבוי" : "💬 כתוביות בסרטונים: כבויות · להפעלה";
     $("sNote").hidden = !(j.searchOn && !j.hasKey); $("sNote").textContent = "החיפוש יופעל ברגע שיוגדר מפתח יוטיוב בשרת.";
     $("wList").replaceChildren.apply($("wList"), (j.watch || []).map(function (w) { return el("div", { class: "it" }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : el("span", { text: "📺" }), el("b", { text: (w.type === "p" ? "📃 " : "") + w.title }), el("button", { class: "chip", type: "button", "aria-label": "הסרה", text: "🗑️", onclick: function () { op({ op: "watchDel", type: w.type, id: w.id }); } })]); }));
     $("kids").replaceChildren.apply($("kids"), j.kids.map(function (k) {
@@ -336,6 +338,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       .catch(function (e) { toast(e.code === "full" ? "הרשימה מלאה" : "לא מצאנו את הסרטון או הערוץ. בודקים את הקישור"); }).then(function () { $("wAdd").disabled = false; });
   }
   $("sOn").addEventListener("click", function () { var on = $("sOn").getAttribute("aria-pressed") !== "true"; op({ op: "searchOn", on: on }).then(function () { toast(on ? "🔎 החיפוש פתוח לילדים, בסינון מחמיר. כל חיפוש מופיע לכם ביומן" : "החיפוש סגור. הילדים רואים רק את הרשימה"); }); });
+  $("ccOn").addEventListener("click", function () { var on = $("ccOn").getAttribute("aria-pressed") !== "true"; op({ op: "cc", on: on }).then(function () { toast(on ? "💬 הכתוביות יופיעו כשיש לסרטון" : "הכתוביות כבויות. אם עדיין מופיעות: לחיצה על CC בנגן"); }); });
   $("wAdd").addEventListener("click", function () { addWatch($("wUrl").value.trim()); });
   $("wUrl").addEventListener("keydown", function (e) { if (e.key === "Enter") addWatch($("wUrl").value.trim()); });
   [].forEach.call(document.querySelectorAll("[data-yt]"), function (b) { b.addEventListener("click", function () { addWatch(b.getAttribute("data-yt")); }); });
@@ -361,7 +364,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
   }
   function loadKid() { return api("state", kAuth()).then(drawKid).catch(function (e) { if (e.code === "auth" || e.code === "no family") { $("kWho").textContent = "הקישור הזה כבר לא פעיל"; S.kid = null; save(); } }); }
   function kOp(body) { return api("op", Object.assign(body, kAuth())).then(drawKid).catch(function (e) { toast(e.code === "no bonus" ? "להיום כבר אין עוד דקות להרוויח" : "לא הצלחנו. מנסים שוב"); }); }
-  function drawKid(j) { drawWatch(j.watch || [], !!j.search); kData = j.kids[0]; kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
+  var kCc = true;
+  function drawKid(j) { kCc = j.cc !== false; drawWatch(j.watch || [], !!j.search); kData = j.kids[0]; kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
   function kLeft() { return kData ? (kData.running ? kData.left - (Date.now() - kAt) / 1000 : kData.left) : 0; }
   function beep(n) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); for (var i = 0; i < n; i++) { var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination); o.start(audio.currentTime + i * 0.35); o.stop(audio.currentTime + i * 0.35 + 0.18); } } catch (e) {} }
   // A bell: three soft notes, louder than the beep, repeated n times.
@@ -455,7 +459,8 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     document.body.append(playerEl);
     try { if (playerEl.requestFullscreen) playerEl.requestFullscreen().catch(function () {}); } catch (e) {}
     // A plain embedded player (no YouTube script needed, so it works in TV browsers too); closing removes it, which stops it.
-    var q = "autoplay=1&rel=0&fs=0&playsinline=1&modestbranding=1&iv_load_policy=3&hl=he";
+    var cc = !kCc ? "&cc_load_policy=0" : "&cc_load_policy=1&cc_lang_pref=he&hl=he";
+    var q = "autoplay=1&rel=0&fs=0&playsinline=1&modestbranding=1&iv_load_policy=3" + cc;
     box.append(el("iframe", { src: "https://www.youtube.com/embed/" + (w.type === "p" ? "videoseries?list=" + encodeURIComponent(w.id) + "&" : encodeURIComponent(w.id) + "?") + q, title: w.title, allow: "autoplay; encrypted-media; picture-in-picture", referrerpolicy: "strict-origin-when-cross-origin", allowfullscreen: "" }));
     tickPlayer(kLeft());
   }

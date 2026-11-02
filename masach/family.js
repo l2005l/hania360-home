@@ -43,8 +43,8 @@ export class MasachFamily {
   }
   view(kid) {
     const f = this.f, watch = f.watch || [], hasKey = !!(this.env && this.env.YT_KEY), search = hasKey && !!f.search;
-    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, now: Date.now() };
-    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, feed: f.feed.slice(-30), now: Date.now() };
+    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, cc: f.cc !== false, now: Date.now() };
+    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, cc: f.cc !== false, feed: f.feed.slice(-30), now: Date.now() };
   }
 
   async notify(to, msg) {
@@ -166,6 +166,7 @@ export class MasachFamily {
             break;
           }
           case "searchOn": f.search = !!b.on; break;
+          case "cc": f.cc = !!b.on; break;
           case "watchDel": f.watch = (f.watch || []).filter((x) => !(x.type === b.type && x.id === b.id)); break;
           case "pairTv": { // sends one child's screen to a TV that shows a 4-digit code
             if (!k || !/^\d{4}$/.test(String(b.code || ""))) return json({ error: "code" }, 400);
