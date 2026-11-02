@@ -276,7 +276,7 @@ export async function ytItem(raw) {
   }
   if (!uc) return null;
   const up = "UU" + uc.slice(2), o = await oembed("https://www.youtube.com/playlist?list=" + up);
-  return { type: "p", id: up, title: clean(title || (o && o.title), 80) || "ערוץ ביוטיוב", thumb: o && /^https:\/\/i\.ytimg\.com\//.test(o.thumbnail_url || "") ? o.thumbnail_url : "" };
+  return { type: "p", id: up, title: clean(title || (o && String(o.title || "").replace(/^Uploads from /i, "")), 80) || "ערוץ ביוטיוב", thumb: o && /^https:\/\/i\.ytimg\.com\//.test(o.thumbnail_url || "") ? o.thumbnail_url : "" };
 }
 
 /** masach.hania360.com/api/masach/*: create a family, read it, change it, pair a TV. */
