@@ -135,9 +135,11 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     <div id="kids" style="display:grid;gap:14px"></div>
     <section class="card">
       <h2>📺 מה רואים</h2>
-      <p class="fine">הילדים רואים רק את מה שכאן, בתוך האפליקציה, עם השעון בפינה. מדביקים קישור מיוטיוב: סרטון, רשימת השמעה או ערוץ.</p>
-      <div class="row" style="flex-wrap:nowrap"><input id="wUrl" type="url" inputmode="url" placeholder="הדבקת קישור מיוטיוב" dir="ltr"><button class="btn small" type="button" id="wAdd">הוספה</button></div>
-      <div class="row"><span class="fine">מהיר:</span><button class="chip" type="button" data-yt="https://www.youtube.com/@hopchannel">+ ערוץ הופ!</button></div>
+      <p class="fine">מחפשים כאן כמו ביוטיוב ולוחצים "+ הוספה". הילדים יראו רק את מה שברשימה, עם השעון בפינה.</p>
+      <form class="row" id="wForm" style="flex-wrap:nowrap"><input id="wUrl" type="search" placeholder="🔎 למשל: טרוטרו, ערוץ הופ, שירי ילדים" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small" type="submit" id="wAdd">חיפוש</button></form>
+      <div class="row"><span class="fine">רעיונות:</span><button class="chip" type="button" data-q="ערוץ הופ">ערוץ הופ!</button><button class="chip" type="button" data-q="טרוטרו">טרוטרו</button><button class="chip" type="button" data-q="דנה ודרור">דנה ודרור</button><button class="chip" type="button" data-q="שירי ילדים">שירי ילדים</button></div>
+      <div class="wlist" id="wRes" hidden></div>
+      <b id="wMine" hidden>ברשימה של הילדים:</b>
       <div class="wlist" id="wList"></div>
     </section>
     <details class="card more">
@@ -272,6 +274,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
     $("sOn").setAttribute("aria-pressed", String(!!j.searchOn)); $("sOn").textContent = j.searchOn ? "🔎 הילדים יכולים לחפש ביוטיוב (בסינון מחמיר) · לכיבוי" : "🔎 לאפשר לילדים לחפש ביוטיוב בעצמם";
     $("ccOn").setAttribute("aria-pressed", String(j.cc !== false)); $("ccOn").textContent = j.cc !== false ? "💬 כתוביות בסרטונים: מופעלות · לכיבוי" : "💬 כתוביות בסרטונים: כבויות · להפעלה";
     $("sNote").hidden = !(j.searchOn && !j.hasKey); $("sNote").textContent = "החיפוש יופעל ברגע שיוגדר מפתח יוטיוב בשרת.";
+    $("wMine").hidden = !(j.watch || []).length;
     $("wList").replaceChildren.apply($("wList"), (j.watch || []).map(function (w) { return el("div", { class: "it" }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : el("span", { text: "📺" }), el("b", { text: (w.type === "p" ? "📃 " : "") + w.title }), el("button", { class: "chip", type: "button", "aria-label": "הסרה", text: "🗑️", onclick: function () { op({ op: "watchDel", type: w.type, id: w.id }); } })]); }));
     $("kids").replaceChildren.apply($("kids"), j.kids.map(function (k) {
       var total = (k.daily + k.bonus) * 60, left = k.left, pct = total ? Math.max(0, Math.min(100, left / total * 100)) : 0;
@@ -335,17 +338,31 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
       el("div", { class: "row" }, [el("button", { class: "chip", type: "button", text: "🔄 להתחיל את היום מאפס", onclick: function () { op({ op: "reset", k: k.id }).then(close); } }),
         el("button", { class: "chip", type: "button", text: "🗑️ הסרה", onclick: function () { if (confirm("להסיר את " + k.name + "?")) op({ op: "kid", k: k.id, remove: true }).then(close); } })])]);
   }
-  function addWatch(url) {
-    if (!/youtu/.test(url)) { toast("מדביקים קישור מיוטיוב"); return; }
-    $("wAdd").disabled = true;
-    api("op", Object.assign({ op: "watchAdd", url: url }, pAuth())).then(function (j) { drawParent(j); $("wUrl").value = ""; toast("✅ נוסף לרשימה"); })
-      .catch(function (e) { toast(e.code === "full" ? "הרשימה מלאה" : "לא מצאנו את הסרטון או הערוץ. בודקים את הקישור"); }).then(function () { $("wAdd").disabled = false; });
+  function addWatch(url, btn) {
+    if (btn) btn.disabled = true;
+    return api("op", Object.assign({ op: "watchAdd", url: url }, pAuth())).then(function (j) { drawParent(j); toast("✅ נוסף לרשימה של הילדים"); if (btn) btn.textContent = "✓ נוסף"; })
+      .catch(function (e) { if (btn) btn.disabled = false; toast(e.code === "full" ? "הרשימה מלאה" : "לא הצלחנו להוסיף. מנסים משהו אחר"); });
+  }
+  function ytUrl(w) { return w.type === "v" ? "https://www.youtube.com/watch?v=" + w.id : w.type === "c" ? "https://www.youtube.com/channel/" + w.id : "https://www.youtube.com/playlist?list=" + w.id; }
+  // One box: a word searches YouTube (channels, series, videos); a pasted link is added as it is.
+  function parentSearch(q) {
+    q = q.trim(); if (q.length < 2) return;
+    if (/youtu\.?be/.test(q)) { addWatch(q).then(function () { $("wUrl").value = ""; }); return; }
+    $("wAdd").disabled = true; $("wRes").hidden = false; $("wRes").replaceChildren(el("p", { class: "fine", text: "מחפשים…" }));
+    api("search", Object.assign({ q: q, all: true }, pAuth())).then(function (j) {
+      if (j.error) { $("wRes").replaceChildren(el("p", { class: "fine", text: j.error === "nokey" ? "החיפוש עוד לא מוגדר. אפשר להדביק כאן קישור מיוטיוב." : j.error === "limit" ? "להיום נגמרו החיפושים. אפשר להדביק קישור." : "החיפוש לא זמין כרגע." })); return; }
+      var have = {}; (pData && pData.watch || []).forEach(function (w) { have[w.id] = 1; });
+      $("wRes").replaceChildren.apply($("wRes"), (j.items || []).length ? j.items.map(function (w) {
+        var added = have[w.id] || (w.type === "c" && have["UU" + w.id.slice(2)]);
+        var b = el("button", { class: "btn small", type: "button", text: added ? "✓ ברשימה" : "+ הוספה", onclick: function () { addWatch(ytUrl(w), b); } }); if (added) b.disabled = true;
+        return el("div", { class: "it" }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy", style: w.type === "c" ? "object-fit:contain;background:#000" : "" }) : el("span", { text: "📺" }), el("div", null, [el("b", { text: (w.type === "c" ? "📺 " : w.type === "p" ? "📃 " : "") + w.title }), el("div", { class: "fine", text: w.type === "c" ? "ערוץ שלם" : w.ch || "" })]), b]);
+      }) : [el("p", { class: "fine", text: "לא מצאנו. מנסים מילה אחרת" })]);
+    }).catch(function () { $("wRes").replaceChildren(el("p", { class: "fine", text: "החיפוש לא זמין כרגע." })); }).then(function () { $("wAdd").disabled = false; });
   }
   $("sOn").addEventListener("click", function () { var on = $("sOn").getAttribute("aria-pressed") !== "true"; op({ op: "searchOn", on: on }).then(function () { toast(on ? "🔎 החיפוש פתוח לילדים, בסינון מחמיר. כל חיפוש מופיע לכם ביומן" : "החיפוש סגור. הילדים רואים רק את הרשימה"); }); });
   $("ccOn").addEventListener("click", function () { var on = $("ccOn").getAttribute("aria-pressed") !== "true"; op({ op: "cc", on: on }).then(function () { toast(on ? "💬 הכתוביות יופיעו כשיש לסרטון" : "הכתוביות כבויות. אם עדיין מופיעות: לחיצה על CC בנגן"); }); });
-  $("wAdd").addEventListener("click", function () { addWatch($("wUrl").value.trim()); });
-  $("wUrl").addEventListener("keydown", function (e) { if (e.key === "Enter") addWatch($("wUrl").value.trim()); });
-  [].forEach.call(document.querySelectorAll("[data-yt]"), function (b) { b.addEventListener("click", function () { addWatch(b.getAttribute("data-yt")); }); });
+  $("wForm").addEventListener("submit", function (e) { e.preventDefault(); $("wUrl").blur(); parentSearch($("wUrl").value); });
+  [].forEach.call(document.querySelectorAll("[data-q]"), function (b) { b.addEventListener("click", function () { $("wUrl").value = b.getAttribute("data-q"); parentSearch(b.getAttribute("data-q")); }); });
   $("addKid").addEventListener("click", function () {
     var name = el("input", { type: "text", maxlength: "20", placeholder: "שם" });
     var close = sheet("➕ ילד/ה", [name, el("button", { class: "btn", type: "button", text: "הוספה", onclick: function () { if (!name.value.trim()) return; op({ op: "kid", name: name.value, daily: pData && pData.kids[0] ? pData.kids[0].daily : 60 }).then(close); } })]);
