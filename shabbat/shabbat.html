@@ -721,6 +721,8 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     if (k(/שני וחמישי|ב' וה'/)) or(F.monthu);
     if (k(/חורף|ימות הגשמים/)) r = /טל ומטר|ברך עלינו/.test(nextT) ? F.rainAsk : F.rain;
     if (k(/ימות החמה|קיץ|בימי הקיץ/)) r = /ברכה|ברכנו/.test(nextT) && !/משיב|מוריד/.test(nextT) ? !F.rainAsk : !F.rain;
+    // "On Mondays and Thursdays this is not said": the condition is turned around.
+    if (r !== null && /אין אומרים|לא אומרים|אין לומר|אינו אומר/.test(t)) r = !r;
     return r;
   }
   // Prayer text that belongs only to some days, recognised by its own words.
@@ -751,7 +753,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
         if (F) {
           var c = t.length < 90 ? sidCond(t, norm(paras[idx + 1] || ""), F) : null;
           var paren = /^\(.*\)$/.test(t);
-          if (c !== null && !paren) { label = true; show = c; skip = c ? 0 : 1; many = !c && /מזמור|תפילה זו|ברכי נפשי|לדוד|פרק|נוהגים לומר/.test(t); }
+          if (c !== null && !paren) { label = true; show = c; skip = c || /\.\.\.|…/.test(t) ? 0 : 1; many = !c && /מזמור|תפילה זו|ברכי נפשי|לדוד|פרק|נוהגים לומר/.test(t); }
           else if (c !== null && paren) { label = true; show = c; skip = 0; }
           else if (skip) {
             // The lines under a condition: one line, or a whole psalm until the next heading, instruction or Kaddish.
