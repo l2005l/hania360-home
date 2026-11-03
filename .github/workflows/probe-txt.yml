@@ -1,0 +1,14 @@
+name: probe-txt
+on: { push: { branches: [probe-txt] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          get() { n="$1"; ref="$2"; echo -n "TXT $n|$ref|"; curl -s -G "https://dat.hania360.com/api/siddur/text" --data-urlencode "n=$n" --data-urlencode "ref=$ref" | jq -c .paras; }
+          get mizrach "Siddur Edot HaMizrach, Weekday Arvit, Amidah"
+          get mizrach "Siddur Edot HaMizrach, Weekday Shacharit, Amida"
+          get mizrach "Siddur Edot HaMizrach, Weekday Mincha, Amida"
+          get sefard "Siddur Sefard, Weekday Maariv, Amidah"
+          get sefard "Siddur Sefard, Weekday Shacharit, Amidah"
+          for s in "Divine Might" "Holiness of God" "Prosperity" "Justice" "Temple Service" "Thanksgiving" "Rebuilding Jerusalem" "Response to Prayer" "Peace" "Patriarchs"; do get ashkenaz "Siddur Ashkenaz, Weekday, Maariv, Amidah, $s"; done
