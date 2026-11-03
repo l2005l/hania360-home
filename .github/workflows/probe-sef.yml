@@ -1,0 +1,13 @@
+name: probe-sef
+on: { push: { branches: [probe-sef] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for t in Siddur_Ashkenaz Siddur_Sefard Siddur_Edot_HaMizrach; do
+            echo "=== $t"
+            curl -s "https://www.sefaria.org/api/texts/versions/$t" | jq -c '.[] | {versionTitle, language, license, versionSource}' | head -6
+            curl -s "https://www.sefaria.org/api/v2/raw/index/$t" > idx.json
+            jq -c '[.schema.nodes[] | {en: .title, he: .heTitle, kids: [(.nodes // [])[] | {en: .title, he: .heTitle, kids: [(.nodes // [])[] | .title]}]}]' idx.json | head -c 6000; echo
+          done
