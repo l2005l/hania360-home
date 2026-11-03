@@ -136,5 +136,13 @@
     var newOnes = list.filter(function (x) { return x.isNew; });
     return special.concat(newOnes.filter(function (x) { return special.indexOf(x) < 0; })).map(function (x) { return x.t.replace(/ \(.*\)$/, ""); }).slice(0, 2).join(", ");
   }
-  window.TEFILA = { day: day, headline: headline };
+  // Plain facts about a prayer (Arvit looks at the night's date), for showing only what is said that day.
+  function facts(date, prayer, place) {
+    var jlm = /ירושלים/.test(place || ""), h0 = new HB.HDate(date), h = prayer === "arvit" ? h0.next() : h0, f = fastName(h);
+    var n = h.abs() - hd(16, NISAN, h.getFullYear()).abs() + 1;
+    return { rc: isRC(h), chm: isCHM(h), chanukah: isChanukah(h), purim: isPurim(h, jlm), ayt: isAYT(h), fast: !!f, av9: f === "Tish'a B'Av", rain: rain(h), rainAsk: rainAsk(h),
+      omer: prayer === "arvit" && n >= 1 && n <= 49, motzash: prayer === "arvit" && (isShabbat(h0) || isYomTov(h0)), monthu: prayer === "shacharit" && (h.getDay() === 1 || h.getDay() === 4),
+      elul: h.getMonth() === ELUL || (h.getMonth() === TISHREI && h.getDate() <= 21), noTach: noTachanun(h) || (prayer === "mincha" && noTachanun(h.next())) };
+  }
+  window.TEFILA = { day: day, headline: headline, facts: facts };
 })();
