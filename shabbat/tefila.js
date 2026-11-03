@@ -137,18 +137,23 @@
     return special.concat(newOnes.filter(function (x) { return special.indexOf(x) < 0; })).map(function (x) { return x.t.replace(/ \(.*\)$/, ""); }).slice(0, 2).join(", ");
   }
   // Plain facts about a prayer (Arvit looks at the night's date), for showing only what is said that day.
-  function facts(date, prayer, place) {
-    var jlm = /ירושלים/.test(place || ""), h0 = new HB.HDate(date), h = prayer === "arvit" ? h0.next() : h0, f = fastName(h);
+  // prayer "mazon" (Grace after meals): night = after sunset, so the meal belongs to the next Hebrew date.
+  function facts(date, prayer, place, night) {
+    var meal = prayer === "mazon", jlm = /ירושלים/.test(place || ""), h0 = new HB.HDate(date), h = prayer === "arvit" || (meal && night) ? h0.next() : h0, f = fastName(h);
+    var m = h.getMonth(), d = h.getDate();
+    var fest = m === NISAN && d >= 15 && d <= 21 ? "pesach" : m === SIVAN && d === 6 ? "shavuot" : m === TISHREI && d >= 15 && d <= 21 ? "sukkot" : m === TISHREI && d === 22 ? "shmini" : m === TISHREI && d <= 2 ? "rh" : "";
     var n = h.abs() - hd(16, NISAN, h.getFullYear()).abs() + 1;
     return { rc: isRC(h), chm: isCHM(h), chanukah: isChanukah(h), purim: isPurim(h, jlm), ayt: isAYT(h), fast: !!f, av9: f === "Tish'a B'Av", rain: rain(h), rainAsk: rainAsk(h),
       omer: prayer === "arvit" && n >= 1 && n <= 49, motzash: prayer === "arvit" && (isShabbat(h0) || isYomTov(h0)), monthu: prayer === "shacharit" && (h.getDay() === 1 || h.getDay() === 4),
-      elul: h.getMonth() === ELUL || (h.getMonth() === TISHREI && h.getDate() <= 21), noTach: noTachanun(h) || (prayer === "mincha" && noTachanun(h.next())) };
+      elul: h.getMonth() === ELUL || (h.getMonth() === TISHREI && h.getDate() <= 21), noTach: noTachanun(h) || (prayer === "mincha" && noTachanun(h.next())),
+      meal: meal, shabbat: meal && isShabbat(h), yt: meal && isYomTov(h), fest: fest };
   }
   // ---- Showing only what is said today, in siddur texts (HTML paragraphs from Sefaria) ----
   var nrm = function (h) { return String(h).replace(/<[^>]+>/g, " ").replace(/[֑-ׇ]/g, "").replace(/\s+/g, " ").trim(); };
   // Is an instruction ("בראש חודש:", "בחורף:", "בליל ראש חודש יש הנוהגים...") true today? null = not a condition.
   function cond(t0, nextT, F) {
-    var t = t0.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
+    var t = t0.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").replace(/^\*\s*/, "").replace(/\s+/g, " ").trim();
+    if (F.meal && /קודם ברכת המזון/.test(t)) { var festive = F.shabbat || F.yt || F.rc || F.chm || F.noTach; return /^בחול/.test(t) ? !festive : festive; }
     if (!t || !(/^(ו?ב|ל|יש |אם |מ)/.test(t) || /אומרים|מוסיפים|אומר כאן|יש לומר|לומר /.test(t))) return null;
     if (/מלבד מוצאי שבת|חוץ ממוצאי שבת/.test(t)) return !F.motzash;
     if (/בחול(?!\s*המועד)|בכל |מלבד|כל השנה|בימות החול/.test(t)) return null;
@@ -163,6 +168,14 @@
     if (k(/מוצאי שבת|מוצ"ש/)) or(F.motzash);
     if (k(/ספירת העומר/)) or(F.omer);
     if (k(/שני וחמישי|ב' וה'/)) or(F.monthu);
+    var ts = t.replace(/מוצאי שבת|מוצ"ש|שבת שובה|ערב שבת|ערב יום טוב|שחל בשבת/g, " ");
+    if (/שבת/.test(ts)) or(F.shabbat);
+    if (/יום טוב|יו"ט|רגלים|במועדים/.test(ts) || (/יעלה ויב/.test(t) && r !== null)) or(F.yt || (/במועדים/.test(ts) && F.chm));
+    // A festival named: only on that festival (also "בחוה"מ פסח", which needs both).
+    var FE = [[/פסח|המצות/, "pesach"], [/שבועות|השבעות/, "shavuot"], [/סוכות|סכות|הסכות|הסוכות/, "sukkot"], [/שמיני עצרת|ש"ע|שמחת תורה/, "shmini"], [/ראש השנה|ר"ה|רה"ש|ה"ש/, "rh"]], named = false, hit = false;
+    if (!/ראש השנה עד יום הכפורים/.test(t)) FE.forEach(function (x) { if (x[0].test(t)) { named = true; hit = hit || F.fest === x[1]; } });
+    if (named) r = r !== null && /חוה"מ|חול המועד/.test(t) ? r && hit : hit;
+    if (/שחל בשבת/.test(t)) r = (r === null ? true : r) && !!F.shabbat;
     if (k(/חורף|ימות הגשמים/)) r = /טל ומטר|ברך עלינו/.test(nextT) ? F.rainAsk : F.rain;
     if (k(/ימות החמה|קיץ/)) r = /ברכה|ברכנו/.test(nextT) && !/משיב|מוריד/.test(nextT) ? !F.rainAsk : !F.rain;
     if (r !== null && /אין אומרים|לא אומרים|אין לומר|אינו אומר/.test(t)) r = !r;
@@ -171,7 +184,23 @@
   // Prayer text that belongs only to some days, recognised by its own words.
   function sig(t, F) {
     var short = t.length < 160;
-    if (/יעלה ויבו?א/.test(t) && t.length < 900 && !(F.rc || F.chm)) return false;
+    if (/יעלה ויבו?א/.test(t) && t.length < 900 && !/^(אם )?שכח/.test(t) && !(F.rc || F.chm || F.yt)) return false;
+    if (F.meal) {
+      var festive = F.shabbat || F.yt || F.rc || F.chm || F.noTach;
+      if (/^על ?נהרות בבל/.test(t) && festive) return false;
+      if (/^שיר המעלות בשוב/.test(t) && !festive) return false;
+      if (/^רצה והחליצנו/.test(t) && !F.shabbat) return false;
+      if (/^הרחמן הוא ינחילנו (יום|עולם) שכלו שבת/.test(t) && !F.shabbat) return false;
+      if (/^הרחמן הוא יחדש עלינו את החדש/.test(t) && !F.rc) return false;
+      if (/^הרחמן הוא ינחילנו יום שכלו טוב/.test(t) && !F.yt) return false;
+      if (/^הרחמן הוא יחדש עלינו את השנה/.test(t) && F.fest !== "rh") return false;
+      if (/^הרחמן הוא (יקים לנו את ?סכת|יזכנו לישב בסכת)/.test(t) && F.fest !== "sukkot") return false;
+      if (/^הרחמן הוא יגיענו למועדים/.test(t) && !(F.yt || F.chm)) return false;
+      if (/^(ילדים האוכלים|דוי הסר)|שהשמחה במעונו/.test(t)) return false;
+      // The blessings for someone who forgot רצה / יעלה ויבוא: only on the days they belong to.
+      var fg = t.match(/^ברוך (אתה יהוה,? אלהינו מלך העולם,? )?(אשר |ש)נתן (שבתות|ראשי|ימים)/);
+      if (fg && !(fg[3] === "שבתות" ? F.shabbat && (F.yt || !/וימים טובים/.test(t)) && (F.rc || !/וראשי/.test(t)) : fg[3] === "ראשי" ? F.rc : F.yt)) return false;
+    }
     if (/בימי מתתיהו?/.test(t) && !F.chanukah) return false;
     if (/בימי מרדכי/.test(t) && !F.purim) return false;
     if (/^ו?על הנסים/.test(t) && !(F.chanukah || F.purim)) return false;
