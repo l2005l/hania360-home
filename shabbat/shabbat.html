@@ -117,6 +117,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 .sidnote{border-radius:12px;padding:8px 12px;margin:6px 0 10px;font-family:var(--body);font-size:15px;font-weight:600;background:rgba(232,116,59,.18);border:1px solid rgba(232,116,59,.5)}
 .sidnote.skip{background:rgba(160,190,230,.10);border-color:rgba(160,190,230,.35);color:#C9D6E8}
 .sidload{color:var(--muted);font-size:14px}
+.sidsec .off,.sidsec.off{opacity:.38}
 </style>
 
 <div class="wrap">
@@ -202,7 +203,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 </div>
 <div id="sheetHost"></div>
 <div class="sid" id="sid" hidden role="dialog" aria-modal="true" aria-label="סידור">
-  <div class="sidbar"><button class="chip" type="button" id="sidX">✕ סגירה</button><div class="chips" id="sidTabs"></div><span class="sp"></span><button class="chip" type="button" id="sidMinus" aria-label="אותיות קטנות יותר">א−</button><button class="chip" type="button" id="sidPlus" aria-label="אותיות גדולות יותר">א+</button></div>
+  <div class="sidbar"><button class="chip" type="button" id="sidX">✕ סגירה</button><div class="chips" id="sidTabs"></div><span class="sp"></span><button class="chip" type="button" id="sidAll" aria-pressed="false" title="להציג גם מה שלא אומרים היום">👁 הכול</button><button class="chip" type="button" id="sidMinus" aria-label="אותיות קטנות יותר">א−</button><button class="chip" type="button" id="sidPlus" aria-label="אותיות גדולות יותר">א+</button></div>
   <div class="sidin" id="sidIn">
     <div class="sidtoday" id="sidToday"></div>
     <label class="fine">קפיצה ל: <select id="sidJump"></select></label>
@@ -661,6 +662,10 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     if (/מוצאי שבת|מוצאי ש"ק|ויהי נועם|ויתן לך/.test(he) && !has(/^אתה חוננתנו/)) return ["skip", "⏭️ רק במוצאי שבת"];
     if (/תענית ציבור|לתענית/.test(he) && !/צום|תענית/.test(JSON.stringify(r))) return ["skip", "⏭️ רק בתענית ציבור"];
     if (/לדוד ה'? אורי|^לדוד$|· לדוד$/.test(he) && !has(/^לדוד ה' אורי/)) return ["skip", "⏭️ אומרים מראש חודש אלול עד הושענא רבה"];
+    var F = TEFILA.facts(new Date(), prayer, place().name);
+    if (/ברכת הלבנה|קידוש לבנה/.test(he)) return ["skip", "⏭️ ברכת הלבנה: רק בלילות המתאימים בתחילת החודש"];
+    if (/ברכי נפשי/.test(he) && !F.rc) return ["skip", "⏭️ רק בראש חודש"];
+    if (/קריאת התורה|הוצאת ספר|הכנסת ספר|החזרת ספר/.test(he) && prayer === "shacharit" && !(F.monthu || F.rc || F.chm || F.chanukah || F.purim || F.fast)) return ["skip", "⏭️ קוראים בתורה בשני ובחמישי, בראש חודש, בחול המועד, בחנוכה, בפורים ובתעניות"];
     return null;
   }
   function openSid(p) {
@@ -680,33 +685,82 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
       var boxes = toc.sections.map(function (s, i) {
         var box = el("div", { class: "sidsec", id: "sid-" + i }), note = secNote(s.he, items, SID.p, r);
         box.append(el("h3", s.he || "")); if (note) box.append(el("div", { class: "sidnote " + note[0] }, [note[1]]));
+        if (note && note[0] === "skip") { box.classList.add("off"); box.hidden = !SID.all; }
         box.append(el("p", { class: "sidload" }, ["…"]));
         $("sidJump").append(el("option", { value: "sid-" + i }, [s.he]));
         if (i === lastAmida && hallelItem && toc.hallel && toc.hallel.length) {
           var hb = el("div", { class: "sidsec" }), btn = el("button", { type: "button", class: "chip" }, ["📖 להציג את ההלל כאן"]);
           hb.append(el("div", { class: "sidnote" }, ["⭐ אחרי העמידה: " + hallelItem.t + (hallelItem.n ? " (" + hallelItem.n + ")" : "")]), btn);
-          btn.addEventListener("click", function () { btn.remove(); toc.hallel.forEach(function (h) { var hs = el("div", { class: "sidsec" }); hs.append(el("h3", h.he), el("p", { class: "sidload" }, ["…"])); hb.append(hs); loadSec(N, h.ref, hs, [], {}, run); }); });
+          btn.addEventListener("click", function () { btn.remove(); toc.hallel.forEach(function (h) { var hs = el("div", { class: "sidsec" }); hs.append(el("h3", h.he), el("p", { class: "sidload" }, ["…"])); hb.append(hs); loadSec(N, h.ref, hs, [], {}, run, null); }); });
           return [box, hb];
         }
         return [box];
       });
       $("sidBody").replaceChildren.apply($("sidBody"), [].concat.apply([], boxes));
-      var i = 0, next = function () { if (run !== SID.run || i >= toc.sections.length) return; var k = i++; loadSec(N, toc.sections[k].ref, $("sid-" + k), rules, used, run).then(next, next); };
+      var F = TEFILA.facts(new Date(), SID.p, place().name);
+      var i = 0, next = function () { if (run !== SID.run || i >= toc.sections.length) return; var k = i++; loadSec(N, toc.sections[k].ref, $("sid-" + k), rules, used, run, F).then(next, next); };
       for (var c = 0; c < 4; c++) next();
     }).catch(function () { if (run === SID.run) $("sidBody").replaceChildren(el("p", { class: "sidload" }, ["לא הצלחנו לטעון את הסידור. בודקים את החיבור ומנסים שוב."])); });
   }
-  function loadSec(N, ref, box, rules, used, run) {
+  // Is a short instruction line ("בראש חודש:", "בחורף:", "בליל ראש חודש יש הנוהגים...") true today? null = not a condition.
+  function sidCond(t, nextT, F) {
+    var k = function (re) { return re.test(t); }, r = null, or = function (v) { r = (r === true) || v; };
+    if (k(/ראש חודש|ר"ח|ראש החודש/)) or(F.rc || (k(/חול המועד|חוה"מ/) && F.chm));
+    else if (k(/חול המועד|חוה"מ/)) or(F.chm);
+    if (k(/חנוכה/)) or(F.chanukah);
+    if (k(/פורים/)) or(F.purim);
+    if (k(/עשרת ימי תשובה|עשי"ת|שבת שובה|ראש השנה עד יום הכפורים/)) or(F.ayt);
+    if (k(/תשעה באב|ט' באב/)) or(F.av9); else if (k(/תענית|תעניות|בצום/)) or(F.fast);
+    if (k(/מוצאי שבת|מוצ"ש/)) or(F.motzash);
+    if (k(/ספירת העומר/)) or(F.omer);
+    if (k(/שני וחמישי|ב' וה'/)) or(F.monthu);
+    if (k(/חורף|ימות הגשמים/)) r = /טל ומטר|ברך עלינו/.test(nextT) ? F.rainAsk : F.rain;
+    if (k(/ימות החמה|קיץ|בימי הקיץ/)) r = /ברכה|ברכנו/.test(nextT) && !/משיב|מוריד/.test(nextT) ? !F.rainAsk : !F.rain;
+    return r;
+  }
+  // Prayer text that belongs only to some days, recognised by its own words.
+  function sidSig(t, F) {
+    var short = t.length < 160;
+    if (/יעלה ויבו?א/.test(t) && t.length < 900 && !(F.rc || F.chm)) return false;
+    if (/בימי מתתיהו/.test(t) && !F.chanukah) return false;
+    if (/בימי מרדכי/.test(t) && !F.purim) return false;
+    if (/^ו?על הנסים/.test(t) && !(F.chanukah || F.purim)) return false;
+    if (/^עננו/.test(t) && !F.fast) return false;
+    if (/^נחם/.test(t) && !F.av9) return false;
+    if (short && /^(זכרנו לחיים|מי כמוך אב הרחמים|וכתוב לחיים|בספר חיים)/.test(t) && !F.ayt) return false;
+    if (t.length < 40 && /^משיב הרוח ומוריד הגשם/.test(t) && !F.rain) return false;
+    if (t.length < 40 && /^מוריד הטל/.test(t) && F.rain) return false;
+    if (/^ברך עלינו/.test(t) && !F.rainAsk && t.length > 60) return false;
+    if (/^ברכנו /.test(t) && F.rainAsk && t.length > 60) return false;
+    if (short && /^ותן טל ומטר/.test(t) && !F.rainAsk) return false;
+    if (short && /^ותן ברכה/.test(t) && F.rainAsk) return false;
+    return true;
+  }
+  function loadSec(N, ref, box, rules, used, run, F) {
     return fetch("/api/siddur/text?n=" + NUSN[N] + "&ref=" + encodeURIComponent(ref)).then(function (x) { return x.json(); }).then(function (j) {
       if (run !== SID.run) return;
       var ph = box.querySelector(".sidload"); if (ph) ph.remove();
-      (j.paras || []).forEach(function (h) {
-        var t = norm(h);
-        rules.forEach(function (ru, k) { if (!used[k] && ru.re.test(t)) { used[k] = 1; var n = el("div", { class: "sidnote" }); n.innerHTML = ru.html; box.append(n); } });
-        var p = document.createElement("p"); p.innerHTML = h; box.append(p);
+      var paras = j.paras || [], skip = 0, many = false;
+      paras.forEach(function (h, idx) {
+        var t = norm(h), show = true, label = false;
+        if (F) {
+          var c = t.length < 90 ? sidCond(t, norm(paras[idx + 1] || ""), F) : null;
+          if (c !== null) { label = true; show = c; skip = c ? 0 : 1; many = !c && /מזמור|תפילה זו|ברכי נפשי|לדוד|פרק|נוהגים לומר/.test(t); }
+          else if (skip) {
+            var starts = /^<(b|big)>/.test(h.trim());
+            if (many && starts && skip > 1) { skip = 0; } else { show = false; skip++; if (!many && skip > 1) skip = 0; }
+            if (!many && skip === 0 && show === false) {}
+          }
+          if (show && !label) show = sidSig(t, F);
+        }
+        if (show) rules.forEach(function (ru, k) { if (!used[k] && ru.re.test(t)) { used[k] = 1; var n = el("div", { class: "sidnote" }); n.innerHTML = ru.html; box.append(n); } });
+        if (!show && !SID.all) return;
+        var p = document.createElement("p"); p.innerHTML = h; if (!show) p.className = "off"; box.append(p);
       });
     }).catch(function () { var ph = box.querySelector(".sidload"); if (ph) ph.textContent = "לא נטען. גוללים שוב בעוד רגע."; });
   }
   $("tefSid").addEventListener("click", function () { openSid(S.tefTab && S.tefTabDay === new Date().toDateString() ? S.tefTab : nowPrayer()); });
+  $("sidAll").addEventListener("click", function () { SID.all = !SID.all; $("sidAll").setAttribute("aria-pressed", String(SID.all)); openSid(SID.p); });
   $("sidX").addEventListener("click", function () { $("sid").hidden = true; document.body.style.overflow = ""; SID.run++; });
   $("sidJump").addEventListener("change", function () { var t = $($("sidJump").value); if (t) t.scrollIntoView({ block: "start" }); });
   [["sidMinus", -2], ["sidPlus", 2]].forEach(function (b) { $(b[0]).addEventListener("click", function () { S.sidSz = Math.max(15, Math.min(34, +(S.sidSz || 21) + b[1])); save(); $("sid").style.setProperty("--sz", S.sidSz + "px"); }); });
