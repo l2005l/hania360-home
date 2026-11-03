@@ -506,10 +506,10 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
         var stopT = setTimeout(function () { if (rec.state !== "inactive") rec.stop(); }, 5000);
         rec.ondataavailable = function (e) { if (e.data && e.data.size) parts.push(e.data); };
         rec.onstop = function () {
-          clearTimeout(stopT); st.getTracks().forEach(function (t) { t.stop(); }); recNow = null; state(false, "מחפשים את מה שאמרת…");
+          clearTimeout(stopT); st.getTracks().forEach(function (t) { t.stop(); }); recNow = null; state(false, "רגע, כותבים את מה שאמרת…");
           var fr = new FileReader();
           fr.onload = function () {
-            api("hear", Object.assign({ audio: String(fr.result).split(",")[1] || "" }, auth())).then(function (j) { state(false); if (j.text && j.text.length > 1) go(j.text); else toast("לא שמענו טוב. מנסים שוב, קרוב יותר"); })
+            api("hear", Object.assign({ audio: String(fr.result).split(",")[1] || "" }, auth())).then(function (j) { state(false); if (j.text && j.text.length > 1) { inp.value = j.text; toast("🎤 שמענו: " + j.text); setTimeout(function () { go(j.text); }, 900); } else toast("לא שמענו טוב. מנסים שוב, קרוב יותר"); })
               .catch(function () { state(false); toast("לא הצלחנו לשמוע. מנסים שוב"); });
           };
           fr.readAsDataURL(new Blob(parts, { type: rec.mimeType || type || "audio/webm" }));
@@ -522,11 +522,17 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
       beep(0);
       if (!SR) return record();
       try {
-        var r = new SR(), got = false; r.lang = "he-IL"; r.interimResults = false; r.maxAlternatives = 1;
-        state(true, "🎤 אומרים מה לחפש…");
-        r.onresult = function (e) { got = true; go(e.results[0][0].transcript); };
+        // The words appear in the box while they are said, so the child sees it heard them; the search goes when they stop.
+        var r = new SR(), got = false, done = false; r.lang = "he-IL"; r.interimResults = true; r.maxAlternatives = 1;
+        state(true, "🎤 אומרים מה לחפש…"); inp.value = "";
+        r.onresult = function (e) {
+          var text = "", fin = false;
+          for (var i = 0; i < e.results.length; i++) { text += e.results[i][0].transcript; if (e.results[i].isFinal) fin = true; }
+          got = true; inp.value = text.trim();
+          if (fin && !done) { done = true; setTimeout(function () { go(inp.value); }, 600); }
+        };
         r.onerror = function (e) { if (!got && /not-allowed|service-not-allowed|audio-capture|network/.test(e.error || "")) { state(false); record(); } else toast("לא שמענו. לוחצים שוב על 🎤 ומדברים"); };
-        r.onend = function () { if (!recNow) state(false); };
+        r.onend = function () { if (!recNow) state(false); if (got && !done && inp.value.trim().length > 1) { done = true; go(inp.value); } };
         r.start();
       } catch (e) { record(); }
     });
