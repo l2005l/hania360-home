@@ -279,16 +279,38 @@ export async function ytItem(raw) {
   return { type: "p", id: up, title: clean(title || (o && String(o.title || "").replace(/^Uploads from /i, "")), 80) || "ערוץ ביוטיוב", thumb: o && /^https:\/\/i\.ytimg\.com\//.test(o.thumbnail_url || "") ? o.thumbnail_url : "" };
 }
 
+// A child says what to look for: a few seconds of audio become Hebrew text (Whisper on Workers AI),
+// only for a child's link of a real family, counted in the shared limits like HaniaSefer's recordings.
+async function hear(b, env, stub) {
+  const json = (o, s = 200) => Response.json(o, { status: s, headers: { "cache-control": "no-store" } });
+  if (!env.AI) return json({ error: "unavailable" }, 503);
+  if (!/^[A-Za-z0-9]{6,20}$/.test(b.f || "") || !b.t) return json({ error: "auth" }, 403);
+  const audio = typeof b.audio === "string" && b.audio.length <= 700000 && /^[A-Za-z0-9+/=]+$/.test(b.audio) ? b.audio : "";
+  if (!audio) return json({ error: "input" }, 400);
+  const ok = await stub(b.f).fetch("https://m/state", { method: "POST", body: JSON.stringify({ f: b.f, t: String(b.t) }) });
+  if (!ok.ok) return json({ error: "auth" }, 403);
+  if (env.SIPUR) {
+    const lim = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "POST", body: JSON.stringify({ device: "f" + b.f + "xxxxxxxx", ns: "masachh:", perDevice: 80, perDay: 1500 }) }).then((r) => r.json()).catch(() => ({ ok: true }));
+    if (!lim.ok) return json({ error: "limit" }, 429);
+  }
+  try {
+    const out = await env.AI.run("@cf/openai/whisper-large-v3-turbo", { audio, language: "he", vad_filter: true });
+    const text = clean(out && out.text, 60).replace(/[.!?,]+$/, "");
+    return json({ text });
+  } catch { return json({ error: "hear" }, 502); }
+}
+
 /** masach.hania360.com/api/masach/*: create a family, read it, change it, pair a TV. */
 export async function masachApi(req, env, url) {
   if (!env.MASACH) return Response.json({ error: "not configured" }, { status: 503 });
   const stub = (id) => env.MASACH.get(env.MASACH.idFromName("f:" + id));
-  const mm = url.pathname.match(/^\/api\/masach\/(new|state|op|key|msg|tv|search)$/);
+  const mm = url.pathname.match(/^\/api\/masach\/(new|state|op|key|msg|tv|search|hear)$/);
   if (!mm) return Response.json({ error: "not found" }, { status: 404 });
   if (req.method !== "POST") return Response.json({ error: "method" }, { status: 405 });
   const body = await req.text();
   if (body.length > 4000) return Response.json({ error: "size" }, { status: 413 });
   let b = {}; try { b = JSON.parse(body || "{}"); } catch { return Response.json({ error: "json" }, { status: 400 }); }
+  if (mm[1] === "hear") return hear(b, env, stub);
   if (mm[1] === "tv") return env.MASACH.get(env.MASACH.idFromName("pair")).fetch("https://m/pair", { method: "POST", body: JSON.stringify({ op: b.op === "wait" ? "wait" : "new", code: String(b.code || ""), secret: String(b.secret || "") }) });
   if (mm[1] === "new") {
     const id = token(10), key = token(14);

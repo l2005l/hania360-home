@@ -93,6 +93,7 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
 .wrowh{font-size:15px;font-weight:800;color:var(--muted);margin:4px 0 -4px;text-align:start}
 @media (min-width:700px){.wrow{grid-auto-columns:minmax(200px,22%)}}
 body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
+@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(255,200,61,.35)}}.pulse{animation:pulse 1s ease-in-out 2}
 /* the break */
 .brk{position:fixed;inset:0;z-index:50;background:radial-gradient(80% 60% at 50% 0%,rgba(255,200,61,.25),transparent 70%),#14123A;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;text-align:center}
 .brk .em{font-size:84px;line-height:1}
@@ -188,7 +189,7 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
     </div>
     <p class="fine kidfoot" id="kFoot"></p>
     <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים? <small class="fine">בוחרים, והשעון מתחיל לבד</small></h2>
-      <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small ghost" type="button" id="kMic" aria-label="חיפוש בקול" hidden>🎤</button><button class="btn small" type="submit">חיפוש</button></form>
+      <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small ghost" type="button" id="kMic" aria-label="חיפוש בקול: לוחצים ומדברים" style="font-size:22px;padding:8px 16px" hidden>🎤</button><button class="btn small" type="submit">חיפוש</button></form>
       <div class="wgrid" id="kSGrid" hidden></div>
       <div id="kWGrid" style="display:grid;gap:12px"></div></section>
   </main>
@@ -487,21 +488,48 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
     if (clips.length) rows.push(el("div", { class: "wrowh", text: "🎬 סרטונים" }), el("div", { class: "wrow" }, clips.map(tile)));
     $("kWGrid").replaceChildren.apply($("kWGrid"), rows);
   }
-  // Saying it instead of typing: the browser's own speech recognition, in Hebrew, where there is one.
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SR) {
-    $("kMic").hidden = false;
-    $("kMic").addEventListener("click", function () {
-      try {
-        var r = new SR(); r.lang = "he-IL"; r.interimResults = false; r.maxAlternatives = 1;
-        $("kMic").textContent = "🔴"; $("kQ").placeholder = "מדברים עכשיו…";
-        r.onresult = function (e) { var t = e.results[0][0].transcript; $("kQ").value = t; $("kSearch").requestSubmit ? $("kSearch").requestSubmit() : $("kSearch").dispatchEvent(new Event("submit", { cancelable: true })); };
-        r.onerror = function () { toast("לא שמענו. מנסים שוב, או לוחצים לחיצה ארוכה על כפתור המיקרופון בשלט"); };
-        r.onend = function () { $("kMic").textContent = "🎤"; $("kQ").placeholder = "🔎 חיפוש ביוטיוב"; };
-        r.start();
-      } catch (e) { toast("המיקרופון לא זמין כאן. בשלט: לחיצה ארוכה על כפתור המיקרופון"); }
-    });
+  // Saying it instead of typing, for children who cannot write yet: the browser's own speech recognition
+  // in Hebrew where there is one, otherwise a few seconds of recording that the server turns into text.
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition, canRec = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder), recNow = null;
+  function micState(on, hint) { $("kMic").textContent = on ? "⏹" : "🎤"; $("kMic").classList.toggle("ghost", !on); $("kQ").placeholder = hint || "🔎 חיפוש ביוטיוב"; }
+  function searchFor(t) { $("kQ").value = t; $("kSearch").requestSubmit ? $("kSearch").requestSubmit() : $("kSearch").dispatchEvent(new Event("submit", { cancelable: true })); }
+  function noMic() { toast("כאן אין מיקרופון לדפדפן. בשלט: מחזיקים את כפתור המיקרופון 🎤 ומדברים"); micState(false); }
+  function record() {
+    if (!canRec) return noMic();
+    if (recNow) { recNow.stop(); return; }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
+      var type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].filter(function (t) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
+      var rec = new MediaRecorder(st, type ? { mimeType: type } : undefined), parts = [];
+      recNow = rec; micState(true, "🎤 אומרים מה לחפש…"); beep(1);
+      var stopT = setTimeout(function () { if (rec.state !== "inactive") rec.stop(); }, 5000);
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) parts.push(e.data); };
+      rec.onstop = function () {
+        clearTimeout(stopT); st.getTracks().forEach(function (t) { t.stop(); }); recNow = null; micState(false, "מחפשים את מה שאמרת…");
+        var fr = new FileReader();
+        fr.onload = function () {
+          api("hear", Object.assign({ audio: String(fr.result).split(",")[1] || "" }, kAuth())).then(function (j) { micState(false); if (j.text && j.text.length > 1) searchFor(j.text); else toast("לא שמענו טוב. מנסים שוב, קרוב יותר"); })
+            .catch(function () { micState(false); toast("לא הצלחנו לשמוע. מנסים שוב"); });
+        };
+        fr.readAsDataURL(new Blob(parts, { type: rec.mimeType || type || "audio/webm" }));
+      };
+      rec.start();
+    }).catch(noMic);
   }
+  $("kMic").hidden = false;
+  $("kMic").addEventListener("click", function () {
+    beep(0);
+    if (!SR) return record();
+    try {
+      var r = new SR(), got = false; r.lang = "he-IL"; r.interimResults = false; r.maxAlternatives = 1;
+      micState(true, "🎤 אומרים מה לחפש…");
+      r.onresult = function (e) { got = true; searchFor(e.results[0][0].transcript); };
+      r.onerror = function (e) { if (!got && /not-allowed|service-not-allowed|audio-capture|network/.test(e.error || "")) { micState(false); record(); } else toast("לא שמענו. לוחצים שוב על 🎤 ומדברים"); };
+      r.onend = function () { if (!recNow) micState(false); };
+      r.start();
+    } catch (e) { record(); }
+  });
+  // The keyboard opens when the box is chosen: the microphone is the big button next to it.
+  $("kQ").addEventListener("focus", function () { $("kMic").classList.add("pulse"); setTimeout(function () { $("kMic").classList.remove("pulse"); }, 2500); });
   $("kSearch").addEventListener("submit", function (e) {
     e.preventDefault(); var q = $("kQ").value.trim(); if (q.length < 2) return; $("kQ").blur();
     api("search", Object.assign({ q: q }, kAuth())).then(function (j) {
