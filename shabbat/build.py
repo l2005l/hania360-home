@@ -4,6 +4,10 @@ import json, base64
 r = lambda p: open('shabbat/' + p, encoding='utf8').read()
 b64 = lambda p: base64.b64encode(open('shabbat/' + p, 'rb').read()).decode()
 body = r('shabbat.html')
+# The scripts are cached by the browser for an hour: a version in their address makes a new page load the new ones.
+import hashlib
+for f in ('hebcal.js', 'parasha.js', 'tefila.js'):
+    body = body.replace('<script src="/' + f + '"></script>', '<script src="/' + f + '?v=' + hashlib.sha1(r(f).encode()).hexdigest()[:8] + '"></script>')
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaDat: התאריך העברי, זמני היום לפי העיר (נץ, סוף זמן קריאת שמע ותפילה, שקיעה וצאת הכוכבים), הזמן הבא בספירה לאחור, מצפן לכותל, זמני שבת וחג ופרשת השבוע, ותזכורות לטלפון. בחינם.">'
         '<link rel="canonical" href="https://dat.hania360.com/"><meta name="theme-color" content="#1A130E">'
