@@ -6,6 +6,7 @@ import { QuizRoom, quizApi } from "./quiz/room.js";
 import { ParkHub, parkApi } from "./park/hub.js";
 import SHABBATAPP, { FILES as SHABBAT_FILES, IMAGES as SHABBAT_IMAGES } from "./shabbat/page.js";
 import { ShabbatHub, shabbatApi } from "./shabbat/hub.js";
+import { siddurApi } from "./shabbat/siddur.js";
 import GAMADAPP, { FILES as GAMAD_FILES, IMAGES as GAMAD_IMAGES } from "./gamad/page.js";
 import { GiftGroup, gamadApi } from "./gamad/room.js";
 import RIDEAPP, { FILES as RIDE_FILES, IMAGES as RIDE_IMAGES } from "./ride/page.js";
@@ -413,7 +414,7 @@ export default {
     if (url.hostname === "ride.hania360.com" || url.searchParams.get("app") === "ride" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/ride/") ? rideApi(request, env || {}, url) : smallApp(url, RIDEAPP, RIDE_FILES, RIDE_IMAGES, "https://ride.hania360.com/");
     if (url.hostname === "gamad.hania360.com" || url.searchParams.get("app") === "gamad" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/gamad/") ? gamadApi(request, env || {}, url) : smallApp(url, GAMADAPP, GAMAD_FILES, GAMAD_IMAGES, "https://gamad.hania360.com/");
     // HaniaDat (was HaniaShabbat): the same app at both addresses, so phones that installed it or turned on reminders keep working.
-    if (url.hostname === "dat.hania360.com" || url.hostname === "shabbat.hania360.com" || /^(shabbat|dat)$/.test(url.searchParams.get("app") || "") && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SHABBATAPP, SHABBAT_FILES, SHABBAT_IMAGES, "https://dat.hania360.com/");
+    if (url.hostname === "dat.hania360.com" || url.hostname === "shabbat.hania360.com" || /^(shabbat|dat)$/.test(url.searchParams.get("app") || "") && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/siddur/") ? siddurApi(request, url) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SHABBATAPP, SHABBAT_FILES, SHABBAT_IMAGES, "https://dat.hania360.com/");
     if (url.hostname === "quiz.hania360.com" || url.searchParams.get("app") === "quiz" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/") ? quizApi(request, env || {}, url) : smallApp(url, QUIZAPP, QUIZ_FILES, QUIZ_IMAGES, "https://quiz.hania360.com/");
     if (url.hostname === "park.hania360.com" || url.searchParams.get("app") === "park" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/park/") ? parkApi(request, env || {}) : smallApp(url, PARKAPP, PARK_FILES, PARK_IMAGES, "https://park.hania360.com/");
     if (url.hostname === "pick.hania360.com" || url.searchParams.get("app") === "pick" && /workers\.dev$/.test(url.hostname)) return pickApp(url);
