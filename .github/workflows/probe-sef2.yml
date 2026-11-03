@@ -1,0 +1,16 @@
+name: probe-sef2
+on: { push: { branches: [probe-sef2] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for t in Siddur_Ashkenaz Siddur_Sefard Siddur_Edot_HaMizrach; do
+            echo "=== $t"
+            curl -s "https://www.sefaria.org/api/v2/raw/index/$t" > idx.json
+            jq -r 'def he: ((.titles // [])[] | select(.lang=="he" and .primary) | .text); def en: ((.titles // [])[] | select(.lang=="en" and .primary) | .text);
+              .schema.nodes[] as $a | ($a|en) as $ae | ($a|he) as $ah |
+              if ($a.nodes) then ($a.nodes[] as $b | ($b|en) as $be | ($b|he) as $bh |
+                 if ($b.nodes) then ($b.nodes[] | "L3 \($ae) > \($be) > \(en) | \($ah) > \($bh) > \(he)") else "L2 \($ae) > \($be) | \($ah) > \($bh)" end)
+              else "L1 \($ae) | \($ah)" end' idx.json | head -150
+          done
