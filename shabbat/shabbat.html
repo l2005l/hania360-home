@@ -118,6 +118,8 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 .sidnote.skip{background:rgba(160,190,230,.10);border-color:rgba(160,190,230,.35);color:#C9D6E8}
 .sidload{color:var(--muted);font-size:14px}
 .sidsec .off,.sidsec.off{opacity:.38}
+.sidsec p.ins{background:rgba(247,181,72,.12);border-inline-start:3px solid var(--flame);padding:4px 10px;border-radius:8px}
+.sidsec span.ins{background:rgba(247,181,72,.24);border-radius:6px;padding:0 4px}
 </style>
 
 <div class="wrap">
@@ -747,24 +749,14 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     return fetch("/api/siddur/text?n=" + NUSN[N] + "&ref=" + encodeURIComponent(ref)).then(function (x) { return x.json(); }).then(function (j) {
       if (run !== SID.run) return;
       var ph = box.querySelector(".sidload"); if (ph) ph.remove();
-      var paras = j.paras || [], skip = 0, many = false;
-      paras.forEach(function (h, idx) {
-        var t = norm(h), show = true, label = false;
-        if (F) {
-          var c = t.length < 90 ? sidCond(t, norm(paras[idx + 1] || ""), F) : null;
-          var paren = /^\(.*\)$/.test(t);
-          if (c !== null && !paren) { label = true; show = c; skip = c || /\.\.\.|…/.test(t) ? 0 : 1; many = !c && /מזמור|תפילה זו|ברכי נפשי|לדוד|פרק|נוהגים לומר/.test(t); }
-          else if (c !== null && paren) { label = true; show = c; skip = 0; }
-          else if (skip) {
-            // The lines under a condition: one line, or a whole psalm until the next heading, instruction or Kaddish.
-            var stop = /^<(b|big|small)>/.test(h.trim()) || /החזן|הקהל|ואומר|אומרים|קדיש|^לשם יחוד/.test(t) || skip > 40;
-            if (many && stop && skip > 1) { skip = 0; } else { show = false; skip++; if (!many && skip > 1) skip = 0; }
-          }
-          if (show && !label) show = sidSig(t, F);
-        }
+      var paras = j.paras || [];
+      var out = F && window.TEFILA && TEFILA.filter ? TEFILA.filter(paras, F) : paras.map(function (h) { return { html: h, show: true }; });
+      out.forEach(function (x, idx) {
+        var show = x.show, t = norm(show ? x.html : paras[idx]);
         if (show) rules.forEach(function (ru, k) { if (!used[k] && ru.re.test(t)) { used[k] = 1; var n = el("div", { class: "sidnote" }); n.innerHTML = ru.html; box.append(n); } });
         if (!show && !SID.all) return;
-        var p = document.createElement("p"); p.innerHTML = h; if (!show) p.className = "off"; box.append(p);
+        var p = document.createElement("p"); p.innerHTML = show || !SID.all ? x.html : paras[idx];
+        p.className = show ? (x.ins ? "ins" : "") : "off"; box.append(p);
       });
     }).catch(function () { var ph = box.querySelector(".sidload"); if (ph) ph.textContent = "לא נטען. גוללים שוב בעוד רגע."; });
   }

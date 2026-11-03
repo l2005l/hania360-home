@@ -144,5 +144,135 @@
       omer: prayer === "arvit" && n >= 1 && n <= 49, motzash: prayer === "arvit" && (isShabbat(h0) || isYomTov(h0)), monthu: prayer === "shacharit" && (h.getDay() === 1 || h.getDay() === 4),
       elul: h.getMonth() === ELUL || (h.getMonth() === TISHREI && h.getDate() <= 21), noTach: noTachanun(h) || (prayer === "mincha" && noTachanun(h.next())) };
   }
-  window.TEFILA = { day: day, headline: headline, facts: facts };
+  // ---- Showing only what is said today, in siddur texts (HTML paragraphs from Sefaria) ----
+  var nrm = function (h) { return String(h).replace(/<[^>]+>/g, " ").replace(/[֑-ׇ]/g, "").replace(/\s+/g, " ").trim(); };
+  // Is an instruction ("בראש חודש:", "בחורף:", "בליל ראש חודש יש הנוהגים...") true today? null = not a condition.
+  function cond(t0, nextT, F) {
+    var t = t0.replace(/\([^)]*\)|\[[^\]]*\]/g, " ").replace(/\s+/g, " ").trim();
+    if (!t || !(/^(ו?ב|ל|יש |אם |מ)/.test(t) || /אומרים|מוסיפים|אומר כאן|יש לומר|לומר /.test(t))) return null;
+    if (/מלבד מוצאי שבת|חוץ ממוצאי שבת/.test(t)) return !F.motzash;
+    if (/בחול(?!\s*המועד)|בכל |מלבד|כל השנה|בימות החול/.test(t)) return null;
+    if (/חורף|גשמים/.test(t) && /קיץ|החמה/.test(t)) return null;
+    var k = function (re) { return re.test(t); }, r = null, or = function (v) { r = (r === true) || v; };
+    if (k(/ראש חודש|ראש חדש|ר"ח|ראש החודש|ראש החדש/)) or(F.rc || (k(/חול המועד|חוה"מ/) && F.chm));
+    else if (k(/חול המועד|חוה"מ/)) or(F.chm);
+    if (k(/חנוכה|חנכה/)) or(F.chanukah);
+    if (k(/פורים/)) or(F.purim);
+    if (k(/עשרת ימי תשובה|עשי"ת|שבת שובה|ראש השנה עד יום הכפורים/)) or(F.ayt);
+    if (k(/תשעה באב|ט' באב/)) or(F.av9); else if (k(/תענית|תעניות|בצום/)) or(F.fast);
+    if (k(/מוצאי שבת|מוצ"ש/)) or(F.motzash);
+    if (k(/ספירת העומר/)) or(F.omer);
+    if (k(/שני וחמישי|ב' וה'/)) or(F.monthu);
+    if (k(/חורף|ימות הגשמים/)) r = /טל ומטר|ברך עלינו/.test(nextT) ? F.rainAsk : F.rain;
+    if (k(/ימות החמה|קיץ/)) r = /ברכה|ברכנו/.test(nextT) && !/משיב|מוריד/.test(nextT) ? !F.rainAsk : !F.rain;
+    if (r !== null && /אין אומרים|לא אומרים|אין לומר|אינו אומר/.test(t)) r = !r;
+    return r;
+  }
+  // Prayer text that belongs only to some days, recognised by its own words.
+  function sig(t, F) {
+    var short = t.length < 160;
+    if (/יעלה ויבו?א/.test(t) && t.length < 900 && !(F.rc || F.chm)) return false;
+    if (/בימי מתתיהו?/.test(t) && !F.chanukah) return false;
+    if (/בימי מרדכי/.test(t) && !F.purim) return false;
+    if (/^ו?על הנסים/.test(t) && !(F.chanukah || F.purim)) return false;
+    if (/^עננו/.test(t) && !F.fast) return false;
+    if (/^נחם/.test(t) && !F.av9) return false;
+    if (short && /^(זכרנו לחיים|מי כמוך אב הרחמ|וכתוב לחיים|וכתב לחיים|בספר חיים)/.test(t) && !F.ayt) return false;
+    if (t.length < 40 && /^משיב הרוח ומוריד הגשם/.test(t) && !F.rain) return false;
+    if (t.length < 40 && /^מוריד הטל/.test(t) && F.rain) return false;
+    if (/^ברך עלינו/.test(t) && !F.rainAsk && t.length > 60) return false;
+    if (/^ברכנו /.test(t) && F.rainAsk && t.length > 60) return false;
+    if (short && /^ותן טל ומטר/.test(t) && !F.rainAsk) return false;
+    if (short && /^ותן ברכה/.test(t) && F.rainAsk) return false;
+    return true;
+  }
+  // A paragraph as top-level pieces: <small>…</small> blocks (nested ones included), <br>, and the rest.
+  function pieces(h) {
+    var out = [], re = /<small\b[^>]*>|<\/small>|<br\s*\/?>/gi, m, depth = 0, start = 0, last = 0;
+    while ((m = re.exec(h))) {
+      var tag = m[0].toLowerCase();
+      if (tag.indexOf("<br") === 0) { if (depth === 0) { if (m.index > last) out.push({ k: "t", h: h.slice(last, m.index) }); out.push({ k: "br", h: m[0] }); last = re.lastIndex; } continue; }
+      if (tag === "</small>") { if (depth > 0 && --depth === 0) { out.push({ k: "s", h: h.slice(start, re.lastIndex) }); last = re.lastIndex; } continue; }
+      if (depth === 0) { if (m.index > last) out.push({ k: "t", h: h.slice(last, m.index) }); start = m.index; }
+      depth++;
+    }
+    if (last < h.length && depth === 0) out.push({ k: "t", h: h.slice(last) });
+    else if (depth > 0) out.push({ k: "t", h: h.slice(start) });
+    return out;
+  }
+  var blank = function (p) { return p.k === "t" && !nrm(p.h); };
+  // Inside one paragraph: an instruction in small letters, and the words it covers.
+  function inline(h, F) {
+    var ps = pieces(h), out = [], i = 0;
+    while (i < ps.length) {
+      var p = ps[i];
+      if (p.k !== "s") { out.push(p.h); i++; continue; }
+      var txt = nrm(p.h), m = txt.match(/^([^:]{2,60}):\s*(.*)$/), head = m ? m[1] : txt, rest = m ? m[2] : "";
+      var after = ps.slice(i + 1).map(function (x) { return nrm(x.h); }).join(" ").slice(0, 80);
+      var c = head.length <= 70 ? cond(head, after || rest, F) : null;
+      if (c === null) { out.push(p.h); i++; continue; }
+      // The words the instruction covers: the small blocks right after it (up to a blank line), or a few plain words.
+      var j = i + 1, cover = [];
+      if (!rest || rest.length < 2) {
+        while (j < ps.length) {
+          var q = ps[j];
+          if (q.k === "br" && ps[j + 1] && ps[j + 1].k === "br") break;
+          if (q.k === "s" || q.k === "br" || blank(q)) { if (q.k === "s" && cond(nrm(q.h).split(":")[0], "", F) !== null && nrm(q.h).split(":")[0].length <= 70 && cover.length) break; cover.push(j); j++; continue; }
+          if (q.k === "t" && !cover.some(function (x) { return ps[x].k === "s"; }) && nrm(q.h).length <= 40) { cover.push(j); j++; continue; }
+          break;
+        }
+        while (cover.length && ps[cover[cover.length - 1]].k !== "s" && ps[cover[cover.length - 1]].k !== "t") cover.pop();
+        while (cover.length && blank(ps[cover[cover.length - 1]])) cover.pop();
+      }
+      if (c === false) { i = cover.length ? cover[cover.length - 1] + 1 : i + 1; while (out.length && /^\s*(<br\s*\/?>)?\s*$/i.test(out[out.length - 1]) && ps[i] && ps[i].k === "br") out.pop(); continue; }
+      out.push(rest && rest.length > 1 ? '<span class="ins">' + p.h + "</span>" : p.h);
+      if (cover.length) { out.push('<span class="ins">' + cover.map(function (x) { return ps[x].h; }).join("") + "</span>"); i = cover[cover.length - 1] + 1; } else i++;
+    }
+    return out.join("").replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>").replace(/^(\s*<br\s*\/?>)+|(<br\s*\/?>\s*)+$/gi, "");
+  }
+  // The paragraphs of a section, each with show (said today?) and ins (an addition for today, to stand out).
+  function filter(paras, F) {
+    // After an instruction that is false today: hide the block it covers (the small-print paragraphs right after it,
+    // or the one line after it, or a whole psalm); after a true one, mark the same block as today's addition.
+    var res = [], mode = "", first = false, many = 0, rest = false;
+    var small = function (h) { return /^\s*<small/i.test(h); };
+    paras.forEach(function (h, idx) {
+      var t = nrm(h), show = true, ins = false, html = h, label = false;
+      if (rest) {
+        if (small(h) || /^(תתקבל|יהא שלמא|עושה שלום)/.test(t)) { res.push({ html: h, show: false }); return; }
+        rest = false;
+      }
+      var c = t.length < 90 ? cond(t, nrm(paras[idx + 1] || ""), F) : null, paren = /^\(.*\)$/.test(t);
+      if (c !== null) {
+        label = true; show = c;
+        var own = /^[^:]{2,60}:\s*\S/.test(t.replace(/\s*:\s*$/, ""));
+        if (!c) {
+          rest = /מוצאי שבת|מוצ"ש/.test(t) && !/מלבד|חוץ/.test(t);
+          if (!rest && !paren && !own && !/\.\.\.|…/.test(t)) { mode = "hide"; first = true; many = /מזמור|תפילה זו|ברכי נפשי|לדוד|פרק|נוהגים לומר/.test(t) ? 1 : 0; }
+          else if (own && mode === "hide") { /* stays inside the block it belongs to */ }
+          else mode = "";
+        } else {
+          if (own) ins = !/מלבד|חוץ/.test(t);
+          mode = paren || /מלבד|חוץ/.test(t) ? "" : "mark"; first = true; many = 0;
+        }
+      } else if (mode === "hide") {
+        if (many) {
+          var stop = /^<(b|big|small)>/.test(h.trim()) || /החזן|הקהל|ואומר|אומרים|קדיש|^לשם יחוד/.test(t) || many > 40;
+          if (stop && many > 1) mode = ""; else { show = false; many++; }
+        } else if (small(h) || first) { show = false; if (!small(h)) mode = ""; }
+        else mode = "";
+        first = false;
+      } else if (mode === "mark") {
+        if (small(h) || first) { ins = true; if (!small(h)) mode = ""; } else mode = "";
+        first = false;
+      }
+      if (show && !label) {
+        show = sig(t, F);
+        if (show) { html = inline(h, F); if (!nrm(html)) show = false; }
+      }
+      res.push({ html: html, show: show, ins: ins && show });
+    });
+    return res;
+  }
+  window.TEFILA = { day: day, headline: headline, facts: facts, filter: filter };
 })();
