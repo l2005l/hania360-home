@@ -1,0 +1,26 @@
+name: probe-cflog
+on: { push: { branches: [probe-cflog] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          get(){ curl -sS "https://www.sefaria.org/api/v3/texts/$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$1")?version=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote('hebrew|'+sys.argv[1]))" "$2")" | python3 -c "
+          import sys,json,re
+          d=json.load(sys.stdin); v=(d.get('versions') or [{}])[0]; out=[]
+          def w(x):
+            if isinstance(x,list): [w(y) for y in x]
+            elif isinstance(x,str) and x.strip(): out.append(x)
+          w(v.get('text'))
+          print(json.dumps({'ref':sys.argv[1],'paras':out},ensure_ascii=False))" "$1"; }
+          get "Siddur Ashkenaz, Berachot, Birkat HaMazon" "The Metsudah siddur, 1981" > o.jsonl
+          get "Siddur Ashkenaz, Berachot, Birkat Hanehenin, Eating, Brachot Achronot, Al Hamichyah" "The Metsudah siddur, 1981" >> o.jsonl
+          get "Siddur Sefard, Birchat HaMazon, Birchat HaMazon" "The Metsudah siddur, 1981" >> o.jsonl
+          get "Siddur Sefard, Blessings, Me'ein Shalosh" "The Metsudah siddur, 1981" >> o.jsonl
+          get "Siddur Edot HaMizrach, Post Meal Blessing" "Torat Emet 357" >> o.jsonl
+          python3 -c "
+          import json
+          for l in open('o.jsonl'):
+            d=json.loads(l); print('##',d['ref'],len(d['paras']), len(l))
+          "
+          gzip -9 o.jsonl; base64 -w0 o.jsonl.gz > b64; split -b 60000 b64 part_; for f in part_*; do echo "B64>$(cat $f)"; done
