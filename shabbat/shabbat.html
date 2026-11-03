@@ -94,6 +94,16 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 .meno .c.lit::before{content:"";position:absolute;bottom:100%;left:50%;width:12px;height:20px;margin-left:-6px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:radial-gradient(circle at 50% 70%,#FFF8D0,var(--flame) 45%,var(--ember) 80%);box-shadow:0 0 16px 4px rgba(247,181,72,.45);animation:flick 2.4s ease-in-out infinite;transform-origin:50% 100%}
 .meno .c.new::after{content:"חדש";position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:10px;color:var(--flame);font-weight:700;margin-top:4px}
 @media (prefers-reduced-motion:reduce){.meno .c.lit::before{animation:none}}
+/* today's prayer */
+.tef .tefl{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.tef .tefl li{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:rgba(0,0,0,.18);display:grid;gap:2px}
+.tef .tefl li b{font-family:var(--display);font-size:20px;font-weight:700;color:var(--flame)}
+.tef .tefl li small{color:var(--muted);font-size:13.5px;line-height:1.5}
+.tef .tefl li.routine{background:transparent;border-style:dashed}.tef .tefl li.routine b{font-size:16px;color:var(--wax)}
+.tef .tefl li .new{display:inline-block;margin-inline-start:8px;font-family:var(--body);font-size:11.5px;font-weight:700;background:var(--ember);color:#fff;border-radius:99px;padding:1px 8px;vertical-align:middle}
+.tef .plain{color:var(--muted);font-size:15px}
+.trow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.trow input[type=time]{width:auto}
 </style>
 
 <div class="wrap">
@@ -114,6 +124,16 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   </section>
 
   <div class="holbox" id="holBox" hidden></div>
+
+  <section class="card tef" id="tefila">
+    <h2>🕍 התפילה היום <small id="tefDate"></small></h2>
+    <div class="chips" id="tefTabs" role="tablist"></div>
+    <ul class="tefl" id="tefList"></ul>
+    <p class="fine" id="tefFood" hidden></p>
+    <div class="chips" id="tefNus" aria-label="נוסח"></div>
+    <div class="chips"><button class="chip" type="button" id="tefRem">⏰ תזכורות לתפילה</button></div>
+    <p class="fine">בהתאם ללוח בארץ ישראל. בדברים שתלויים במנהג הקהילה כתוב "לפי המנהג". בכל ספק שואלים את רב הקהילה.</p>
+  </section>
 
   <section class="card">
     <h2>⏰ תזכורת לזמן היום <small id="zmState"></small></h2>
@@ -171,6 +191,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 
 <script src="/hebcal.js"></script>
 <script src="/parasha.js"></script>
+<script src="/tefila.js"></script>
 <script>
 (function () {
   "use strict";
@@ -242,7 +263,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 
   // ---- city: the choice stays on this phone, and the last few towns are one tap away ------------
   function pickCity(name) {
-    S.city = name; S.saved = [name].concat(S.saved.filter(function (x) { return x !== name; })).slice(0, 4); save(); render(); resync(); resyncZ();
+    S.city = name; S.saved = [name].concat(S.saved.filter(function (x) { return x !== name; })).slice(0, 4); save(); render(); resync(); resyncZ(); resyncT();
   }
   function renderSaved() {
     var box = $("savedCities"), list = S.saved.filter(function (x) { return x === "__here" ? !!S.here : CITIES.some(function (c) { return c[0] === x; }); });
@@ -272,7 +293,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     $("tHaft").textContent = h ? "הפטרה: " + hebRef(h) : "";
   }
   $("nusach").value = S.nusach;
-  $("nusach").addEventListener("change", function () { S.nusach = $("nusach").value; save(); render(); });
+  $("nusach").addEventListener("change", function () { S.nusach = $("nusach").value; save(); render(); resyncT(); });
 
   // ---- city ---------------------------------------------------------------------------
   $("cityBtn").addEventListener("click", function () {
@@ -524,6 +545,74 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   }
   function resyncH() { if (!S.hol || !canPush) return; var it = hItems(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "h", sub: s.toJSON(), before: 10, city: place().name, items: it }); }).catch(function () {}); }
 
+  // ---- Today's prayer: what changes, by nusach, and reminders ----
+  var PR = [["shacharit", "שחרית"], ["mincha", "מנחה"], ["arvit", "ערבית"]], NUS = [["ashkenaz", "אשכנז"], ["sefard", "ספרד"], ["mizrach", "עדות המזרח"]];
+  var ROUTINE = /^(מוריד הטל|ותן ברכה|ברכנו|משיב הרוח|ותן טל ומטר|ברך עלינו|קריאת התורה)/;
+  function nowPrayer() { var z = zmanimOn(new Date()), c = z.filter(function (x) { return x.k === "chatzot"; })[0], sh = z.filter(function (x) { return x.k === "shkia"; })[0], n = new Date(); return c && n < c.t ? "shacharit" : sh && n < sh.t ? "mincha" : "arvit"; }
+  function renderTef() {
+    if (!window.TEFILA) return;
+    var now = new Date(), r = TEFILA.day(now, S.nusach || "ashkenaz", place().name), tab = S.tefTab && S.tefTabDay === now.toDateString() ? S.tefTab : nowPrayer();
+    $("tefDate").textContent = { ashkenaz: "נוסח אשכנז", sefard: "נוסח ספרד", mizrach: "עדות המזרח" }[S.nusach || "ashkenaz"];
+    $("tefTabs").replaceChildren.apply($("tefTabs"), PR.map(function (p) { var b = el("button", { type: "button", class: "chip", role: "tab", "aria-pressed": String(p[0] === tab) }, [p[1] + (p[0] === "arvit" ? " (בערב)" : "")]); b.addEventListener("click", function () { S.tefTab = p[0]; S.tefTabDay = now.toDateString(); save(); renderTef(); }); return b; }));
+    var list = r.prayers[tab] || [], special = list.filter(function (x) { return x.isNew || !ROUTINE.test(x.t); }), routine = list.filter(function (x) { return !x.isNew && ROUTINE.test(x.t); });
+    var kids = [];
+    if (!list.length) kids.push(el("li", { class: "routine" }, [el("b", r.kind === "weekday" ? "תפילה רגילה" : r.notes[0] || "סדר של שבת או חג")]));
+    else {
+      if (!special.length) kids.push(el("li", { class: "routine" }, [el("b", "✓ תפילה רגילה של חול"), el("small", "אין היום תוספות מיוחדות")]));
+      special.forEach(function (x) { var b = el("b", x.t); if (x.isNew) b.append(el("span", { class: "new" }, ["חדש"])); kids.push(el("li", null, [b, x.n ? el("small", x.n) : null].filter(Boolean))); });
+      routine.forEach(function (x) { kids.push(el("li", { class: "routine" }, [el("b", x.t), el("small", "כרגיל בתקופה הזו")])); });
+    }
+    $("tefList").replaceChildren.apply($("tefList"), kids);
+    var food = r.food.concat(tab !== "arvit" ? r.notes : []).join(" · ");
+    $("tefFood").hidden = !food; $("tefFood").textContent = food ? "🍞 " + food : "";
+    $("tefNus").replaceChildren.apply($("tefNus"), [el("span", { class: "fine", style: "align-self:center" }, ["נוסח:"])].concat(NUS.map(function (n) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String((S.nusach || "ashkenaz") === n[0]) }, [n[1]]); b.addEventListener("click", function () { S.nusach = n[0]; save(); $("nusach").value = n[0]; render(); resyncT(); }); return b; })));
+    $("tefRem").textContent = S.tr && S.tr.on ? "⏰ תזכורות לתפילה ✓" : "⏰ תזכורות לתפילה";
+  }
+  // Reminders: the prayers chosen, at the hour chosen, every day or only on days when something is said differently.
+  function tItems() {
+    var tr = S.tr; if (!tr || !tr.on) return [];
+    var out = [], nowT = Date.now();
+    for (var i = 0; i < 35 && out.length < 100; i++) {
+      var day0 = new Date(nowT + i * 864e5), hd0 = new HB.HDate(day0), r = TEFILA.day(day0, S.nusach || "ashkenaz", place().name);
+      var rest = function (h) { return h.getDay() === 6 || HB.HebrewCalendar.getHolidaysOnDate(h, true).some(function (e) { return e.getFlags() & HB.flags.CHAG; }); };
+      if (rest(hd0)) continue;
+      PR.forEach(function (p) {
+        var c = tr[p[0]]; if (!c || !c.on || !/^\d{2}:\d{2}$/.test(c.at)) return;
+        if (p[0] === "arvit" && rest(hd0.next())) return;
+        var hl = TEFILA.headline(r.prayers[p[0]] || []);
+        if (tr.mode === "changes" && !hl) return;
+        var t = new Date(day0); t.setHours(+c.at.slice(0, 2), +c.at.slice(3), 0, 0); t = new Date(t.getTime() + 10 * 6e4);
+        if (t.getTime() > nowT) out.push({ t: t.getTime(), label: "🕍 " + p[1] + (hl ? ": היום " + hl : ": הגיע הזמן") });
+      });
+    }
+    return out.sort(function (a, b) { return a.t - b.t; });
+  }
+  function resyncT() { if (!S.tr || !S.tr.on || !canPush) return; var it = tItems(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: place().name, items: it }); }).catch(function () {}); }
+  $("tefRem").addEventListener("click", function () {
+    var tr = S.tr || { mode: "changes", shacharit: { on: true, at: "07:00" }, mincha: { on: true, at: "13:30" }, arvit: { on: false, at: "19:30" } };
+    var host = $("sheetHost"), close = function () { host.textContent = ""; };
+    var rows = PR.map(function (p) { var c = tr[p[0]] || { on: false, at: "07:00" }, cb = el("input", { type: "checkbox", "aria-label": p[1] }), tm = el("input", { type: "time", value: c.at, "aria-label": "שעה ל" + p[1] }); cb.checked = !!c.on; cb.style.width = "22px"; cb.style.height = "22px"; return { k: p[0], cb: cb, tm: tm, row: el("label", { class: "trow" }, [cb, el("b", p[1]), tm]) }; });
+    var m1 = el("button", { type: "button", class: "chip", "aria-pressed": String(tr.mode !== "daily") }, ["רק בימים שיש שינוי"]), m2 = el("button", { type: "button", class: "chip", "aria-pressed": String(tr.mode === "daily") }, ["כל יום"]), mode = tr.mode === "daily" ? "daily" : "changes";
+    m1.addEventListener("click", function () { mode = "changes"; m1.setAttribute("aria-pressed", "true"); m2.setAttribute("aria-pressed", "false"); });
+    m2.addEventListener("click", function () { mode = "daily"; m2.setAttribute("aria-pressed", "true"); m1.setAttribute("aria-pressed", "false"); });
+    var saveB = el("button", { type: "button", class: "chip", style: "background:var(--flame);color:#2A1A08;border-color:var(--flame);font-size:16px;padding:12px" }, ["שמירה"]), offB = el("button", { type: "button", class: "chip" }, ["לכבות את כל התזכורות"]);
+    var sh = el("div", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": "תזכורות לתפילה" }, [el("h2", { style: "margin:0;font-family:var(--display)" }, ["⏰ תזכורות לתפילה"]),
+      el("p", { class: "fine" }, ["בוחרים תפילות ושעה. ההתראה אומרת מה מוסיפים היום, למשל \"מנחה: היום יעלה ויבוא\". לא מגיעות התראות בשבת ובחג."])].concat(rows.map(function (r) { return r.row; }), [el("div", { class: "chips" }, [m1, m2]), saveB, offB]));
+    var scrim = el("div", { class: "scrim" }); scrim.addEventListener("click", close); host.replaceChildren(scrim, sh);
+    offB.addEventListener("click", function () { S.tr = Object.assign(tr, { on: false }); save(); close(); renderTef(); if (canPush) getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint, kind: "t" }); }).catch(function () {}); toast("התזכורות לתפילה כבויות"); });
+    saveB.addEventListener("click", function () {
+      var next = { on: true, mode: mode }; rows.forEach(function (r) { next[r.k] = { on: r.cb.checked, at: r.tm.value || "07:00" }; });
+      if (!rows.some(function (r) { return r.cb.checked; })) { toast("בוחרים לפחות תפילה אחת"); return; }
+      if (!canPush) { toast(IOS && !STANDALONE ? "באייפון: קודם מוסיפים את HaniaDat למסך הבית" : "הדפדפן הזה לא תומך בהתראות"); return; }
+      Notification.requestPermission().then(function (perm) {
+        if (perm !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+        S.tr = next; var it = tItems();
+        if (!it.length) { save(); close(); renderTef(); toast(mode === "changes" ? "נשמר. בשבועות הקרובים אין שינויים בתפילות שבחרת" : "נשמר"); return; }
+        return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: place().name, items: it }); }).then(function (j) { if (!j.ok) throw new Error("x"); save(); close(); renderTef(); toast("🕍 התזכורות לתפילה מוגדרות"); });
+      }).catch(function () { toast("לא הצלחנו להפעיל תזכורת"); });
+    });
+  });
+
   // ---- Compass to the Western Wall ----
   var KOTEL = [31.7767, 35.2345], kBear = null;
   function bearing(lat1, lon1, lat2, lon2) { var r = Math.PI / 180, y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r), x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r); return (Math.atan2(y, x) / r + 360) % 360; }
@@ -544,9 +633,9 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === "function") DeviceOrientationEvent.requestPermission().then(function (r) { if (r === "granted") go(); else toast("בלי אישור לחיישן אפשר להיעזר במעלות שלמעלה"); }).catch(function () { toast("המצפן לא זמין"); });
     else if (window.DeviceOrientationEvent) go(); else toast("למכשיר הזה אין מצפן. אפשר להיעזר במעלות שלמעלה");
   });
-  var _render = render; render = function () { _render(); try { renderDay(); renderZm(); renderK(); } catch (e) {} try { renderHol(); } catch (e) { $("holBox").hidden = true; } };
+  var _render = render; render = function () { _render(); try { renderDay(); renderZm(); renderK(); } catch (e) {} try { renderHol(); } catch (e) { $("holBox").hidden = true; } try { renderTef(); } catch (e) { $("tefila").hidden = true; } };
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/sw.js").catch(function () {});
-  render(); resync(); resyncZ(); resyncH();
+  render(); resync(); resyncZ(); resyncH(); resyncT();
   setInterval(render, 60000);
 })();
 </script>
