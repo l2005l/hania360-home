@@ -94,6 +94,19 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .mo:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
 .mo.ok{background:var(--c3);outline:5px solid #0b6b3a;outline-offset:2px}.mo.no{background:#9aa3ad;text-decoration:line-through}.mo.dim{opacity:.35}
 .mo:disabled{cursor:default}
+.sky{position:relative;height:clamp(300px,52vh,460px);width:100%;overflow:hidden;border-radius:20px;background:linear-gradient(#BFE3FF,#EAF6FF)}
+@media (prefers-color-scheme:dark){.sky{background:linear-gradient(#0B2A4A,#16324F)}}
+.mo.bal{position:absolute;bottom:-150px;width:23%;min-height:0;height:auto;aspect-ratio:4/5;border-radius:50% 50% 46% 46%;font-size:clamp(18px,3.6vw,34px);box-shadow:inset -8px -12px 0 rgba(0,0,0,.14);animation:fly var(--d,9s) linear forwards}
+.mo.bal::after{content:"";position:absolute;left:50%;top:100%;width:2px;height:46px;background:#94a3b8}
+.sky.stop .mo.bal{animation-play-state:paused}
+@keyframes fly{to{transform:translateY(calc(-1 * clamp(300px,52vh,460px) - 170px))}}
+.mem{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}
+@media (min-width:720px){.mem{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.mc{appearance:none;border:0;border-radius:16px;min-height:clamp(78px,14vh,130px);font:inherit;font-weight:800;font-size:clamp(16px,3vw,30px);color:#fff;background:var(--c5);cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.18);direction:ltr;unicode-bidi:plaintext;padding:6px}
+.mc.up{background:var(--surface);color:var(--ink);border:3px solid var(--c5)}.mc.done{background:var(--c3);color:#fff;opacity:.8}
+.tfb{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}.tfb .mo{font-size:clamp(26px,5vw,48px)}
+.feat{display:inline-block;background:var(--c2);color:#2a1a00;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:800;margin-inline-start:4px}
+.avs{display:flex;flex-wrap:wrap;gap:6px}.avs button{appearance:none;font-size:28px;line-height:1;padding:6px;border-radius:12px;border:2px solid var(--line);background:var(--surface);cursor:pointer}.avs button[aria-pressed="true"]{border-color:var(--c4);background:var(--bg)}.avs button:disabled{filter:grayscale(1);opacity:.35;cursor:default}
 .mex{font-size:clamp(17px,2.4vw,24px);text-align:center}
 .track{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px}
 .lane{display:grid;grid-template-columns:minmax(70px,auto) minmax(0,1fr) auto;gap:10px;align-items:center;border-radius:14px;padding:4px 8px}
@@ -404,21 +417,104 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   function mathTab() {
     if (RACE && RACE.on) return raceView();
     if (SOLO && SOLO.on) return soloView();
+    if (MEM && MEM.on) return memView();
+    if (TF && TF.on) return tfView();
     return mathSetup();
   }
+  // ---- variety: a game of the week, a topic of the week, a daily challenge, and characters that open with stars ----
+  var WEEK = Math.floor((Date.now() / 864e5 + 4) / 7), TODAY = new Date().toLocaleDateString("en-CA");
+  var MODES = [["race", "🏁 מירוץ קבוצות"], ["solo", "🎯 משחק אישי"], ["balloon", "🎈 בלונים"], ["memory", "🧠 זיכרון"], ["tf", "⚡ נכון או לא"], ["daily", "📅 אתגר יומי"]];
+  var FEAT = ["balloon", "memory", "tf"][WEEK % 3];
+  function modeList(kid) { return MODES.filter(function (m) { return !(kid && m[0] === "race"); }).map(function (m) { return [m[0], m[0] === FEAT ? [m[1], el("span", { class: "feat", text: "משחק השבוע" })] : m[1]]; }); }
+  function weekTopic(g) { var k = Object.keys(MATH[g]); return k[WEEK % k.length]; }
+  function weekTopicEl(g) { var t = weekTopic(g); return el("div", { class: "row", style: "align-items:center" }, [el("span", { class: "note", text: "📌 נושא השבוע: " + MATH[g][t][0] }), el("button", { class: "btn sm ghost", type: "button", text: "רק הנושא הזה", onclick: function () { GM.topics = GM.topics || {}; GM.topics[g] = [t]; gmSave(); render(); } })]); }
+  function dailyNote(g) { var d = jget("kt.daily." + g + "." + TODAY, null); return el("p", { class: "note", text: d ? "✔ כבר שיחקת היום: " + d.ok + " מתוך 10 (" + d.score + " נקודות). אפשר לנסות שוב, מחר יש שאלות חדשות." : "10 שאלות של היום מכל הנושאים. כל הכיתה מקבלת אותן שאלות, אפשר להשוות נקודות. מחר יש חדשות." }); }
+  var AVS = ["🚀", "🚗", "🦄", "🐢", "🐉", "🦖", "🛸", "🏎️", "🐬", "🦁", "🤖", "🦸", "🐙", "🦊", "👑"];
+  function starsAll() { return +(jget("kt.stars", 0)) || 0; }
+  function addStars(n) { if (!n) return; var before = starsAll(), now = before + n; ls("kt.stars", JSON.stringify(now)); var ni = 3 + Math.floor(now / 5); if (Math.floor(now / 5) > Math.floor(before / 5) && ni < AVS.length) setTimeout(function () { toast("🎁 נפתחה דמות חדשה: " + AVS[ni]); }, 900); }
+  function myAv() { var a = jget("kt.av", "🚀"); return AVS.indexOf(a) >= 0 && AVS.indexOf(a) < 4 + Math.floor(starsAll() / 5) ? a : "🚀"; }
+  function avatarsEl() {
+    var open = 4 + Math.floor(starsAll() / 5), cur = myAv();
+    return el("div", { class: "card" }, [el("b", { text: "🎁 הדמויות שלך · ⭐ " + starsAll() }), el("div", { class: "avs" }, AVS.map(function (a, i) { return el("button", { type: "button", "aria-pressed": String(a === cur), disabled: i >= open ? "" : null, title: i >= open ? "נפתח ב־" + (i - 3) * 5 + " כוכבים" : "", onclick: function () { ls("kt.av", JSON.stringify(a)); render(); } }, [a]); })),
+      el("span", { class: "note", text: open < AVS.length ? "עוד " + (5 - starsAll() % 5) + " כוכבים לדמות הבאה. כוכבים מקבלים בסוף כל משחק." : "פתחת את כל הדמויות!" })]);
+  }
+  // Same questions for the whole class today: a seeded random while making them.
+  function seeded(seed, fn) { var r = Math.random, t = seed >>> 0; Math.random = function () { t += 0x6D2B79F5; var x = Math.imul(t ^ (t >>> 15), 1 | t); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; try { return fn(); } finally { Math.random = r; } }
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h; }
+  function anyQ(g, L) { var t = ONE(Object.keys(MATH[g])), q = MATH[g][t][1](L); q.topic = MATH[g][t][0]; return q; }
+  function endStars(ok, total) { return ok >= total * 0.9 ? 3 : ok >= total * 0.7 ? 2 : ok >= total * 0.4 ? 1 : 0; }
+
+  // memory: match each exercise with its answer
+  var MEM = null, TF = null;
+  function startMemory() {
+    var g = KID || GM.grade, qs = [], seen = {}, k = 0;
+    while (qs.length < 6 && k++ < 600) { var q = k < 300 ? nextQ(GM.level) : anyQ(g, GM.level); if (seen[q.a] || q.q.replace(/<[^>]+>/g, "").length > 26 || /◯|איזה|\?$/.test(q.q.replace(/ = \?$/, ""))) continue; seen[q.a] = 1; qs.push(q); }
+    var cards = []; qs.forEach(function (q, i) { cards.push({ id: i, h: q.q.replace(/ = \?$/, ""), html: q.html }, { id: i, h: q.a, html: q.html }); });
+    MEM = { on: true, g: g, cards: shuffle(cards), open: [], done: {}, moves: 0, t0: Date.now(), n: qs.length }; render();
+  }
+  function memView() {
+    var M = MEM;
+    if (Object.keys(M.done).length === M.n) {
+      var stars = M.moves <= M.n + 3 ? 3 : M.moves <= M.n * 2 ? 2 : 1, secs = Math.round((Date.now() - M.t0) / 1000);
+      if (!M.paid) { M.paid = 1; addStars(stars); setTimeout(confetti, 50); }
+      return [el("div", { class: "card center" }, [el("div", { class: "face", text: myAv() }), el("h2", { text: "מצאת את כל הזוגות!" }), el("div", { style: "font-size:44px", text: "⭐".repeat(stars) + "☆".repeat(3 - stars) }), el("p", { class: "note", style: "font-size:18px", text: M.moves + " ניסיונות · " + secs + " שניות" }),
+        el("div", { class: "btns" }, [el("button", { class: "btn big", type: "button", text: "🔁 עוד סיבוב", onclick: startMemory }), el("button", { class: "btn ghost", type: "button", text: "⚙️ הגדרות", onclick: function () { MEM = null; render(); } })])])];
+    }
+    var grid = el("div", { class: "mem" }, M.cards.map(function (c, i) {
+      var up = M.open.indexOf(i) >= 0 || M.done[c.id], b = el("button", { type: "button", class: "mc" + (M.done[c.id] ? " done" : up ? " up" : ""), disabled: M.done[c.id] ? "" : null });
+      if (up) { if (c.html) b.innerHTML = c.h; else b.textContent = c.h; } else b.textContent = "?";
+      b.addEventListener("click", function () {
+        if (M.lock || up) return; M.open.push(i);
+        if (M.open.length === 2) { M.moves++; var a = M.cards[M.open[0]], z = M.cards[M.open[1]];
+          if (a.id === z.id) { M.done[a.id] = 1; M.open = []; beep(1046, 0.1); setTimeout(function () { beep(1318, 0.14); }, 110); }
+          else { M.lock = true; beep(300, 0.15); setTimeout(function () { M.open = []; M.lock = false; render(); }, 1100); } }
+        render();
+      });
+      return b;
+    }));
+    return [el("div", { class: "card center mcard" }, [el("div", { class: "turn" }, [el("span", { text: myAv() + " 🧠 זיכרון: מתאימים תרגיל לתשובה" }), el("span", { text: "ניסיונות: " + M.moves })]), grid]),
+      el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "✕ יציאה", onclick: function () { MEM = null; render(); } })])];
+  }
+  // true or false, against the clock
+  function startTF() { TF = { on: true, g: KID || GM.grade, end: Date.now() + 60000, ok: 0, bad: 0, wrong: [], level: GM.level }; tfNext(); render(); }
+  function tfNext() {
+    var q = nextQ(TF.level), right = Math.random() < 0.5, others = q.opts.filter(function (o) { return o !== q.a; }), shown = right || !others.length ? q.a : ONE(others);
+    var plain = q.q.replace(/<[^>]+>/g, ""), text = /▢|◯/.test(q.q) ? q.q.replace(/▢|◯/, shown) : q.q.indexOf("?") >= 0 && !/איזה|כמה|מה /.test(plain) ? q.q.replace(/\?(?=[^?]*$)/, shown) : q.q + " התשובה: " + shown;
+    TF.q = q; TF.shown = shown; TF.text = text; TF.truth = shown === q.a;
+  }
+  function tfView() {
+    var T = TF, left = Math.max(0, Math.ceil((T.end - Date.now()) / 1000));
+    if (!left || T.over) {
+      clearInterval(T.iv); var total = T.ok + T.bad, stars = T.ok >= 15 ? 3 : T.ok >= 10 ? 2 : T.ok >= 5 ? 1 : 0, best = jget("kt.tfbest." + T.g, 0);
+      if (!T.paid) { T.paid = 1; addStars(stars); if (T.ok > best) ls("kt.tfbest." + T.g, JSON.stringify(T.ok)); if (stars >= 2) setTimeout(confetti, 50); }
+      return [el("div", { class: "card center" }, [el("div", { class: "face", text: myAv() }), el("h2", { text: T.ok + " נכונות בדקה" }), el("div", { style: "font-size:44px", text: "⭐".repeat(stars) + "☆".repeat(3 - stars) }), el("p", { class: "note", style: "font-size:18px", text: "מתוך " + total + " · השיא שלך: " + Math.max(best, T.ok) }),
+        T.wrong.length ? el("div", { class: "card", style: "text-align:start;width:100%" }, [el("b", { text: "כדאי לחזור על:" })].concat(T.wrong.slice(0, 6).map(function (w) { var d = el("div", { class: "note", style: "font-size:15px" }); d.innerHTML = (w.html ? w.q + " → <b>" + w.a + "</b>" : "") || ""; if (!w.html) d.textContent = w.q + " → " + w.a + " · " + w.ex; return d; }))) : null,
+        el("div", { class: "btns" }, [el("button", { class: "btn big", type: "button", text: "🔁 עוד דקה", onclick: startTF }), el("button", { class: "btn ghost", type: "button", text: "⚙️ הגדרות", onclick: function () { TF = null; render(); } })])])];
+    }
+    if (!T.iv) T.iv = setInterval(function () { if (TAB !== "math" || TF !== T) { clearInterval(T.iv); return; } var t = $("tfLeft"); var l = Math.max(0, Math.ceil((T.end - Date.now()) / 1000)); if (t) t.textContent = "⏱️ " + l; if (!l) render(); }, 250);
+    var q = el("div", { class: "mq" + (T.text.replace(/<[^>]+>/g, "").length > 22 ? " long" : ""), dir: "auto" }); if (T.q.html) q.innerHTML = T.text; else q.textContent = T.text;
+    var answer = function (yes, b) { var ok = yes === T.truth; b.classList.add(ok ? "ok" : "no"); if (ok) { T.ok++; beep(1046, 0.08); if (T.ok % 4 === 0) T.level = Math.min(3, T.level + 1); } else { T.bad++; T.wrong.push(T.q); beep(220, 0.2); T.level = Math.max(1, T.level - 1); } T.lock = true; setTimeout(function () { T.lock = false; tfNext(); render(); }, ok ? 350 : 1200); };
+    var btn = function (yes, i) { var b = el("button", { type: "button", class: "mo", style: "--oc:" + (yes ? "var(--c3)" : "var(--c1)"), text: yes ? "✔ נכון" : "✘ לא נכון" }); b.addEventListener("click", function () { if (!T.lock) answer(yes, b); }); return b; };
+    return [el("div", { class: "card center mcard" }, [el("div", { class: "turn" }, [el("span", { text: myAv() + " ⚡ נכון או לא?" }), el("span", { id: "tfLeft", class: "qtimer", text: "⏱️ " + left }), el("span", { text: "✔ " + T.ok })]), el("span", { class: "note", text: T.q.topic }), q, el("div", { class: "tfb" }, [btn(true), btn(false)])]),
+      el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "✕ סיום", onclick: function () { T.over = true; render(); } })])];
+  }
+
   function mathSetup() {
     var g = KID || GM.grade; GM.grade = g;
-    var chips = function (key, list, multi) { return el("div", { class: "chips" }, list.map(function (o) { var on = multi ? topicsOf(g).indexOf(o[0]) >= 0 : String(GM[key]) === String(o[0]); return el("button", { type: "button", "aria-pressed": String(on), onclick: function () { if (multi) { var cur = topicsOf(g).slice(), i = cur.indexOf(o[0]); if (i >= 0) { if (cur.length > 1) cur.splice(i, 1); } else cur.push(o[0]); GM.topics = GM.topics || {}; GM.topics[g] = cur; } else GM[key] = o[0]; gmSave(); render(); } }, [o[1]]); })); };
+    var chips = function (key, list, multi) { return el("div", { class: "chips" }, list.map(function (o) { var on = multi ? topicsOf(g).indexOf(o[0]) >= 0 : String(GM[key]) === String(o[0]); return el("button", { type: "button", "aria-pressed": String(on), onclick: function () { if (multi) { var cur = topicsOf(g).slice(), i = cur.indexOf(o[0]); if (i >= 0) { if (cur.length > 1) cur.splice(i, 1); } else cur.push(o[0]); GM.topics = GM.topics || {}; GM.topics[g] = cur; } else GM[key] = o[0]; gmSave(); render(); } }, [].concat(o[1])); })); };
     var kidLink = location.origin + location.pathname + "#kid-" + (GL.indexOf(g) + 1);
     var parts = [el("div", { class: "card" }, [el("h2", { text: "🎮 משחק חשבון" + (KID ? " · כיתה " + g + "'" : "") }),
-      KID ? null : el("div", { class: "row" }, [el("div", {}, [el("span", { class: "note", text: "כיתה" }), chips("grade", GL.map(function (x) { return [x, "כיתה " + x + "'"]; }))]), el("div", {}, [el("span", { class: "note", text: "איך משחקים" }), chips("mode", [["race", "🏁 מירוץ קבוצות"], ["solo", "🎯 משחק אישי"]])])]),
+      KID ? null : el("div", { class: "row" }, [el("div", {}, [el("span", { class: "note", text: "כיתה" }), chips("grade", GL.map(function (x) { return [x, "כיתה " + x + "'"]; }))]), el("div", {}, [el("span", { class: "note", text: "איך משחקים" }), chips("mode", modeList(false))])]),
+      KID ? el("div", {}, [el("span", { class: "note", text: "איך משחקים" }), chips("mode", modeList(true))]) : null,
+      weekTopicEl(g, chips),
       el("div", {}, [el("span", { class: "note", text: "נושאים (אפשר כמה)" }), chips("topics", Object.keys(MATH[g]).map(function (k) { return [k, MATH[g][k][0]]; }), true)]),
       el("div", {}, [el("span", { class: "note", text: "רמה" }), chips("level", [[1, "קלה"], [2, "בינונית"], [3, "מאתגרת"]])]),
       (GM.mode === "race" && !KID) ? el("div", { class: "row" }, [el("div", {}, [el("span", { class: "note", text: "קבוצות" }), chips("teams", [[2, "2"], [3, "3"], [4, "4"]])]), el("div", {}, [el("span", { class: "note", text: "צעדים לניצחון" }), chips("goal", [[5, "5"], [8, "8"], [12, "12"]])]), el("div", {}, [el("span", { class: "note", text: "זמן לשאלה" }), chips("secs", [[0, "בלי"], [20, "20 שנ׳"], [40, "40 שנ׳"]])])]) : null,
-      el("button", { class: "btn big", type: "button", text: GM.mode === "race" && !KID ? "🏁 יוצאים למירוץ" : "🎯 מתחילים", onclick: function () { if (GM.mode === "race" && !KID) startRace(); else startSolo(); } }),
+      GM.mode === "daily" ? dailyNote(g) : null,
+      el("button", { class: "btn big", type: "button", text: GM.mode === "race" && !KID ? "🏁 יוצאים למירוץ" : GM.mode === "daily" ? "📅 לאתגר של היום" : "🎯 מתחילים", onclick: function () { if (GM.mode === "race" && !KID) startRace(); else if (GM.mode === "memory") startMemory(); else if (GM.mode === "tf") startTF(); else startSolo(GM.mode); } }),
       KID ? null : el("div", { class: "btns" }, [el("button", { class: "btn sm ghost", type: "button", text: "📤 קישור לתלמידים לבית (כיתה " + g + "')", onclick: function () { var t = "🎮 משחק חשבון לכיתה " + g + "': " + kidLink; if (navigator.share) navigator.share({ text: t }).catch(function () {}); else { try { navigator.clipboard.writeText(kidLink); toast("הקישור הועתק"); } catch (e) {} } } })]),
       el("p", { class: "note", text: "התרגילים נוצרים לבד לפי תוכנית הלימודים, בלי חיבור לאינטרנט ובלי לאסוף שום מידע על התלמידים." })])];
-    if (GM.mode !== "race" || KID) { var best = jget("kt.mbest." + g, null); if (best) parts.push(el("p", { class: "note", style: "text-align:center", text: "השיא שלך: " + best.score + " נקודות · " + "⭐".repeat(best.stars) })); }
+    if (GM.mode !== "race" || KID) { var best = jget("kt.mbest." + g, null); if (best) parts.push(el("p", { class: "note", style: "text-align:center", text: "השיא שלך: " + best.score + " נקודות · " + "⭐".repeat(best.stars) })); parts.push(avatarsEl()); }
     return parts;
   }
   // race
@@ -447,36 +543,44 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
       el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "⏭ שאלה אחרת", onclick: function () { stop(); R2.q = nextQ(); render(); } }), el("button", { class: "btn sm ghost", type: "button", text: "✕ סיום מירוץ", onclick: function () { stop(); RACE = null; render(); } })])];
   }
   // solo
-  function startSolo() { SOLO = { on: true, n: 0, total: 10, score: 0, ok: 0, streak: 0, level: GM.level, q: nextQ(GM.level), t0: Date.now(), wrong: [], done: false }; render(); }
+  function startSolo(kind) {
+    kind = kind === "daily" || kind === "balloon" ? kind : "solo"; var g = KID || GM.grade;
+    var list = kind === "daily" ? seeded(hash(TODAY + g), function () { var a = []; for (var i = 0; i < 10; i++) a.push(anyQ(g, 2)); return a; }) : null;
+    SOLO = { on: true, kind: kind, list: list, n: 0, total: 10, score: 0, ok: 0, streak: 0, level: GM.level, q: list ? list[0] : nextQ(GM.level), t0: Date.now(), wrong: [], done: false }; render();
+  }
   function soloView() {
     var S2 = SOLO, g = KID || GM.grade;
     if (S2.done) {
       var stars = S2.ok >= 9 ? 3 : S2.ok >= 7 ? 2 : S2.ok >= 4 ? 1 : 0, best = jget("kt.mbest." + g, null);
-      if (!best || S2.score > best.score) { ls("kt.mbest." + g, JSON.stringify({ score: S2.score, stars: stars })); if (best) setTimeout(function () { toast("🏅 שיא חדש!"); }, 600); }
+      if (!S2.paid) { S2.paid = 1; addStars(stars); if (S2.kind === "daily") { var dd = jget("kt.daily." + g + "." + TODAY, null); if (!dd || S2.score > dd.score) ls("kt.daily." + g + "." + TODAY, JSON.stringify({ ok: S2.ok, score: S2.score })); } }
+      if (S2.kind !== "daily" && (!best || S2.score > best.score)) { ls("kt.mbest." + g, JSON.stringify({ score: S2.score, stars: stars })); if (best) setTimeout(function () { toast("🏅 שיא חדש!"); }, 600); }
       if (stars >= 2) setTimeout(confetti, 50);
-      return [el("div", { class: "card center" }, [el("div", { class: "face", text: ["💪", "🙂", "😃", "🤩"][stars] }), el("h2", { style: "font-size:clamp(26px,6vw,44px)", text: S2.ok + " מתוך " + S2.total + " נכון" }), el("div", { style: "font-size:44px", text: "⭐".repeat(stars) + "☆".repeat(3 - stars) }), el("p", { class: "note", style: "font-size:18px", text: S2.score + " נקודות" }),
+      return [el("div", { class: "card center" }, [el("div", { class: "face", text: ["💪", "🙂", "😃", "🤩"][stars] + myAv() }), el("h2", { style: "font-size:clamp(26px,6vw,44px)", text: (S2.kind === "daily" ? "📅 האתגר של היום: " : "") + S2.ok + " מתוך " + S2.total + " נכון" }), el("div", { style: "font-size:44px", text: "⭐".repeat(stars) + "☆".repeat(3 - stars) }), el("p", { class: "note", style: "font-size:18px", text: S2.score + " נקודות" }),
         S2.wrong.length ? el("div", { class: "card", style: "text-align:start;width:100%" }, [el("b", { text: "כדאי לחזור על:" })].concat(S2.wrong.map(function (w) { var d = el("div", { class: "note", style: "font-size:15px" }); var E = function (t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }; d.innerHTML = (w.html ? w.q : E(w.q)) + " → <b>" + (w.html ? w.a : E(w.a)) + "</b> · " + E(w.ex); return d; }))) : null,
-        el("div", { class: "btns" }, [el("button", { class: "btn big", type: "button", text: "🔁 עוד סיבוב", onclick: startSolo }), el("button", { class: "btn ghost", type: "button", text: "⚙️ נושאים", onclick: function () { SOLO = null; render(); } })])])];
+        el("div", { class: "btns" }, [el("button", { class: "btn big", type: "button", text: "🔁 עוד סיבוב", onclick: function () { startSolo(S2.kind); } }), el("button", { class: "btn ghost", type: "button", text: "⚙️ נושאים", onclick: function () { SOLO = null; render(); } })])])];
     }
-    var q = S2.q, box = el("div", { class: "mopts" }), info = el("div", { class: "mex", hidden: true }), next = el("button", { class: "btn big", type: "button", hidden: true, text: S2.n + 1 >= S2.total ? "🏁 לתוצאות" : "הבא ←" }), t0 = Date.now();
+    var q = S2.q, box = el("div", { class: S2.kind === "balloon" ? "sky" : "mopts" }), info = el("div", { class: "mex", hidden: true }), next = el("button", { class: "btn big", type: "button", hidden: true, text: S2.n + 1 >= S2.total ? "🏁 לתוצאות" : "הבא ←" }), t0 = Date.now();
     var pick = function (o, b) {
+      if (S2.picked) return; S2.picked = true; clearTimeout(S2.fly); box.classList.add("stop");
       var ok = o === q.a; reveal(box, q, b);
-      if (ok) { var bonus = Math.max(0, 10 - Math.floor((Date.now() - t0) / 1000)); S2.ok++; S2.streak++; S2.score += 10 + bonus + (S2.streak >= 3 ? 5 : 0); beep(1046, 0.1); setTimeout(function () { beep(1318, 0.14); }, 110); if (S2.streak % 3 === 0) S2.level = Math.min(3, S2.level + 1); }
+      if (ok) { var bonus = Math.max(0, 10 - Math.floor((Date.now() - t0) / 1000)); S2.ok++; S2.streak++; S2.score += 10 + bonus + (S2.streak >= 3 ? 5 : 0); beep(1046, 0.1); setTimeout(function () { beep(1318, 0.14); }, 110); if (S2.streak % 3 === 0) S2.level = Math.min(3, S2.level + 1); if (b && S2.kind === "balloon") b.textContent = "💥"; }
       else { S2.streak = 0; S2.wrong.push(q); S2.level = Math.max(1, S2.level - 1); beep(220, 0.3); }
       info.hidden = false; info.replaceChildren.apply(info, [el("b", { text: ok ? ONE(["✔ מעולה!", "✔ נכון!", "✔ יפה מאוד!", "✔ אלוף!"]) + (S2.streak >= 3 ? " 🔥 " + S2.streak + " ברצף" : "") : "✘ כמעט." }), ok ? null : el("span", { text: " " + q.ex })].filter(Boolean));
       next.hidden = false; next.focus();
     };
-    q.opts.forEach(function (o, i) { box.append(optBtn(o, q, pick, i)); });
-    next.addEventListener("click", function () { S2.n++; if (S2.n >= S2.total) S2.done = true; else S2.q = nextQ(S2.level); render(); });
+    S2.picked = false; clearTimeout(S2.fly);
+    q.opts.forEach(function (o, i) { var b = optBtn(o, q, pick, i); if (S2.kind === "balloon") { b.classList.add("bal"); var lane = (i + 0.5) * (100 / q.opts.length); b.style.insetInlineStart = "calc(" + lane + "% - 11.5%)"; b.style.setProperty("--d", (8 + RI(0, 30) / 10 + (q.q.length > 22 ? 4 : 0)) + "s"); b.style.animationDelay = (RI(0, 8) / 10) + "s"; } box.append(b); });
+    if (S2.kind === "balloon") S2.fly = setTimeout(function () { if (SOLO !== S2 || S2.picked) return; pick("__", null); info.replaceChildren(el("b", { text: "🎈 הבלונים עפו." }), el("span", { text: " " + q.ex })); }, (13 + (q.q.length > 22 ? 4 : 0)) * 1000);
+    next.addEventListener("click", function () { S2.n++; if (S2.n >= S2.total) S2.done = true; else S2.q = S2.list ? S2.list[S2.n] : nextQ(S2.level); render(); });
     var bar = el("div", { class: "prog" }, [el("i", { style: "width:" + (S2.n / S2.total * 100) + "%" })]);
-    return [el("div", { class: "card center mcard" }, [el("div", { class: "turn" }, [el("span", { text: "שאלה " + (S2.n + 1) + " מתוך " + S2.total }), el("span", { text: "⭐ " + S2.score + (S2.streak >= 2 ? " · 🔥" + S2.streak : "") })]), bar, el("span", { class: "note", text: q.topic }), qEl(q), box, info, next]),
-      el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "✕ יציאה", onclick: function () { SOLO = null; render(); } })])];
+    return [el("div", { class: "card center mcard" }, [el("div", { class: "turn" }, [el("span", { text: myAv() + " " + (S2.kind === "daily" ? "📅 " : S2.kind === "balloon" ? "🎈 " : "") + "שאלה " + (S2.n + 1) + " מתוך " + S2.total }), el("span", { text: "⭐ " + S2.score + (S2.streak >= 2 ? " · 🔥" + S2.streak : "") })]), bar, el("span", { class: "note", text: q.topic }), qEl(q), box, info, next]),
+      el("div", { class: "btns", style: "justify-content:center" }, [el("button", { class: "btn sm ghost", type: "button", text: "✕ יציאה", onclick: function () { clearTimeout(S2.fly); SOLO = null; render(); } })])];
   }
 
   // ---- shell ------------------------------------------------------------------------------------------
   var ac = null;
   function beep(f, d) { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); var o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.4, ac.currentTime + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + d + 0.02); } catch (e) {} }
-  function stopAll() { stopNoise(); if (RACE && RACE.iv) clearInterval(RACE.iv); }
+  function stopAll() { stopNoise(); if (RACE && RACE.iv) clearInterval(RACE.iv); if (TF && TF.iv) { clearInterval(TF.iv); TF.iv = null; } if (SOLO) clearTimeout(SOLO.fly); }
   function render() {
     paintTabs();
     var f = { pick: pickTab, groups: groupsTab, timer: timerTab, noise: noiseTab, points: pointsTab, sheet: sheetTab, math: mathTab, "class": classTab }[TAB] || pickTab;
