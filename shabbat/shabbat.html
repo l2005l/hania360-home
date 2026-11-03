@@ -147,7 +147,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     <ul class="tefl" id="tefList"></ul>
     <p class="fine" id="tefFood" hidden></p>
     <div class="chips" id="tefNus" aria-label="נוסח"></div>
-    <div class="chips"><button class="chip" type="button" id="tefSid" style="background:var(--flame);color:#2A1A08;border-color:var(--flame)">📖 לפתוח בסידור</button><button class="chip" type="button" id="tefRem">⏰ תזכורות לתפילה</button></div>
+    <div class="chips"><button class="chip" type="button" id="tefSid" style="background:var(--flame);color:#2A1A08;border-color:var(--flame)">📖 לפתוח בסידור</button><button class="chip" type="button" id="tefMazon">🍞 ברכת המזון</button><button class="chip" type="button" id="tefRem">⏰ תזכורות לתפילה</button></div>
     <p class="fine">בהתאם ללוח בארץ ישראל. בדברים שתלויים במנהג הקהילה כתוב "לפי המנהג". בכל ספק שואלים את רב הקהילה.</p>
   </section>
 
@@ -571,7 +571,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   function resyncH() { if (!S.hol || !canPush) return; var it = hItems(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "h", sub: s.toJSON(), before: 10, city: place().name, items: it }); }).catch(function () {}); }
 
   // ---- Today's prayer: what changes, by nusach, and reminders ----
-  var PR = [["shacharit", "שחרית"], ["mincha", "מנחה"], ["arvit", "ערבית"]], NUS = [["ashkenaz", "אשכנז"], ["sefard", "ספרד"], ["mizrach", "עדות המזרח"]];
+  var PR = [["shacharit", "שחרית"], ["mincha", "מנחה"], ["arvit", "ערבית"]], SPR = PR.concat([["mazon", "ברכת המזון"]]), NUS = [["ashkenaz", "אשכנז"], ["sefard", "ספרד"], ["mizrach", "עדות המזרח"]];
   var ROUTINE = /^(מוריד הטל|ותן ברכה|ברכנו|משיב הרוח|ותן טל ומטר|ברך עלינו|קריאת התורה)/;
   function nowPrayer() { var z = zmanimOn(new Date()), c = z.filter(function (x) { return x.k === "chatzot"; })[0], sh = z.filter(function (x) { return x.k === "shkia"; })[0], n = new Date(); return c && n < c.t ? "shacharit" : sh && n < sh.t ? "mincha" : "arvit"; }
   function renderTef() {
@@ -673,10 +673,15 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   function openSid(p) {
     SID.p = p || SID.p; $("sid").hidden = false; document.body.style.overflow = "hidden";
     var sz = +(S.sidSz || 21); $("sid").style.setProperty("--sz", sz + "px");
-    $("sidTabs").replaceChildren.apply($("sidTabs"), PR.map(function (x) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(x[0] === SID.p) }, [x[1]]); b.addEventListener("click", function () { openSid(x[0]); }); return b; }));
+    $("sidTabs").replaceChildren.apply($("sidTabs"), SPR.map(function (x) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(x[0] === SID.p) }, [x[1]]); b.addEventListener("click", function () { openSid(x[0]); }); return b; }));
     var N = S.nusach || "ashkenaz", r = TEFILA.day(new Date(), N, place().name), items = r.prayers[SID.p] || [], run = ++SID.run;
+    var F = TEFILA.facts(new Date(), SID.p, place().name, nowPrayer() === "arvit"), NN = { ashkenaz: "אשכנז", sefard: "ספרד", mizrach: "עדות המזרח" }[N];
+    if (SID.p === "mazon") {
+      var add = [F.shabbat && "רצה והחליצנו", (F.rc || F.chm || F.yt) && "יעלה ויבוא", (F.chanukah || F.purim) && "על הניסים", (F.shabbat || F.yt || F.rc || F.chm || F.noTach) ? "לפני: שיר המעלות" : N !== "mizrach" && "לפני: על נהרות בבל"].filter(Boolean);
+      $("sidToday").replaceChildren.apply($("sidToday"), [el("b", "היום בברכת המזון (" + NN + "):")].concat(add.map(function (x) { return el("span", "• " + x); })));
+    } else {
     var special = items.filter(function (x) { return x.isNew || !ROUTINE.test(x.t); });
-    $("sidToday").replaceChildren.apply($("sidToday"), [el("b", "היום ב" + PR.filter(function (x) { return x[0] === SID.p; })[0][1] + " (" + { ashkenaz: "אשכנז", sefard: "ספרד", mizrach: "עדות המזרח" }[N] + "):")].concat(items.length ? items.map(function (x) { return el("span", (x.isNew ? "🆕 " : "• ") + x.t + (x.n ? " – " + x.n : "")); }) : [el("span", r.kind === "weekday" ? "תפילה רגילה של חול" : (r.notes[0] || "סדר של שבת או חג") + ". כאן מוצג סידור לימות החול")]));
+    $("sidToday").replaceChildren.apply($("sidToday"), [el("b", "היום ב" + SPR.filter(function (x) { return x[0] === SID.p; })[0][1] + " (" + { ashkenaz: "אשכנז", sefard: "ספרד", mizrach: "עדות המזרח" }[N] + "):")].concat(items.length ? items.map(function (x) { return el("span", (x.isNew ? "🆕 " : "• ") + x.t + (x.n ? " – " + x.n : "")); }) : [el("span", r.kind === "weekday" ? "תפילה רגילה של חול" : (r.notes[0] || "סדר של שבת או חג") + ". כאן מוצג סידור לימות החול")])); }
     $("sidBody").replaceChildren(el("p", { class: "sidload" }, ["טוענים את הסידור…"])); $("sidJump").replaceChildren(); $("sidIn").scrollTop = 0;
     fetch("/api/siddur/toc?n=" + NUSN[N] + "&p=" + SID.p).then(function (x) { return x.json(); }).then(function (toc) {
       if (run !== SID.run) return;
@@ -699,7 +704,6 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
         return [box];
       });
       $("sidBody").replaceChildren.apply($("sidBody"), [].concat.apply([], boxes));
-      var F = TEFILA.facts(new Date(), SID.p, place().name);
       var i = 0, next = function () { if (run !== SID.run || i >= toc.sections.length) return; var k = i++; loadSec(N, toc.sections[k].ref, $("sid-" + k), rules, used, run, F).then(next, next); };
       for (var c = 0; c < 4; c++) next();
     }).catch(function () { if (run !== SID.run) return; var again = el("button", { type: "button", class: "chip" }, ["🔄 לנסות שוב"]); again.addEventListener("click", function () { location.reload(); }); $("sidBody").replaceChildren(el("p", { class: "sidload" }, ["לא הצלחנו לטעון את הסידור."]), again); });
@@ -760,12 +764,13 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
       });
     }).catch(function () { var ph = box.querySelector(".sidload"); if (ph) ph.textContent = "לא נטען. גוללים שוב בעוד רגע."; });
   }
+  $("tefMazon").addEventListener("click", function () { openSid("mazon"); });
   $("tefSid").addEventListener("click", function () { openSid(S.tefTab && S.tefTabDay === new Date().toDateString() ? S.tefTab : nowPrayer()); });
   $("sidAll").addEventListener("click", function () { SID.all = !SID.all; $("sidAll").setAttribute("aria-pressed", String(SID.all)); openSid(SID.p); });
   $("sidX").addEventListener("click", function () { $("sid").hidden = true; document.body.style.overflow = ""; SID.run++; });
   $("sidJump").addEventListener("change", function () { var t = $($("sidJump").value); if (t) t.scrollIntoView({ block: "start" }); });
   [["sidMinus", -2], ["sidPlus", 2]].forEach(function (b) { $(b[0]).addEventListener("click", function () { S.sidSz = Math.max(15, Math.min(34, +(S.sidSz || 21) + b[1])); save(); $("sid").style.setProperty("--sz", S.sidSz + "px"); }); });
-  if (location.hash === "#siddur") setTimeout(function () { openSid(nowPrayer()); }, 300);
+  if (location.hash === "#siddur" || location.hash === "#mazon") setTimeout(function () { openSid(location.hash === "#mazon" ? "mazon" : nowPrayer()); }, 300);
 
   // ---- Compass to the Western Wall ----
   var KOTEL = [31.7767, 35.2345], kBear = null;

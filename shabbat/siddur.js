@@ -4,9 +4,9 @@
 //   GET /api/siddur/text?n=ashkenaz&ref=...     → { paras: [html] }   (only <b>, <i>, <small>, <big>, <br> kept)
 
 const NUS = {
-  ashkenaz: { book: "Siddur Ashkenaz", ver: "The Metsudah siddur, 1981", src: "סידור מצודה (1981), דרך ספריא · CC-BY", path: { shacharit: ["Weekday", "Shacharit"], mincha: ["Weekday", "Minchah"], arvit: ["Weekday", "Maariv"] } },
-  sefard: { book: "Siddur Sefard", ver: "The Metsudah siddur, 1981", src: "סידור מצודה נוסח ספרד (1981), דרך ספריא · CC-BY", path: { shacharit: ["Weekday Shacharit"], mincha: ["Weekday Mincha"], arvit: ["Weekday Maariv"] } },
-  mizrach: { book: "Siddur Edot HaMizrach", ver: "Torat Emet 357", src: "סידור עדות המזרח, תורת אמת, דרך ספריא · נחלת הכלל", path: { shacharit: ["Weekday Shacharit"], mincha: ["Weekday Mincha"], arvit: ["Weekday Arvit"] } },
+  ashkenaz: { book: "Siddur Ashkenaz", ver: "The Metsudah siddur, 1981", src: "סידור מצודה (1981), דרך ספריא · CC-BY", path: { shacharit: ["Weekday", "Shacharit"], mincha: ["Weekday", "Minchah"], arvit: ["Weekday", "Maariv"], mazon: [["Berachot", "Birkat HaMazon"]] } },
+  sefard: { book: "Siddur Sefard", ver: "The Metsudah siddur, 1981", src: "סידור מצודה נוסח ספרד (1981), דרך ספריא · CC-BY", path: { shacharit: ["Weekday Shacharit"], mincha: ["Weekday Mincha"], arvit: ["Weekday Maariv"], mazon: [["Birchat HaMazon", "Birchat HaMazon"]] } },
+  mizrach: { book: "Siddur Edot HaMizrach", ver: "Torat Emet 357", src: "סידור עדות המזרח, תורת אמת, דרך ספריא · נחלת הכלל", path: { shacharit: ["Weekday Shacharit"], mincha: ["Weekday Mincha"], arvit: ["Weekday Arvit"], mazon: [["Post Meal Blessing"]] } },
 };
 const UA = { "user-agent": "HaniaDat/1 (+https://dat.hania360.com)", accept: "application/json" };
 const json = (o, s = 200, ttl = 0) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json; charset=utf-8", "cache-control": ttl ? "public, max-age=" + ttl : "no-store" } });
@@ -58,8 +58,12 @@ export async function siddurApi(req, url) {
     if (what === "toc") {
       const p = url.searchParams.get("p"); if (!cfg.path[p]) return json({ error: "prayer" }, 400);
       const idx = await index(cfg.book); if (!idx) return json({ error: "source" }, 502);
-      const f = find(idx.schema.nodes, cfg.path[p]); if (!f) return json({ error: "missing" }, 502);
-      const sections = (f.node.nodes || [f.node]).flatMap((k) => leaves(k, cfg.book + ", " + f.trail.join(", "), "", []));
+      const paths = Array.isArray(cfg.path[p][0]) ? cfg.path[p] : [cfg.path[p]], sections = [];
+      for (const path of paths) {
+        const f = find(idx.schema.nodes, path); if (!f) return json({ error: "missing" }, 502);
+        if (f.node.nodes) sections.push(...f.node.nodes.flatMap((k) => leaves(k, cfg.book + ", " + f.trail.join(", "), "", [])));
+        else sections.push({ ref: cfg.book + ", " + f.trail.join(", "), he: title(f.node, "he").trim() });
+      }
       const h = findByTitle(idx.schema, /^Hallel$/, []), hallel = h ? leaves(h.node, cfg.book + ", " + h.trail.slice(0, -1).join(", "), "", []) : [];
       return json({ sections, hallel, source: cfg.src }, 200, 86400);
     }
