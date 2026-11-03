@@ -33,10 +33,11 @@ export class ShabbatHub {
   }
 
   // The next reminder of a subscription: the first candle lighting whose reminder time has not passed.
-  // Three lists per phone: candle lighting ("s:"), a daily zman ("z:"), and holiday evenings ("h:": Chanukah, the Omer).
+  // Four lists per phone: candle lighting ("s:"), a daily zman ("z:"), holiday evenings ("h:": Chanukah, the Omer),
+  // and prayers ("t:": the chosen prayers, with what is said differently that day).
   async allSubs() {
     const all = new Map();
-    for (const p of ["s:", "z:", "h:"]) for (const [k, v] of await this.ctx.storage.list({ prefix: p })) all.set(k, v);
+    for (const p of ["s:", "z:", "h:", "t:"]) for (const [k, v] of await this.ctx.storage.list({ prefix: p })) all.set(k, v);
     return all;
   }
   nextOf(r, now) {
@@ -57,7 +58,9 @@ export class ShabbatHub {
       if (n.at > now + 30000) continue;
       const mins = Math.max(1, Math.round((n.it.t - now) / 60000));
       const h = Math.round(mins / 60), when = mins < 55 ? "בעוד " + mins + " דקות" : h === 1 ? "בעוד שעה" : h === 2 ? "בעוד שעתיים" : "בעוד " + h + " שעות";
-      r.msg = k.startsWith("h:")
+      r.msg = k.startsWith("t:")
+        ? { title: n.it.label, body: r.city, url: "/#tefila", at: now }
+        : k.startsWith("h:")
         ? { title: n.it.label + " · " + hm(n.it.t), body: when + " · " + r.city, url: "/", at: now }
         : k.startsWith("z:")
         ? { title: "⏰ " + n.it.label + " ב־" + hm(n.it.t), body: when + " · " + r.city, url: "/", at: now }
@@ -78,12 +81,12 @@ export class ShabbatHub {
     if (p === "/api/shabbat/msg") {
       if (!b || typeof b.endpoint !== "string") return json({});
       // Candle lighting and the daily zman reminders share a phone; the most recent message wins.
-      const id = await idOf(b.endpoint), a = await this.ctx.storage.get("s:" + id), z = await this.ctx.storage.get("z:" + id), h = await this.ctx.storage.get("h:" + id);
-      const m = [a && a.msg, z && z.msg, h && h.msg].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
+      const id = await idOf(b.endpoint), a = await this.ctx.storage.get("s:" + id), z = await this.ctx.storage.get("z:" + id), h = await this.ctx.storage.get("h:" + id), t = await this.ctx.storage.get("t:" + id);
+      const m = [a && a.msg, z && z.msg, h && h.msg, t && t.msg].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
       return json(m || {});
     }
     if (p === "/api/shabbat/unsub") {
-      if (b && typeof b.endpoint === "string") await this.ctx.storage.delete((b.kind === "z" ? "z:" : b.kind === "h" ? "h:" : "s:") + (await idOf(b.endpoint)));
+      if (b && typeof b.endpoint === "string") await this.ctx.storage.delete((b.kind === "z" ? "z:" : b.kind === "h" ? "h:" : b.kind === "t" ? "t:" : "s:") + (await idOf(b.endpoint)));
       await this.schedule();
       return json({ ok: true });
     }
@@ -91,9 +94,9 @@ export class ShabbatHub {
       const endpoint = b && b.sub && b.sub.endpoint;
       if (!okEndpoint(endpoint)) return json({ error: "endpoint" }, 400);
       const now = Date.now();
-      const items = (Array.isArray(b.items) ? b.items : []).map((x) => ({ t: +x.t, label: clean(x.label, 40) })).filter((x) => x.t > now - 864e5 && x.t < now + 120 * 864e5).sort((a, c) => a.t - c.t).slice(0, 40);
+      const items = (Array.isArray(b.items) ? b.items : []).map((x) => ({ t: +x.t, label: clean(x.label, b.kind === "t" ? 70 : 40) })).filter((x) => x.t > now - 864e5 && x.t < now + 120 * 864e5).sort((a, c) => a.t - c.t).slice(0, b.kind === "t" ? 100 : 40);
       if (!items.length) return json({ error: "items" }, 400);
-      const k = (b.kind === "z" ? "z:" : b.kind === "h" ? "h:" : "s:") + (await idOf(endpoint)), old = (await this.ctx.storage.get(k)) || {};
+      const k = (b.kind === "z" ? "z:" : b.kind === "h" ? "h:" : b.kind === "t" ? "t:" : "s:") + (await idOf(endpoint)), old = (await this.ctx.storage.get(k)) || {};
       const before = Math.min(240, Math.max(10, +b.before || 60));
       await this.ctx.storage.put(k, { endpoint, before, city: clean(b.city, 30) || "העיר שלך", items, last: old.before === before ? old.last || 0 : 0, msg: old.msg || null });
       await this.schedule();
