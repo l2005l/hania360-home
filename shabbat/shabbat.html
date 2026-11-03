@@ -122,7 +122,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 
 <div class="wrap">
   <header>
-    <div class="logo"><svg viewBox="0 0 28 28" aria-hidden="true"><rect x="7" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><rect x="16" y="12" width="5" height="14" rx="1.5" fill="#FFF4DF"/><path d="M9.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5zM18.5 3c2 3 2.5 5 0 7.5-2.5-2.5-2-4.5 0-7.5z" fill="#F7B548"/></svg><span>Hania<b>Dat</b></span></div>
+    <div class="logo"><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 1.5c2.2 3 2.8 5 0 7.8-2.8-2.8-2.2-4.8 0-7.8z" fill="#F7B548"/><path d="M13.4 12.5c-3-1.7-6.8-2.2-10.4-1.7v11.5c3.6-.5 7.4 0 10.4 1.7zM14.6 12.5c3-1.7 6.8-2.2 10.4-1.7v11.5c-3.6-.5-7.4 0-10.4 1.7z" fill="#FFF4DF"/><path d="M14 12.4v11.6" stroke="#F7B548" stroke-width="1"/></svg><span>Hania<b>Dat</b></span></div>
     <button class="city" type="button" id="cityBtn">📍 …</button>
   </header>
 
@@ -700,7 +700,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
       var F = TEFILA.facts(new Date(), SID.p, place().name);
       var i = 0, next = function () { if (run !== SID.run || i >= toc.sections.length) return; var k = i++; loadSec(N, toc.sections[k].ref, $("sid-" + k), rules, used, run, F).then(next, next); };
       for (var c = 0; c < 4; c++) next();
-    }).catch(function () { if (run === SID.run) $("sidBody").replaceChildren(el("p", { class: "sidload" }, ["לא הצלחנו לטעון את הסידור. בודקים את החיבור ומנסים שוב."])); });
+    }).catch(function () { if (run !== SID.run) return; var again = el("button", { type: "button", class: "chip" }, ["🔄 לנסות שוב"]); again.addEventListener("click", function () { location.reload(); }); $("sidBody").replaceChildren(el("p", { class: "sidload" }, ["לא הצלחנו לטעון את הסידור."]), again); });
   }
   // Is a short instruction line ("בראש חודש:", "בחורף:", "בליל ראש חודש יש הנוהגים...") true today? null = not a condition.
   function sidCond(t0, nextT, F) {
