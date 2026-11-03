@@ -1,0 +1,19 @@
+name: probe-sef4
+on: { push: { branches: [probe-sef4] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          probe() { ref="$1"; ver="$2"; echo "=== $ref | $ver"
+            curl -s -G "https://www.sefaria.org/api/v3/texts/$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$ref")" --data-urlencode "version=hebrew|$ver" -o t.json
+            jq -r '.versions[0] | "license=\(.license) title=\(.versionTitle)"' t.json
+            jq -c '.versions[0].text | (if type=="array" then (flatten|map(select(type=="string"))) else [.] end) | {n: length, first: (.[0:2]|map(.[0:120]))}' t.json; }
+          probe "Siddur Ashkenaz, Weekday, Shacharit, Amidah, Prosperity" "The Metsudah siddur, 1981"
+          probe "Siddur Ashkenaz, Weekday, Shacharit, Amidah, Prosperity" "Daat Siddur Ashkenaz"
+          probe "Siddur Ashkenaz, Weekday, Shacharit, Amidah, Prosperity" "The Metsudah siddur: a new linear siddur with English translation by Avrohom Davis, 1981"
+          probe "Siddur Ashkenaz, Weekday, Maariv, Barchu" "The Metsudah siddur, 1981"
+          probe "Siddur Sefard, Weekday Shacharit, Morning Blessings" "The Metsudah siddur, 1981"
+          probe "Siddur Sefard, Weekday Maariv, Amidah" "The Metsudah siddur, 1981"
+          probe "Siddur Edot HaMizrach, Weekday Arvit, Amidah" "Torat Emet 357"
+          for t in Siddur_Ashkenaz Siddur_Sefard Siddur_Edot_HaMizrach; do echo "## $t"; curl -s "https://www.sefaria.org/api/v2/raw/index/$t" | jq -r '[paths(objects) as $p | getpath($p) | select(.titles? != null) | (.titles[]|select(.primary and .lang=="en").text)] | map(select(test("Hallel|Musaf|Rosh Chodesh|Al HaNissim|Sefirat|Anenu|Selichot";"i"))) | .[]' | head -20; done
