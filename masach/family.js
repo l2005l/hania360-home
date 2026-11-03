@@ -284,10 +284,10 @@ export async function ytItem(raw) {
 async function hear(b, env, stub) {
   const json = (o, s = 200) => Response.json(o, { status: s, headers: { "cache-control": "no-store" } });
   if (!env.AI) return json({ error: "unavailable" }, 503);
-  if (!/^[A-Za-z0-9]{6,20}$/.test(b.f || "") || !b.t) return json({ error: "auth" }, 403);
+  if (!/^[A-Za-z0-9]{6,20}$/.test(b.f || "") || !(b.t || b.key)) return json({ error: "auth" }, 403);
   const audio = typeof b.audio === "string" && b.audio.length <= 700000 && /^[A-Za-z0-9+/=]+$/.test(b.audio) ? b.audio : "";
   if (!audio) return json({ error: "input" }, 400);
-  const ok = await stub(b.f).fetch("https://m/state", { method: "POST", body: JSON.stringify({ f: b.f, t: String(b.t) }) });
+  const ok = await stub(b.f).fetch("https://m/state", { method: "POST", body: JSON.stringify(b.key ? { f: b.f, key: String(b.key) } : { f: b.f, t: String(b.t) }) });
   if (!ok.ok) return json({ error: "auth" }, 403);
   if (env.SIPUR) {
     const lim = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "POST", body: JSON.stringify({ device: "f" + b.f + "xxxxxxxx", ns: "masachh:", perDevice: 80, perDay: 1500 }) }).then((r) => r.json()).catch(() => ({ ok: true }));
