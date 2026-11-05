@@ -40,13 +40,13 @@ export class MasachFamily {
   left(k) { return (k.daily + k.bonus) * 60000 - this.used(k); }
   kidView(id, k, withToken) {
     this.roll(k);
-    const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist, bed: k.bed || "", asleep: asleep(k) };
+    const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist, bed: k.bed || "", asleep: asleep(k), read: k.read || 0 };
     if (withToken) o.t = k.t;
     return o;
   }
   view(kid) {
     const f = this.f, watch = f.watch || [], hasKey = !!(this.env && this.env.YT_KEY), search = hasKey && !!f.search;
-    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, cc: f.cc !== false, now: Date.now() };
+    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, hasKey, cc: f.cc !== false, now: Date.now() };
     return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, cc: f.cc !== false, feed: f.feed.slice(-30), now: Date.now() };
   }
 
@@ -119,6 +119,7 @@ export class MasachFamily {
     const kid = !parent && b.t ? Object.keys(f.kids).find((id) => f.kids[id].t === b.t) : null;
     if (!parent && !kid) return json({ error: "auth" }, 403);
     if (p === "/search") return json(await this.search(b, kid, parent));
+    if (p === "/list") return json(await this.episodes(b));
     if (p === "/state") { const v = this.view(kid); await this.save(); return json(v); }
     if (p !== "/op") return json({ error: "not found" }, 404);
 
@@ -157,6 +158,7 @@ export class MasachFamily {
               if (b.bonusMin !== undefined) k.bonusMin = mins(b.bonusMin, 5, 60, k.bonusMin);
               if (b.bed !== undefined) k.bed = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(b.bed)) ? String(b.bed) : "";
               if (b.maxTasks !== undefined) k.maxTasks = mins(b.maxTasks, 1, 6, k.maxTasks);
+              if (b.read !== undefined) k.read = mins(b.read, 0, 3, 0);
               if (b.emoji !== undefined && EMOJI.includes(b.emoji)) k.emoji = b.emoji;
             } else {
               if (Object.keys(f.kids).length >= MAX_KIDS) return json({ error: "full" }, 400);
@@ -219,6 +221,23 @@ export class MasachFamily {
       await cache.put(ck, new Response(JSON.stringify(j), { headers: { "content-type": "application/json", "cache-control": "public, max-age=86400" } })).catch(() => {});
     }
     if (kid) { f.feed.push({ at: Date.now(), k: kid, text: "חיפש/ה ביוטיוב: " + q }); this.tidy(); await this.save(); }
+    return j;
+  }
+  // The episodes of a series or channel on the family's list (so a child picks a chapter, not only "play all").
+  async episodes(b) {
+    const key = this.env && this.env.YT_KEY, id = String(b.id || "");
+    if (!key) return { error: "nokey" };
+    if (!(this.f.watch || []).some((w) => w.type === "p" && w.id === id)) return { error: "list" };
+    const ck = new Request("https://masach.hania360.com/yt-list?id=" + encodeURIComponent(id)), cache = caches.default;
+    const hit = await cache.match(ck).catch(() => null), j0 = hit ? await hit.json().catch(() => null) : null;
+    if (j0) return j0;
+    const r = await fetch("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,status&maxResults=50&playlistId=" + encodeURIComponent(id) + "&key=" + encodeURIComponent(key)).catch(() => null);
+    if (!r || !r.ok) return { error: "yt" };
+    const raw = await r.json().catch(() => null);
+    const t = (x) => clean(String(x || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&"), 80);
+    const j = { items: ((raw && raw.items) || []).filter((x) => x.snippet && x.snippet.resourceId && YT_ID.test(x.snippet.resourceId.videoId || "") && !/^(Private|Deleted) video$/.test(x.snippet.title || "") && !(x.status && x.status.privacyStatus === "private"))
+      .map((x) => ({ type: "v", id: x.snippet.resourceId.videoId, title: t(x.snippet.title), thumb: "https://i.ytimg.com/vi/" + x.snippet.resourceId.videoId + "/mqdefault.jpg" })) };
+    await cache.put(ck, new Response(JSON.stringify(j), { headers: { "content-type": "application/json", "cache-control": "public, max-age=21600" } })).catch(() => {});
     return j;
   }
   addKid(name, daily) {
@@ -304,7 +323,7 @@ async function hear(b, env, stub) {
 export async function masachApi(req, env, url) {
   if (!env.MASACH) return Response.json({ error: "not configured" }, { status: 503 });
   const stub = (id) => env.MASACH.get(env.MASACH.idFromName("f:" + id));
-  const mm = url.pathname.match(/^\/api\/masach\/(new|state|op|key|msg|tv|search|hear)$/);
+  const mm = url.pathname.match(/^\/api\/masach\/(new|state|op|key|msg|tv|search|hear|list)$/);
   if (!mm) return Response.json({ error: "not found" }, { status: 404 });
   if (req.method !== "POST") return Response.json({ error: "method" }, { status: 405 });
   const body = await req.text();

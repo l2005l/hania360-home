@@ -1,5 +1,5 @@
 <title>HaniaMasach · זמן מסך שהילדים רואים</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Noto+Serif+Hebrew:wght@700&display=swap">
 <style>
 /* Layout: a playroom at night. The child sees one huge ring that empties; the parent sees a card per child. */
 :root{
@@ -93,6 +93,28 @@ body.tv .wt span{font-size:20px}body.tv .wgrid{grid-template-columns:repeat(auto
 .wrowh{font-size:15px;font-weight:800;color:var(--muted);margin:4px 0 -4px;text-align:start}
 @media (min-width:700px){.wrow{grid-auto-columns:minmax(200px,22%)}}
 body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
+/* the children's YouTube: big friendly cards, a "continue" hero, series pages with episodes */
+.wt{position:relative;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));box-shadow:0 8px 24px rgba(0,0,0,.25);transition:transform .15s}
+.wt img{border-radius:18px 18px 0 0}
+.wt::after{content:"▶";position:absolute;top:calc((100% - 46px) / 2 - 22px);left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:99px;background:rgba(20,18,58,.72);color:#fff;display:grid;place-content:center;font-size:18px;padding-inline-start:3px;pointer-events:none}
+.wt.ser::after{content:"📺"}
+.wt .tag{position:absolute;top:8px;inset-inline-start:8px;background:var(--sun);color:#2A1D00;border-radius:99px;padding:2px 9px;font-size:12px;font-weight:900;-webkit-line-clamp:unset;display:block}
+.wt .tag.seen{background:var(--ok)}
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:0;align-items:stretch;border-radius:24px;overflow:hidden;border:2px solid var(--sun);background:var(--bg2);text-align:start;padding:0;cursor:pointer;color:var(--ink);font:inherit;appearance:none}
+.hero img{width:100%;height:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.hero div{padding:12px 14px;display:grid;align-content:center;gap:6px}.hero b{font-size:15px;color:var(--sun)}.hero span{font-weight:800;font-size:17px;line-height:1.3}
+.hero:focus-visible,.hero:hover{outline:3px solid var(--sun);outline-offset:2px}
+.serp{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 40px}
+.serp .in{max-width:1100px;margin:0 auto;display:grid;gap:14px}
+.serp .top{display:flex;gap:12px;align-items:center}.serp .top img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:12px}.serp h2{font-size:22px}
+.player .nx{position:absolute;bottom:14px;inset-inline-end:12px;z-index:2}
+/* reading with nikud */
+.read{width:100%;display:grid;gap:10px;justify-items:center;border-radius:24px;padding:16px;background:linear-gradient(160deg,rgba(255,200,61,.14),rgba(255,255,255,.03));border:1px solid var(--line)}
+.read .w{font-family:"Noto Serif Hebrew","Frank Ruhl Libre","David",serif;font-weight:700;font-size:clamp(46px,14vw,92px);line-height:1.35;direction:rtl;letter-spacing:.02em}
+.read .w.s{font-size:clamp(28px,7.5vw,52px)}
+.read .pic{font-size:72px;line-height:1;min-height:72px}
+.read .pic.hide{filter:blur(18px);opacity:.25}
+body.tv .read .w{font-size:min(14vh,12vw)}
 @keyframes pulse{50%{box-shadow:0 0 0 10px rgba(255,200,61,.35)}}.pulse{animation:pulse 1s ease-in-out 2}
 /* the break */
 .brk{position:fixed;inset:0;z-index:50;background:radial-gradient(80% 60% at 50% 0%,rgba(255,200,61,.25),transparent 70%),#14123A;display:grid;place-content:center;justify-items:center;gap:16px;padding:24px;text-align:center}
@@ -188,7 +210,9 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
       <button class="chip" type="button" id="kBack" hidden>🔒 חזרה להורה</button>
     </div>
     <p class="fine kidfoot" id="kFoot"></p>
-    <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start">📺 מה רואים? <small class="fine">בוחרים, והשעון מתחיל לבד</small></h2>
+    <section class="read" id="kRead" hidden></section>
+    <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start" id="kWH">📺 מה רואים? <small class="fine">בוחרים, והשעון מתחיל לבד</small></h2>
+      <div id="kHero"></div>
       <form class="row" id="kSearch" style="flex-wrap:nowrap" hidden><input id="kQ" type="search" placeholder="🔎 חיפוש ביוטיוב" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small ghost" type="button" id="kMic" aria-label="חיפוש בקול: לוחצים ומדברים" style="font-size:22px;padding:8px 16px" hidden>🎤</button><button class="btn small" type="submit">חיפוש</button></form>
       <div class="wgrid" id="kSGrid" hidden></div>
       <div id="kWGrid" style="display:grid;gap:12px"></div></section>
@@ -348,9 +372,10 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
     var bon = el("select", null, [["0", "בלי"], ["5", "5 דקות"], ["10", "10 דקות"], ["15", "15 דקות"], ["20", "20 דקות"]].map(function (o) { var x = el("option", { value: o[0], text: o[1] }); if ((k.bonusOn ? String(k.bonusMin) : "0") === o[0]) x.selected = true; return x; }));
     var BEDS = ["", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00"];
     var bed = el("select", null, BEDS.map(function (t) { var x = el("option", { value: t, text: t ? "🌙 " + t + " (עד הבוקר)" : "בלי" }); if ((k.bed || "") === t) x.selected = true; return x; }));
+    var rd = el("select", null, [["0", "בלי"], ["1", "מילים קצרות (גן, כיתה א׳)"], ["2", "מילים ארוכות יותר"], ["3", "משפטים קצרים"]].map(function (o) { var x = el("option", { value: o[0], text: o[1] }); if (String(k.read || 0) === o[0]) x.selected = true; return x; }));
     var max = el("select", null, [1, 2, 3, 4, 5].map(function (n) { var x = el("option", { value: String(n), text: n + " פעמים ביום" }); if (n === k.maxTasks) x.selected = true; return x; }));
-    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]), el("label", null, ["שעת שינה: מהשעה הזו המסך סגור, גם אם נשארו דקות", bed]),
-      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value, bed: bed.value }).then(close); } }),
+    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]), el("label", null, ["שעת שינה: מהשעה הזו המסך סגור, גם אם נשארו דקות", bed]), el("label", null, ["📖 קוראים לבד: מילים עם ניקוד במסך של " + k.name + " (וגם משימה של 5 מילים בהפסקה)", rd]),
+      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value, bed: bed.value, read: +rd.value }).then(close); } }),
       el("div", { class: "row" }, [el("button", { class: "chip", type: "button", text: "🔄 להתחיל את היום מאפס", onclick: function () { op({ op: "reset", k: k.id }).then(close); } }),
         el("button", { class: "chip", type: "button", text: "🗑️ הסרה", onclick: function () { if (confirm("להסיר את " + k.name + "?")) op({ op: "kid", k: k.id, remove: true }).then(close); } })])]);
   }
@@ -400,6 +425,31 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
 
   // ---- child ------------------------------------------------------------------------------
   var K = null, kData = null, kAt = 0, kTimer = 0, lastLeft = null, audio = null, lock = null, pipV = null, pipC = null;
+  // ---- Reading alone: words with nikud for the little ones (the parents choose the level per child) ----
+  var WORDS = {
+    1: [["דָּג", "🐟"], ["יָד", "✋"], ["סוּס", "🐴"], ["פִּיל", "🐘"], ["יָם", "🌊"], ["לֵב", "❤️"], ["דֹּב", "🐻"], ["אַף", "👃"], ["עֵץ", "🌳"], ["תּוּת", "🍓"], ["צָב", "🐢"], ["קוֹף", "🐒"], ["אַבָּא", "👨"], ["אִמָּא", "👩"], ["סַבָּא", "👴"], ["בַּיִת", "🏠"], ["עַיִן", "👁️"], ["כֶּלֶב", "🐶"], ["לֶחֶם", "🍞"], ["פָּרָה", "🐄"], ["גֶּזֶר", "🥕"], ["סֵפֶר", "📖"], ["עוּגָה", "🎂"], ["אוֹטוֹ", "🚗"]],
+    2: [["חָתוּל", "🐱"], ["שֶׁמֶשׁ", "☀️"], ["גֶּשֶׁם", "🌧️"], ["יָרֵחַ", "🌙"], ["כּוֹכָב", "⭐"], ["תַּפּוּחַ", "🍎"], ["בָּנָנָה", "🍌"], ["כַּדּוּר", "⚽"], ["חָלָב", "🥛"], ["גְּלִידָה", "🍦"], ["פַּרְפַּר", "🦋"], ["אַרְנָב", "🐰"], ["אַרְיֵה", "🦁"], ["מָטוֹס", "✈️"], ["רַכֶּבֶת", "🚂"], ["אוֹפַנַּיִם", "🚲"], ["מִטָּה", "🛏️"], ["כּוֹבַע", "🧢"], ["מַפְתֵּחַ", "🔑"], ["שָׁעוֹן", "⏰"], ["עִפָּרוֹן", "✏️"], ["בַּלּוֹן", "🎈"], ["מַתָּנָה", "🎁"], ["בֵּיצָה", "🥚"], ["דְּבוֹרָה", "🐝"], ["נָחָשׁ", "🐍"], ["פִּיצָה", "🍕"], ["סַבְתָּא", "👵"], ["פֶּרַח", "🌸"], ["תַּרְנְגוֹל", "🐓"]],
+    3: [["הַדָּג שׂוֹחֶה בַּיָּם.", "🐟"], ["הַחָתוּל יָשֵׁן עַל הַמִּטָּה.", "🐱"], ["אַבָּא קוֹרֵא סֵפֶר.", "📖"], ["יֵשׁ לִי בַּלּוֹן אָדֹם.", "🎈"], ["הַשֶּׁמֶשׁ זוֹרַחַת.", "☀️"], ["הַכֶּלֶב רָץ בַּגַּן.", "🐶"], ["הַפַּרְפַּר עָף.", "🦋"], ["סַבְתָּא אוֹפָה עוּגָה.", "🎂"], ["הַיֶּלֶד בּוֹעֵט בַּכַּדּוּר.", "⚽"], ["הַפָּרָה נוֹתֶנֶת חָלָב.", "🐄"], ["הַמָּטוֹס עָף בַּשָּׁמַיִם.", "✈️"], ["בַּלַּיְלָה יֵשׁ יָרֵחַ.", "🌙"], ["הַצָּב הוֹלֵךְ לְאַט.", "🐢"], ["הָאַרְנָב אוֹכֵל גֶּזֶר.", "🐰"], ["יוֹרֵד גֶּשֶׁם.", "🌧️"]]
+  };
+  function sayHe(t) { try { if (!window.speechSynthesis) return; var u = new SpeechSynthesisUtterance(t), v = speechSynthesis.getVoices().filter(function (x) { return /^he|^iw/i.test(x.lang); })[0]; if (!v) return; u.voice = v; u.lang = v.lang; u.rate = 0.8; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+  // One word at a time: the child reads, then taps to see the picture (and hear it, where the phone speaks Hebrew).
+  function reader(level, onRead) {
+    var list = WORDS[level] || WORDS[1], cur = null, last = -1;
+    var w = el("div", { class: "w" }), pic = el("div", { class: "pic hide", "aria-hidden": "true" }), chk = el("button", { class: "btn", type: "button", text: "👀 בָּדַקְתִּי! מָה כָּתוּב?" }), nxt = el("button", { class: "btn ghost", type: "button", text: "➡ עוֹד מִלָּה", hidden: "" });
+    var pick = function () { var i; do { i = Math.floor(Math.random() * list.length); } while (i === last && list.length > 1); last = i; cur = list[i]; w.textContent = cur[0]; w.classList.toggle("s", cur[0].length > 12); pic.textContent = cur[1]; pic.classList.add("hide"); chk.hidden = false; nxt.hidden = true; };
+    chk.addEventListener("click", function () { pic.classList.remove("hide"); sayHe(cur[0]); chk.hidden = true; nxt.hidden = false; nxt.focus(); if (onRead) onRead(); });
+    nxt.addEventListener("click", pick);
+    pick();
+    return [w, pic, chk, nxt];
+  }
+  var readSig = "";
+  function drawRead() {
+    var lv = kData && kData.read || 0, box = $("kRead");
+    if (String(lv) === readSig) return; readSig = String(lv);
+    box.hidden = !lv; if (!lv) { box.replaceChildren(); return; }
+    var n = 0, cnt = el("span", { class: "fine" });
+    box.replaceChildren.apply(box, [el("h2", { text: "📖 קוֹרְאִים לְבַד" }), el("p", { class: "fine", text: "קוֹרְאִים אֶת הַמִּלָּה, וְרַק אָז לוֹחֲצִים לִבְדֹּק." })].concat(reader(lv, function () { n++; cnt.textContent = "⭐ " + n + (n === 1 ? " מִלָּה" : " מִלִּים"); }), [cnt]));
+  }
   var ACTS = [["🤸", "20 קפיצות במקום"], ["🎨", "לצייר משהו שראית היום"], ["🧹", "לסדר 10 דברים בחדר"], ["💧", "לשתות כוס מים"], ["📚", "לקרוא 2 עמודים בספר"], ["🧩", "לבנות משהו מלגו או מקוביות"], ["💬", "לשאול מישהו בבית איך עבר עליו היום"], ["🌳", "לחפש בחלון או במרפסת 5 דברים ירוקים"], ["🙆", "10 מתיחות של כל הגוף"], ["🎵", "לשיר שיר שלם בקול"], ["🍽️", "לעזור לערוך את השולחן"], ["✍️", "לכתוב 3 דברים טובים שקרו היום"], ["🧦", "לקפל את הבגדים שלך"], ["⚽", "5 דקות משחק עם כדור"], ["🦩", "לעמוד על רגל אחת 30 שניות, ואז על השנייה"], ["🐢", "לשכב על הגב ולנשום לאט 10 נשימות"]];
   function kAuth() { return { f: K.f, t: K.t }; }
   function openKid(f, t, tv) {
@@ -412,7 +462,7 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
   function loadKid() { return api("state", kAuth()).then(drawKid).catch(function (e) { if (e.code === "auth" || e.code === "no family") { $("kWho").textContent = "הקישור הזה כבר לא פעיל"; S.kid = null; save(); } }); }
   function kOp(body) { return api("op", Object.assign(body, kAuth())).then(drawKid).catch(function (e) { toast(e.code === "no bonus" ? "להיום כבר אין עוד דקות להרוויח" : "לא הצלחנו. מנסים שוב"); }); }
   var kCc = true;
-  function drawKid(j) { kCc = j.cc !== false; drawWatch(j.watch || [], !!j.search); kData = j.kids[0]; kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
+  function drawKid(j) { kCc = j.cc !== false; hasKey = !!j.hasKey; kData = j.kids[0]; drawWatch(j.watch || [], !!j.search); drawRead(); kAt = Date.now(); $("kWho").textContent = kData.emoji + " " + kData.name; document.documentElement.style.setProperty("--kc", kData.color); tickKid(); }
   function kLeft() { return kData ? (kData.running ? kData.left - (Date.now() - kAt) / 1000 : kData.left) : 0; }
   function beep(n) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); for (var i = 0; i < n; i++) { var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(audio.destination); o.start(audio.currentTime + i * 0.35); o.stop(audio.currentTime + i * 0.35 + 0.18); } } catch (e) {} }
   // A bell: three soft notes, louder than the beep, repeated n times.
@@ -421,10 +471,11 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
     if (!kData) return;
     var left = kLeft(), total = Math.max(60, (kData.daily + kData.bonus) * 60), warn = left > 0 && left <= 300;
     $("kTime").textContent = mmss(left);
-    $("kSub").textContent = left <= 0 ? "הזמן נגמר" : kData.running ? "נשאר היום" : "בהפסקה";
+    var nq = !!kData.read;
+    $("kSub").textContent = left <= 0 ? (nq ? "הַזְּמַן נִגְמַר" : "הזמן נגמר") : kData.running ? (nq ? "נִשְׁאַר הַיּוֹם" : "נשאר היום") : (nq ? "בְּהַפְסָקָה" : "בהפסקה");
     $("kArc").setAttribute("stroke-dashoffset", String(276.5 * (1 - Math.max(0, Math.min(1, left / total)))));
     $("kArc").style.stroke = left <= 0 ? "var(--bad)" : warn ? "var(--warn)" : kData.color;
-    $("kGo").textContent = kData.running ? "⏸ הפסקה" : "▶ מתחילים מסך";
+    $("kGo").textContent = kData.running ? (nq ? "⏸ הַפְסָקָה" : "⏸ הפסקה") : (nq ? "▶ מַתְחִילִים מָסָךְ" : "▶ מתחילים מסך");
     $("kFoot").textContent = kData.bonusOn ? "כשהזמן נגמר אפשר להרוויח עוד " + kData.bonusMin + " דקות במשימה בלי מסך (" + (kData.maxTasks - kData.tasks) + " נשארו היום)." : "";
     if (lastLeft != null && kData.running) { if (lastLeft > 300 && left <= 300) beep(2); if (lastLeft > 60 && left <= 60) chime(1); if (lastLeft > 0 && left <= 0) { chime(3); closePlayer(); loadKid(); } }
     tickPlayer(left);
@@ -463,7 +514,14 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
       can ? el("p", { class: "lead", text: "רוצה עוד " + kData.bonusMin + " דקות? קודם משימה קטנה בלי מסך:" }) : el("p", { class: "lead", text: "כל הכבוד! מחר יש עוד. בינתיים, משהו כיף בלי מסך:" }),
       emEl, actEl,
       can ? el("button", { class: "btn go", type: "button", text: "✅ עשיתי! (+" + kData.bonusMin + " דק׳)", onclick: function () { kOp({ op: "task", text: brkAct[0] + " " + brkAct[1] }).then(function () { host.textContent = ""; toast("⭐ כל הכבוד! קיבלת " + kData.bonusMin + " דקות"); }); } }) : null,
-      el("button", { class: "chip", type: "button", text: "🔀 משימה אחרת", onclick: function () { brkAct = ACTS[Math.floor(Math.random() * ACTS.length)]; emEl.textContent = brkAct[0]; actEl.textContent = brkAct[1]; } })]));
+      el("button", { class: "chip", type: "button", text: "🔀 משימה אחרת", onclick: function () { brkAct = ACTS[Math.floor(Math.random() * ACTS.length)]; emEl.textContent = brkAct[0]; actEl.textContent = brkAct[1]; } }),
+      can && kData.read ? el("button", { class: "chip", type: "button", text: "📖 אוֹ: לִקְרֹא 5 מִלִּים", onclick: function () { readTask(host); } }) : null]));
+  }
+  function readTask(host) {
+    var n = 0, need = 5, got = el("p", { class: "lead", text: "0 / " + need }), done = el("button", { class: "btn go", type: "button", disabled: "", text: "✅ קָרָאתִי " + need + " מִלִּים! (+" + kData.bonusMin + " דק׳)" });
+    done.addEventListener("click", function () { kOp({ op: "task", text: "📖 קרא/ה " + need + " מילים עם ניקוד" }).then(function () { host.textContent = ""; host.removeAttribute("data-mode"); toast("⭐ כל הכבוד! קיבלת עוד " + kData.bonusMin + " דקות"); }); });
+    var box = el("div", { class: "read", style: "max-width:640px" }, reader(kData.read, function () { n++; got.textContent = Math.min(n, need) + " / " + need; if (n >= need) { done.disabled = false; done.focus(); } }));
+    host.firstChild.replaceChildren(el("h1", "📖 קוֹרְאִים 5 מִלִּים"), el("p", { class: "lead", text: "קוֹרְאִים כָּל מִלָּה בְּקוֹל, וְרַק אָז בּוֹדְקִים." }), box, got, done);
   }
   $("kGo").addEventListener("click", function () { beep(0); kOp({ op: kData && kData.running ? "pause" : "start" }); });
   $("kFull").addEventListener("click", function () { var d = document.documentElement; (d.requestFullscreen ? d.requestFullscreen() : Promise.reject()).catch(function () { toast("המסך המלא לא זמין כאן"); }); });
@@ -477,15 +535,47 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
   });
   // ---- Watching inside the app: YouTube with the clock in the corner; at zero the video stops ----
   var watchSig = "", yt = null, playerEl = null;
-  function tile(w) { return el("button", { class: "wt", type: "button", onclick: function () { openPlayer(w); } }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : null, el("span", { text: w.title })]); }
+  // What this child watched (on this device): a "continue" card on top and a ✓ on what was seen.
+  function kStore(k, v) { var key = "masach.k." + (K && K.t) + "." + k; try { if (v === undefined) return JSON.parse(localStorage.getItem(key) || "null"); localStorage.setItem(key, JSON.stringify(v)); } catch (e) { return null; } }
+  function seen(id) { return (kStore("seen") || []).indexOf(id) >= 0; }
+  function tile(w, ctx) {
+    var ser = w.type === "p";
+    return el("button", { class: "wt" + (ser ? " ser" : ""), type: "button", onclick: function () { if (ser && hasKey) openSeries(w); else openPlayer(w, ctx); } }, [w.thumb ? el("img", { src: w.thumb, alt: "", loading: "lazy" }) : el("img", { alt: "" }),
+      ser ? el("b", { class: "tag", text: "📺 פרקים" }) : seen(w.id) ? el("b", { class: "tag seen", text: "✓ ראיתי" }) : null, el("span", { text: w.title })]);
+  }
+  var hasKey = false;
+  function drawHero() {
+    var last = kStore("last"), h = $("kHero");
+    if (!last || !last.w) { h.replaceChildren(); return; }
+    h.replaceChildren(el("button", { class: "hero", type: "button", onclick: function () { openPlayer(last.w, last.ctx); } }, [el("img", { src: last.w.thumb || "", alt: "" }), el("div", null, [el("b", { text: (kData && kData.read ? "▶ מַמְשִׁיכִים לִצְפּוֹת" : "▶ ממשיכים לצפות") }), el("span", { text: last.w.title })])]));
+  }
+  // A series or a channel: its episodes, to pick one (and the next one plays from the button in the player).
+  var serEl = null;
+  function closeSeries() { if (serEl) { serEl.remove(); serEl = null; } }
+  function openSeries(w) {
+    closeSeries();
+    var grid = el("div", { class: "wgrid" }, [el("p", { class: "fine", text: "טוענים פרקים…" })]);
+    serEl = el("div", { class: "serp", role: "dialog", "aria-label": w.title }, [el("div", { class: "in" }, [
+      el("div", { class: "top" }, [w.thumb ? el("img", { src: w.thumb, alt: "" }) : null, el("h2", { text: w.title }), el("span", { class: "sp", style: "margin-inline-start:auto" }), el("button", { class: "btn small ghost", type: "button", text: "✕ חזרה", onclick: closeSeries })]),
+      el("button", { class: "btn", type: "button", text: "▶ לנגן הכול מההתחלה", onclick: function () { closeSeries(); openPlayer(w); } }), grid])]);
+    document.body.append(serEl);
+    api("list", Object.assign({ id: w.id }, kAuth())).then(function (j) {
+      var items = j.items || [];
+      if (!items.length) { closeSeries(); openPlayer(w); return; }
+      grid.replaceChildren.apply(grid, items.map(function (v, i) { return tile(v, { list: items, i: i, from: w }); }));
+      var first = grid.querySelector("button"); if (first) first.focus();
+    }).catch(function () { closeSeries(); openPlayer(w); });
+  }
   function drawWatch(list, search) {
-    var sig = list.map(function (w) { return w.type + w.id; }).join(",") + (search ? "+s" : "");
+    var sig = list.map(function (w) { return w.type + w.id; }).join(",") + (search ? "+s" : "") + (kData && kData.read ? "r" : "");
     if (sig === watchSig) return; watchSig = sig;
+    $("kWH").firstChild.textContent = kData && kData.read ? "📺 מָה רוֹאִים? " : "📺 מה רואים? ";
+    drawHero();
     $("kSearch").hidden = !search;
     $("kWatch").hidden = !list.length && !search; document.body.classList.toggle("haswatch", !!list.length || !!search);
     var series = list.filter(function (w) { return w.type === "p"; }), clips = list.filter(function (w) { return w.type !== "p"; }), rows = [];
-    if (series.length) rows.push(el("div", { class: "wrowh", text: "📺 ערוצים וסדרות" }), el("div", { class: "wrow" }, series.map(tile)));
-    if (clips.length) rows.push(el("div", { class: "wrowh", text: "🎬 סרטונים" }), el("div", { class: "wrow" }, clips.map(tile)));
+    if (series.length) rows.push(el("div", { class: "wrowh", text: "📺 ערוצים וסדרות" }), el("div", { class: "wrow" }, series.map(function (w) { return tile(w); })));
+    if (clips.length) rows.push(el("div", { class: "wrowh", text: "🎬 סרטונים" }), el("div", { class: "wrow" }, clips.map(function (w) { return tile(w); })));
     $("kWGrid").replaceChildren.apply($("kWGrid"), rows);
   }
   // Saying it instead of typing (children who cannot write yet, and parents in a hurry): the browser's own
@@ -546,17 +636,21 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
     api("search", Object.assign({ q: q }, kAuth())).then(function (j) {
       if (j.error) { toast(j.error === "limit" ? "להיום נגמרו החיפושים. בוחרים מהרשימה" : "החיפוש לא זמין כרגע"); return; }
       $("kSGrid").hidden = false;
-      $("kSGrid").replaceChildren.apply($("kSGrid"), (j.items || []).length ? j.items.map(tile) : [el("p", { class: "fine", text: "לא מצאנו. מנסים מילה אחרת" })]);
+      $("kSGrid").replaceChildren.apply($("kSGrid"), (j.items || []).length ? j.items.map(function (w) { return tile(w); }) : [el("p", { class: "fine", text: "לא מצאנו. מנסים מילה אחרת" })]);
       var first = $("kSGrid").querySelector("button"); if (first) first.focus();
     }).catch(function () { toast("החיפוש לא זמין כרגע"); });
   });
-  function openPlayer(w) {
+  function openPlayer(w, ctx) {
     chime(0); beep(0);
     if (kLeft() <= 0) { toast("הזמן להיום נגמר"); return; }
+    closeSeries();
+    kStore("last", { w: w, ctx: ctx ? { list: ctx.list.slice(Math.max(0, ctx.i - 1), ctx.i + 12), i: Math.min(ctx.i, 1), from: ctx.from } : null }); if (w.type === "v") kStore("seen", [w.id].concat((kStore("seen") || []).filter(function (x) { return x !== w.id; })).slice(0, 300));
+    var nextV = ctx && ctx.list[ctx.i + 1];
     if (!kData.running) kOp({ op: "start" });
     closePlayer();
     var box = el("div", { class: "yt" }), badge = el("div", { class: "badge", text: "" }), last = el("div", { class: "last", text: "⏳ עוד דקה אחת!", hidden: "" });
-    playerEl = el("div", { class: "player", role: "dialog", "aria-label": w.title }, [box, badge, last, el("button", { class: "btn small x", type: "button", text: "✕ חזרה", onclick: closePlayer })]);
+    playerEl = el("div", { class: "player", role: "dialog", "aria-label": w.title }, [box, badge, last, el("button", { class: "btn small x", type: "button", text: "✕ חזרה", onclick: closePlayer }),
+      nextV ? el("button", { class: "btn small nx", type: "button", text: "⏭ הפרק הבא", onclick: function () { openPlayer(nextV, { list: ctx.list, i: ctx.i + 1, from: ctx.from }); } }) : null]);
     playerEl._badge = badge; playerEl._last = last;
     document.body.append(playerEl);
     try { if (playerEl.requestFullscreen) playerEl.requestFullscreen().catch(function () {}); } catch (e) {}
@@ -579,8 +673,9 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
     try { if (yt && yt.pauseVideo) yt.pauseVideo(); if (yt && yt.destroy) yt.destroy(); } catch (e) {}
     yt = null; playerEl.remove(); playerEl = null;
     try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+    watchSig = ""; if (kData) drawHero();
   }
-  addEventListener("keydown", function (e) { if ((e.key === "Escape" || e.key === "Backspace" || e.key === "GoBack" || e.key === "BrowserBack") && playerEl) { e.preventDefault(); closePlayer(); } });
+  addEventListener("keydown", function (e) { if ((e.key === "Escape" || e.key === "Backspace" || e.key === "GoBack" || e.key === "BrowserBack") && (playerEl || serEl) && !/INPUT/.test((document.activeElement || {}).tagName || "")) { e.preventDefault(); if (playerEl) closePlayer(); else closeSeries(); } });
   // TV remotes: the arrows move between buttons by where they are on the screen.
   addEventListener("keydown", function (e) {
     var dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
