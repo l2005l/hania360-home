@@ -1,0 +1,321 @@
+<title>HaniaShigra · שגרת ערב ובוקר לילדים</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Noto+Serif+Hebrew:wght@600;700&display=swap">
+<style>
+/* Layout: one big card at a time for the child (the step, its picture, a gentle clock, one big "done" button);
+   the parents set the steps and the bedtime below. Evening is a calm night palette; morning is bright. */
+:root{
+  --bg:#FFF7EE; --surface:#FFFFFF; --ink:#26203F; --muted:#6E6890; --line:#F0E1CF; --main:#7A5CFA; --main2:#5B3FE0; --sun:#FFB53B; --ok:#1DB37C; --ok2:#DFF6EC;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Noto Serif Hebrew","David",serif; color-scheme:light;
+}
+.night{--bg:#141133;--surface:#1F1B4A;--ink:#F3F0FF;--muted:#B4ADDB;--line:#332D6B;--ok2:#163A33;color-scheme:dark}
+@media (prefers-color-scheme:dark){html:not(.morning){--bg:#141133;--surface:#1F1B4A;--ink:#F3F0FF;--muted:#B4ADDB;--line:#332D6B;--ok2:#163A33;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:17px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 48px;transition:background .4s;min-height:100vh}
+.wrap{max-width:640px;margin:0 auto;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{font-weight:900;font-size:24px;display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit}.logo b{color:var(--main)}
+.logo img{width:32px;height:32px;border-radius:9px}
+header .sp{margin-inline-start:auto}
+h1{font-weight:900;font-size:clamp(26px,7vw,36px);line-height:1.15;margin:0}
+h2{font-weight:800;font-size:20px;margin:0}
+p{margin:0}
+.lead{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.btn{appearance:none;border:0;border-radius:18px;padding:14px 18px;font:inherit;font-weight:800;font-size:18px;cursor:pointer;background:var(--main);color:#fff;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 5px 0 var(--main2)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--main2)}
+.btn.ghost{background:transparent;border:2px solid var(--line);color:var(--ink);box-shadow:none}
+.btn.small{padding:8px 12px;font-size:15px;border-radius:12px;box-shadow:none}
+.btn.go{background:var(--ok);box-shadow:0 6px 0 #138A5E}
+.btn:focus-visible,.chip:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:8px 12px;font:inherit;font-weight:800;font-size:15.5px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--main);color:#fff;border-color:var(--main)}
+input,select{font:inherit;font-size:16px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:9px 11px}
+label{display:grid;gap:4px;font-weight:700;font-size:14px;color:var(--muted)}
+.fine{font-size:13.5px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:80;max-width:90vw;text-align:center}
+/* home */
+.mode{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode button{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:20px;padding:14px;font:inherit;font-weight:900;font-size:19px;cursor:pointer;display:grid;gap:2px;justify-items:center}
+.mode button span{font-size:40px;line-height:1}.mode button small{font-weight:600;color:var(--muted);font-size:13px}
+.mode button[aria-pressed="true"]{border-color:var(--main);box-shadow:0 0 0 3px color-mix(in srgb,var(--main) 30%,transparent)}
+.kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.kid{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:22px;padding:14px 10px;font:inherit;cursor:pointer;display:grid;gap:6px;justify-items:center;text-align:center}
+.kid .av{font-size:48px;line-height:1}.kid b{font-size:19px}
+.mini{height:10px;width:100%;border-radius:99px;background:var(--line);overflow:hidden}.mini i{display:block;height:100%;background:var(--ok)}
+.clock{font-size:15px;font-weight:800;color:var(--muted);text-align:center}
+/* the child's step */
+.run{display:grid;gap:14px;justify-items:center;text-align:center}
+.who{display:flex;align-items:center;gap:8px;font-weight:900;font-size:19px;width:100%}
+.who .sp{margin-inline-start:auto}
+.step{width:100%;border-radius:30px;background:var(--surface);border:2px solid var(--line);padding:18px 14px 20px;display:grid;gap:10px;justify-items:center}
+.step .em{font-size:min(34vw,150px);line-height:1;animation:pop .45s cubic-bezier(.3,1.6,.6,1)}
+@keyframes pop{0%{transform:scale(.4)}100%{transform:scale(1)}}
+.step .lb{font-size:clamp(28px,8vw,42px);font-weight:900;line-height:1.15}
+.ring{--p:0;width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--sun) calc(var(--p)*1%),var(--line) 0);display:grid;place-content:center}
+.ring b{width:96px;height:96px;border-radius:50%;background:var(--surface);display:grid;place-content:center;font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;direction:ltr}
+.ring.over{background:conic-gradient(#FF8A65 100%,var(--line) 0)}
+.done{font-size:clamp(24px,7vw,32px)!important;padding:18px 30px!important;width:100%}
+.dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.dots span{font-size:24px;width:42px;height:42px;border-radius:12px;display:grid;place-content:center;background:var(--surface);border:2px solid var(--line)}
+.dots span.ok{background:var(--ok2);border-color:var(--ok)}.dots span.cur{border-color:var(--main);transform:scale(1.12)}
+.dots span.skip{opacity:.35}
+/* good night */
+.gn{text-align:center;justify-items:center}
+.gn .moon{font-size:110px;line-height:1;filter:drop-shadow(0 0 30px rgba(255,220,120,.5))}
+.shema{font-family:var(--serif);font-size:clamp(22px,6vw,30px);font-weight:700;line-height:1.7}
+.night-light{position:fixed;inset:0;z-index:70;background:#05030F;display:grid;place-content:center;cursor:pointer}
+.night-light canvas{position:absolute;inset:0;width:100%;height:100%}
+.night-light p{position:relative;color:#5A5390;font-size:14px;text-align:center;margin-top:60vh}
+/* parents */
+.steps{display:grid;gap:8px}
+.srow{display:grid;grid-template-columns:48px minmax(0,1fr) 66px auto;gap:5px;align-items:center}
+.srow select.em{font-size:24px;padding:4px;text-align:center}
+.srow input{width:100%}
+.srow .ctl{display:flex;gap:2px}
+.srow .ctl button{appearance:none;border:0;background:var(--bg);color:var(--ink);border-radius:8px;width:26px;height:34px;font-size:13px;cursor:pointer;padding:0}
+.srow select{padding:8px 4px}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center;font-size:12.5px}
+.week div{display:grid;gap:2px;justify-items:center}
+.week i{display:block;width:70%;background:var(--sun);border-radius:6px 6px 2px 2px;min-height:3px}
+.week .col{height:70px;display:flex;align-items:flex-end;justify-content:center;width:100%}
+.prize{display:grid;gap:6px}
+.big-bar{height:18px;border-radius:99px;background:var(--line);overflow:hidden}.big-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--sun),#FF8A65);border-radius:99px}
+details summary{cursor:pointer;font-weight:800;font-size:17px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header><a class="logo" href="/" dir="ltr"><img src="/icons/icon-192.png" alt="">Hania<b>Shigra</b></a><span class="sp"></span><a class="chip" href="https://hania360.com/" style="text-decoration:none;font-size:14px;padding:7px 12px">Hania360</a></header>
+  <main id="home"></main>
+  <main id="run" hidden></main>
+</div>
+<div id="nl"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, a, kids) {
+    var e = document.createElement(tag);
+    if (typeof a === "string") { e.textContent = a; a = null; }
+    Object.keys(a || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), a[k]); else if (k === "text") e.textContent = a[k]; else if (a[k] != null) e.setAttribute(k, a[k]); });
+    [].concat(kids == null ? [] : kids).forEach(function (k) { if (k != null && k !== false) e.append(typeof k === "string" || typeof k === "number" ? String(k) : k); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  function today(d) { return (d || new Date()).toLocaleDateString("en-CA"); }
+  function hm(d) { return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); }
+
+  var EMOJI = ["📺", "🧸", "🛁", "🚿", "👕", "🩳", "🪥", "🚽", "🎒", "📖", "💧", "🙏", "😴", "🥛", "🍽️", "🥣", "🥪", "⏰", "🧼", "👟", "🧥", "💇", "📚", "🎵", "🤗", "🧺", "🐶", "💊", "🕯️", "⭐"];
+  var DEF = {
+    evening: { at: "20:00", steps: [["📺", "סוגרים מסך", 1], ["🧸", "מסדרים צעצועים", 5], ["🛁", "מקלחת", 15], ["👕", "פיג׳מה", 5], ["🪥", "צחצוח שיניים", 3], ["🚽", "שירותים", 2], ["🎒", "מכינים תיק למחר", 5], ["📖", "סיפור", 10], ["🙏", "קריאת שמע", 2], ["😴", "לילה טוב", 1]] },
+    morning: { at: "07:40", steps: [["🙏", "מודה אני", 1], ["🚽", "שירותים", 2], ["🧼", "שוטפים פנים וידיים", 2], ["👕", "מתלבשים", 6], ["🪥", "צחצוח שיניים", 3], ["🥣", "ארוחת בוקר", 15], ["🎒", "תיק וכריך", 3], ["👟", "נעליים ומעיל", 3]] }
+  };
+  var KEY = "haniashigra-v1", S;
+  try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.kids = Array.isArray(S.kids) ? S.kids : [];
+  S.r = S.r || JSON.parse(JSON.stringify(DEF)); S.runs = S.runs || {}; S.stars = S.stars || {}; S.goal = S.goal || { n: 20, prize: "🍦 גלידה" };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  // Keep only the last five weeks of days.
+  (function () { var cut = today(new Date(Date.now() - 35 * 864e5)); [S.runs, S.stars].forEach(function (o) { Object.keys(o).forEach(function (d) { if (d < cut) delete o[d]; }); }); })();
+
+  function which() { var h = new Date().getHours(); return h >= 4 && h < 12 ? "morning" : "evening"; }
+  var MODE = which();
+  function R() { return S.r[MODE]; }
+  function total(r) { return r.steps.reduce(function (a, s) { return a + (+s[2] || 0); }, 0); }
+  // The moment the routine should start so it ends at bedtime (evening) or when leaving (morning).
+  function endAt(r, d) { var p = r.at.split(":"), x = new Date(d || new Date()); x.setHours(+p[0], +p[1], 0, 0); return x; }
+  function startAt(r, d) { return new Date(endAt(r, d).getTime() - total(r) * 6e4); }
+  function run(k) { var d = today(); S.runs[d] = S.runs[d] || {}; var key = MODE + ":" + k.id; S.runs[d][key] = S.runs[d][key] || { done: [], skip: [], fin: 0 }; return S.runs[d][key]; }
+  function starsOf(k, d) { return ((S.stars[d] || {})[k.id]) || 0; }
+  function addStars(k, n) { var d = today(); S.stars[d] = S.stars[d] || {}; S.stars[d][k.id] = (S.stars[d][k.id] || 0) + n; }
+  function weekStars(k) { var s = 0; for (var i = 0; i < 7; i++) s += starsOf(k, today(new Date(Date.now() - i * 864e5))); return s; }
+  function theme() { [document.documentElement, document.body].forEach(function (x) { x.classList.toggle("night", MODE === "evening"); x.classList.toggle("morning", MODE === "morning"); }); }
+
+  // ---- a voice (where the phone has Hebrew) and a soft sound ----
+  function sayHe(t) { try { var v = speechSynthesis.getVoices().filter(function (x) { return /^he|^iw/i.test(x.lang); })[0]; if (!v || S.mute) return; var u = new SpeechSynthesisUtterance(t); u.voice = v; u.lang = v.lang; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+  var audio = null;
+  function chime(n) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); var t0 = audio.currentTime; (n || [784, 988, 1318.5]).forEach(function (f, i) { var o = audio.createOscillator(), g = audio.createGain(); o.type = "sine"; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0 + i * 0.11); g.gain.exponentialRampToValueAtTime(0.13, t0 + i * 0.11 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.11 + 0.5); o.connect(g); g.connect(audio.destination); o.start(t0 + i * 0.11); o.stop(t0 + i * 0.11 + 0.52); }); } catch (e) {} }
+
+  // ---- home ----
+  var tick = null;
+  function home() {
+    clearInterval(tick); theme(); $("run").hidden = true; var h = $("home"); h.hidden = false;
+    var r = R(), now = new Date(), st = startAt(r), en = endAt(r), left = Math.round((st - now) / 6e4);
+    var clockT = MODE === "evening" ? (now < st ? "מתחילים ב־" + hm(st) + (left <= 90 ? " (בעוד " + left + " דק׳)" : "") + " · במיטה ב־" + r.at : now < en ? "⏰ זמן שגרת ערב! במיטה ב־" + r.at : "🌙 כבר אחרי שעת השינה") : (now < en ? "יוצאים מהבית ב־" + r.at + " · עוד " + Math.max(0, Math.round((en - now) / 6e4)) + " דק׳" : "☀️ בוקר טוב!");
+    h.replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [
+      el("div", { class: "mode" }, [["evening", "🌙", "שגרת ערב", "במיטה ב־" + S.r.evening.at], ["morning", "☀️", "שגרת בוקר", "יוצאים ב־" + S.r.morning.at]].map(function (m) {
+        return el("button", { type: "button", "aria-pressed": String(MODE === m[0]), onclick: function () { MODE = m[0]; home(); } }, [el("span", { text: m[1] }), m[2], el("small", m[3])]);
+      })),
+      el("p", { class: "clock", text: clockT }),
+      S.kids.length ? el("section", { class: "card" }, [el("h2", "מי מתחיל?"), el("div", { class: "kids" }, S.kids.map(function (k) {
+        var rn = run(k), n = r.steps.length, d = rn.done.length + rn.skip.length;
+        return el("button", { class: "kid", type: "button", onclick: function () { start(k); } }, [el("span", { class: "av", text: k.av }), el("b", k.name), el("div", { class: "mini" }, [el("i", { style: "width:" + Math.round(100 * d / n) + "%" })]), el("span", { class: "fine", text: rn.fin ? "✓ סיים/ה! ⭐ " + starsOf(k, today()) : d ? d + " מתוך " + n : "⭐ השבוע: " + weekStars(k) })]);
+      }))]) : el("section", { class: "card" }, [el("h1", "שגרה בלי ויכוחים"), el("p", { class: "lead", text: "כל שלב בתורו, עם תמונה גדולה, שעון עדין וכוכב על כל שלב. מוסיפים את הילדים למטה ומתחילים." })]),
+      prizeCard(), parents()]));
+    tick = setInterval(function () { if (!$("home").hidden && !document.querySelector("input:focus,select:focus")) home(); }, 60000);
+  }
+  function prizeCard() {
+    if (!S.kids.length) return null;
+    return el("section", { class: "card prize" }, [el("h2", "🏆 הפרס של השבוע: " + S.goal.prize)].concat(S.kids.map(function (k) {
+      var w = weekStars(k), pct = Math.min(100, Math.round(100 * w / S.goal.n));
+      return el("div", { class: "prize" }, [el("div", { class: "row" }, [el("b", k.av + " " + k.name), el("span", { class: "fine", style: "margin-inline-start:auto", text: w >= S.goal.n ? "🎉 הגיע/ה ליעד!" : w + " / " + S.goal.n + " ⭐" })]), el("div", { class: "big-bar" }, [el("i", { style: "width:" + pct + "%" })]),
+        el("div", { class: "week" }, [6, 5, 4, 3, 2, 1, 0].map(function (i) { var d = new Date(Date.now() - i * 864e5), n = starsOf(k, today(d)); return el("div", null, [el("div", { class: "col" }, [el("i", { style: "height:" + Math.min(100, n * 6) + "%" })]), el("span", { text: "אבגדהוש"[d.getDay()] + "׳" }), el("span", { class: "fine", text: n || "" })]); }))]);
+    })).concat([el("p", { class: "fine", text: "כוכב על כל שלב, ועוד 3 כוכבים כשמסיימים בזמן. השבוע נספר משבעת הימים האחרונים." })]));
+  }
+
+  // ---- the child's routine: one step at a time ----
+  var cur = null;
+  function start(k) {
+    var rn = run(k), r = R();
+    if (rn.fin) { goodnight(k, true); return; }
+    cur = { k: k, rn: rn }; clearInterval(tick); $("home").hidden = true; $("run").hidden = false; next();
+  }
+  function idxNow() { var r = R(), rn = cur.rn; for (var i = 0; i < r.steps.length; i++) if (rn.done.indexOf(i) < 0 && rn.skip.indexOf(i) < 0) return i; return -1; }
+  function next() {
+    var r = R(), i = idxNow(), k = cur.k;
+    if (i < 0) return finish();
+    var s = r.steps[i], mins = +s[2] || 1, t0 = Date.now(), ring = el("div", { class: "ring" }, [el("b", mins + ":00")]);
+    cur.rn.at = cur.rn.at || t0; save();
+    var left = function () { var en = endAt(r), m = Math.round((en - Date.now()) / 6e4); return MODE === "evening" ? (m > 0 ? "עוד " + m + " דק׳ למיטה" : "כבר זמן לישון 😴") : (m > 0 ? "עוד " + m + " דק׳ ליציאה" : "יוצאים! 🏃"); };
+    var lt = el("span", { class: "fine", text: left() });
+    $("run").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("div", { class: "run" }, [
+      el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
+      el("div", { class: "dots", "aria-hidden": "true" }, r.steps.map(function (x, j) { return el("span", { class: cur.rn.done.indexOf(j) >= 0 ? "ok" : cur.rn.skip.indexOf(j) >= 0 ? "skip" : j === i ? "cur" : "", text: cur.rn.done.indexOf(j) >= 0 ? "✓" : x[0] }); })),
+      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (i + 1) + " מתוך " + r.steps.length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), ring, lt]),
+      el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { cur.rn.done.push(i); addStars(k, 1); save(); chime(); burst(this); setTimeout(next, 650); } }),
+      el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { cur.rn.skip.push(i); save(); next(); } })])]));
+    sayHe("עכשיו: " + s[1]);
+    clearInterval(tick);
+    tick = setInterval(function () {
+      if ($("run").hidden) { clearInterval(tick); return; }
+      var gone = (Date.now() - t0) / 1000, rest = mins * 60 - gone, b = ring.firstChild;
+      if (rest >= 0) { b.textContent = Math.floor(rest / 60) + ":" + String(Math.floor(rest % 60)).padStart(2, "0"); ring.style.setProperty("--p", String(Math.min(100, 100 * gone / (mins * 60)))); }
+      else if (!ring.classList.contains("over")) { ring.classList.add("over"); b.textContent = "⏰"; chime([523, 523]); }
+      lt.textContent = left();
+    }, 500);
+  }
+  function burst(btn) {
+    var r = btn.getBoundingClientRect();
+    for (var i = 0; i < 10; i++) { var s = el("span", { text: "⭐", style: "position:fixed;left:" + (r.left + r.width / 2) + "px;top:" + r.top + "px;font-size:24px;pointer-events:none;z-index:90;transition:transform .7s ease-out,opacity .7s" }); document.body.append(s); (function (s, a) { requestAnimationFrame(function () { s.style.transform = "translate(" + Math.cos(a) * 120 + "px," + (Math.sin(a) * 90 - 80) + "px) scale(1.3)"; s.style.opacity = "0"; }); setTimeout(function () { s.remove(); }, 750); })(s, i / 10 * Math.PI * 2); }
+  }
+  function finish() {
+    clearInterval(tick); var k = cur.k, r = R(), onTime = Date.now() <= endAt(r).getTime() + 5 * 6e4;
+    if (!cur.rn.fin) { cur.rn.fin = Date.now(); if (onTime) addStars(k, 3); save(); }
+    chime([523, 659, 784, 1046.5]);
+    goodnight(k, false, onTime);
+  }
+  function goodnight(k, again, onTime) {
+    clearInterval(tick); $("home").hidden = true; $("run").hidden = false;
+    var ev = MODE === "evening";
+    $("run").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("section", { class: "card gn" }, [
+      el("div", { class: "moon", text: ev ? "🌙" : "☀️" }), el("h1", (ev ? "לילה טוב, " : "יום נפלא, ") + k.name + "!"),
+      el("p", { style: "font-size:22px;font-weight:800", text: "⭐ " + starsOf(k, today()) + " כוכבים היום" + (onTime && !again ? " · כולל בונוס של 3 על הזמן!" : "") }),
+      ev && S.shema !== false ? el("div", { class: "shema" }, [el("p", "שְׁמַע יִשְׂרָאֵל, ה׳ אֱלֹהֵינוּ, ה׳ אֶחָד.")]) : null,
+      ev ? el("button", { class: "btn", type: "button", text: "🌌 אור לילה", onclick: nightLight }) : null,
+      el("button", { class: "btn ghost", type: "button", text: "→ חזרה", onclick: home })])]));
+    if (!again) sayHe(ev ? "לילה טוב " + k.name : "יום נפלא " + k.name);
+  }
+
+  // ---- night light: soft stars, an optional gentle noise, off by itself ----
+  function nightLight() {
+    var host = $("nl"), c = el("canvas"), box = el("div", { class: "night-light", role: "button", "aria-label": "לסגור את אור הלילה (לחיצה כפולה)" }, [c, el("p", "לחיצה כפולה לסגירה · נסגר לבד אחרי 20 דקות")]);
+    host.replaceChildren(box);
+    var x = c.getContext("2d"), W, H, stars = [], run = true, noise = null;
+    var size = function () { W = c.width = innerWidth; H = c.height = innerHeight; stars = []; for (var i = 0; i < 90; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.6 + 0.4, p: Math.random() * 6.28 }); };
+    size(); addEventListener("resize", size);
+    (function f(t) { if (!run) return; x.clearRect(0, 0, W, H); var g = x.createRadialGradient(W / 2, H * 0.38, 10, W / 2, H * 0.38, Math.min(W, H) * 0.45); g.addColorStop(0, "rgba(255,214,140,.22)"); g.addColorStop(1, "rgba(255,214,140,0)"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.fillStyle = "rgba(255,230,170,.9)"; x.beginPath(); x.arc(W / 2, H * 0.38, Math.min(W, H) * 0.08, 0, 6.28); x.fill();
+      stars.forEach(function (s) { x.globalAlpha = 0.35 + 0.35 * Math.sin(t / 1400 + s.p); x.fillStyle = "#CFC8FF"; x.beginPath(); x.arc(s.x, s.y, s.r, 0, 6.28); x.fill(); }); x.globalAlpha = 1; requestAnimationFrame(f); })(0);
+    try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); var len = audio.sampleRate * 2, buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0), last = 0; for (var i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; } var src = audio.createBufferSource(), lp = audio.createBiquadFilter(), g2 = audio.createGain(); src.buffer = buf; src.loop = true; lp.type = "lowpass"; lp.frequency.value = 500; g2.gain.value = S.noise === false ? 0 : 0.25; src.connect(lp); lp.connect(g2); g2.connect(audio.destination); src.start(); noise = src; } catch (e) {}
+    var close = function () { run = false; try { noise && noise.stop(); } catch (e) {} host.replaceChildren(); removeEventListener("resize", size); try { document.exitFullscreen && document.fullscreenElement && document.exitFullscreen(); } catch (e) {} };
+    box.addEventListener("dblclick", close);
+    var lastTap = 0; box.addEventListener("touchend", function () { var n = Date.now(); if (n - lastTap < 400) close(); lastTap = n; });
+    setTimeout(close, 20 * 6e4);
+    try { box.requestFullscreen && box.requestFullscreen().catch(function () {}); } catch (e) {}
+  }
+
+  // ---- parents: kids, steps, times, prize, reminders ----
+  var AVS = ["🦊", "🐼", "🦁", "🐸", "🦄", "🐯", "🐨", "🐙", "🐰", "🐻"];
+  function parents() {
+    var d = el("details", { id: "par" }, [el("summary", "⚙️ להורים: ילדים, שלבים ושעות")]), inner = el("div", { style: "display:grid;gap:14px;margin-top:12px" });
+    d.append(inner); if (S.parOpen) d.open = true; d.addEventListener("toggle", function () { S.parOpen = d.open; save(); });
+    // kids
+    var nm = el("input", { maxlength: "14", placeholder: "שם", "aria-label": "שם הילד/ה", style: "flex:1;min-width:120px" });
+    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "👧 הילדים"), el("div", { class: "row" }, S.kids.map(function (k, i) { return el("span", { class: "chip", style: "display:inline-flex;gap:6px;align-items:center" }, [el("button", { class: "btn small ghost", style: "padding:0 4px;font-size:22px", type: "button", title: "להחליף דמות", text: k.av, onclick: function () { k.av = AVS[(AVS.indexOf(k.av) + 1) % AVS.length]; save(); home(); } }), k.name, el("button", { class: "btn small ghost", style: "padding:2px 6px", type: "button", "aria-label": "להסיר את " + k.name, text: "✕", onclick: function () { if (confirmDel(k)) { S.kids.splice(i, 1); save(); home(); } } })]); })),
+      el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); var v = nm.value.trim(); if (!v) return; if (S.kids.length >= 6) { toast("עד 6 ילדים"); return; } S.kids.push({ id: Math.random().toString(36).slice(2, 9), name: v.slice(0, 14), av: AVS[S.kids.length % AVS.length] }); save(); home(); } }, [nm, el("button", { class: "btn small", type: "submit", style: "box-shadow:none", text: "הוספה" })])]));
+    // steps of the routine shown above
+    var r = R(), list = el("div", { class: "steps" });
+    var drawSteps = function () {
+      list.replaceChildren.apply(list, r.steps.map(function (s, i) {
+        var em = el("select", { class: "em", "aria-label": "תמונה" }, EMOJI.concat(EMOJI.indexOf(s[0]) < 0 ? [s[0]] : []).map(function (e) { var o = el("option", { value: e, text: e }); if (e === s[0]) o.selected = true; return o; }));
+        em.addEventListener("change", function () { s[0] = em.value; save(); });
+        var lb = el("input", { value: s[1], maxlength: "26", "aria-label": "שם השלב" }); lb.addEventListener("change", function () { s[1] = lb.value.trim().slice(0, 26) || s[1]; save(); });
+        var mn = el("select", { "aria-label": "דקות" }, [1, 2, 3, 5, 7, 10, 15, 20, 25, 30].map(function (m) { var o = el("option", { value: String(m), text: m + " דק׳" }); if (+s[2] === m) o.selected = true; return o; }));
+        mn.addEventListener("change", function () { s[2] = +mn.value; save(); timeNote.textContent = note(); });
+        return el("div", { class: "srow" }, [em, lb, mn, el("div", { class: "ctl" }, [
+          el("button", { type: "button", "aria-label": "למעלה", text: "▲", onclick: function () { if (i) { r.steps.splice(i - 1, 0, r.steps.splice(i, 1)[0]); save(); drawSteps(); } } }),
+          el("button", { type: "button", "aria-label": "למטה", text: "▼", onclick: function () { if (i < r.steps.length - 1) { r.steps.splice(i + 1, 0, r.steps.splice(i, 1)[0]); save(); drawSteps(); } } }),
+          el("button", { type: "button", "aria-label": "למחוק", text: "✕", onclick: function () { if (r.steps.length > 1) { r.steps.splice(i, 1); save(); drawSteps(); timeNote.textContent = note(); } } })])]);
+      }));
+    };
+    var note = function () { return "סך הכול " + total(r) + " דקות. מתחילים ב־" + hm(startAt(r)) + "."; };
+    var timeNote = el("span", { class: "fine", text: note() });
+    var at = el("input", { type: "time", value: r.at, "aria-label": MODE === "evening" ? "שעת שינה" : "שעת יציאה" }); at.addEventListener("change", function () { if (/^\d\d:\d\d$/.test(at.value)) { r.at = at.value; save(); timeNote.textContent = note(); } });
+    drawSteps();
+    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", (MODE === "evening" ? "🌙 שגרת ערב" : "☀️ שגרת בוקר") + ": השלבים"), el("label", null, [MODE === "evening" ? "במיטה בשעה" : "יוצאים מהבית בשעה", at]), timeNote, list,
+      el("div", { class: "row" }, [el("button", { class: "btn small ghost", type: "button", text: "➕ שלב", onclick: function () { if (r.steps.length >= 16) return; r.steps.push(["⭐", "שלב חדש", 5]); save(); drawSteps(); timeNote.textContent = note(); } }), el("button", { class: "btn small ghost", type: "button", text: "↺ לשלבים המקוריים", onclick: function () { S.r[MODE] = JSON.parse(JSON.stringify(DEF[MODE])); save(); home(); } })]),
+      el("p", { class: "fine", text: "את השגרה השנייה עורכים אחרי שבוחרים אותה למעלה." })]));
+    // prize and options
+    var pr = el("input", { value: S.goal.prize, maxlength: "30", "aria-label": "הפרס" }), gn = el("select", { "aria-label": "כמה כוכבים" }, [10, 15, 20, 30, 40, 60].map(function (n) { var o = el("option", { value: String(n), text: n + " ⭐" }); if (S.goal.n === n) o.selected = true; return o; }));
+    pr.addEventListener("change", function () { S.goal.prize = pr.value.trim().slice(0, 30) || S.goal.prize; save(); });
+    gn.addEventListener("change", function () { S.goal.n = +gn.value; save(); });
+    var opt = function (k, t) { var b = el("button", { class: "chip", type: "button", "aria-pressed": String(S[k] !== false && !(k === "mute" && !S.mute)), text: t }); if (k === "mute") b.setAttribute("aria-pressed", String(!S.mute)); b.addEventListener("click", function () { if (k === "mute") S.mute = !S.mute; else S[k] = S[k] === false; save(); home(); }); return b; };
+    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "🏆 פרס שבועי"), el("div", { class: "row" }, [el("label", { style: "flex:1" }, ["הפרס", pr]), el("label", null, ["ביעד של", gn])]),
+      el("h2", "⚙️ אפשרויות"), el("div", { class: "row" }, [opt("mute", "🔊 הקראת השלבים"), opt("shema", "🙏 שמע ישראל בסוף"), opt("noise", "🌊 רעש לבן באור הלילה")])]));
+    inner.append(reminders());
+    inner.append(el("p", { class: "fine", text: "הכול נשמר רק בטלפון הזה. רוצים שגם המסך ייסגר בשעת השינה? ב־HaniaMasach אפשר לקבוע שעת שינה לכל ילד." }));
+    return el("section", { class: "card" }, [d]);
+  }
+  function confirmDel(k) { return window.confirm ? confirm("להסיר את " + k.name + "?") : true; }
+
+  // ---- a reminder when it is time to start (HaniaDat's reminder service) ----
+  var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
+  function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
+  // The next 14 days of both routines; the service wakes the phone 10 minutes before each item's time, so each item is set 10 minutes after the start.
+  function items() {
+    var out = [], now = Date.now(), noShabbat = S.remShabbat === false;
+    for (var d = 0; d < 14; d++) {
+      var day = new Date(now + d * 864e5);
+      ["evening", "morning"].forEach(function (m) {
+        if (!(S.rem || {})[m]) return; if (noShabbat && (day.getDay() === 6 || (m === "evening" && day.getDay() === 5))) return;
+        var t = startAt(S.r[m], day).getTime(); if (t > now) out.push({ t: t + 10 * 6e4, label: m === "evening" ? "🌙 מתחילים את שגרת הערב · במיטה ב־" + S.r.evening.at : "☀️ מתחילים את שגרת הבוקר · יוצאים ב־" + S.r.morning.at });
+      });
+    }
+    return out.sort(function (a, b) { return a.t - b.t; }).slice(0, 100);
+  }
+  function reminders() {
+    S.rem = S.rem || {};
+    var row = el("div", { class: "row" }, [["evening", "🔔 תזכורת לשגרת ערב"], ["morning", "🔔 תזכורת לשגרת בוקר"]].map(function (m) { return el("button", { class: "chip", type: "button", "aria-pressed": String(!!S.rem[m[0]]), text: m[1], onclick: function () { setRem(m[0], !S.rem[m[0]]); } }); }));
+    return el("div", { style: "display:grid;gap:8px" }, [el("h2", "🔔 תזכורת להורים"), el("p", { class: "fine", text: canPush ? "הטלפון יזכיר כשמגיע הזמן להתחיל, לפי השעות למעלה (חוץ משבת)." : "הדפדפן הזה לא תומך בהתראות. באייפון: קודם מוסיפים את האתר למסך הבית." }), row]);
+  }
+  function setRem(m, on) {
+    if (on && !canPush) { toast("כאן אין התראות. באייפון: שיתוף ← הוספה למסך הבית"); return; }
+    var next = Object.assign({}, S.rem); next[m] = on;
+    var old = S.rem; S.rem = next; var it = items(); S.rem = old;
+    var done = function () { S.rem = next; save(); home(); toast(on ? "🔔 נזכיר כשמגיע הזמן" : "התזכורת כבויה"); };
+    if (!it.length) return getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint, kind: "t" }); done(); }).catch(done);
+    Notification.requestPermission().then(function (p) {
+      if (p !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
+      return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).then(function (j) { if (!j.ok) throw 0; done(); });
+    }).catch(function () { toast("לא הצלחנו להפעיל תזכורת"); });
+  }
+  function resync() { if (!canPush || !S.rem || !(S.rem.evening || S.rem.morning)) return; var it = items(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).catch(function () {}); }
+
+  home(); resync();
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && !$("home").hidden) { MODE = MODE || which(); home(); } });
+})();
+</script>
