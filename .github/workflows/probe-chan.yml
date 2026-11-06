@@ -1,0 +1,12 @@
+name: probe-chan
+on: { push: { branches: [probe-chan] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sS -o /dev/null -w "page %{http_code}\n" https://chanukah.hania360.com/
+          curl -sS https://chanukah.hania360.com/ | grep -o "HaniaChanukah ·[^<]*" | head -1
+          curl -sS -o /dev/null -w "hebcal %{http_code}\n" https://chanukah.hania360.com/hebcal.js
+          curl -sS https://chanukah.hania360.com/api/shabbat/key | head -c 80; echo
+          curl -sS https://hania360.com/ | grep -c "chanukah.hania360.com"
