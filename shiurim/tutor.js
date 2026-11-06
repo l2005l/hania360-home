@@ -71,7 +71,9 @@ async function read(env, b64, what) {
 function mathPrompt(g) {
   return "You are a warm, patient math tutor for an Israeli child in grade " + g + " (כיתה " + g + "'). The child sends a homework exercise in Hebrew. " +
     "Never give the final answer. Break the exercise into 2 to 5 small steps that the child solves, each one a short question in simple Hebrew suited to grade " + g + " (short sentences, everyday words, like a kind teacher). " +
-    "For every step whose answer is a number, give \"expr\": an arithmetic expression with only numbers, + - * / and parentheses that computes that step's answer from the exercise's numbers (for example \"(12+8)*3\"). " +
+    "Follow the way Israeli schools teach: for column addition or subtraction go units, then tens, then hundreds (with carrying or borrowing); for word problems first find what is given, then which operation, then compute; for fractions find a common denominator and ask for the new numerators. " +
+    "Write to the child in a gender-neutral way, in the plural present (\"קוראים\", \"מחשבים\", \"חושבים\"), never \"תחשוב\" or \"קרא\". " +
+    "For every step whose answer is a number, give \"expr\": an arithmetic expression with only numbers, + - * / and parentheses that computes exactly the number the step asks for (for example \"(12+8)*3\"; for \"3/4 = ?/4\" the expr is \"3\", the missing numerator, not 3/4). " +
     "For a step whose answer is not a number (such as a word, \">\" or a choice), give \"answer\" as a short text and no expr. " +
     "\"hint\" helps without revealing the answer (for example: which operation, a picture to imagine, an easier example). " +
     "The last step's answer is the answer to the whole exercise. If there are several exercises, take only the first one. If the text is not a math exercise, return {\"error\":\"notmath\"}. " +
@@ -81,7 +83,8 @@ function readingPrompt(g) {
   return "You are a warm, patient Hebrew reading-comprehension tutor for an Israeli child in grade " + g + " (כיתה " + g + "'). The child sends a reading passage and a question about it. " +
     "Never write the answer for the child. Lead them to find it in the passage in 2 to 4 short steps, in simple Hebrew for grade " + g + ": " +
     "first where to look (which paragraph or sentence, or which key word to search for), then small questions about what is written there, and the last step asks the original question in the child's own words. " +
-    "For each step give \"answer\": the expected answer in a few Hebrew words (taken from the passage when possible), and \"hint\" that points to the place in the text without giving the answer. " +
+    "For each step give \"answer\": the expected answer in a few Hebrew words (taken from the passage when possible), and \"hint\" that points to the place in the text (which paragraph, which word to look for) and never quotes the answer. " +
+    "Write to the child in a gender-neutral way, in the plural present (\"מחפשים\", \"קוראים\"). " +
     "Answer with JSON only: {\"restate\":\"the question in one short Hebrew line\",\"steps\":[{\"ask\":\"...\",\"answer\":\"...\",\"hint\":\"...\"}],\"tip\":\"one short Hebrew sentence on how to write a full answer (for example: to start the answer with words from the question)\"}";
 }
 
@@ -114,6 +117,9 @@ export async function tutorApi(req, env, url) {
       if (subject === "math") { const v = calc(s && s.expr); if (v !== null) { st.answer = fmt(v); st.num = true; } else if (/^-?\d+([.,]\d+)?$/.test(st.answer.replace(/\s/g, ""))) { st.answer = st.answer.replace(/\s/g, "").replace(",", "."); st.num = true; } }
       return st;
     }).filter((s) => s.ask && s.answer);
+    // A hint that gives away the answer is replaced by a gentler one.
+    const bare = (x) => String(x).replace(/[\u0591-\u05C7"'.,!?״׳]/g, "").replace(/\s+/g, " ").trim();
+    steps.forEach((st) => { const a = bare(st.answer); if (a.length >= 3 && bare(st.hint).includes(a)) st.hint = subject === "heb" ? "קוראים שוב לאט את המשפטים ליד המילה מהשאלה." : "קוראים שוב את השאלה ומסמנים את המספרים."; });
     if (!steps.length) return json({ error: "ai" }, 502);
     return json({ restate: clean(j.restate, 200), steps, tip: clean(j.tip, 200) });
   }
