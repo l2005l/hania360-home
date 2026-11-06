@@ -35,6 +35,90 @@ export function calc(expr) {
 }
 const fmt = (v) => (Number.isInteger(v) ? String(v) : String(+v.toFixed(4)));
 
+// A bare exercise (like "456 + 278 =" or "3/4 + 1/2") gets its steps here, the way it is taught in school:
+// exact, instant, and without the model. Word problems go to the model.
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+const digits = (n) => String(n).split("").reverse().map(Number);
+const PLACE = ["היחידות", "העשרות", "המאות", "האלפים", "רבבות"];
+export function localPlan(raw, g) {
+  const t = String(raw || "").replace(/[×xX]/g, "*").replace(/[÷:]/g, "/").replace(/−|–/g, "-").replace(/=\s*\?*\s*$/, "").replace(/\?/g, "").replace(/\s+/g, " ").trim();
+  const N = (n, a) => ({ ask: a, answer: fmt(n), num: true, hint: "" });
+  let m = t.match(/^(\d+)\s*\/\s*(\d+)\s*([+-])\s*(\d+)\s*\/\s*(\d+)$/);
+  if (m) {
+    const [n1, d1, op, n2, d2] = [+m[1], +m[2], m[3], +m[4], +m[5]]; if (!d1 || !d2) return null;
+    const L = d1 * d2 / gcd(d1, d2), a = n1 * L / d1, b = n2 * L / d2, n = op === "+" ? a + b : a - b, steps = [];
+    if (d1 !== d2) {
+      steps.push(Object.assign(N(L, "מה המכנה המשותף הקטן ביותר של " + d1 + " ושל " + d2 + "?"), { hint: "מחפשים את המספר הקטן ביותר שגם " + d1 + " וגם " + d2 + " נכנסים בו בלי שארית." }));
+      if (L !== d1) steps.push(Object.assign(N(a, n1 + "/" + d1 + " = ?/" + L + " . מה המונה החדש?"), { hint: "בכמה כפלנו את " + d1 + " כדי להגיע ל־" + L + "? כופלים גם את המונה באותו מספר." }));
+      if (L !== d2) steps.push(Object.assign(N(b, n2 + "/" + d2 + " = ?/" + L + " . מה המונה החדש?"), { hint: "בכמה כפלנו את " + d2 + " כדי להגיע ל־" + L + "? כופלים גם את המונה באותו מספר." }));
+    }
+    steps.push(Object.assign(N(n, a + "/" + L + " " + op + " " + b + "/" + L + " = ?/" + L + " . מה המונה?"), { hint: "כשהמכנה שווה, " + (op === "+" ? "מחברים" : "מחסרים") + " רק את המונים, והמכנה נשאר " + L + "." }));
+    const k = gcd(Math.abs(n), L);
+    const whole = Math.trunc(n / L), rest = Math.abs(n) % L, sh = (whole ? whole + (rest ? " " : "") : "") + (rest ? rest / k + "/" + L / k : "") || "0";
+    if (k > 1 || Math.abs(n) >= L) steps.push(Object.assign(N(n / L, "ומה התוצאה הסופית" + (k > 1 ? " אחרי צמצום" : "") + (Math.abs(n) >= L ? " (אפשר כמספר מעורב)" : "") + "?"), { hint: (k > 1 ? "מחלקים את " + n + " ואת " + L + " ב־" + k + ". " : "") + (Math.abs(n) >= L ? "כמה שלמים יש ב־" + n + "/" + L + "? כותבים מספר שלם, רווח ושבר." : ""), show: n + "/" + L + " = " + sh }));
+    return { restate: t, steps, tip: "בודקים: האם התוצאה הגיונית? " + n1 + "/" + d1 + " " + (op === "+" ? "ועוד" : "פחות") + " " + n2 + "/" + d2 + (op === "+" ? " גדול מכל אחד מהם." : " קטן מ־" + n1 + "/" + d1 + ".") };
+  }
+  m = t.match(/^(\d{1,6})\s*([+\-*/])\s*(\d{1,6})$/);
+  if (!m) return null;
+  const x = +m[1], op = m[2], y = +m[3], steps = [], sign = { "+": "+", "-": "−", "*": "×", "/": ":" }[op], restate = x + " " + sign + " " + y;
+  if (op === "+") {
+    if (x < 10 && y < 10 || x + y <= 20) return { restate, steps: [Object.assign(N(x + y, "כמה זה " + restate + "?"), { hint: y <= x ? "מתחילים מ־" + x + " וסופרים עוד " + y + " על האצבעות." : "מתחילים מהמספר הגדול, " + y + ", וסופרים עוד " + x + "." })], tip: "בודקים בחיסור: התוצאה פחות " + y + " צריכה לצאת " + x + "." };
+    const A = digits(x), B = digits(y), n = Math.max(A.length, B.length); let c = 0;
+    for (let i = 0; i < n; i++) {
+      const a = A[i] || 0, b = B[i] || 0, s = a + b + c;
+      steps.push(Object.assign(N(s, "מחברים את " + PLACE[i] + ": " + a + " + " + b + (c ? " ועוד 1 שעבר" : "") + " = ?"), { hint: s >= 10 ? "אם יוצא 10 או יותר, כותבים את " + (s % 10) + " ומעבירים 1 לטור הבא." : "מחברים רק את הספרות בטור של " + PLACE[i] + "." }));
+      c = s >= 10 ? 1 : 0;
+    }
+    steps.push(Object.assign(N(x + y, "אז כמה זה " + restate + "?"), { hint: "קוראים את הספרות שכתבנו בכל טור, מהשמאלי לימני." }));
+    return { restate, steps: steps.slice(-5), tip: "בודקים בחיסור: התוצאה פחות " + y + " צריכה לצאת " + x + "." };
+  }
+  if (op === "-") {
+    if (y > x) return null;
+    if (x <= 20) return { restate, steps: [Object.assign(N(x - y, "כמה זה " + restate + "?"), { hint: "מתחילים מ־" + y + " וסופרים קדימה עד " + x + ". כמה צעדים?" })], tip: "בודקים בחיבור: התוצאה ועוד " + y + " צריכה לצאת " + x + "." };
+    const A = digits(x), B = digits(y); let br = 0;
+    for (let i = 0; i < A.length; i++) {
+      let a = A[i] - br; const b = B[i] || 0, was = a;
+      if (i >= B.length && !br) continue;
+      const borrow = a < b; if (borrow) a += 10;
+      const why = was < 0 ? "ב" + PLACE[i].slice(1) + " היה 0 ונתנו 1 לטור הקודם, אז לוקחים גם כאן 1 מהטור הבא, ונשארים עם " + a + ". " : borrow ? "ב" + PLACE[i].slice(1) + ": " + was + " קטן מ־" + b + ", אז לוקחים 1 מהטור הבא. " : "מחסרים את " + PLACE[i] + ": ";
+      steps.push(Object.assign(N(a - b, why + a + " − " + b + " = ?"), { hint: borrow ? "אחרי שלקחנו, יש לנו " + a + ". מורידים " + b + "." : "מחסרים רק את הספרות בטור של " + PLACE[i] + (br ? ", ולא שוכחים שלקחנו 1 מהטור הזה." : ".") }));
+      br = borrow ? 1 : 0;
+    }
+    steps.push(Object.assign(N(x - y, "אז כמה זה " + restate + "?"), { hint: "קוראים את הספרות שכתבנו בכל טור." }));
+    return { restate, steps: steps.slice(-5), tip: "בודקים בחיבור: התוצאה ועוד " + y + " צריכה לצאת " + x + "." };
+  }
+  if (op === "*") {
+    if (x <= 10 && y <= 10) return { restate, steps: [Object.assign(N(x * y, "כמה זה " + restate + "?"), { hint: x + " פעמים " + y + ": אפשר לחבר " + y + " שוב ושוב, " + x + " פעמים, או להיזכר בלוח הכפל." })], tip: "בודקים בחילוק: התוצאה לחלק ל־" + y + " צריכה לצאת " + x + "." };
+    const [big, small] = x >= y ? [x, y] : [y, x], tens = big - big % 10, ones = big % 10;
+    if (small < 10 && big < 1000) {
+      steps.push(Object.assign(N(tens * small, "מפרקים: " + big + " = " + tens + " + " + ones + ". כמה זה " + tens + " × " + small + "?"), { hint: "כמה זה " + tens / 10 + " × " + small + "? ומוסיפים אפס." }));
+      if (ones) steps.push(Object.assign(N(ones * small, "כמה זה " + ones + " × " + small + "?"), { hint: "מלוח הכפל." }));
+      steps.push(Object.assign(N(x * y, "מחברים: " + tens * small + (ones ? " + " + ones * small : "") + " = ?"), { hint: "מחברים את שתי התוצאות." }));
+      return { restate, steps, tip: "בודקים: " + big + " קרוב ל־" + Math.round(big / 10) * 10 + ", אז התוצאה קרובה ל־" + Math.round(big / 10) * 10 * small + "." };
+    }
+    return null;
+  }
+  if (op === "/") {
+    if (!y) return null;
+    const q = Math.floor(x / y), r = x % y;
+    if (!r && q <= 10 && y <= 10) return { restate, steps: [Object.assign(N(q, "כמה זה " + restate + "?"), { hint: "איזה מספר כפול " + y + " נותן " + x + "? חושבים על לוח הכפל של " + y + "." })], tip: "בודקים בכפל: התוצאה כפול " + y + " צריכה לצאת " + x + "." };
+    if (y >= 10) return null;
+    const tens = Math.floor(x / 10) * 10;
+    if (x >= 20 && Math.floor(tens / y) * y > 0) {
+      const part = Math.floor(x / y / 10) * 10 * y;
+      if (part > 0) {
+        steps.push(Object.assign(N(part / y, "מתחילים מחלק נוח: כמה זה " + part + " : " + y + "?"), { hint: "כמה זה " + part / 10 + " : " + y + "? ומוסיפים אפס." }));
+        steps.push(Object.assign(N(x - part, "כמה נשאר לחלק? " + x + " − " + part + " = ?"), { hint: "מחסרים את החלק שכבר חילקנו." }));
+        steps.push(Object.assign(N(Math.floor((x - part) / y), "כמה פעמים " + y + " נכנס ב־" + (x - part) + "?"), { hint: "חושבים על לוח הכפל של " + y + "." }));
+      }
+    }
+    steps.push(Object.assign(N(q, "אז כמה זה " + restate + (r ? " (בלי השארית)" : "") + "?"), { hint: "מחברים את התוצאות של החלקים." }));
+    if (r) steps.push(Object.assign(N(r, "וכמה נשאר בסוף (השארית)?"), { hint: "מחשבים " + q + " × " + y + " ובודקים כמה חסר עד " + x + "." }));
+    return { restate, steps, tip: "בודקים בכפל: " + q + " × " + y + (r ? " + " + r : "") + " צריך לצאת " + x + "." };
+  }
+  return null;
+}
+
 async function limit(env, device, ns, perDevice, perDay) {
   if (!env.SIPUR) return { ok: true };
   return env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "POST", body: JSON.stringify({ device, ns, perDevice, perDay }) }).then((r) => r.json()).catch(() => ({ ok: true }));
@@ -77,7 +161,7 @@ function mathPrompt(g) {
     "For a step whose answer is not a number (such as a word, \">\" or a choice), give \"answer\" as a short text and no expr. " +
     "\"hint\" helps without revealing the answer (for example: which operation, a picture to imagine, an easier example). " +
     "The last step's answer is the answer to the whole exercise. If there are several exercises, take only the first one. If the text is not a math exercise, return {\"error\":\"notmath\"}. " +
-    "Answer with JSON only: {\"restate\":\"the exercise in one short Hebrew line\",\"steps\":[{\"ask\":\"...\",\"expr\":\"...\",\"answer\":\"...\",\"hint\":\"...\"}],\"tip\":\"one short Hebrew sentence on how to check the answer\"}";
+    "Answer with JSON only: {\"restate\":\"the exercise in one short Hebrew line\",\"steps\":[{\"ask\":\"...\",\"expr\":\"...\",\"answer\":\"...\",\"hint\":\"...\"}],\"tip\":\"one short Hebrew sentence on how to check the answer by thinking (never a calculator)\"}";
 }
 function readingPrompt(g) {
   return "You are a warm, patient Hebrew reading-comprehension tutor for an Israeli child in grade " + g + " (כיתה " + g + "'). The child sends a reading passage and a question about it. " +
@@ -108,12 +192,14 @@ export async function tutorApi(req, env, url) {
   if (what === "plan") {
     const subject = b.subject === "heb" ? "heb" : "math", task = clean(b.text, 600), passage = String(b.passage || "").replace(/[<>]/g, "").trim().slice(0, 3500);
     if (task.length < 2 || (subject === "heb" && passage.length < 20)) return json({ error: "input" }, 400);
+    if (subject === "math") { const lp = localPlan(task, g); if (lp && lp.steps.length) return json(lp); }
     const lim = await limit(env, device, "shiur:", 30, 600); if (!lim.ok) return json({ error: lim.why }, 429);
     const j = subject === "math" ? await ask(env, mathPrompt(g), "The exercise:\n" + task, 900) : await ask(env, readingPrompt(g), "The passage:\n" + passage + "\n\nThe question:\n" + task, 900);
     if (!j) return json({ error: "ai" }, 502);
     if (j.error === "notmath") return json({ error: "notmath" }, 422);
     let steps = (Array.isArray(j.steps) ? j.steps : []).slice(0, 6).map((s) => {
       const st = { ask: clean(s && s.ask, 220), hint: clean(s && s.hint, 220), answer: clean(s && s.answer, 80) };
+      if (subject === "math" && s && /^\s*\d+\s*\/\s*\d+\s*$/.test(String(s.answer || ""))) st.show = clean(s.answer, 20);
       if (subject === "math") { const v = calc(s && s.expr); if (v !== null) { st.answer = fmt(v); st.num = true; } else if (/^-?\d+([.,]\d+)?$/.test(st.answer.replace(/\s/g, ""))) { st.answer = st.answer.replace(/\s/g, "").replace(",", "."); st.num = true; } }
       return st;
     }).filter((s) => s.ask && s.answer);
