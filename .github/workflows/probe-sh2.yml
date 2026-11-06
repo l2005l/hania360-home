@@ -1,0 +1,13 @@
+name: probe-sh2
+on: { push: { branches: [probe-sh2] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          H=https://shiurim.hania360.com; D=probeDevice0000000000002
+          plan(){ curl -sS -X POST $H/api/shiurim/plan -H 'content-type: application/json' -d "$1"; echo; }
+          echo "== M3"; plan '{"device":"'$D'","grade":"ו","subject":"math","text":"3/4 + 1/2 = ?"}'
+          echo "== M4"; plan '{"device":"'$D'","grade":"ג","subject":"math","text":"456 + 278 = "}'
+          echo "== M5"; plan '{"device":"'$D'","grade":"א","subject":"math","text":"7 + 5 ="}'
+          echo "== H1"; plan '{"device":"'$D'","grade":"ג","subject":"heb","passage":"נועה גרה בכפר קטן ליד הים. בכל בוקר היא הלכה עם הכלב שלה, בוני, לחוף. יום אחד מצאה נועה צב קטן שנתקע ברשת דייגים. היא שחררה אותו בזהירות, והצב שחה חזרה לים. מאז, בכל פעם שהיא רואה צב, היא נזכרת בבוקר ההוא ומחייכת.","text":"מה עשתה נועה כשמצאה את הצב?"}'
