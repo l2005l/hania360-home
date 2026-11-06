@@ -1,0 +1,12 @@
+name: probe-sh3
+on: { push: { branches: [probe-sh3] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          H=https://shiurim.hania360.com; D=probeDevice0000000000003
+          plan(){ curl -sS -X POST $H/api/shiurim/plan -H 'content-type: application/json' -d "$1"; echo; }
+          echo "== F"; plan '{"device":"'$D'","grade":"ו","subject":"math","text":"3/4 + 1/2 = ?"}'
+          echo "== W1"; plan '{"device":"'$D'","grade":"ג","subject":"math","text":"לרותי 3 קופסאות. בכל קופסה 8 עפרונות. היא נתנה לחברה 5 עפרונות. כמה עפרונות נשארו לרותי?"}'
+          echo "== W2"; plan '{"device":"'$D'","grade":"ה","subject":"math","text":"מחיר חולצה 80 שקלים. בחנות יש הנחה של 25%. כמה משלמים על החולצה?"}'
