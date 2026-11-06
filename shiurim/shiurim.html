@@ -253,7 +253,7 @@ details summary{cursor:pointer;font-weight:800}
       .catch(function () { btn.disabled = false; toast("לא הצלחנו לבדוק. מנסים שוב"); });
   });
   $("hint").addEventListener("click", function () { var s = T.steps[T.i]; T.hints++; owl(s.hint || "קוראים שוב את השאלה לאט, מילה אחרי מילה.", "hint"); this.disabled = true; $("show").hidden = false; $("ansIn").focus(); });
-  $("show").addEventListener("click", function () { var s = T.steps[T.i]; T.shown++; owl("התשובה לשלב הזה: " + s.answer + ". עכשיו ממשיכים!"); T.i++; if (T.i >= T.steps.length) done(); else setTimeout(ask, 700); });
+  $("show").addEventListener("click", function () { var s = T.steps[T.i]; T.shown++; owl("התשובה לשלב הזה: " + (s.show || s.answer) + ". עכשיו ממשיכים!"); T.i++; if (T.i >= T.steps.length) done(); else setTimeout(ask, 700); });
   function done() {
     prog(); $("answer").hidden = true;
     var w = $("win"); w.hidden = false;
