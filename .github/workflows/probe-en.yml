@@ -1,0 +1,7 @@
+name: probe-en
+on: { push: { branches: [probe-en] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sS -o /dev/null -w "page %{http_code}\n" https://english.hania360.com/ || echo "page none"
