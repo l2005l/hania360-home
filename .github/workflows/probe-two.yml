@@ -1,0 +1,12 @@
+name: probe-two
+on: { push: { branches: [probe-two] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for h in english shigra; do
+            echo "$h page $(curl -sS -o /dev/null -w '%{http_code}' https://$h.hania360.com/ || echo none) icon $(curl -sS -o /dev/null -w '%{http_code}' https://$h.hania360.com/icons/icon-192.png || echo none)"
+            echo "$h title $(curl -sS https://$h.hania360.com/ | grep -o '<title>[^<]*' | head -1)"
+          done
+          echo "shigra key $(curl -sS https://shigra.hania360.com/api/shabbat/key | head -c 20)"
