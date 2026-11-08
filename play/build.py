@@ -13,3 +13,5 @@ for n in ('play-192.png', 'play-512.png'):
     out.append(f'  "/icons/{n}": "{b64("icons/" + n)}",')
 out.append('};')
 open('play/page.js', 'w', encoding='utf8').write('\n'.join(out) + '\n')
+# Pictures and big files go to Workers Static Assets (public/_a/), so the Worker stays small.
+import subprocess; subprocess.run(["node", "tools/assets.mjs", "play"], check=True)

@@ -413,6 +413,9 @@ function bill(url) {
   return Response.redirect("https://bills.hania360.com/", 302);
 }
 
+// Hosts that serve another host's static files.
+const STATIC_HOST = { "shabbat.hania360.com": "dat.hania360.com", "www.hania360.com": "hania360.com", "chagim.hania360.com": "yahadut.hania360.com" };
+
 export default {
   async fetch(request, env, ctx) {
     let response = await this.route(request, env, ctx);
@@ -429,6 +432,15 @@ export default {
   },
   async route(request, env, ctx) {
     const url = new URL(request.url);
+    // Static files (pictures, icons, link previews and big fixed scripts) live in Workers Static Assets, under
+    // public/_a/<host>/, so the Worker itself stays small. Anything not found there goes on to the apps as before.
+    if (env && env.ASSETS && (request.method === "GET" || request.method === "HEAD") && /\.(png|jpe?g|webp|gif|svg|ico|js|css|json|woff2?|mp3|webmanifest)$/i.test(url.pathname) && !url.pathname.startsWith("/api/")) {
+      const host = STATIC_HOST[url.hostname] || url.hostname;
+      try {
+        const r = await env.ASSETS.fetch(new Request("https://static.invalid/_a/" + host + url.pathname, { method: request.method }));
+        if (r.ok) { const out = new Response(r.body, r); out.headers.set("cache-control", /\.js$/.test(url.pathname) && !url.searchParams.get("v") ? "public, max-age=3600" : "public, max-age=604800"); out.headers.set("access-control-allow-origin", "*"); return out; }
+      } catch {}
+    }
     // Usage counts from every site, and the link-preview images and the owner's dashboard on hania360.com.
     if (url.pathname === "/api/stat") return statApi(request, env || {}, url, ctx);
     if (url.hostname === "hania360.com" && url.pathname.startsWith("/og/")) { const r = ogImage(url); if (r) return r; }

@@ -9,6 +9,8 @@
   "services": [{ "binding": "PASS", "service": "hania-pass" }],
   // Workers AI: HaniaSipur writes bedtime stories (counted per phone and per day in StoryLimits).
   "ai": { "binding": "AI" },
+  // Pictures and big fixed files (moved out of the Worker by tools/assets.mjs); the Worker decides what to serve.
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuizRoom"] }, { "tag": "v2", "new_sqlite_classes": ["ParkHub"] }, { "tag": "v3", "new_sqlite_classes": ["ShabbatHub"] }, { "tag": "v4", "new_sqlite_classes": ["GiftGroup"] }, { "tag": "v5", "new_sqlite_classes": ["RideGroup"] }, { "tag": "v6", "new_sqlite_classes": ["FlightHub"] }, { "tag": "v7", "new_sqlite_classes": ["EventRoom"] }, { "tag": "v8", "new_sqlite_classes": ["StoryLimits"] }, { "tag": "v9", "new_sqlite_classes": ["StatsHub"] }, { "tag": "v10", "new_sqlite_classes": ["KibudCircle"] }, { "tag": "v11", "new_sqlite_classes": ["PlayStore", "GameRoom"] }, { "tag": "v12", "new_sqlite_classes": ["MasachFamily"] }],
   "env": {
     // Staging: its own workers.dev address, never indexed by search engines.
@@ -17,6 +19,7 @@
       "vars": { "ENVIRONMENT": "staging" },
       "services": [{ "binding": "PASS", "service": "hania-pass-staging" }],
       "ai": { "binding": "AI" },
+      "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
       "durable_objects": { "bindings": [{ "name": "QUIZ", "class_name": "QuizRoom" }, { "name": "PARK", "class_name": "ParkHub" }, { "name": "SHABBAT", "class_name": "ShabbatHub" }, { "name": "GAMAD", "class_name": "GiftGroup" }, { "name": "RIDE", "class_name": "RideGroup" }, { "name": "TISA", "class_name": "FlightHub" }, { "name": "HAZMANA", "class_name": "EventRoom" }, { "name": "SIPUR", "class_name": "StoryLimits" }, { "name": "STATS", "class_name": "StatsHub" }, { "name": "KIBUD", "class_name": "KibudCircle" }, { "name": "MASACH", "class_name": "MasachFamily" }, { "name": "PLAYDB", "class_name": "PlayStore" }, { "name": "PLAYROOM", "class_name": "GameRoom" }] }
     }
   }
