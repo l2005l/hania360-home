@@ -81,7 +81,7 @@ details summary{cursor:pointer;font-weight:800}
       </section>
 
       <section class="card" id="mathIn">
-        <h2>🔢 התרגיל</h2>
+        <h2 id="mathH">🔢 התרגיל</h2>
         <div class="row"><button class="btn sun" type="button" data-shot="task">📷 לצלם את התרגיל</button><button class="btn ghost small" type="button" data-mic="task" hidden>🎤 להגיד</button></div>
         <div class="photo" data-photo="task"></div>
         <label>או לכתוב כאן<textarea id="task" placeholder="למשל: בכיתה 24 ילדים. חצי מהם בנים. כמה בנות?" dir="auto"></textarea></label>
@@ -110,7 +110,7 @@ details summary{cursor:pointer;font-weight:800}
 
   <main id="tut" hidden>
     <div class="wrap" style="padding:0">
-      <div class="row"><button class="btn ghost small" type="button" id="back">→ תרגיל אחר</button><span class="sp" style="margin-inline-start:auto"></span><div class="prog" id="prog"></div></div>
+      <div class="row"><button class="btn ghost small" type="button" id="back">→ תרגיל אחר</button><button class="btn ghost small" type="button" id="voice" aria-pressed="true">🔊</button><span class="sp" style="margin-inline-start:auto"></span><div class="prog" id="prog"></div></div>
       <div class="task" id="tTask"></div>
       <div class="chat" id="chat" aria-live="polite"></div>
       <section class="card" id="answer">
@@ -153,8 +153,9 @@ details summary{cursor:pointer;font-weight:800}
   // ---- grade and subject ----
   function chips() {
     $("grades").replaceChildren.apply($("grades"), ["א", "ב", "ג", "ד", "ה", "ו"].map(function (g) { return el("button", { class: "chip g", type: "button", "aria-pressed": String(S.grade === g), text: g + "'", "aria-label": "כיתה " + g, onclick: function () { S.grade = g; save(); chips(); } }); }));
-    $("subjects").replaceChildren.apply($("subjects"), [["math", "🔢 חשבון"], ["heb", "📖 הבנת הנקרא"]].map(function (s) { return el("button", { class: "chip", type: "button", "aria-pressed": String(S.subject === s[0]), text: s[1], onclick: function () { S.subject = s[0]; save(); chips(); } }); }));
-    $("mathIn").hidden = S.subject !== "math"; $("hebIn").hidden = S.subject !== "heb";
+    $("subjects").replaceChildren.apply($("subjects"), [["math", "🔢 חשבון"], ["heb", "📖 הבנת הנקרא"], ["eng", "🇬🇧 אנגלית"]].map(function (s) { return el("button", { class: "chip", type: "button", "aria-pressed": String(S.subject === s[0]), text: s[1], onclick: function () { S.subject = s[0]; save(); chips(); } }); }));
+    $("mathIn").hidden = S.subject === "heb"; $("hebIn").hidden = S.subject !== "heb";
+    $("mathH").textContent = S.subject === "eng" ? "🇬🇧 התרגיל באנגלית" : "🔢 התרגיל"; $("task").placeholder = S.subject === "eng" ? "למשל: Complete: I ___ a dog. (have / has)" : "למשל: בכיתה 24 ילדים. חצי מהם בנים. כמה בנות?";
   }
 
   // ---- a photo: made smaller here, read into text by the server, and not kept ----
@@ -208,7 +209,7 @@ details summary{cursor:pointer;font-weight:800}
   }
   function numOf(t) { var mx = String(t).match(/(\d+)\s+(\d+)\s*\/\s*(\d+)/); if (mx && +mx[3]) return Math.round((+mx[1] + mx[2] / mx[3]) * 1e6) / 1e6; var m = String(t).replace(/,(?=\d{3}\b)/g, "").match(/-?\d+(?:[.,]\d+)?(?:\s*[/:]\s*\d+)?/); return m ? calc(m[0]) : null; }
   $("go").addEventListener("click", function () {
-    var math = S.subject === "math", task = (math ? $("task") : $("hq")).value.trim(), passage = $("passage").value.trim();
+    var math = S.subject !== "heb", task = (math ? $("task") : $("hq")).value.trim(), passage = $("passage").value.trim();
     if (task.length < 2) { toast(math ? "קודם מצלמים או כותבים את התרגיל" : "קודם כותבים את השאלה"); return; }
     if (!math && passage.length < 20) { toast("קודם מצלמים או מעתיקים את הקטע"); return; }
     busy(true);
@@ -224,13 +225,15 @@ details summary{cursor:pointer;font-weight:800}
     if (T.restate) owl("בואו נבין: " + T.restate);
     ask(); scrollTo(0, 0);
   }
-  function owl(t, cls) { var b = el("div", { class: "b owl" + (cls ? " " + cls : "") }, [el("span", { class: "o", "aria-hidden": "true", text: cls === "hint" ? "💡" : "🦉" }), el("span", t)]); $("chat").append(b); b.scrollIntoView({ block: "nearest", behavior: "smooth" }); return b; }
+  // The owl reads aloud (where the phone has a Hebrew voice), so a child who reads slowly can follow.
+  function speak(t) { try { if (S.voice === false || !window.speechSynthesis) return; var vs = speechSynthesis.getVoices(), v = vs.filter(function (x) { return /^he|^iw/i.test(x.lang); })[0]; if (!v) return; var u = new SpeechSynthesisUtterance(String(t).replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "")); u.voice = v; u.lang = v.lang; u.rate = 0.92; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+  function owl(t, cls) { speak(t); var b = el("div", { class: "b owl" + (cls ? " " + cls : "") }, [el("span", { class: "o", "aria-hidden": "true", text: cls === "hint" ? "💡" : "🦉" }), el("span", t)]); $("chat").append(b); b.scrollIntoView({ block: "nearest", behavior: "smooth" }); return b; }
   function me(t, ok) { $("chat").append(el("div", { class: "b me " + (ok ? "ok" : "no"), text: t + (ok ? " ✓" : "") })); }
   function prog() { $("prog").replaceChildren.apply($("prog"), T.steps.map(function (s, i) { return el("i", { class: i < T.i ? "done" : i === T.i ? "cur" : "" }); })); }
   function ask() {
     var s = T.steps[T.i]; T.tries = 0; prog();
     owl((T.steps.length > 1 ? "שלב " + (T.i + 1) + ": " : "") + s.ask);
-    var inp = $("ansIn"); inp.value = ""; inp.setAttribute("inputmode", s.num ? "decimal" : "text"); inp.setAttribute("dir", s.num ? "ltr" : "rtl"); inp.placeholder = s.num ? "מספר" : "התשובה שלי";
+    var inp = $("ansIn"); inp.value = ""; inp.setAttribute("inputmode", s.num ? "decimal" : "text"); inp.setAttribute("dir", s.num || /^[\x20-\x7E]+$/.test(s.answer) ? "ltr" : "rtl"); inp.placeholder = s.num ? "מספר" : "התשובה שלי";
     $("show").hidden = true; $("hint").disabled = false; setTimeout(function () { inp.focus(); }, 60);
   }
   var PRAISE = ["נכון! 👏", "מצוין! ⭐", "יפה מאוד! 💪", "בדיוק! 🎯", "כל הכבוד! 🌟"];
@@ -253,7 +256,7 @@ details summary{cursor:pointer;font-weight:800}
     var norm = function (x) { return String(x).replace(/[֑-ׇ"'.,!?״׳]/g, "").replace(/\s+/g, " ").trim(); };
     if (norm(v) === norm(s.answer)) { me(v, true); right(); return; }
     var btn = this.querySelector("button"); btn.disabled = true;
-    api("check", { ask: s.ask, answer: s.answer, given: v }).then(function (j) { btn.disabled = false; me(v, !!j.ok); if (j.ok) { if (j.say) owl(j.say); right(); } else wrong(j.say); })
+    api("check", { ask: s.ask, answer: s.answer, given: v, subject: T.subject }).then(function (j) { btn.disabled = false; me(v, !!j.ok); if (j.ok) { if (j.say) owl(j.say); right(); } else wrong(j.say); })
       .catch(function () { btn.disabled = false; toast("לא הצלחנו לבדוק. מנסים שוב"); });
   });
   $("hint").addEventListener("click", function () { var s = T.steps[T.i]; T.hints++; owl(s.hint || "קוראים שוב את השאלה לאט, מילה אחרי מילה.", "hint"); this.disabled = true; $("show").hidden = false; $("ansIn").focus(); });
@@ -267,8 +270,10 @@ details summary{cursor:pointer;font-weight:800}
     S.log.unshift({ at: T.at, s: T.subject, g: S.grade, t: T.task.slice(0, 90), n: T.steps.length, h: T.hints, w: T.wrong, sh: T.shown }); S.log = S.log.slice(0, 40); save(); renderLog();
     confetti(); w.scrollIntoView({ behavior: "smooth" });
   }
-  function backHome() { $("tut").hidden = true; $("start").hidden = false; (S.subject === "math" ? $("task") : $("hq")).value = ""; document.querySelectorAll("[data-photo]").forEach(function (b) { b.replaceChildren(); }); scrollTo(0, 0); }
+  function backHome() { $("tut").hidden = true; $("start").hidden = false; (S.subject !== "heb" ? $("task") : $("hq")).value = ""; document.querySelectorAll("[data-photo]").forEach(function (b) { b.replaceChildren(); }); scrollTo(0, 0); }
   $("back").addEventListener("click", backHome);
+  var vb = $("voice"); var drawV = function () { vb.textContent = S.voice === false ? "🔇" : "🔊"; vb.setAttribute("aria-label", S.voice === false ? "להפעיל הקראה" : "לכבות הקראה"); vb.setAttribute("aria-pressed", String(S.voice !== false)); };
+  vb.hidden = !window.speechSynthesis; drawV(); vb.addEventListener("click", function () { S.voice = S.voice === false; save(); drawV(); if (S.voice === false) try { speechSynthesis.cancel(); } catch (e) {} });
 
   var audio = null;
   function beep(ok) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); var t0 = audio.currentTime; (ok ? [784, 1046.5] : [300]).forEach(function (f, i) { var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0 + i * 0.12); g.gain.exponentialRampToValueAtTime(0.15, t0 + i * 0.12 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.12 + 0.3); o.connect(g); g.connect(audio.destination); o.start(t0 + i * 0.12); o.stop(t0 + i * 0.12 + 0.32); }); } catch (e) {} }

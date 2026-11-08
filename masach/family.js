@@ -30,9 +30,10 @@ export class MasachFamily {
   roll(k) {
     const today = IL();
     if (k.day === today) return;
-    if (k.day) { k.hist[k.day] = Math.round((k.used + (k.run ? Date.now() - k.run : 0)) / 60000); }
+    if (k.day) { k.hist[k.day] = Math.round((k.used + (k.run ? Date.now() - k.run : 0)) / 60000); k.sHist = k.sHist || {}; if (k.sEarn) k.sHist[k.day] = k.sEarn; }
     const cut = IL(Date.now() - KEEP_DAYS * 864e5);
     for (const d in k.hist) if (d < cut) delete k.hist[d];
+    for (const d in k.sHist || {}) if (d < cut) delete k.sHist[d];
     k.day = today; k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.warned1 = false; k.ended = false; k.sEarn = 0; k.sRedeem = 0;
     if (k.run) k.run = Math.max(k.run, Date.now() - sinceMidnight());
   }
@@ -41,14 +42,14 @@ export class MasachFamily {
   kidView(id, k, withToken) {
     this.roll(k);
     const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist, bed: k.bed || "", asleep: asleep(k), read: k.read || 0,
-      stars: k.stars || 0, grade: k.grade || "", starOn: k.starOn !== false, starRate: k.starRate || 10, starCap: k.starCap || 30, sRedeem: k.sRedeem || 0, sEarn: k.sEarn || 0 };
+      stars: k.stars || 0, grade: k.grade || "", starOn: k.starOn !== false, starRate: k.starRate || 10, starCap: k.starCap || 30, sRedeem: k.sRedeem || 0, sEarn: k.sEarn || 0, sHist: k.sHist || {} };
     if (withToken) o.t = k.t;
     return o;
   }
   view(kid) {
     const f = this.f, watch = f.watch || [], hasKey = !!(this.env && this.env.YT_KEY), search = hasKey && !!f.search;
     if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, hasKey, cc: f.cc !== false, now: Date.now() };
-    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, cc: f.cc !== false, feed: f.feed.slice(-30), now: Date.now() };
+    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, cc: f.cc !== false, feed: f.feed.slice(-100), now: Date.now() };
   }
 
   async notify(to, msg) {
