@@ -218,7 +218,7 @@ export async function tutorApi(req, env, url) {
     }).filter((s) => s.ask && s.answer);
     // A hint that gives away the answer is replaced by a gentler one.
     const bare = (x) => String(x).replace(/[\u0591-\u05C7"'.,!?״׳]/g, "").replace(/\s+/g, " ").trim();
-    steps.forEach((st) => { const a = bare(st.answer); if (a.length >= 3 && bare(st.hint).includes(a)) st.hint = subject === "heb" ? "קוראים שוב לאט את המשפטים ליד המילה מהשאלה." : "קוראים שוב את השאלה ומסמנים את המספרים."; });
+    steps.forEach((st) => { const a = bare(st.answer); if (a.length >= 3 && bare(st.hint).includes(a)) st.hint = subject === "heb" ? "קוראים שוב לאט את המשפטים ליד המילה מהשאלה." : subject === "eng" ? "קוראים את המשפט בקול עם כל אחת מהאפשרויות, ושומעים מה נשמע נכון." : "קוראים שוב את השאלה ומסמנים את המספרים."; });
     if (!steps.length) return json({ error: "ai" }, 502);
     return json({ restate: clean(j.restate, 200), steps, tip: clean(j.tip, 200) });
   }
