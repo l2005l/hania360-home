@@ -19,6 +19,8 @@ const asleep = (k) => { const b = bedMin(k); if (b == null) return false; const 
 const EMOJI = ["🦊", "🐼", "🦁", "🐸", "🦄", "🐙", "🐯", "🐨", "🐵", "🐬"];
 const COLORS = ["#FF7A59", "#3BA3FF", "#21B573", "#B66DFF", "#FFB020", "#FF5D8F"];
 const MAX_KIDS = 6, WARN = 5 * 60000, KEEP_DAYS = 14, STAR_DAY = 60;
+// The Sunday that starts this week in Israel (YYYY-MM-DD).
+const weekOf = (t = Date.now()) => { const d = IL(t), dow = new Date(d + "T12:00:00Z").getUTCDay(); return IL(t - dow * 864e5); };
 const mins = (n, lo, hi, d) => { n = Math.round(+n); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
 
 export class MasachFamily {
@@ -46,10 +48,19 @@ export class MasachFamily {
     if (withToken) o.t = k.t;
     return o;
   }
+  // The family's weekly challenge: all the children's stars from learning add up to one shared goal
+  // (a trip, a pizza night). A new week (from Sunday) starts again from zero with the same goal.
+  goalView() {
+    const g = this.f.goal; if (!g) return null;
+    const wk = weekOf();
+    if (g.week !== wk) { g.last = g.week ? { got: g.got || 0, done: !!g.done } : null; g.week = wk; g.got = 0; g.done = false; }
+    return { title: g.title, target: g.target, got: g.got || 0, done: !!g.done, last: g.last || null };
+  }
   view(kid) {
     const f = this.f, watch = f.watch || [], hasKey = !!(this.env && this.env.YT_KEY), search = hasKey && !!f.search;
-    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, hasKey, cc: f.cc !== false, now: Date.now() };
-    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, cc: f.cc !== false, feed: f.feed.slice(-100), now: Date.now() };
+    const goal = this.goalView();
+    if (kid) return { family: f.name, kids: [this.kidView(kid, f.kids[kid], false)], watch, search, hasKey, cc: f.cc !== false, goal, now: Date.now() };
+    return { family: f.name, kids: Object.entries(f.kids).map(([id, k]) => this.kidView(id, k, true)), watch, search, hasKey, searchOn: !!f.search, cc: f.cc !== false, goal, feed: f.feed.slice(-100), now: Date.now() };
   }
 
   async notify(to, msg) {
@@ -142,6 +153,15 @@ export class MasachFamily {
         if ((k.sEarn || 0) >= STAR_DAY) return json(Object.assign(this.view(kid), { capped: true }));
         const add = Math.min(n, STAR_DAY - (k.sEarn || 0));
         k.stars = (k.stars || 0) + add; k.sEarn = (k.sEarn || 0) + add;
+        if (f.goal && this.goalView() && !f.goal.done) {
+          f.goal.got = (f.goal.got || 0) + add;
+          if (f.goal.got >= f.goal.target) {
+            f.goal.done = true;
+            f.feed.push({ at: Date.now(), k: id, text: "🏆 המטרה המשותפת הושגה: " + f.goal.title });
+            await this.save();
+            await this.notify(["p", ...Object.keys(f.kids)], { title: "🏆 כל הכבוד! הגעתם ל־" + f.goal.target + " כוכבים", body: "המטרה המשותפת של השבוע: " + f.goal.title });
+          }
+        }
         const last = f.feed[f.feed.length - 1];
         if (last && last.k === id && last.src === src && Date.now() - last.at < 3 * 3600000) { last.n = (last.n || 0) + add; last.text = "⭐ +" + last.n + " · " + src; last.at = Date.now(); }
         else f.feed.push({ at: Date.now(), k: id, src, n: add, text: "⭐ +" + add + " · " + src });
@@ -198,6 +218,13 @@ export class MasachFamily {
             break;
           }
           case "family": f.name = clean(b.name, 30); break;
+          case "goal": { // the parents set (or clear) the weekly family challenge
+            const title = clean(b.title, 40);
+            if (!title) { delete f.goal; break; }
+            const target = mins(b.target, 10, 1000, 100), had = f.goal && f.goal.week === weekOf();
+            f.goal = { title, target, week: weekOf(), got: had ? f.goal.got || 0 : 0, done: had ? (f.goal.got || 0) >= target : false, last: f.goal ? f.goal.last || null : null };
+            break;
+          }
           case "watchAdd": { // a YouTube video, playlist or channel the parents chose; the children watch only these
             f.watch = f.watch || [];
             if (f.watch.length >= 60) return json({ error: "full" }, 400);
