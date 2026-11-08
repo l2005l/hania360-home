@@ -8,7 +8,7 @@ body = r('kasefet.html')
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaKasefet: כסף, השקעות, תקציב והבית במקום אחד. מוצפן בטלפון לפני שמשהו יוצא ממנו. ניתוח מצב, מסלולי השקעה, תזכורות. בחינם.">'
         '<link rel="canonical" href="https://kasefet.hania360.com/"><meta name="robots" content="noindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#0B1220">'
-        '<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="הכספת">'
+        '<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="הכספת">'
         '<style>:root{padding-top:env(safe-area-inset-top,0px)}img{max-width:100%}</style>')
 i = body.index('<style>')
 page = head + body[:i] + '</head><body>' + body[i:] + '\n<script src="/install.js" data-name="HaniaKasefet" data-color="#0B1220" defer></script>\n</body></html>'

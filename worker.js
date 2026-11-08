@@ -469,6 +469,8 @@ export default {
       // even see the page. Anyone else gets a plain "not found"; without the secret the vault is closed to all.
       const owners = String((env && env.KASEFET_OWNER) || "").toLowerCase().split(/[\s,]+/).filter(Boolean);
       const who = owners.length ? await passUser(request, env || {}) : null;
+      // The browser fetches the app manifest without cookies, so it must stay reachable for "Install app" to work (it holds only a name and icons).
+      if (url.pathname === "/manifest.webmanifest") return smallApp(url, KASEFETAPP, KASEFET_FILES, KASEFET_IMAGES, "https://kasefet.hania360.com/");
       if (!who || !owners.includes(who.email.toLowerCase())) {
         if (who === null && owners.length && !url.pathname.startsWith("/api/") && request.method === "GET" && url.pathname === "/") return Response.redirect("https://pass.hania360.com/?return=" + encodeURIComponent("https://kasefet.hania360.com/"), 302);
         return new Response("Not found", { status: 404, headers: { "content-type": "text/plain", "cache-control": "no-store", "x-robots-tag": "noindex" } });
