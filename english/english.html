@@ -128,6 +128,9 @@ input{font:inherit;font-size:18px;border:2px solid var(--line);background:var(--
   var START = { "א": 0, "ב": 0, "ג": 3, "ד": 5, "ה": 7, "ו": 9 }, LESSONS = 3;
   var AVS = ["🦊", "🐼", "🦁", "🐸", "🦄", "🐯", "🐨", "🐙"];
 
+  // Inside HaniaKids: the child chosen there (name, picture, grade), and stars sent to the child's wallet.
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), av: q.get("av") || "", g: /^[אבגדהוזחט]$/.test(q.get("g") || "") ? q.get("g") : "" }; } catch (e) { return null; } })();
+  function hubStars(n, src) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: src }, "*"); } catch (e) {} }
   var KEY = "haniaenglish-v1", S;
   try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
   S = S || {}; S.kids = Array.isArray(S.kids) ? S.kids : [];
@@ -314,6 +317,7 @@ input{font:inherit;font-size:18px;border:2px solid var(--line);background:var(--
   }
   function finish() {
     var stars = L.bad === 0 ? 3 : L.bad <= 2 ? 2 : 1, k = K;
+    hubStars(stars, "אנגלית");
     if (L.i >= 0) { var u = U[L.i], p = k.prog[u[0]] || [0, 0, 0]; if (stars > p[L.li]) { k.stars = (k.stars || 0) + stars - p[L.li]; p[L.li] = stars; } k.prog[u[0]] = p; }
     else { k.stars = (k.stars || 0) + 1; k.miss = k.miss.filter(function (w) { return L.missed.indexOf(w) >= 0; }); }
     L.missed.forEach(function (w) { if (!k.miss.some(function (x) { return x[0] === w[0]; })) k.miss.push(w); }); k.miss = k.miss.slice(-30);
@@ -328,6 +332,10 @@ input{font:inherit;font-size:18px;border:2px solid var(--line);background:var(--
     if (stars >= 2) say(stars === 3 ? "Perfect!" : "Great job!");
   }
 
-  if (S.kids.length && S.kids[S.cur || 0]) { K = S.kids[S.cur || 0]; map(); } else home();
+  if (HUB && HUB.kid) {
+    var hi = S.kids.findIndex(function (k) { return k.name === HUB.kid; });
+    if (hi < 0) { var g0 = HUB.g && START[HUB.g] != null ? HUB.g : "א", nk = { name: HUB.kid, grade: g0, av: HUB.av || AVS[0], prog: {}, stars: 0, miss: [], streak: 0, last: "" }; for (var u0 = 0; u0 < START[g0]; u0++) nk.prog[U[u0][0]] = [0, 0, 0]; S.kids.push(nk); hi = S.kids.length - 1; }
+    S.cur = hi; save(); K = S.kids[hi]; map();
+  } else if (S.kids.length && S.kids[S.cur || 0]) { K = S.kids[S.cur || 0]; map(); } else home();
 })();
 </script>

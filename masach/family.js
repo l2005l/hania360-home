@@ -18,7 +18,7 @@ const bedMin = (k) => { const m = /^(\d{2}):(\d{2})$/.exec(k.bed || ""); return 
 const asleep = (k) => { const b = bedMin(k); if (b == null) return false; const m = Math.floor(sinceMidnight() / 60000); return m >= b || m < 300; };
 const EMOJI = ["🦊", "🐼", "🦁", "🐸", "🦄", "🐙", "🐯", "🐨", "🐵", "🐬"];
 const COLORS = ["#FF7A59", "#3BA3FF", "#21B573", "#B66DFF", "#FFB020", "#FF5D8F"];
-const MAX_KIDS = 6, WARN = 5 * 60000, KEEP_DAYS = 14;
+const MAX_KIDS = 6, WARN = 5 * 60000, KEEP_DAYS = 14, STAR_DAY = 60;
 const mins = (n, lo, hi, d) => { n = Math.round(+n); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
 
 export class MasachFamily {
@@ -33,14 +33,15 @@ export class MasachFamily {
     if (k.day) { k.hist[k.day] = Math.round((k.used + (k.run ? Date.now() - k.run : 0)) / 60000); }
     const cut = IL(Date.now() - KEEP_DAYS * 864e5);
     for (const d in k.hist) if (d < cut) delete k.hist[d];
-    k.day = today; k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.warned1 = false; k.ended = false;
+    k.day = today; k.used = 0; k.bonus = 0; k.tasks = 0; k.warned = false; k.warned1 = false; k.ended = false; k.sEarn = 0; k.sRedeem = 0;
     if (k.run) k.run = Math.max(k.run, Date.now() - sinceMidnight());
   }
   used(k) { return k.used + (k.run ? Date.now() - k.run : 0); }
   left(k) { return (k.daily + k.bonus) * 60000 - this.used(k); }
   kidView(id, k, withToken) {
     this.roll(k);
-    const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist, bed: k.bed || "", asleep: asleep(k), read: k.read || 0 };
+    const o = { id, name: k.name, emoji: k.emoji, color: k.color, daily: k.daily, bonus: k.bonus, bonusOn: k.bonusOn, bonusMin: k.bonusMin, maxTasks: k.maxTasks, tasks: k.tasks, running: !!k.run, left: Math.round(this.left(k) / 1000), used: Math.round(this.used(k) / 1000), hist: k.hist, bed: k.bed || "", asleep: asleep(k), read: k.read || 0,
+      stars: k.stars || 0, grade: k.grade || "", starOn: k.starOn !== false, starRate: k.starRate || 10, starCap: k.starCap || 30, sRedeem: k.sRedeem || 0, sEarn: k.sEarn || 0 };
     if (withToken) o.t = k.t;
     return o;
   }
@@ -134,6 +135,30 @@ export class MasachFamily {
         await this.save(); return json({ ok: true });
       }
       case "unsub": if (b.endpoint) delete f.subs[await subId(b.endpoint)]; await this.save(); return json({ ok: true });
+      case "star": { // stars from learning and routines in HaniaKids (English, math, homework, the evening routine)
+        if (!k) return json({ error: "kid" }, 400);
+        const n = mins(b.n, 1, 10, 1), src = clean(b.src, 24) || "לימוד";
+        if ((k.sEarn || 0) >= STAR_DAY) return json(Object.assign(this.view(kid), { capped: true }));
+        const add = Math.min(n, STAR_DAY - (k.sEarn || 0));
+        k.stars = (k.stars || 0) + add; k.sEarn = (k.sEarn || 0) + add;
+        const last = f.feed[f.feed.length - 1];
+        if (last && last.k === id && last.src === src && Date.now() - last.at < 3 * 3600000) { last.n = (last.n || 0) + add; last.text = "⭐ +" + last.n + " · " + src; last.at = Date.now(); }
+        else f.feed.push({ at: Date.now(), k: id, src, n: add, text: "⭐ +" + add + " · " + src });
+        break;
+      }
+      case "redeem": { // 10 stars become screen minutes, as the parents set (and up to their daily limit)
+        if (!k) return json({ error: "kid" }, 400);
+        const rate = k.starRate || 10, cap = k.starCap || 30;
+        if (k.starOn === false) return json({ error: "stars off" }, 400);
+        if ((k.stars || 0) < 10) return json({ error: "few stars" }, 400);
+        if ((k.sRedeem || 0) + rate > cap) return json({ error: "cap" }, 400);
+        if (asleep(k)) return json({ error: "bed" }, 400);
+        k.stars -= 10; k.bonus += rate; k.sRedeem = (k.sRedeem || 0) + rate; k.warned = false; k.warned1 = false; k.ended = false;
+        f.feed.push({ at: Date.now(), k: id, text: "⭐ 10 כוכבים → +" + rate + " דק׳" });
+        await this.save();
+        await this.notify(["p"], { title: "⭐ " + k.name + " המיר/ה כוכבים", body: "10 כוכבים מלמידה → " + rate + " דקות מסך" });
+        break;
+      }
       case "task": { // the child did something away from the screen and earns minutes
         if (!kid) return json({ error: "kid" }, 400);
         if (!k.bonusOn || k.tasks >= k.maxTasks || asleep(k)) return json({ error: "no bonus" }, 400);
@@ -159,6 +184,10 @@ export class MasachFamily {
               if (b.bed !== undefined) k.bed = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(b.bed)) ? String(b.bed) : "";
               if (b.maxTasks !== undefined) k.maxTasks = mins(b.maxTasks, 1, 6, k.maxTasks);
               if (b.read !== undefined) k.read = mins(b.read, 0, 3, 0);
+              if (b.grade !== undefined) k.grade = ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"].includes(b.grade) ? b.grade : "";
+              if (b.starOn !== undefined) k.starOn = !!b.starOn;
+              if (b.starRate !== undefined) k.starRate = mins(b.starRate, 5, 30, 10);
+              if (b.starCap !== undefined) k.starCap = mins(b.starCap, 5, 120, 30);
               if (b.emoji !== undefined && EMOJI.includes(b.emoji)) k.emoji = b.emoji;
             } else {
               if (Object.keys(f.kids).length >= MAX_KIDS) return json({ error: "full" }, 400);

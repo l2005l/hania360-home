@@ -414,6 +414,17 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       });
     });
   }
+  // Inside a combined app (HaniaKids, HaniaYahadut) a page in a frame cannot ask for notifications, so the
+  // combined app sets the reminder on its own address and passes back the answer.
+  var PUSH_HUB = (function () { try { return new URLSearchParams(location.search).get("in") === "hub" && window.parent !== window; } catch (e) { return false; } })();
+  if (PUSH_HUB) {
+    canPush = true;
+    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
+    var HUBSUB = { endpoint: "hub", toJSON: function () { return null; } };
+    getSub = function () { return Promise.resolve(HUBSUB); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+    try { window.Notification = { requestPermission: function () { return Promise.resolve("granted"); }, permission: "granted" }; } catch (e) {}
+  }
   function items() { var now = Date.now(); return current(new Date()).list.filter(function (x) { return x.l.t && x.l.t.getTime() > now; }).map(function (x) { return { t: x.l.t.getTime(), label: "🕎 נר " + NUM[x.n] + " של חנוכה" }; }); }
   function renderRem() {
     var row = $("remRow"); row.replaceChildren();

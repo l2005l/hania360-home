@@ -448,7 +448,7 @@ export default {
     // One address for search engines: www.hania360.com moves to hania360.com.
     if (url.hostname === "home.hania360.com" || url.searchParams.get("app") === "home" && /workers\.dev$/.test(url.hostname)) return homeApp(url);
     // The three combined apps, and the small page through which each app shows them a few numbers.
-    { const hk = /^(kids|bayit|yahadut)\.hania360\.com$/.exec(url.hostname); if (hk) return hubApp(url, hk[1]); }
+    { const hk = /^(kids|bayit|yahadut)\.hania360\.com$/.exec(url.hostname); if (hk) return url.pathname.startsWith("/api/masach/") ? masachApi(request, env || {}, url) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : hubApp(url, hk[1]); }
     if (url.pathname === "/_bridge") { const r = bridge(url.hostname.split(".")[0]); if (r) return r; }
     if (url.hostname === "caption.hania360.com" || url.searchParams.get("app") === "caption" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CAPTIONAPP, CAPTION_FILES, CAPTION_IMAGES, "https://caption.hania360.com/");
     if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");

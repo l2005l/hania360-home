@@ -355,6 +355,17 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
       });
     });
   }
+  // Inside a combined app (HaniaKids, HaniaYahadut) a page in a frame cannot ask for notifications, so the
+  // combined app sets the reminder on its own address and passes back the answer.
+  var PUSH_HUB = (function () { try { return new URLSearchParams(location.search).get("in") === "hub" && window.parent !== window; } catch (e) { return false; } })();
+  if (PUSH_HUB) {
+    canPush = true;
+    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
+    var HUBSUB = { endpoint: "hub", toJSON: function () { return null; } };
+    getSub = function () { return Promise.resolve(HUBSUB); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+    try { window.Notification = { requestPermission: function () { return Promise.resolve("granted"); }, permission: "granted" }; } catch (e) {}
+  }
   function setBefore(min) {
     if (!min) { S.before = 0; save(); renderRemind(); if (canPush) getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint }); }).catch(function () {}); toast("התזכורות כבויות"); return; }
     if (!canPush) { toast($("rmNote").textContent); return; }

@@ -108,6 +108,9 @@ body.tv .wrow{grid-auto-columns:minmax(240px,19%)}
 .serp .in{max-width:1100px;margin:0 auto;display:grid;gap:14px}
 .serp .top{display:flex;gap:12px;align-items:center}.serp .top img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:12px}.serp h2{font-size:22px}
 .player .nx{position:absolute;bottom:14px;inset-inline-end:12px;z-index:2}
+/* the stars wallet */
+.wallet{width:100%;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center;border-radius:20px;padding:12px 14px;background:linear-gradient(135deg,rgba(255,200,61,.18),rgba(255,255,255,.03));border:1px solid var(--line)}
+.wallet .wst{font-size:26px;font-weight:900}
 /* reading with nikud */
 .read{width:100%;display:grid;gap:10px;justify-items:center;border-radius:24px;padding:16px;background:linear-gradient(160deg,rgba(255,200,61,.14),rgba(255,255,255,.03));border:1px solid var(--line)}
 .read .w{font-family:"Noto Serif Hebrew","Frank Ruhl Libre","David",serif;font-weight:700;font-size:clamp(46px,14vw,92px);line-height:1.35;direction:rtl;letter-spacing:.02em}
@@ -210,6 +213,7 @@ body.tv .read .w{font-size:min(14vh,12vw)}
       <button class="chip" type="button" id="kBack" hidden>🔒 חזרה להורה</button>
     </div>
     <p class="fine kidfoot" id="kFoot"></p>
+    <div class="wallet" id="kStars" hidden></div>
     <section class="read" id="kRead" hidden></section>
     <section id="kWatch" style="width:100%;display:grid;gap:12px" hidden><h2 style="text-align:start" id="kWH">📺 מה רואים? <small class="fine">בוחרים, והשעון מתחיל לבד</small></h2>
       <div id="kHero"></div>
@@ -323,6 +327,7 @@ body.tv .read .w{font-size:min(14vh,12vw)}
           el("button", { class: "chip", type: "button", text: "⚙️", "aria-label": "הגדרות של " + k.name, onclick: function () { kidSettings(k); } })]),
         el("div", { class: "big", "data-left": "1", text: mmss(left) }),
         el("div", { class: "bar" }, [el("i", { style: "width:" + pct + "%" })]),
+        k.starOn ? el("p", { class: "fine", text: "⭐ " + (k.stars || 0) + " כוכבים" + (k.sEarn ? " · היום +" + k.sEarn : "") + (k.sRedeem ? " · הומרו היום " + k.sRedeem + " דק׳" : "") + (k.grade ? " · כיתה " + k.grade + "׳" : "") }) : null,
         el("div", { class: "row" }, [
           el("button", { class: "btn small", type: "button", text: k.running ? "⏸ עצירה" : "▶ הפעלה", onclick: function () { op({ op: k.running ? "pause" : "start", k: k.id }); } }),
           el("button", { class: "chip", type: "button", text: "+10 דק׳", onclick: function () { op({ op: "add", k: k.id, min: 10 }); } }),
@@ -374,8 +379,13 @@ body.tv .read .w{font-size:min(14vh,12vw)}
     var bed = el("select", null, BEDS.map(function (t) { var x = el("option", { value: t, text: t ? "🌙 " + t + " (עד הבוקר)" : "בלי" }); if ((k.bed || "") === t) x.selected = true; return x; }));
     var rd = el("select", null, [["0", "בלי"], ["1", "מילים קצרות (גן, כיתה א׳)"], ["2", "מילים ארוכות יותר"], ["3", "משפטים קצרים"]].map(function (o) { var x = el("option", { value: o[0], text: o[1] }); if (String(k.read || 0) === o[0]) x.selected = true; return x; }));
     var max = el("select", null, [1, 2, 3, 4, 5].map(function (n) { var x = el("option", { value: String(n), text: n + " פעמים ביום" }); if (n === k.maxTasks) x.selected = true; return x; }));
-    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]), el("label", null, ["שעת שינה: מהשעה הזו המסך סגור, גם אם נשארו דקות", bed]), el("label", null, ["📖 קוראים לבד: מילים עם ניקוד במסך של " + k.name + " (וגם משימה של 5 מילים בהפסקה)", rd]),
-      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value, bed: bed.value, read: +rd.value }).then(close); } }),
+    var opt = function (list, cur) { return el("select", null, list.map(function (o) { var x = el("option", { value: String(o[0]), text: o[1] }); if (String(cur) === String(o[0])) x.selected = true; return x; })); };
+    var gr = opt([["", "לא נבחרה"]].concat(["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט"].map(function (g) { return [g, "כיתה " + g + "׳"]; })), k.grade || "");
+    var sr = opt([[0, "בלי"], [5, "10 ⭐ = 5 דקות"], [10, "10 ⭐ = 10 דקות"], [15, "10 ⭐ = 15 דקות"]], k.starOn === false ? 0 : k.starRate || 10);
+    var sc = opt([[10, "עד 10 דקות ביום"], [20, "עד 20 דקות ביום"], [30, "עד 30 דקות ביום"], [45, "עד 45 דקות ביום"], [60, "עד שעה ביום"]], k.starCap || 30);
+    var close = sheet("⚙️ " + k.name, [el("label", null, ["שם", name]), el("label", null, ["כיתה (בשביל האנגלית, החשבון ושיעורי הבית ב־HaniaKids)", gr]),
+      el("label", null, ["⭐ כוכבים מלמידה ומהשגרה ב־HaniaKids הופכים לדקות מסך", sr]), el("label", null, ["כמה דקות מכוכבים ביום, לכל היותר", sc]), el("label", null, ["זמן מסך ביום", daily]), el("label", null, ["דקות שמרוויחים על משימה בלי מסך", bon]), el("label", null, ["כמה משימות ביום", max]), el("label", null, ["שעת שינה: מהשעה הזו המסך סגור, גם אם נשארו דקות", bed]), el("label", null, ["📖 קוראים לבד: מילים עם ניקוד במסך של " + k.name + " (וגם משימה של 5 מילים בהפסקה)", rd]),
+      el("button", { class: "btn", type: "button", text: "שמירה", onclick: function () { var b = +bon.value; op({ op: "kid", k: k.id, name: name.value, daily: +daily.value, bonusOn: b > 0, bonusMin: b || 10, maxTasks: +max.value, bed: bed.value, read: +rd.value, grade: gr.value, starOn: +sr.value > 0, starRate: +sr.value || 10, starCap: +sc.value }).then(close); } }),
       el("div", { class: "row" }, [el("button", { class: "chip", type: "button", text: "🔄 להתחיל את היום מאפס", onclick: function () { op({ op: "reset", k: k.id }).then(close); } }),
         el("button", { class: "chip", type: "button", text: "🗑️ הסרה", onclick: function () { if (confirm("להסיר את " + k.name + "?")) op({ op: "kid", k: k.id, remove: true }).then(close); } })])]);
   }
@@ -425,6 +435,17 @@ body.tv .read .w{font-size:min(14vh,12vw)}
 
   // ---- child ------------------------------------------------------------------------------
   var K = null, kData = null, kAt = 0, kTimer = 0, lastLeft = null, audio = null, lock = null, pipV = null, pipC = null;
+  // ---- Stars from HaniaKids (English, math, homework, the routine): 10 of them become screen minutes ----
+  function drawStars() {
+    var box = $("kStars"), k = kData; if (!box || !k) return;
+    if (!k.starOn) { box.hidden = true; return; }
+    box.hidden = false;
+    var can = (k.stars || 0) >= 10 && (k.sRedeem || 0) + k.starRate <= k.starCap && !k.asleep;
+    var note = (k.stars || 0) < 10 ? "עוד " + (10 - (k.stars || 0)) + " ⭐ ואפשר להמיר ל־" + k.starRate + " דקות" : (k.sRedeem || 0) + k.starRate > k.starCap ? "להיום כבר המרת את כל מה שמותר" : "10 ⭐ = " + k.starRate + " דקות מסך";
+    box.replaceChildren(el("b", { class: "wst", text: "⭐ " + (k.stars || 0) }), el("span", { class: "fine", text: note }),
+      el("button", { class: "btn small", type: "button", disabled: can ? null : "", text: "להמיר ⭐→⏱️", onclick: function () { api("op", Object.assign({ op: "redeem" }, kAuth())).then(function (j) { drawKid(j); toast("⭐ +" + k.starRate + " דקות מסך!"); }).catch(function (e) { toast(e.code === "cap" ? "להיום כבר המרת את כל מה שמותר" : e.code === "few stars" ? "צריך 10 כוכבים" : e.code === "bed" ? "עכשיו שעת שינה" : "לא הצלחנו. מנסים שוב"); }); } }),
+      el("span", { class: "fine", style: "width:100%", text: "כוכבים מרוויחים באנגלית, בחשבון, בשיעורי בית ובשגרה של HaniaKids." }));
+  }
   // ---- Reading alone: words with nikud for the little ones (the parents choose the level per child) ----
   var WORDS = {
     1: [["דָּג", "🐟"], ["יָד", "✋"], ["סוּס", "🐴"], ["פִּיל", "🐘"], ["יָם", "🌊"], ["לֵב", "❤️"], ["דֹּב", "🐻"], ["אַף", "👃"], ["עֵץ", "🌳"], ["תּוּת", "🍓"], ["צָב", "🐢"], ["קוֹף", "🐒"], ["אַבָּא", "👨"], ["אִמָּא", "👩"], ["סַבָּא", "👴"], ["בַּיִת", "🏠"], ["עַיִן", "👁️"], ["כֶּלֶב", "🐶"], ["לֶחֶם", "🍞"], ["פָּרָה", "🐄"], ["גֶּזֶר", "🥕"], ["סֵפֶר", "📖"], ["עוּגָה", "🎂"], ["אוֹטוֹ", "🚗"]],
@@ -476,6 +497,7 @@ body.tv .read .w{font-size:min(14vh,12vw)}
     $("kArc").setAttribute("stroke-dashoffset", String(276.5 * (1 - Math.max(0, Math.min(1, left / total)))));
     $("kArc").style.stroke = left <= 0 ? "var(--bad)" : warn ? "var(--warn)" : kData.color;
     $("kGo").textContent = kData.running ? (nq ? "⏸ הַפְסָקָה" : "⏸ הפסקה") : (nq ? "▶ מַתְחִילִים מָסָךְ" : "▶ מתחילים מסך");
+    drawStars();
     $("kFoot").textContent = kData.bonusOn ? "כשהזמן נגמר אפשר להרוויח עוד " + kData.bonusMin + " דקות במשימה בלי מסך (" + (kData.maxTasks - kData.tasks) + " נשארו היום)." : "";
     if (lastLeft != null && kData.running) { if (lastLeft > 300 && left <= 300) beep(2); if (lastLeft > 60 && left <= 60) chime(1); if (lastLeft > 0 && left <= 0) { chime(3); closePlayer(); loadKid(); } }
     tickPlayer(left);
