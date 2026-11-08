@@ -487,6 +487,7 @@ export default {
       if (url.pathname === "/api/plate") return plateProxy(url, ctx);
       if (url.pathname === "/api/ds") return dsProxy(url, ctx);
       if (url.pathname === "/api/nadlan") return nadlanApi(url, ctx);
+      if (url.pathname.startsWith("/api/shabbat/")) return shabbatApi(request, env || {});
       return smallApp(url, CHECKAPP, CHECK_FILES, CHECK_IMAGES, "https://check.hania360.com/");
     }
     if (url.hostname === "ride.hania360.com" || url.searchParams.get("app") === "ride" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/ride/") ? rideApi(request, env || {}, url) : smallApp(url, RIDEAPP, RIDE_FILES, RIDE_IMAGES, "https://ride.hania360.com/");

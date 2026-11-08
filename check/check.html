@@ -310,8 +310,10 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
     kids.push(el("details", {}, [el("summary", { text: "כל הפרטים הטכניים" }), el("dl", {}, tech.reduce(function (a, x) { a.push(el("dt", { text: x[0] }), el("dd", { text: String(x[1]).trim() })); return a; }, []))]));
 
     var share = "🚗 " + title + " (" + fmtPlate(d) + ")\n" + flags.map(function (f) { return f[1] + " " + f[2]; }).join("\n") + "\n" + stats.map(function (x) { return x[0] + ": " + x[1]; }).join(" · ") + "\nבדיקה ב־HaniaCheck: https://check.hania360.com/#car-" + d;
-    var isMineCar = myCars().some(function (x) { return x.p === d; });
-    kids.push(el("button", { class: "btn", type: "button", style: "background:var(--plate);color:#111", text: isMineCar ? "⭐ הרכב שלי (להסרה)" : "⭐ זה הרכב שלי: תזכורת לטסט ולריקולים", onclick: function () { toggleCar(d, [c.tozeret_nm, c.kinuy_mishari].filter(Boolean).join(" ").trim()); show(d, r); } }));
+    var isMineCar = myCars().some(function (x) { return x.p === d; }), tIso = tokef ? tokef.getFullYear() + "-" + pad2(tokef.getMonth() + 1) + "-" + pad2(tokef.getDate()) : "";
+    if (isMineCar) updateTokef(d, tIso);
+    kids.push(el("button", { class: "btn", type: "button", style: "background:var(--plate);color:#111", text: isMineCar ? "⭐ הרכב שלי (להסרה)" : "⭐ זה הרכב שלי: תזכורת לטסט ולביטוח", onclick: function () { toggleCar(d, [c.tozeret_nm, c.kinuy_mishari].filter(Boolean).join(" ").trim(), tIso); show(d, r); } }));
+    if (isMineCar && canPush) kids.push(el("button", { class: "btn", type: "button", text: ls("hc.rem") === "1" ? "🔔 תזכורת בטלפון פעילה: חודש, שבוע ויום לפני הטסט (לכבות)" : "🔔 להזכיר לי בטלפון לפני הטסט וביטוח החובה", onclick: function () { setRem(ls("hc.rem") !== "1").then(function () { show(d, r); }); } }));
     kids.push(el("div", { class: "btns" }, [
       el("a", { class: "btn wa", href: "https://wa.me/?text=" + encodeURIComponent(share), target: "_blank", rel: "noopener", text: "שליחה בוואטסאפ" }),
       el("button", { class: "btn", type: "button", text: "רכב אחר", onclick: function () { $("num").value = ""; $("num").focus(); scrollTo({ top: 0, behavior: "smooth" }); } })]));
@@ -324,12 +326,49 @@ form.search button{appearance:none;border:0;border-radius:14px;background:var(--
   // ---- my cars: kept on the phone, and in the Hania360 account for Hania Today's test reminder ----------
   function myCars() { try { return JSON.parse(ls("hc.cars") || "[]"); } catch (e) { return []; } }
   var ACCT = null;
-  function toggleCar(p, t) {
+  function toggleCar(p, t, e) {
     var cs = myCars(), had = cs.some(function (x) { return x.p === p; });
-    cs = had ? cs.filter(function (x) { return x.p !== p; }) : cs.concat([{ p: p, t: t }]).slice(-6);
-    ls("hc.cars", JSON.stringify(cs)); saveCars(); renderRecent();
-    toast(had ? "הוסר מהרכבים שלי" : ACCT && ACCT.signedIn ? "נשמר. Hania Today יזכיר את הטסט ויתריע על ריקול" : "נשמר בטלפון. כדי לקבל תזכורת ב־Hania Today מתחברים ל־Hania360");
+    cs = had ? cs.filter(function (x) { return x.p !== p; }) : cs.concat([{ p: p, t: t, e: e || "" }]).slice(-6);
+    ls("hc.cars", JSON.stringify(cs)); saveCars(); renderRecent(); resync();
+    if (!had && canPush && ls("hc.rem") !== "1") { setRem(true); return; }
+    toast(had ? "הוסר מהרכבים שלי" : ACCT && ACCT.signedIn ? "נשמר. Hania Today יזכיר את הטסט ויתריע על ריקול" : "נשמר. נזכיר לפני הטסט");
   }
+  function updateTokef(p, e) {
+    if (!e) return; var cs = myCars(), x = cs.filter(function (y) { return y.p === p; })[0];
+    if (x && x.e !== e) { x.e = e; ls("hc.cars", JSON.stringify(cs)); resync(); }
+  }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+  // ---- reminders on this phone: a month, a week and a day before each saved car's test date ----
+  // Uses the same reminder service as HaniaDat (kind "c"): the server wakes the phone, the service worker asks what to show.
+  var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  function papi(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
+  function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return papi("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
+  function remItems() {
+    var out = [], now = Date.now();
+    myCars().forEach(function (c) {
+      var e = day(c.e); if (!e) return;
+      var name = (c.t ? c.t + " " : "") + fmtPlate(c.p);
+      [[30, "בעוד חודש"], [7, "בעוד שבוע"], [1, "מחר"]].forEach(function (o) {
+        var at = new Date(e.getFullYear(), e.getMonth(), e.getDate() - o[0], 9, 10).getTime();
+        if (at > now) out.push({ t: at, label: "🚗 הטסט של " + name + " " + o[1] + " (" + fmtDay(e) + "). לזכור לחדש גם ביטוח חובה" });
+      });
+    });
+    return out.sort(function (a, b) { return a.t - b.t; }).slice(0, 40);
+  }
+  function setRem(on) {
+    var it = remItems();
+    if (!on || !it.length) return getSub(false).then(function (s) { if (s) return papi("unsub", { endpoint: s.endpoint, kind: "c" }); }).catch(function () {}).then(function () { ls("hc.rem", on ? "1" : "0"); toast(on ? "נזכיר כשיתקרב מועד הטסט" : "התזכורת כבויה"); });
+    return Notification.requestPermission().then(function (p) {
+      if (p !== "granted") { toast("נשמר. בלי אישור להתראות אי אפשר להזכיר בטלפון"); return; }
+      return getSub(true).then(function (s) { return papi("sub", { kind: "c", sub: s.toJSON(), before: 10, city: "HaniaCheck", items: it }); }).then(function (j) { if (!j.ok) throw 0; ls("hc.rem", "1"); toast("🔔 נזכיר חודש, שבוע ויום לפני הטסט"); });
+    }).catch(function () { toast("לא הצלחנו להפעיל תזכורת"); });
+  }
+  function resync() {
+    if (!canPush || ls("hc.rem") !== "1") return; var it = remItems();
+    getSub(false).then(function (s) { if (!s) return; return it.length ? papi("sub", { kind: "c", sub: s.toJSON(), before: 10, city: "HaniaCheck", items: it }) : papi("unsub", { endpoint: s.endpoint, kind: "c" }); }).catch(function () {});
+  }
+  setTimeout(resync, 1500);
   function saveCars() { if (ACCT && ACCT.signedIn) fetch("/api/me/cars", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ cars: myCars() }) }).catch(function () {}); }
   fetch("/api/me", { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (j) {
     ACCT = j; if (!j.signedIn) return;
