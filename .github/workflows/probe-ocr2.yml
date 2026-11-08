@@ -1,0 +1,12 @@
+name: probe-ocr2
+on: { push: { branches: [probe-ocr2] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          H=https://shiurim.hania360.com; D=probeDevice0000000000010
+          python3 -c "import json;print(json.dumps({'device':'$D','grade':'ג','image':open('.github/probe/ws.b64').read().strip(),'what':'task'}))" > body.json
+          echo "== READ"; curl -sS -X POST $H/api/shiurim/read -H 'content-type: application/json' --data @body.json; echo
+          echo "== ENG"; curl -sS -X POST $H/api/shiurim/plan -H 'content-type: application/json' -d '{"device":"'$D'","grade":"ד","subject":"eng","text":"Complete: She ___ a red bike. (have / has)"}'; echo
