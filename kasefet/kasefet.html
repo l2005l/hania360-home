@@ -240,6 +240,9 @@ function lockScreen(why) {
       el("button", { class: "btn gold", style: "width:100%;margin:8px 0", text: "🔐 לפתוח כספת חדשה", onclick: createScreen }),
       el("button", { class: "btn", style: "width:100%", text: "יש לי כבר כספת (מכשיר אחר)", onclick: openOther }));
   }
+  var whoP = el("p", { class: "tiny muted", style: "text-align:center;margin-top:10px" });
+  fetch("/api/whoami", { credentials: "same-origin", cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) { if (j.email) whoP.textContent = "🔒 גישה פרטית: נכנסת עם חשבון Hania360 " + j.email + ". מי שאינו את/ה לא רואה את הדף הזה."; }).catch(function () {});
+  box.append(whoP);
   box.append(el("p", { class: "note", text: "הצפנת AES-256 בטלפון, סיסמה מוגנת ב־600,000 סבבי PBKDF2, נעילה אוטומטית, ובלי פרסומות או מעקב." }));
   v.replaceChildren(el("div", { style: "width:min(460px,100%)" }, [head, box]));
 }
