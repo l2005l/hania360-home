@@ -473,6 +473,7 @@ export default {
         if (who === null && owners.length && !url.pathname.startsWith("/api/") && request.method === "GET" && url.pathname === "/") return Response.redirect("https://pass.hania360.com/?return=" + encodeURIComponent("https://kasefet.hania360.com/"), 302);
         return new Response("Not found", { status: 404, headers: { "content-type": "text/plain", "cache-control": "no-store", "x-robots-tag": "noindex" } });
       }
+      if (url.pathname === "/api/whoami") { const [u, d] = who.email.split("@"); return Response.json({ email: u.slice(0, 2) + "•••@" + d }, { headers: { "cache-control": "no-store" } }); }
       const res = url.pathname.startsWith("/api/vault/") ? await vaultApi(request, env || {}) : url.pathname.startsWith("/api/shabbat/") ? await shabbatApi(request, env || {}) : smallApp(url, KASEFETAPP, KASEFET_FILES, KASEFET_IMAGES, "https://kasefet.hania360.com/");
       const out = new Response(res.body, res);
       if (/text\/html/.test(out.headers.get("content-type") || "")) { out.headers.set("content-security-policy", KASEFET_CSP); out.headers.set("cache-control", "no-store"); }
