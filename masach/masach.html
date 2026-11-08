@@ -174,7 +174,8 @@ body.tv .read .w{font-size:min(14vh,12vw)}
       <h2>📺 מה רואים</h2>
       <p class="fine">מחפשים כאן כמו ביוטיוב ולוחצים "+ הוספה". הילדים יראו רק את מה שברשימה, עם השעון בפינה.</p>
       <form class="row" id="wForm" style="flex-wrap:nowrap"><input id="wUrl" type="search" placeholder="🔎 למשל: טרוטרו, ערוץ הופ, שירי ילדים" enterkeyhint="search" aria-label="חיפוש ביוטיוב"><button class="btn small ghost" type="button" id="wMic" aria-label="חיפוש בקול: לוחצים ומדברים" style="font-size:22px;padding:8px 14px" hidden>🎤</button><button class="btn small" type="submit" id="wAdd">חיפוש</button></form>
-      <div class="row"><span class="fine">רעיונות:</span><button class="chip" type="button" data-q="ערוץ הופ">ערוץ הופ!</button><button class="chip" type="button" data-q="טרוטרו">טרוטרו</button><button class="chip" type="button" data-q="דנה ודרור">דנה ודרור</button><button class="chip" type="button" data-q="שירי ילדים">שירי ילדים</button></div>
+      <div class="row" id="ageRow"><span class="fine">רעיונות לפי גיל:</span><button class="chip" type="button" data-age="0" aria-pressed="true">0–3</button><button class="chip" type="button" data-age="1" aria-pressed="false">3–6</button><button class="chip" type="button" data-age="2" aria-pressed="false">6–9</button><button class="chip" type="button" data-age="3" aria-pressed="false">9–12</button></div>
+      <div class="row" id="ageIdeas"></div>
       <div class="wlist" id="wRes" hidden></div>
       <b id="wMine" hidden>ברשימה של הילדים:</b>
       <div class="wlist" id="wList"></div>
@@ -420,6 +421,19 @@ body.tv .read .w{font-size:min(14vh,12vw)}
   $("sOn").addEventListener("click", function () { var on = $("sOn").getAttribute("aria-pressed") !== "true"; op({ op: "searchOn", on: on }).then(function () { toast(on ? "🔎 החיפוש פתוח לילדים, בסינון מחמיר. כל חיפוש מופיע לכם ביומן" : "החיפוש סגור. הילדים רואים רק את הרשימה"); }); });
   $("ccOn").addEventListener("click", function () { var on = $("ccOn").getAttribute("aria-pressed") !== "true"; op({ op: "cc", on: on }).then(function () { toast(on ? "💬 הכתוביות יופיעו כשיש לסרטון" : "הכתוביות כבויות. אם עדיין מופיעות: לחיצה על CC בנגן"); }); });
   $("wForm").addEventListener("submit", function (e) { e.preventDefault(); $("wUrl").blur(); parentSearch($("wUrl").value); });
+  // Ideas by age: each one searches YouTube (strict SafeSearch), and the parents add what fits.
+  var IDEAS = [
+    [["ערוץ הופ", "ערוץ הופ!"], ["טרוטרו", "טרוטרו"], ["דנה ודרור", "דנה ודרור"], ["שירי ילדים בעברית", "שירי ילדים"], ["בייבי שארק עברית", "בייבי שארק"], ["שירי ערש", "שירי ערש"]],
+    [["פפה חזירה עברית", "פפה חזירה"], ["בלואי עברית", "בלואי"], ["צוות הצלה עברית", "צוות הצלה"], ["סמי הכבאי עברית", "סמי הכבאי"], ["Numberblocks", "Numberblocks (מספרים)"], ["Alphablocks", "Alphablocks (אנגלית)"]],
+    [["ניסויים מדעיים לילדים", "ניסויים במדע"], ["Wild Kratts", "Wild Kratts (חיות)"], ["Art for Kids Hub", "ציור לילדים"], ["National Geographic Kids", "נשיונל ג׳יאוגרפיק לילדים"], ["סיפורי תנ\"ך לילדים", "סיפורי תנ״ך"], ["Lingokids", "אנגלית לילדים"]],
+    [["Mark Rober", "Mark Rober (הנדסה)"], ["SciShow Kids", "SciShow Kids"], ["TED-Ed", "TED-Ed"], ["Kurzgesagt", "Kurzgesagt (מדע)"], ["היסטוריה לילדים", "היסטוריה"], ["Kids Cooking", "בישול לילדים"]]
+  ];
+  function drawIdeas(a) {
+    [].forEach.call($("ageRow").querySelectorAll("[data-age]"), function (b) { b.setAttribute("aria-pressed", String(+b.getAttribute("data-age") === a)); });
+    $("ageIdeas").replaceChildren.apply($("ageIdeas"), IDEAS[a].map(function (x) { return el("button", { class: "chip", type: "button", text: x[1], onclick: function () { $("wUrl").value = x[0]; parentSearch(x[0]); } }); }));
+  }
+  $("ageRow").addEventListener("click", function (e) { var b = e.target.closest("[data-age]"); if (b) drawIdeas(+b.getAttribute("data-age")); });
+  drawIdeas(0);
   [].forEach.call(document.querySelectorAll("[data-q]"), function (b) { b.addEventListener("click", function () { $("wUrl").value = b.getAttribute("data-q"); parentSearch(b.getAttribute("data-q")); }); });
   $("addKid").addEventListener("click", function () {
     var name = el("input", { type: "text", maxlength: "20", placeholder: "שם" });

@@ -89,6 +89,11 @@ body.dim .page{background:#1B1838;color:#CFC8F5}body.dim .page h1{color:var(--mo
   var S = Object.assign({ kid: 0, place: "forest", friend: "dragon", value: "friend", len: "short" }, jget("sp.choice", {}));
   function kids() { return jget("sp.kids", []); }
   function lib() { return jget("sp.lib", []); }
+  // Inside HaniaKids: the child chosen there is the hero (added once; age from the grade; boy or girl is set here once).
+  (function () { try { var q = new URLSearchParams(location.search), n = (q.get("kid") || "").replace(/[^א-תa-zA-Z' \-]/g, "").trim(); if (q.get("in") !== "hub" || !n) return;
+    var K = kids(), i = K.findIndex(function (k) { return k.name === n; }), G = { "א": 6, "ב": 7, "ג": 8, "ד": 9, "ה": 10, "ו": 10 };
+    if (i < 0) { K.push({ name: n, g: "m", age: G[q.get("g")] || 6, sib: "", hub: 1 }); i = K.length - 1; ls("sp.kids", JSON.stringify(K.slice(-8))); i = Math.min(i, 7); }
+    S.kid = i; ls("sp.choice", JSON.stringify(S)); } catch (e) {} })();
 
   // ---- choosing --------------------------------------------------------------------------------
   function home() {
@@ -99,6 +104,7 @@ body.dim .page{background:#1B1838;color:#CFC8F5}body.dim .page h1{color:var(--mo
     var L = lib().filter(function (s) { return !kid || s.kid === kid.name; });
     show([
       el("div", { class: "hero" }, [el("div", { class: "moon", "aria-hidden": "true" }), el("div", {}, [el("h1", { text: kid ? "איזה סיפור ל" + kid.name + " הלילה?" : "סיפור לפני השינה, רק לילד שלך" }), el("p", { text: "בוחרים מקום, חבר ומסר. נכתב סיפור חדש, והטלפון מקריא אותו בקול רגוע." })])]),
+      kid && kid.hub && !kid.gset ? el("section", { class: "box" }, [el("h2", { text: kid.name + ": בן או בת? (פעם אחת, בשביל הסיפור)" }), el("div", { class: "vals" }, [["m", "👦 בן"], ["f", "👧 בת"]].map(function (o) { return el("button", { type: "button", class: "opt", onclick: function () { var K2 = kids(); K2[S.kid].g = o[0]; K2[S.kid].gset = 1; ls("sp.kids", JSON.stringify(K2)); home(); } }, [o[1]]); }))]) : null,
       el("section", { class: "box" }, [el("h2", { text: "מי הגיבור?" }), el("div", { class: "kids" }, K.map(function (k, i) { return el("button", { type: "button", "aria-pressed": String(S.kid === i), onclick: function () { S.kid = i; save(); home(); } }, [k.name + " · " + k.age]); }).concat([el("button", { type: "button", class: "add", text: K.length ? "➕ עוד ילד" : "➕ הוספת ילד/ה", onclick: function () { kidForm(); } }), kid ? el("button", { type: "button", class: "add", text: "✏️", "aria-label": "עריכת " + kid.name, onclick: function () { kidForm(S.kid); } }) : null]))]),
       el("section", { class: "box" }, [el("h2", { text: "איפה זה קורה?" }), cards(PLACES, "place")]),
       el("section", { class: "box" }, [el("h2", { text: "מי מצטרף להרפתקה?" }), cards(FRIENDS, "friend")]),
