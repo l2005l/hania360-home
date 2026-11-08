@@ -1,0 +1,11 @@
+name: probe-hub
+on: { push: { branches: [probe-hub] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for h in kids bayit; do echo "$h page $(curl -sS -o /dev/null -w '%{http_code}' https://$h.hania360.com/ || echo none) icon $(curl -sS -o /dev/null -w '%{http_code}' https://$h.hania360.com/icons/icon-192.png || echo none) manifest $(curl -sS -o /dev/null -w '%{http_code}' https://$h.hania360.com/manifest.webmanifest)"; done
+          echo "bridge $(curl -sS -o /dev/null -w '%{http_code}' https://english.hania360.com/_bridge) csp $(curl -sSI https://english.hania360.com/_bridge | grep -i frame-ancestors | head -c 60)"
+          echo "embed $(curl -sS 'https://masach.hania360.com/?in=hub' | grep -c 'id=\"in-hub\"')"
+          echo "home tiles $(curl -sS https://hania360.com/ | grep -o 'href="https://\(kids\|bayit\|chagim\|masach\|english\)\.hania360\.com/"><span class="icon"' | sort | uniq -c | tr '\n' ' ')"
