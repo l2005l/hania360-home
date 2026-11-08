@@ -25,3 +25,5 @@ for n in ('icon-192.png', 'icon-512.png', 'apple-180.png'):
     out.append(f'  "/icons/{n}": "{b64("icons/" + n)}",')
 out.append('};')
 open('kita/page.js', 'w', encoding='utf8').write('\n'.join(out) + '\n')
+# Pictures and big files go to Workers Static Assets (public/_a/), so the Worker stays small.
+import subprocess; subprocess.run(["node", "tools/assets.mjs", "kita"], check=True)
