@@ -137,7 +137,7 @@ async function ask(env, system, input, max) {
 async function read(env, b64, what) {
   const q = what === "passage"
     ? "This is a photo of a Hebrew reading passage from an Israeli elementary-school workbook. Copy the Hebrew text exactly as written, paragraph by paragraph. Output only the text, nothing else."
-    : "This is a photo of a homework exercise from an Israeli elementary-school workbook (Hebrew). Copy the exercise exactly as written: the Hebrew words, the numbers and the math signs. If there are several exercises, copy them all, one per line. Output only the exercise text, nothing else.";
+    : "This is a photo of a homework exercise from an Israeli elementary-school workbook (in Hebrew, or in English for an English lesson). Copy the exercise exactly as written: the words in their own language, the numbers and the math signs. If there are several exercises, copy them all, one per line. Output only the exercise text, nothing else.";
   for (const m of VISION_MODELS) {
     try {
       const out = m.includes("llama-3.2")
@@ -162,6 +162,12 @@ function mathPrompt(g) {
     "\"hint\" helps without revealing the answer (for example: which operation, a picture to imagine, an easier example). " +
     "The last step's answer is the answer to the whole exercise. If there are several exercises, take only the first one. If the text is not a math exercise, return {\"error\":\"notmath\"}. " +
     "Answer with JSON only: {\"restate\":\"the exercise in one short Hebrew line\",\"steps\":[{\"ask\":\"...\",\"expr\":\"...\",\"answer\":\"...\",\"hint\":\"...\"}],\"tip\":\"one short Hebrew sentence on how to check the answer by thinking (never a calculator)\"}";
+}
+function englishPrompt(g) {
+  return "You are a warm, patient English teacher for an Israeli child in grade " + g + " (כיתה " + g + "'), who learns English as a foreign language and reads Hebrew. The child sends an exercise from an English workbook (it may be a word to translate, a sentence to complete, a question about a short text, or spelling). " +
+    "Never give the final answer. Lead the child in 2 to 4 short steps: explain in simple Hebrew, gender-neutral, in the plural present (\"קוראים\", \"חושבים\"), and ask the child to answer in English (one word or a short phrase) whenever the answer is English. " +
+    "For each step give \"answer\": the expected answer (English, exactly as it should be written, or Hebrew when the step asks for a meaning), and \"hint\" in Hebrew that helps without giving the answer (the first letter, a sound, a similar word, the meaning). " +
+    "Answer with JSON only: {\"restate\":\"the exercise in one short Hebrew line\",\"steps\":[{\"ask\":\"...\",\"answer\":\"...\",\"hint\":\"...\"}],\"tip\":\"one short Hebrew sentence on how to check the answer\"}";
 }
 function readingPrompt(g) {
   return "You are a warm, patient Hebrew reading-comprehension tutor for an Israeli child in grade " + g + " (כיתה " + g + "'). The child sends a reading passage and a question about it. " +
@@ -190,11 +196,11 @@ export async function tutorApi(req, env, url) {
   }
 
   if (what === "plan") {
-    const subject = b.subject === "heb" ? "heb" : "math", task = clean(b.text, 600), passage = String(b.passage || "").replace(/[<>]/g, "").trim().slice(0, 3500);
+    const subject = b.subject === "heb" ? "heb" : b.subject === "eng" ? "eng" : "math", task = clean(b.text, 600), passage = String(b.passage || "").replace(/[<>]/g, "").trim().slice(0, 3500);
     if (task.length < 2 || (subject === "heb" && passage.length < 20)) return json({ error: "input" }, 400);
     if (subject === "math") { const lp = localPlan(task, g); if (lp && lp.steps.length) return json(lp); }
     const lim = await limit(env, device, "shiur:", 30, 600); if (!lim.ok) return json({ error: lim.why }, 429);
-    const j = subject === "math" ? await ask(env, mathPrompt(g), "The exercise:\n" + task, 900) : await ask(env, readingPrompt(g), "The passage:\n" + passage + "\n\nThe question:\n" + task, 900);
+    const j = subject === "math" ? await ask(env, mathPrompt(g), "The exercise:\n" + task, 900) : subject === "eng" ? await ask(env, englishPrompt(g), "The exercise:\n" + task, 900) : await ask(env, readingPrompt(g), "The passage:\n" + passage + "\n\nThe question:\n" + task, 900);
     if (!j) return json({ error: "ai" }, 502);
     if (j.error === "notmath") return json({ error: "notmath" }, 422);
     let steps = (Array.isArray(j.steps) ? j.steps : []).slice(0, 6).map((s) => {
@@ -215,7 +221,7 @@ export async function tutorApi(req, env, url) {
     const q = clean(b.ask, 220), exp = clean(b.answer, 80), got = clean(b.given, 200);
     if (!q || !got) return json({ error: "input" }, 400);
     const lim = await limit(env, device, "shiurc:", 150, 4000); if (!lim.ok) return json({ ok: false, say: "להיום נגמרו הבדיקות. אפשר לבדוק עם אבא או אמא." });
-    const j = await ask(env, "You check a child's short answer (grade " + g + ", Hebrew). Be generous: spelling mistakes, other words with the same meaning, or a fuller sentence all count as right. Answer with JSON only: {\"ok\": true or false, \"say\": \"one short, kind Hebrew sentence to the child; if wrong, a nudge that does not give the answer\"}",
+    const j = await ask(env, "You check a child's short answer (grade " + g + (b.subject === "eng" ? ", an English lesson: the answer should be the right English word or phrase; ignore capital letters and a missing period, but a misspelled English word is wrong unless only one letter is off" : ", Hebrew. Be generous: spelling mistakes, other words with the same meaning, or a fuller sentence all count as right") + ". Answer with JSON only: {\"ok\": true or false, \"say\": \"one short, kind Hebrew sentence to the child; if wrong, a nudge that does not give the answer\"}",
       "Question: " + q + "\nExpected answer: " + exp + "\nThe child's answer: " + got, 120);
     if (!j) return json({ ok: false, say: "לא הצלחנו לבדוק. נסו שוב." });
     return json({ ok: !!j.ok, say: clean(j.say, 200) });
