@@ -134,11 +134,15 @@ details summary{cursor:pointer;font-weight:800}
     return e;
   }
   function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2800); }
+  // Inside HaniaKids: the child chosen there (name, picture, grade), and stars sent to the child's wallet.
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), av: q.get("av") || "", g: /^[אבגדהוזחט]$/.test(q.get("g") || "") ? q.get("g") : "" }; } catch (e) { return null; } })();
+  function hubStars(n, src) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: src }, "*"); } catch (e) {} }
   var KEY = "haniashiurim-v1", S;
   try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
   S = S || {}; S.grade = S.grade || "ג"; S.subject = S.subject || "math"; S.log = Array.isArray(S.log) ? S.log : [];
   if (!S.device) { var a = new Uint8Array(18); crypto.getRandomValues(a); S.device = Array.prototype.map.call(a, function (x) { return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"[x % 62]; }).join(""); }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  if (HUB && HUB.g && ["א", "ב", "ג", "ד", "ה", "ו"].indexOf(HUB.g) >= 0) S.grade = HUB.g;
   save();
   function api(path, body) {
     return fetch("/api/shiurim/" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ device: S.device, grade: S.grade }, body)) })
@@ -259,6 +263,7 @@ details summary{cursor:pointer;font-weight:800}
     var w = $("win"); w.hidden = false;
     w.replaceChildren(el("div", { class: "big", text: T.shown ? "🙂" : "🎉" }), el("h1", T.shown ? "סיימנו!" : "פתרת לבד!"), el("p", { class: "lead", text: "עכשיו כותבים את התשובה במחברת" + (T.subject === "heb" ? " במשפט מלא." : ", עם התרגיל.") }), T.tip ? el("p", { class: "fine", style: "font-size:15px", text: "💡 " + T.tip }) : null,
       el("div", { class: "row", style: "justify-content:center" }, [el("button", { class: "btn", type: "button", text: "✏️ תרגיל חדש", onclick: backHome })]));
+    hubStars(T.shown ? 1 : T.hints ? 2 : 3, "שיעורי בית");
     S.log.unshift({ at: T.at, s: T.subject, g: S.grade, t: T.task.slice(0, 90), n: T.steps.length, h: T.hints, w: T.wrong, sh: T.shown }); S.log = S.log.slice(0, 40); save(); renderLog();
     confetti(); w.scrollIntoView({ behavior: "smooth" });
   }

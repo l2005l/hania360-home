@@ -403,7 +403,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     frAdd: ["➕ חיבור שברים שונים", function (L) { var d1 = RI(2, 6), d2 = L === 1 ? d1 * 2 : RI(2, 6), n1 = RI(1, d1 - 1), n2 = RI(1, d2 - 1), D = d1 * d2 / GCD(d1, d2), N = n1 * D / d1 + n2 * D / d2, g = GCD(N, D); return Q(FR(n1, d1) + " + " + FR(n2, d2) + " = ?", FR(N / g, D / g), [FR(n1 + n2, d1 + d2), FR(n1 + n2, D), FR(N / g + 1, D / g)], "מכנה משותף " + D + ": " + n1 * D / d1 + " + " + n2 * D / d2 + " = " + N + "/" + D + (g > 1 ? " = " + N / g + "/" + D / g : ""), true); }],
     story: ["📖 שאלות סיפוריות", function (L) { var price = ONE([40, 60, 80, 100, 120, 200, 250]), p = ONE(L === 1 ? [10, 50] : [20, 25, 10, 50]), off = price * p / 100; return Q("חולצה עולה " + price + " ₪ ויש " + p + "% הנחה. כמה משלמים?", price - off, [off, price - p, price + off], p + "% מ־" + price + " = " + off + ", ו־" + price + " − " + off + " = " + (price - off)); }]
   };
+  // Inside HaniaKids: the child's grade from there, and stars sent to the child's wallet.
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), g: /^[אבגדהו]$/.test(q.get("g") || "") ? q.get("g") : "" }; } catch (e) { return null; } })();
+  function hubStars(n, src) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: src }, "*"); } catch (e) {} }
   var GM = jget("kt.math", { grade: "ב", topics: null, level: 2, mode: "race", teams: 3, goal: 8, secs: 0 });
+  if (HUB && HUB.g) { GM.grade = HUB.g; if (GM.mode === "race") GM.mode = "solo"; }
   var RACE = null, SOLO = null, GL = ["א", "ב", "ג", "ד", "ה", "ו"], KID = /^#kid-[1-6]$/.test(location.hash) ? GL[+location.hash.slice(5) - 1] : "";
   var CAR = ["🚀", "🚗", "🦄", "🐢"], TCOL = ["var(--c4)", "var(--c1)", "var(--c3)", "var(--c5)"], TNAME = ["הכחולים", "האדומים", "הירוקים", "הסגולים"];
   function gmSave() { ls("kt.math", JSON.stringify(GM)); }
@@ -431,7 +435,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   function dailyNote(g) { var d = jget("kt.daily." + g + "." + TODAY, null); return el("p", { class: "note", text: d ? "✔ כבר שיחקת היום: " + d.ok + " מתוך 10 (" + d.score + " נקודות). אפשר לנסות שוב, מחר יש שאלות חדשות." : "10 שאלות של היום מכל הנושאים. כל הכיתה מקבלת אותן שאלות, אפשר להשוות נקודות. מחר יש חדשות." }); }
   var AVS = ["🚀", "🚗", "🦄", "🐢", "🐉", "🦖", "🛸", "🏎️", "🐬", "🦁", "🤖", "🦸", "🐙", "🦊", "👑"];
   function starsAll() { return +(jget("kt.stars", 0)) || 0; }
-  function addStars(n) { if (!n) return; var before = starsAll(), now = before + n; ls("kt.stars", JSON.stringify(now)); var ni = 3 + Math.floor(now / 5); if (Math.floor(now / 5) > Math.floor(before / 5) && ni < AVS.length) setTimeout(function () { toast("🎁 נפתחה דמות חדשה: " + AVS[ni]); }, 900); }
+  function addStars(n) { if (!n) return; hubStars(n, "חשבון"); var before = starsAll(), now = before + n; ls("kt.stars", JSON.stringify(now)); var ni = 3 + Math.floor(now / 5); if (Math.floor(now / 5) > Math.floor(before / 5) && ni < AVS.length) setTimeout(function () { toast("🎁 נפתחה דמות חדשה: " + AVS[ni]); }, 900); }
   function myAv() { var a = jget("kt.av", "🚀"); return AVS.indexOf(a) >= 0 && AVS.indexOf(a) < 4 + Math.floor(starsAll() / 5) ? a : "🚀"; }
   function avatarsEl() {
     var open = 4 + Math.floor(starsAll() / 5), cur = myAv();

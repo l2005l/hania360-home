@@ -113,11 +113,15 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     evening: { at: "20:00", steps: [["📺", "סוגרים מסך", 1], ["🧸", "מסדרים צעצועים", 5], ["🛁", "מקלחת", 15], ["👕", "פיג׳מה", 5], ["🪥", "צחצוח שיניים", 3], ["🚽", "שירותים", 2], ["🎒", "מכינים תיק למחר", 5], ["📖", "סיפור", 10], ["🙏", "קריאת שמע", 2], ["😴", "לילה טוב", 1]] },
     morning: { at: "07:40", steps: [["🙏", "מודה אני", 1], ["🚽", "שירותים", 2], ["🧼", "שוטפים פנים וידיים", 2], ["👕", "מתלבשים", 6], ["🪥", "צחצוח שיניים", 3], ["🥣", "ארוחת בוקר", 15], ["🎒", "תיק וכריך", 3], ["👟", "נעליים ומעיל", 3]] }
   };
+  // Inside HaniaKids: the child chosen there (name, picture, grade), and stars sent to the child's wallet.
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), av: q.get("av") || "", g: /^[אבגדהוזחט]$/.test(q.get("g") || "") ? q.get("g") : "" }; } catch (e) { return null; } })();
+  function hubStars(n, src) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: src }, "*"); } catch (e) {} }
   var KEY = "haniashigra-v1", S;
   try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
   S = S || {}; S.kids = Array.isArray(S.kids) ? S.kids : [];
   S.r = S.r || JSON.parse(JSON.stringify(DEF)); S.runs = S.runs || {}; S.stars = S.stars || {}; S.goal = S.goal || { n: 20, prize: "🍦 גלידה" };
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  if (HUB && HUB.kid && !S.kids.some(function (k) { return k.name === HUB.kid; }) && S.kids.length < 6) { S.kids.push({ id: Math.random().toString(36).slice(2, 9), name: HUB.kid, av: HUB.av || "🦊" }); save(); }
   // Keep only the last five weeks of days.
   (function () { var cut = today(new Date(Date.now() - 35 * 864e5)); [S.runs, S.stars].forEach(function (o) { Object.keys(o).forEach(function (d) { if (d < cut) delete o[d]; }); }); })();
 
@@ -185,7 +189,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
       el("div", { class: "dots", "aria-hidden": "true" }, r.steps.map(function (x, j) { return el("span", { class: cur.rn.done.indexOf(j) >= 0 ? "ok" : cur.rn.skip.indexOf(j) >= 0 ? "skip" : j === i ? "cur" : "", text: cur.rn.done.indexOf(j) >= 0 ? "✓" : x[0] }); })),
       el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (i + 1) + " מתוך " + r.steps.length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), ring, lt]),
-      el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { cur.rn.done.push(i); addStars(k, 1); save(); chime(); burst(this); setTimeout(next, 650); } }),
+      el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { cur.rn.done.push(i); addStars(k, 1); if (!HUB || HUB.kid === k.name) hubStars(1, "שגרה"); save(); chime(); burst(this); setTimeout(next, 650); } }),
       el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { cur.rn.skip.push(i); save(); next(); } })])]));
     sayHe("עכשיו: " + s[1]);
     clearInterval(tick);
@@ -203,7 +207,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   }
   function finish() {
     clearInterval(tick); var k = cur.k, r = R(), onTime = Date.now() <= endAt(r).getTime() + 5 * 6e4;
-    if (!cur.rn.fin) { cur.rn.fin = Date.now(); if (onTime) addStars(k, 3); save(); }
+    if (!cur.rn.fin) { cur.rn.fin = Date.now(); if (onTime) { addStars(k, 3); if (!HUB || HUB.kid === k.name) hubStars(3, "שגרה בזמן"); } save(); }
     chime([523, 659, 784, 1046.5]);
     goodnight(k, false, onTime);
   }
@@ -286,6 +290,17 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
   function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
   // The next 14 days of both routines; the service wakes the phone 10 minutes before each item's time, so each item is set 10 minutes after the start.
+  // Inside a combined app (HaniaKids, HaniaYahadut) a page in a frame cannot ask for notifications, so the
+  // combined app sets the reminder on its own address and passes back the answer.
+  var PUSH_HUB = (function () { try { return new URLSearchParams(location.search).get("in") === "hub" && window.parent !== window; } catch (e) { return false; } })();
+  if (PUSH_HUB) {
+    canPush = true;
+    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
+    var HUBSUB = { endpoint: "hub", toJSON: function () { return null; } };
+    getSub = function () { return Promise.resolve(HUBSUB); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+    try { window.Notification = { requestPermission: function () { return Promise.resolve("granted"); }, permission: "granted" }; } catch (e) {}
+  }
   function items() {
     var out = [], now = Date.now(), noShabbat = S.remShabbat === false;
     for (var d = 0; d < 14; d++) {
