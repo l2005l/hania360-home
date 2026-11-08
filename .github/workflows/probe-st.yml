@@ -1,0 +1,9 @@
+name: probe-st
+on: { push: { branches: [probe-st] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in https://masach.hania360.com/icons/icon-192.png https://dat.hania360.com/hebcal.js?v=x https://shabbat.hania360.com/tefila.js https://hania360.com/og/kids.jpg https://kids.hania360.com/icons/icon-512.png https://bills.hania360.com/icons/icon-192.png https://chanukah.hania360.com/hebcal.js https://masach.hania360.com/ https://kids.hania360.com/ https://hania360.com/ https://dat.hania360.com/ https://masach.hania360.com/sw.js https://english.hania360.com/_bridge https://shiurim.hania360.com/api/shiurim/plan; do
+            echo "R $(curl -sS -o /dev/null -w '%{http_code} %{content_type} %{size_download}' $u) $u"; done
