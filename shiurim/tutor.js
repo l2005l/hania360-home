@@ -138,18 +138,25 @@ async function read(env, b64, what) {
   const q = what === "passage"
     ? "This is a photo of a Hebrew reading passage from an Israeli elementary-school workbook. Copy the Hebrew text exactly as written, paragraph by paragraph. Output only the text, nothing else."
     : "This is a photo of a homework exercise from an Israeli elementary-school workbook (in Hebrew, or in English for an English lesson). Copy the exercise exactly as written: the words in their own language, the numbers and the math signs. If there are several exercises, copy them all, one per line. Output only the exercise text, nothing else.";
-  for (const m of VISION_MODELS) {
+  const url = "data:image/jpeg;base64," + b64, why = [];
+  const tries = [
+    [VISION_MODELS[0], () => ({ messages: [{ role: "user", content: [{ type: "text", text: q }, { type: "image_url", image_url: { url } }] }], max_tokens: 700 })],
+    ["@cf/mistralai/mistral-small-3.1-24b-instruct", () => ({ messages: [{ role: "user", content: [{ type: "text", text: q }, { type: "image_url", image_url: { url } }] }], max_tokens: 700 })],
+    ["@cf/meta/llama-4-scout-17b-16e-instruct", () => ({ messages: [{ role: "user", content: [{ type: "text", text: q }, { type: "image_url", image_url: { url } }] }], max_tokens: 700 })],
+    [VISION_MODELS[1], () => ({ messages: [{ role: "user", content: q }], image: [...Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], max_tokens: 700 })]
+  ];
+  for (const [m, body] of tries) {
     try {
-      const out = m.includes("llama-3.2")
-        ? await env.AI.run(m, { messages: [{ role: "user", content: q }], image: b64, max_tokens: 700 })
-        : await env.AI.run(m, { messages: [{ role: "user", content: [{ type: "text", text: q }, { type: "image_url", image_url: { url: "data:image/jpeg;base64," + b64 } }] }], max_tokens: 700 });
+      const out = await env.AI.run(m, body());
       const t = asText(text(out)).replace(/^```[a-z]*\n?|```$/g, "").trim();
-      if (t && t.length > 1) return t.slice(0, 3000);
+      if (t && t.length > 1) return { text: t.slice(0, 3000) };
+      why.push(m.split("/").pop() + ": empty");
     } catch (e) {
-      if (m.includes("llama-3.2") && /agree|license|5016/i.test(String(e && e.message || e))) { try { await env.AI.run(m, { prompt: "agree" }); } catch {} }
+      const msg = String((e && e.message) || e).slice(0, 120); why.push(m.split("/").pop() + ": " + msg);
+      if (m.includes("llama-3.2") && /agree|license|5016/i.test(msg)) { try { await env.AI.run(m, { prompt: "agree" }); const out = await env.AI.run(m, body()); const t = asText(text(out)).trim(); if (t) return { text: t.slice(0, 3000) }; } catch {} }
     }
   }
-  return "";
+  return { why: why.join(" | ") };
 }
 
 function mathPrompt(g) {
@@ -165,7 +172,7 @@ function mathPrompt(g) {
 }
 function englishPrompt(g) {
   return "You are a warm, patient English teacher for an Israeli child in grade " + g + " (כיתה " + g + "'), who learns English as a foreign language and reads Hebrew. The child sends an exercise from an English workbook (it may be a word to translate, a sentence to complete, a question about a short text, or spelling). " +
-    "Never give the final answer. Lead the child in 2 to 4 short steps: explain in simple Hebrew, gender-neutral, in the plural present (\"קוראים\", \"חושבים\"), and ask the child to answer in English (one word or a short phrase) whenever the answer is English. " +
+    "Never give the final answer. Lead the child in 2 to 4 short steps: explain in simple Hebrew, gender-neutral, in the plural present (\"קוראים\", \"חושבים\"), and ask the child to answer in English (one word or a short phrase) whenever the answer is English. Every \"ask\" and every \"hint\" is written in Hebrew (English words may appear inside them in quotes); the child is young, so keep grammar words out (no \"subject\" or \"singular\"): ask about meaning, sounds and who is doing the action. " +
     "For each step give \"answer\": the expected answer (English, exactly as it should be written, or Hebrew when the step asks for a meaning), and \"hint\" in Hebrew that helps without giving the answer (the first letter, a sound, a similar word, the meaning). " +
     "Answer with JSON only: {\"restate\":\"the exercise in one short Hebrew line\",\"steps\":[{\"ask\":\"...\",\"answer\":\"...\",\"hint\":\"...\"}],\"tip\":\"one short Hebrew sentence on how to check the answer\"}";
 }
@@ -191,8 +198,8 @@ export async function tutorApi(req, env, url) {
     const img = String(b.image || "");
     if (!img || img.length > MAX_IMG || !/^[A-Za-z0-9+/=]+$/.test(img)) return json({ error: "image" }, 400);
     const lim = await limit(env, device, "shiur:", 30, 600); if (!lim.ok) return json({ error: lim.why }, 429);
-    const t = await read(env, img, b.what === "passage" ? "passage" : "task");
-    return t ? json({ text: t }) : json({ error: "unreadable" }, 422);
+    const r = await read(env, img, b.what === "passage" ? "passage" : "task");
+    return r.text ? json({ text: r.text }) : json({ error: "unreadable", why: r.why }, 422);
   }
 
   if (what === "plan") {
