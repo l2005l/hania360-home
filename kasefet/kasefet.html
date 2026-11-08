@@ -150,7 +150,7 @@ function blank() {
   return { v: 1, profile: { age: "", kids: 0, risk: "mid", job: "employee", retire: 67, emergencyGoal: 6 }, assets: [], debts: [], income: [], expenses: [], docs: [], ins: [], subs: [], warr: [], rems: [], goals: [], hist: [], del: {} };
 }
 function api(path, body) {
-  return fetch("/api/vault/" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ vid: K ? K.vid : body.vid, secret: K ? K.secret : body.secret }, body)), cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer" })
+  return fetch("/api/vault/" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ vid: K ? K.vid : body.vid, secret: K ? K.secret : body.secret }, body)), cache: "no-store", credentials: "same-origin", referrerPolicy: "no-referrer" })
     .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || r.status); e.code = j.error || String(r.status); e.j = j; throw e; } return j; }); });
 }
 function errText(e) {
@@ -185,7 +185,7 @@ async function pushNow(k, d) {
   try {
     snapshot(d);
     var data = await sealWith(k, te.encode(JSON.stringify(d)));
-    var j = await fetch("/api/vault/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ vid: k.vid, secret: k.secret, base: k.ver, data: data }), credentials: "omit", referrerPolicy: "no-referrer" }).then(function (r) { return r.json().then(function (x) { x._s = r.status; return x; }); });
+    var j = await fetch("/api/vault/push", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ vid: k.vid, secret: k.secret, base: k.ver, data: data }), credentials: "same-origin", referrerPolicy: "no-referrer" }).then(function (r) { return r.json().then(function (x) { x._s = r.status; return x; }); });
     if (j._s === 409 && j.error === "conflict") { await mergeFromServer(k); saving = false; return pushNow(K, D); }
     if (j._s === 403 && K === k) { saving = false; dirty = false; lock("הסיסמה הוחלפה או שהגישה בוטלה. פתחו שוב."); return; }
     if (!j.ok) throw new Error(j.error);
@@ -645,7 +645,7 @@ function editRem(x) {
 
 /* ---- reminders on the phone: the server learns only WHEN, never what (every push says "a reminder in the vault") ---- */
 var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-function papi(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "omit" }).then(function (r) { return r.json(); }); }
+function papi(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" }).then(function (r) { return r.json(); }); }
 function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return papi("key").then(function (j) { var k = j.key, raw = ub64(k); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: raw }); }); }); }); }
 function remTimes() {
   var out = [], now = Date.now(), at = function (iso, back) { if (!iso) return; var d = new Date(iso + "T09:10:00"); d.setDate(d.getDate() - back); if (d.getTime() > now) out.push({ t: d.getTime(), label: "🔐 תזכורת בכספת" }); };
