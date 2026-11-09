@@ -63,7 +63,7 @@ async function team(ctx, id) {
 
 // Sport headlines from ynet's public RSS feed: title, link and time only, each linking to the article on ynet.
 async function news(ctx) {
-  const cache = typeof caches !== "undefined" ? caches.default : null, key = new Request("https://cache.invalid/sport-news-v1");
+  const cache = typeof caches !== "undefined" ? caches.default : null, key = new Request("https://cache.invalid/sport-news-v2");
   if (cache) { const hit = await cache.match(key); if (hit) return hit.json(); }
   const r = await fetch("https://www.ynet.co.il/Integration/StoryRss3.xml", { headers: { "user-agent": UA }, cf: { cacheTtl: 600, cacheEverything: true } });
   if (!r.ok) throw new Error("ynet " + r.status);
@@ -71,7 +71,7 @@ async function news(ctx) {
   const items = [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => {
     const g = (t) => { const z = new RegExp("<" + t + ">([\\s\\S]*?)</" + t + ">").exec(m[1]); return z ? un(z[1]) : ""; };
     return { t: g("title"), u: g("link"), d: Date.parse(g("pubDate")) || 0 };
-  }).filter((i) => i.t && /^https:\/\/www\.ynet\.co\.il\//.test(i.u)).slice(0, 30);
+  }).filter((i) => i.t && !/תוכן גולשים|פרסומי/.test(i.t) && /^https:\/\/www\.ynet\.co\.il\//.test(i.u)).slice(0, 30);
   const out = { source: "ynet ספורט", items };
   if (cache) { const put = cache.put(key, new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } })); if (ctx && ctx.waitUntil) ctx.waitUntil(put); }
   return out;
