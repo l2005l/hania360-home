@@ -39,12 +39,13 @@ async function desk(env, path, body) {
 }
 
 /** Items to show now, with Shabbat auto-approval applied (and saved). */
-export async function nowItems(env, t = Date.now()) {
+export async function nowItems(env, t = Date.now(), preview = false) {
   const d = today(t), dec = (await desk(env, "/now/get")) || {};
   const shabbat = isShabbat(t), auto = [];
   const shown = FEED.filter((it) => live(it, d)).filter((it) => {
     const v = dec[it.id];
     if (v === "ok" || v === "auto") return true;
+    if (!v && preview) return true; // the owner's preview also shows what still waits
     if (!v && shabbat) { auto.push(it.id); return true; }
     return false;
   });
@@ -96,24 +97,24 @@ export const NOW_CSS = `
 .n26-sp.live{border-color:#FB7185}
 `;
 
-function card(it) {
+function card(it, draft = false) {
   const k = CHIP[it.chip] || "#38BDF8";
   const apps = (it.apps || []).map(([ic, name, line, href, btn]) => `<a class="n26-app" href="${esc(href)}"><span class="n26-ic">${ic}</span><div><b>${esc(name)}</b><small>${esc(line)}</small></div><span class="n26-go">${esc(btn)}</span></a>`).join("");
   const src = (it.sources || []).map(([l, u]) => `<a href="${esc(u)}" rel="noopener" target="_blank">${esc(l)}</a>`).join(" · ");
   const until = it.until ? `עד ${+it.until.slice(8)}.${+it.until.slice(5, 7)}` : "";
-  const text = `<div style="display:grid;gap:10px"><div class="n26-meta"><span class="n26-chip">${esc(it.chip)}</span>${until ? `<span>${until}</span>` : ""}</div>${it.big ? `<div class="n26-big">${esc(it.big)}</div>` : ""}<h3>${esc(it.title)}</h3><p>${esc(it.body)}</p>${src ? `<div class="n26-src">מקור: ${src}</div>` : ""}</div>`;
+  const text = `<div style="display:grid;gap:10px"><div class="n26-meta">${draft ? `<span class="n26-chip" style="--k:#FBBF24">טיוטה · ממתין לאישור</span>` : ""}<span class="n26-chip">${esc(it.chip)}</span>${until ? `<span>${until}</span>` : ""}</div>${it.big ? `<div class="n26-big">${esc(it.big)}</div>` : ""}<h3>${esc(it.title)}</h3><p>${esc(it.body)}</p>${src ? `<div class="n26-src">מקור: ${src}</div>` : ""}</div>`;
   const side = apps ? `<div class="n26-apps">${apps}</div>` : it.civic ? `<div class="n26-civic">מידע אזרחי בלבד, בלי עמדה ובלי קישור לאפליקציה.</div>` : "";
   return `<article class="n26-card${it.lead ? " lead" : ""}" style="--k:${k}">${text}${side}</article>`;
 }
 
 /** The whole section, or "" when nothing is approved. The ticker and sport strip fill in on the phone. */
-export function nowSection(items, t = Date.now()) {
+export function nowSection(items, t = Date.now(), pending = new Set()) {
   if (!items.length) return "";
   const ordered = [...items.filter((i) => i.lead), ...items.filter((i) => !i.lead)];
   if (ordered.length && !ordered[0].lead) ordered[0] = { ...ordered[0], lead: true };
   const local = new Date(t + 2 * 3600e3), dl = new Date(t).toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "long" });
   const tick = TICKER.map(([l, v, at]) => `<span class="n26-tk"${at ? ` data-at="${esc(at)}"` : ""}><b>${esc(v || "")}</b><span>${esc(l)}</span></span>`).join("");
-  return `<section class="n26" id="now" aria-labelledby="now-h"><div class="n26-head"><div><div class="n26-live"><i></i>עכשיו</div><h2 id="now-h">מה קורה היום, ואיך זה נוגע לכם</h2></div><div class="n26-date">יום ${HEB_DAYS[local.getUTCDay()]}, ${esc(dl)} · מתעדכן כל בוקר</div></div><div class="n26-tick">${tick}</div><div class="n26-sport" id="nowSport" hidden></div><div class="n26-grid">${ordered.map(card).join("")}</div><div class="n26-hint">החליקו לעוד ${ordered.length - 1} עדכונים ←</div></section>
+  return `<section class="n26" id="now" aria-labelledby="now-h"><div class="n26-head"><div><div class="n26-live"><i></i>עכשיו</div><h2 id="now-h">מה קורה היום, ואיך זה נוגע לכם</h2></div><div class="n26-date">יום ${HEB_DAYS[local.getUTCDay()]}, ${esc(dl)} · מתעדכן כל בוקר</div></div><div class="n26-tick">${tick}</div><div class="n26-sport" id="nowSport" hidden></div><div class="n26-grid">${ordered.map((it) => card(it, pending.has(it.id))).join("")}</div><div class="n26-hint">החליקו לעוד ${ordered.length - 1} עדכונים ←</div></section>
 <script>(function(){
 function il(s){var m=/^(\\d{4})-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/.exec(s);if(!m)return 0;var u=Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]),x=new Date(u),off=Date.parse(x.toLocaleString("en-US",{timeZone:"Asia/Jerusalem"}))-Date.parse(x.toLocaleString("en-US",{timeZone:"UTC"}));return u-off}
 function fmt(ms){if(ms<=0)return "היום";var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5);return d>1?d+" ימים":d===1?"יום ו־"+h+" שע׳":h>0?h+" שע׳":Math.max(1,Math.floor(ms/6e4))+" דק׳"}
@@ -150,18 +151,19 @@ export async function nowApi(request, env, url) {
 }
 
 export const NOW_ADMIN = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#050914"><title>עכשיו · אישור</title>
-<style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#050914;color:#E2E8F0;font:16px/1.5 Rubik,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:18px 16px 60px;display:grid;gap:14px}h1{margin:0;font-size:1.5rem}.m{color:#94A3B8;font-size:.9rem}.c{background:#0F1830;border:1px solid rgba(99,102,241,.34);border-radius:18px;padding:16px;display:grid;gap:8px}.c h2{margin:0;font-size:1.05rem}.c p{margin:0;color:#CBD5E1;font-size:.93rem}.c a{color:#7DD3FC}.row{display:flex;gap:8px;flex-wrap:wrap}button{font:700 1rem Rubik,sans-serif;border:0;border-radius:12px;padding:12px 18px;cursor:pointer}.ok{background:linear-gradient(90deg,#38BDF8,#818CF8);color:#050914}.no{background:#1E293B;color:#E2E8F0}.st{font-weight:800;font-size:.85rem}.st.ok{background:none;color:#34D399}.st.no{background:none;color:#FB7185}.st.auto{color:#FBBF24}input{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid #334155;background:#0B1224;color:#fff}.off{opacity:.55}.all{position:sticky;bottom:10px}</style></head><body><main>
-<h1>עכשיו · מה עולה לאתר</h1><p class="m" id="info">טוען…</p><div id="key" hidden class="c"><p>הקוד הוא אותו STATS_KEY של דף הנתונים. מזינים פעם אחת והוא נשמר בטלפון הזה.</p><input id="k" type="password" autocomplete="current-password" placeholder="הקוד"><button class="ok" id="save">שמירה</button></div><div id="list"></div><button class="ok all" id="all" hidden>לאשר את כל הממתינים</button></main>
+<style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#050914;color:#E2E8F0;font:16px/1.5 Rubik,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:18px 16px 60px;display:grid;gap:14px}h1{margin:0;font-size:1.5rem}.m{color:#94A3B8;font-size:.9rem}.c{background:#0F1830;border:1px solid rgba(99,102,241,.34);border-radius:18px;padding:16px;display:grid;gap:8px}.c h2{margin:0;font-size:1.05rem}.c p{margin:0;color:#CBD5E1;font-size:.93rem}.c a{color:#7DD3FC}.row{display:flex;gap:8px;flex-wrap:wrap}button{font:700 1rem Rubik,sans-serif;border:0;border-radius:12px;padding:12px 18px;cursor:pointer}.ok{background:linear-gradient(90deg,#38BDF8,#818CF8);color:#050914}.no{background:#1E293B;color:#E2E8F0}.st{font-weight:800;font-size:.85rem}.st.ok{background:none;color:#34D399}.st.no{background:none;color:#FB7185}.st.auto{color:#FBBF24}input{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid #334155;background:#0B1224;color:#fff}.off{opacity:.55}.all{position:sticky;bottom:10px}#pv[hidden]{display:none!important}</style></head><body><main>
+<h1>עכשיו · מה עולה לאתר</h1><p class="m" id="info">טוען…</p><a id="pv" hidden target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px;border-radius:12px;border:1px solid #38BDF8;color:#7DD3FC;text-decoration:none;font-weight:700">👀 תצוגה מקדימה: איך דף הבית ייראה עם הכול</a><div id="key" hidden class="c"><p>הקוד הוא אותו STATS_KEY של דף הנתונים. מזינים פעם אחת והוא נשמר בטלפון הזה.</p><input id="k" type="password" autocomplete="current-password" placeholder="הקוד"><button class="ok" id="save">שמירה</button></div><div id="list"></div><button class="ok all" id="all" hidden>לאשר את כל הממתינים</button></main>
 <script>
 var K="";try{K=localStorage.getItem("now.k")||""}catch(e){}
 var q=new URLSearchParams(location.search).get("k");if(q){K=q;try{localStorage.setItem("now.k",q)}catch(e){}history.replaceState(null,"","/now")}
 function e(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 var S={ok:"✓ מאושר, באתר",no:"✕ נדחה",auto:"✓ עלה אוטומטית בשבת","":"ממתין לאישור"};
+var B={"":[["ok","לאשר"],["no","לדחות"]],ok:[["no","להוריד מהאתר"]],auto:[["ok","להשאיר"],["no","להוריד מהאתר"]],no:[["ok","להחזיר לאתר"]]};
 function load(){if(!K){document.getElementById("key").hidden=false;document.getElementById("info").textContent="";return}
 fetch("/api/now/list?k="+encodeURIComponent(K),{cache:"no-store"}).then(function(r){if(r.status===403){K="";try{localStorage.removeItem("now.k")}catch(x){}load();throw 0}return r.json()}).then(function(d){
-document.getElementById("info").textContent=(d.shabbat?"עכשיו שבת: ממתינים עולים לבד. ":"")+"כל פריט שתאשרו מופיע מיד בדף הבית.";
+document.getElementById("info").textContent=(d.shabbat?"עכשיו שבת: ממתינים עולים לבד. ":"")+"מה שמאשרים עולה לדף הבית תוך דקה, ואפשר להוריד כל פריט בכל זמן, באותה לחיצה.";document.getElementById("pv").href="/?preview="+encodeURIComponent(K);document.getElementById("pv").hidden=false;
 var w=d.items.filter(function(i){return i.live&&!i.d});document.getElementById("all").hidden=!w.length;document.getElementById("all").onclick=function(){go(w.map(function(i){return i.id}),"ok")};
-document.getElementById("list").innerHTML=d.items.map(function(i){return '<div class="c'+(i.live?"":" off")+'"><div class="m">'+e(i.chip)+" · "+e(i.from)+" עד "+e(i.until)+(i.live?"":" · לא בתוקף היום")+'</div><h2>'+e(i.title)+'</h2><p>'+e(i.body)+'</p><p class="m">'+(i.sources||[]).map(function(s){return '<a href="'+e(s[1])+'" target="_blank" rel="noopener">'+e(s[0])+'</a>'}).join(" · ")+'</p><p class="m">'+e((i.apps||[]).join(" · ")||"בלי קישור לאפליקציה")+'</p><div class="row"><span class="st '+e(i.d)+'">'+S[i.d]+'</span></div><div class="row"><button class="ok" data-id="'+e(i.id)+'" data-d="ok">לאשר</button><button class="no" data-id="'+e(i.id)+'" data-d="no">לדחות</button></div></div>'}).join("")}).catch(function(){})}
+document.getElementById("list").innerHTML=d.items.map(function(i){return '<div class="c'+(i.live?"":" off")+'"><div class="m">'+e(i.chip)+" · "+e(i.from)+" עד "+e(i.until)+(i.live?"":" · לא בתוקף היום")+'</div><h2>'+e(i.title)+'</h2><p>'+e(i.body)+'</p><p class="m">'+(i.sources||[]).map(function(s){return '<a href="'+e(s[1])+'" target="_blank" rel="noopener">'+e(s[0])+'</a>'}).join(" · ")+'</p><p class="m">'+e((i.apps||[]).join(" · ")||"בלי קישור לאפליקציה")+'</p><div class="row"><span class="st '+e(i.d)+'">'+S[i.d]+'</span></div><div class="row">'+B[i.d||""].map(function(b){return '<button class="'+b[0]+'" data-id="'+e(i.id)+'" data-d="'+b[0]+'">'+b[1]+'</button>'}).join("")+'</div></div>'}).join("")}).catch(function(){})}
 function go(ids,d){fetch("/api/now/decide",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({k:K,ids:ids,d:d})}).then(load)}
 document.getElementById("list").onclick=function(ev){var b=ev.target.closest("button[data-id]");if(b)go([b.dataset.id],b.dataset.d)};
 document.getElementById("save").onclick=function(){K=document.getElementById("k").value.trim();try{localStorage.setItem("now.k",K)}catch(x){}document.getElementById("key").hidden=true;load()};

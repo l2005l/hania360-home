@@ -564,9 +564,11 @@ export default {
     if (url.pathname === "/now") return new Response(NOW_ADMIN,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex","referrer-policy":"no-referrer"}});
     if (url.pathname === "/classic") return new Response(HOME.replace("<title>",'<meta name="robots" content="noindex, follow"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
     if ((url.pathname === "/" || url.pathname === "/index.html") && String((env||{}).HOME_CLASSIC||"") !== "1") {
-      let items=[]; try { items = await nowItems(env || {}); } catch {}
-      const sec = nowSection(items);
+      const key = String((env||{}).STATS_KEY||"").trim(), preview = !!key && (url.searchParams.get("preview")||"").trim() === key;
+      let items=[], pending=new Set(); try { items = await nowItems(env || {}, Date.now(), preview); if (preview) { const ok = new Set((await nowItems(env || {})).map((i)=>i.id)); pending = new Set(items.filter((i)=>!ok.has(i.id)).map((i)=>i.id)); } } catch {}
+      const sec = nowSection(items, Date.now(), pending);
       const html = sec ? HOME.replace("</style>", NOW_CSS + "</style>").replace('<section class="h26-sec" id="apps">', sec + '<section class="h26-sec" id="apps">') : HOME;
+      if (preview) return new Response(html.replace("<title>",'<meta name="robots" content="noindex"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","referrer-policy":"no-referrer","x-robots-tag":"noindex"}});
       return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=60","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
     }
     const page=pages[url.pathname];
