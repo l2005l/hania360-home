@@ -1,5 +1,5 @@
 // HaniaSport offline: the page from the network when there is one, from the cache when not.
-const C = "haniasport-v2", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js"];
+const C = "haniasport-v3", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png?v=2", "/install.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(C).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", (e) => {
@@ -18,7 +18,7 @@ self.addEventListener("push", (e) => {
       m = r.ok ? await r.json() : null;
     } catch { m = null; }
     if (!m || !m.title) m = { title: "⚽ HaniaSport", body: "המשחק מתחיל בקרוב.", url: "/" };
-    await self.registration.showNotification(m.title, { body: m.body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", lang: "he", dir: "rtl", tag: "sport", renotify: true, data: { url: "/" } });
+    await self.registration.showNotification(m.title, { body: m.body, icon: "/icons/icon-192.png?v=2", badge: "/icons/icon-192.png?v=2", lang: "he", dir: "rtl", tag: "sport", renotify: true, data: { url: "/" } });
   })());
 });
 self.addEventListener("notificationclick", (e) => {

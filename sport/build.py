@@ -7,7 +7,7 @@ body = r('sport.html')
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaSport: ליגת העל בכדורגל, היורוליג ודני אבדיה ב־NBA. תוצאות חיות, טבלאות, לוח משחקים ותזכורת לפני המשחק של הקבוצה שלכם. בחינם ובלי עומס.">'
         '<link rel="canonical" href="https://sport.hania360.com/"><meta name="theme-color" content="#07111F">'
-        '<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="הספורט שלי">'
+        '<link rel="manifest" href="/manifest.webmanifest?v=2"><link rel="apple-touch-icon" href="/icons/apple-180.png?v=2"><link rel="icon" href="/icons/icon-192.png?v=2"><meta name="apple-mobile-web-app-title" content="הספורט שלי">'
         '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>')
 i = body.index('<style>')
 page = head + body[:i] + '</head><body>' + body[i:] + (
