@@ -228,6 +228,10 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
   S = S || { city: "ירושלים", hav: "deg", before: 0 };
   S.saved = Array.isArray(S.saved) ? S.saved : [S.city]; S.nusach = S.nusach || "ashkenaz";
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  // The town also goes to the shared interests cookie, so hania360.com can show its candle lighting (see lib/growth.js).
+  function syncTown() { try { var p = place(); if (window.h360pref) h360pref({ c: [p.name, Math.round(p.lat * 1000) / 1000, Math.round(p.lon * 1000) / 1000, p.b] }); } catch (e) {} }
+  var save0 = save; save = function () { save0(); syncTown(); };
+  addEventListener("load", syncTown);
   function toast(t) { var x = document.createElement("div"); x.className = "toast"; x.textContent = t; document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
   var HB = window.HB;
   var hm = function (d) { return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" }); };

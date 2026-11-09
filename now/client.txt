@@ -1,0 +1,102 @@
+(function(){
+/* "עכשיו" in the browser: countdowns, the sport strip, and the order of the cards by what this browser cares
+   about (cookie h360_i, read here only: apps used lately, team, Shabbat town, topics picked below). */
+var C=window.N26||{},d=document,$=function(i){return d.getElementById(i)};
+if(!window.h360pref)return;
+var O=h360pref()||{};
+var TOP={sport:"sport",tisa:"travel",flight:"travel",go:"travel",save:"money",cart:"money",bills:"money",home:"money",bayit:"money",check:"car",ride:"car",dat:"dat",shabbat:"dat",chanukah:"dat",yahadut:"dat",kids:"kids",masach:"kids",shigra:"kids",kita:"kids",english:"kids",sipur:"kids",sefer:"kids",shiurim:"kids",gil:"family",kibud:"family"};
+var NAMES={sport:"⚽ ספורט",travel:"✈️ טיסות וחופשות",money:"💳 כסף וחיסכון",car:"🚗 רכב",dat:"🕯️ שבת וחגים",kids:"🧸 ילדים"};
+var T={};
+(O.a||[]).forEach(function(a,i){var t=TOP[a];if(t)T[t]=(T[t]||0)+(i<3?2:1)});
+(O.t||[]).forEach(function(t){T[t]=(T[t]||0)+3});
+if(O.f||O.b)T.sport=(T.sport||0)+2;
+if(O.c)T.dat=(T.dat||0)+1;
+var me=Object.keys(T).length>0;
+
+/* ---- cards: the ones that fit go first, with a "בשבילך" mark ---- */
+var grid=d.querySelector(".n26-grid"),cards=grid?[].slice.call(grid.children):[];
+cards.forEach(function(c,i){
+  var s=0,ts=(c.getAttribute("data-t")||"").split(" "),fs=(c.getAttribute("data-for")||"").split(" ");
+  ts.forEach(function(t){if(t&&T[t])s+=Math.min(T[t],4)});
+  fs.forEach(function(f){if((O.f&&f==="f:"+O.f)||(O.b&&f==="b:"+O.b))s+=6});
+  c._i=i;c._s=s;
+});
+if(me&&cards.length){
+  var sorted=cards.slice().sort(function(a,b){return b._s-a._s||a._i-b._i});
+  if(sorted[0]!==cards[0]&&sorted[0]._s>cards[0]._s){cards[0].classList.remove("lead");sorted[0].classList.add("lead")}
+  sorted.forEach(function(c){grid.appendChild(c)});
+  cards.forEach(function(c){if(c._s>=3){var m=c.querySelector(".n26-meta"),x=d.createElement("span");x.className="n26-chip n26-for";x.textContent="✨ בשבילך";m.insertBefore(x,m.firstChild)}});
+}
+d.querySelectorAll(".n26-card:not(.lead) h3").forEach(function(h){h.setAttribute("role","button");h.tabIndex=0;h.onclick=h.onkeydown=function(e){if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();var c=h.closest(".n26-card");h.setAttribute("aria-expanded",c.classList.toggle("open"))}});
+
+/* ---- countdowns ---- */
+var tickBox=d.querySelector(".n26-tick");
+function il(s){var m=/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(s);if(!m)return 0;var u=Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]),x=new Date(u),off=Date.parse(x.toLocaleString("en-US",{timeZone:"Asia/Jerusalem"}))-Date.parse(x.toLocaleString("en-US",{timeZone:"UTC"}));return u-off}
+function fmt(ms){if(ms<=0)return "היום";var dd=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5);return dd>1?dd+" ימים":dd===1?"יום ו־"+h+" שע׳":h>0?h+" שע׳":Math.max(1,Math.floor(ms/6e4))+" דק׳"}
+function tick(){d.querySelectorAll(".n26-tk[data-at],.n26-tk.at").forEach(function(e){var at=e._at||(e._at=il(e.getAttribute("data-at"))),left=at-Date.now();if(left<-36e5*3){e.remove();return}e.querySelector("b").textContent=left<=0?"עכשיו":"בעוד "+fmt(left)})}
+function addTick(label,at,mine){if(!tickBox||!at||at<Date.now())return;var same=[].slice.call(tickBox.children).filter(function(e){var x=e._at||(e.getAttribute("data-at")?il(e.getAttribute("data-at")):0);return x&&Math.abs(x-at)<9e5})[0];if(same){if(mine)same.classList.add("mine");tickBox.insertBefore(same,tickBox.firstChild);return}var e=d.createElement("span");e.className="n26-tk at"+(mine?" mine":"");e._at=at;e.innerHTML="<b></b><span></span>";e.lastChild.textContent=label;tickBox.insertBefore(e,tickBox.firstChild);tick()}
+var hm=function(t){return new Date(t).toLocaleTimeString("he-IL",{timeZone:"Asia/Jerusalem",hour:"2-digit",minute:"2-digit"})};
+
+/* candle lighting in the chosen town (or Jerusalem for whoever uses the Shabbat apps) */
+function sunset(t,lat,lon){var day=new Date(t).toLocaleDateString("en-CA",{timeZone:"Asia/Jerusalem"}).split("-"),y=+day[0],base=Date.UTC(y,day[1]-1,+day[2]),n=Math.floor((base-Date.UTC(y,0,0))/864e5),g=2*Math.PI/365*(n-.5),
+eq=229.18*(.000075+.001868*Math.cos(g)-.032077*Math.sin(g)-.014615*Math.cos(2*g)-.040849*Math.sin(2*g)),dec=.006918-.399912*Math.cos(g)+.070257*Math.sin(g)-.006758*Math.cos(2*g)+.000907*Math.sin(2*g)-.002697*Math.cos(3*g)+.00148*Math.sin(3*g),
+la=lat*Math.PI/180,ha=Math.acos(Math.cos(90.833*Math.PI/180)/(Math.cos(la)*Math.cos(dec))-Math.tan(la)*Math.tan(dec))*180/Math.PI;return base+(720-4*(lon-ha)-eq)*6e4}
+var town=O.c||(T.dat?["ירושלים",31.778,35.235,40]:null);
+if(town)for(var i=0;i<8;i++){var t=Date.now()+i*864e5;if(new Date(t).toLocaleDateString("en-US",{timeZone:"Asia/Jerusalem",weekday:"short"})==="Fri"){var cl=sunset(t,town[1],town[2])-town[3]*6e4;if(cl>Date.now()){addTick("לכניסת שבת ב"+town[0]+" · "+hm(cl),cl,1);break}}}
+tick();setInterval(tick,6e4);
+
+/* ---- "מסודר בשבילך לפי…" and the picker ---- */
+var meBox=$("nowMe");
+if(meBox){
+  var why=[];
+  var bn=O.b?(O.b==="TEL"?"מכבי תל אביב":"הפועל תל אביב"):"",fn=O.f&&C.he?C.he[O.f]:"";
+  if(fn&&fn===bn)why.push("⚽🏀 "+fn);else{if(fn)why.push("⚽ "+fn);if(bn)why.push("🏀 "+bn)}
+  if(O.c)why.push("🕯️ שבת ב"+O.c[0]);
+  Object.keys(T).sort(function(a,b){return T[b]-T[a]}).forEach(function(t){if(why.length<4&&T[t]>=2&&NAMES[t]&&!(t==="sport"&&(O.f||O.b))&&!(t==="dat"&&O.c))why.push(NAMES[t])});
+  $("nowMeTxt").textContent=why.length?"מסודר בשבילכם לפי: "+why.join(" · "):"אפשר לסדר את העדכונים לפי מה שמעניין אתכם";
+  $("nowMeBtn").textContent=why.length?"שינוי":"✨ התאימו לי";
+  meBox.hidden=false;
+  $("nowMeBtn").onclick=function(){var p=$("nowPick");if(!p.hidden){p.hidden=true;return}
+    var tsel=O.t||[],chips=Object.keys(NAMES).map(function(k){return '<button type="button" class="n26-pc" data-k="'+k+'" aria-pressed="'+(tsel.indexOf(k)>=0)+'">'+NAMES[k]+'</button>'}).join("");
+    var cities='<option value="">בלי</option>'+(C.cities||[]).map(function(c,i){return '<option value="'+i+'"'+(O.c&&O.c[0]===c[0]?" selected":"")+">"+c[0]+"</option>"}).join("");
+    p.innerHTML='<b>מה מעניין אתכם?</b><div class="n26-pcs">'+chips+'</div><label>הקבוצה שלי בליגת העל<select id="nowF"><option value="">בלי</option></select></label><label>ביורוליג<select id="nowB"><option value="">בלי</option><option value="TEL"'+(O.b==="TEL"?" selected":"")+'>מכבי תל אביב</option><option value="HTA"'+(O.b==="HTA"?" selected":"")+'>הפועל תל אביב</option></select></label><label>עיר לזמני שבת<select id="nowC">'+cities+'</select></label><div class="n26-prow"><button type="button" class="n26-go" id="nowSave">שמירה</button><button type="button" class="n26-pc" id="nowReset">איפוס</button></div><small>נשמר רק בדפדפן הזה ולא נשלח לשום מקום. אותן בחירות באפליקציות (הקבוצה ב־HaniaSport, העיר ב־HaniaDat) מתעדכנות כאן לבד.</small>';
+    p.hidden=false;
+    var fs=$("nowF"),ids=Object.keys(C.he||{});
+    function fill(list){fs.innerHTML='<option value="">בלי</option>'+list.map(function(x){return '<option value="'+x[0]+'"'+(String(O.f)===String(x[0])?" selected":"")+">"+x[1]+"</option>"}).join("")}
+    fill(ids.map(function(k){return [k,C.he[k]]}));
+    if(window.SP_IL&&SP_IL.table)fill(SP_IL.table.map(function(r){return [r.id,r.name]}));
+    p.querySelectorAll(".n26-pcs .n26-pc").forEach(function(b){b.onclick=function(){b.setAttribute("aria-pressed",String(b.getAttribute("aria-pressed")!=="true"))}});
+    $("nowSave").onclick=function(){var ts=[].slice.call(p.querySelectorAll('.n26-pcs [aria-pressed="true"]')).map(function(b){return b.getAttribute("data-k")}),ci=$("nowC").value,c=ci===""?null:C.cities[+ci];
+      h360pref({t:ts,f:fs.value?+fs.value:null,b:$("nowB").value||null,c:c});location.reload()};
+    $("nowReset").onclick=function(){h360pref({t:null,f:null,b:null,c:null,a:null});location.reload()};
+  };
+}
+
+/* ---- the sport strip: my team first ---- */
+var box=$("nowSport");if(!box||!window.fetch)return;
+function when(u){return new Date(u).toLocaleString("he-IL",{timeZone:"Asia/Jerusalem",weekday:"short",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function pill(icon,html,cls,href){return '<a class="n26-sp'+(cls||"")+'" href="'+(href||"https://sport.hania360.com/#il")+'"><span>'+icon+'</span><span>'+html+'</span></a>'}
+var mine=[],rest=[];
+function show(){var h=mine.concat(mine.length?rest.slice(0,1):rest);if(h.length){box.innerHTML=h.join("");box.hidden=false}}
+fetch("/api/sport/il").then(function(r){return r.ok?r.json():null}).then(function(dd){if(!dd||!dd.matches)return;window.SP_IL=dd;
+  var now=Date.now(),ms=dd.matches,lv=ms.filter(function(m){return m.live}),dn=ms.filter(function(m){return m.done}).slice(-3).reverse(),nx=ms.filter(function(m){return !m.done&&!m.live&&Date.parse(m.utc)>now}).slice(0,3);
+  function row(m,c,mid){return pill("⚽",esc(m.home.name)+' <b>'+mid+'</b> '+esc(m.away.name),c)}
+  if(O.f){var my=ms.filter(function(m){return m.home.id==O.f||m.away.id==O.f}),r=(dd.table||[]).filter(function(x){return x.id==O.f})[0],
+    l=my.filter(function(m){return m.live})[0],last=my.filter(function(m){return m.done}).slice(-1)[0],next=my.filter(function(m){return !m.done&&!m.live&&Date.parse(m.utc)>now})[0],name=(r&&r.name)||(C.he&&C.he[O.f])||"הקבוצה שלי";
+    if(r)mine.push(pill("⭐",'<b>'+esc(name)+'</b> במקום '+r.pos+' · '+r.pts+' נק׳'," mine"));
+    if(l)mine.push(row(l," live mine",(l.score||"")+" · "+(l.min||"חי")));else if(last)mine.push(row(last," mine",last.score));
+    if(next){mine.push(row(next," mine",'<small>'+when(next.utc)+'</small>'));addTick("למשחק של "+name,Date.parse(next.utc),1)}
+    lv=lv.filter(function(m){return my.indexOf(m)<0});nx=nx.filter(function(m){return my.indexOf(m)<0}).slice(0,1);dn=[];
+  }
+  rest=lv.map(function(m){return row(m," live",(m.score||"")+" · "+(m.min||"חי"))}).concat(dn.length&&!lv.length?[row(dn[0],"",dn[0].score)]:[]).concat(nx.map(function(m){return row(m,"",'<small>'+when(m.utc)+'</small>')}));
+  var top=dd.table&&dd.table[0];if(top&&top.id!=O.f)rest.unshift(pill("🏆",'ליגת העל: <b>'+esc(top.name)+'</b> ראשונה עם '+top.pts+' נק׳'));
+  show();
+}).catch(function(){});
+if(O.b)fetch("/api/sport/euro").then(function(r){return r.ok?r.json():null}).then(function(e){if(!e||!e.games)return;
+  var my=e.games.filter(function(g){return g.home.code===O.b||g.away.code===O.b}),now=Date.now(),next=my.filter(function(g){return !g.done&&Date.parse(g.utc)>now-3*36e5})[0],last=my.filter(function(g){return g.done}).slice(-1)[0],nm=O.b==="TEL"?"מכבי תל אביב":"הפועל תל אביב",H="https://sport.hania360.com/#hoops";
+  var x=[];if(last)x.push(pill("🏀",esc(last.home.name)+' <b>'+last.hs+' - '+last.as+'</b> '+esc(last.away.name)," mine",H));
+  if(next){x.push(pill("🏀",esc(next.home.name)+' <b>'+(next.live?"חי":'<small>'+when(next.utc)+'</small>')+'</b> '+esc(next.away.name)," mine"+(next.live?" live":""),H));addTick("למשחק של "+nm+" ביורוליג",Date.parse(next.utc),1)}
+  mine=mine.concat(x);show();
+}).catch(function(){});
+})();
