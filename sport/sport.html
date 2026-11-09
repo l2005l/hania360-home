@@ -116,7 +116,10 @@ function when(utc){var d=new Date(utc),t=dayKey(new Date()),k=dayKey(d),tm=dayKe
 var FOOT=[[10181,"הפועל תל אביב"],[7855,"מכבי תל אביב"],[9754,"הפועל באר שבע"],[8173,"בית״ר ירושלים"],[10185,"מכבי חיפה"],[1832,"מכבי נתניה"],[8718,"בני סכנין"],[8301,"הפועל חיפה"],[7929,"מכבי פתח תקווה"],[459591,"הפועל ירושלים"],[2095,"עירוני קריית שמונה"],[9755,"הפועל פתח תקווה"],[89753,"הפועל רמת גן"],[543580,"עירוני טבריה"]];
 var HOOPS=[["TEL","מכבי תל אביב 🏀"],["HTA","הפועל תל אביב 🏀"]];
 var ME=(function(){try{return JSON.parse(ls("sp.me")||"null")||{f:null,b:null}}catch(e){return{f:null,b:null}}})();
-function saveMe(){ls("sp.me",JSON.stringify(ME))}
+function saveMe(){ls("sp.me",JSON.stringify(ME));syncMe()}
+// The team also goes to the shared interests cookie, so hania360.com can put its news first (see lib/growth.js).
+function syncMe(){try{window.h360pref&&h360pref({f:ME.f||null,b:ME.b||null})}catch(e){}}
+addEventListener("load",syncMe);
 
 var D={il:null,euro:null,nba:null,world:{}},ERR={};
 function api(p){return fetch("/api/sport/"+p,{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}

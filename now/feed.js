@@ -3,6 +3,7 @@
 // until the owner approves it at hania360.com/now, except during Shabbat, when new items go up on their own.
 // Each item: id, from/until (YYYY-MM-DD, Israel), chip, title, body, optional big number, sources [[label, url]],
 // apps [[icon, name, line, href, button]] (none for civic or sensitive items), lead (the wide first card),
+// for: whom it is most for, "f:<FotMob team id>" (ids in sport/api.js HE) or "b:TEL"/"b:HTA" (EuroLeague);
 // img: a key of IMG in lib/images.js (free Wikimedia Commons photos with credit), or none.
 // Ticker: [label, value] or [label, null, "YYYY-MM-DDTHH:MM" Israel time] for a live countdown.
 
@@ -23,7 +24,7 @@ export default [
     apps: [["🛫", "HaniaTisa", "מה המריא ונחת בנתב״ג עכשיו", "https://tisa.hania360.com/", "לטיסות"], ["🧳", "ביטוח נסיעות", "ימים חינם וביטול לפי הכרטיסים שלכם", "https://save.hania360.com/insurance/travel", "לבדיקה"]],
   },
   {
-    id: "2026-11-09-derby", img: "now-derby", from: "2026-11-09", until: "2026-11-12", chip: "כדורסל",
+    id: "2026-11-09-derby", img: "now-derby", for: ["b:TEL", "b:HTA"], from: "2026-11-09", until: "2026-11-12", chip: "כדורסל",
     title: "דרבי תל אביבי ביורוליג: מכבי מארחת את הפועל ביום חמישי",
     body: "הפועל תל אביב במקום ה־6 בטבלה, ומכבי תל אביב במקום ה־17. המשחק ביום חמישי 12.11 ב־21:05.",
     sources: [["EuroLeague", "https://www.euroleaguebasketball.net/euroleague/"]],
@@ -37,7 +38,7 @@ export default [
     apps: [["⛽", "HaniaSave", "איזה כרטיס שלכם נותן הנחה בתדלוק", "https://save.hania360.com/", "לבדוק"]],
   },
   {
-    id: "2026-11-09-ligat-haal", img: "now-ligat-haal", from: "2026-11-09", until: "2026-11-27", chip: "כדורגל",
+    id: "2026-11-09-ligat-haal", img: "now-ligat-haal", for: ["f:10181", "f:7855", "f:9754"], from: "2026-11-09", until: "2026-11-27", chip: "כדורגל",
     title: "הפועל תל אביב יוצאת לפגרה בראש ליגת העל",
     body: "1:0 בבאר שבע בדקה ה־91 העלה את הפועל למקום הראשון, נקודה לפני מכבי תל אביב. הליגה חוזרת ב־27.11.",
     sources: [["וואלה ספורט", "https://sports.walla.co.il/item/3875308"]],

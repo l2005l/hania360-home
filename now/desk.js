@@ -5,6 +5,10 @@
 
 import FEED, { TICKER } from "./feed.js";
 import { IMG, credit } from "../lib/images.js";
+import { PREF_JS } from "../lib/growth.js";
+import { CITIES } from "../lib/cities.js";
+import { HE } from "../sport/api.js";
+import CLIENT from "./client.txt";
 
 const LAT = 31.778, LON = 35.235; // Jerusalem
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -75,7 +79,7 @@ export const NOW_CSS = `
 .n26-card{position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(22,32,60,.92),rgba(10,16,34,.92));border:1px solid var(--edge);border-radius:22px;padding:18px;display:grid;gap:10px;align-content:start;min-width:0;box-shadow:var(--glow)}
 .n26-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--k),transparent)}
 .n26-card.lead{grid-column:1/-1;grid-template-columns:1.35fr 1fr;gap:22px;padding:22px;background:radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--k) 22%,transparent),transparent 60%),linear-gradient(160deg,rgba(22,32,60,.95),rgba(10,16,34,.95))}
-@media (max-width:720px){.n26-tick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.n26-tk{display:grid;gap:2px;justify-items:start;border-radius:14px;padding:8px 12px;font-size:.78rem;white-space:normal}.n26-tk b{font-size:.95rem}.n26-tk:last-child:nth-child(odd){grid-column:1/-1}.n26-sp:nth-child(n+3){display:none}.n26-grid{display:grid;gap:10px}.n26-card.lead{grid-template-columns:1fr;padding:18px;gap:14px}.n26-card:not(.lead){padding:14px 14px 12px;gap:8px}.n26-card:not(.lead) h3{font-size:1.04rem;cursor:pointer;display:flex;gap:8px;justify-content:space-between;align-items:flex-start}.n26-card:not(.lead) h3::after{content:"▾";flex:none;color:#8A94AB;font-size:.9rem;transition:transform .2s}.n26-card.open h3::after{transform:rotate(180deg)}.n26-card:not(.lead):not(.open) p,.n26-card:not(.lead):not(.open) .n26-src,.n26-card:not(.lead):not(.open) .n26-civic,.n26-card:not(.lead):not(.open) .n26-app:not(:first-child),.n26-card:not(.lead):not(.open) .n26-app small{display:none}.n26-card:not(.lead) .n26-big{font-size:1.6rem}.n26-card.lead .n26-img{margin:-18px -18px 0;height:170px}.n26-card.pic:not(.lead){grid-template-columns:72px minmax(0,1fr);column-gap:12px;align-items:start}.n26-card.pic:not(.lead) .n26-img{grid-row:1;grid-column:1;margin:0;width:72px;height:72px;max-height:none;aspect-ratio:auto;border-radius:14px}.n26-card.pic:not(.lead)>div:nth-child(2){grid-column:2}.n26-card.pic:not(.lead)>div:nth-child(n+3){grid-column:1/-1}.n26-card:not(.lead) .n26-app{padding-top:8px}.n26-card:not(.lead) .n26-ic{width:34px;height:34px;font-size:1.05rem}.n26-card:not(.lead) .n26-go{padding:8px 12px}}
+@media (max-width:720px){.n26-tick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.n26-tk{display:grid;gap:2px;justify-items:start;border-radius:14px;padding:8px 12px;font-size:.78rem;white-space:normal}.n26-tk b{font-size:.95rem}.n26-tk:last-child:nth-child(odd){grid-column:1/-1}.n26-sp:nth-child(n+4){display:none}.n26-grid{display:grid;gap:10px}.n26-card.lead{grid-template-columns:1fr;padding:18px;gap:14px}.n26-card:not(.lead){padding:14px 14px 12px;gap:8px}.n26-card:not(.lead) h3{font-size:1.04rem;cursor:pointer;display:flex;gap:8px;justify-content:space-between;align-items:flex-start}.n26-card:not(.lead) h3::after{content:"▾";flex:none;color:#8A94AB;font-size:.9rem;transition:transform .2s}.n26-card.open h3::after{transform:rotate(180deg)}.n26-card:not(.lead):not(.open) p,.n26-card:not(.lead):not(.open) .n26-src,.n26-card:not(.lead):not(.open) .n26-civic,.n26-card:not(.lead):not(.open) .n26-app:not(:first-child),.n26-card:not(.lead):not(.open) .n26-app small{display:none}.n26-card:not(.lead) .n26-big{font-size:1.6rem}.n26-card.lead .n26-img{margin:-18px -18px 0;height:170px}.n26-card.pic:not(.lead){grid-template-columns:72px minmax(0,1fr);column-gap:12px;align-items:start}.n26-card.pic:not(.lead) .n26-img{grid-row:1;grid-column:1;margin:0;width:72px;height:72px;max-height:none;aspect-ratio:auto;border-radius:14px}.n26-card.pic:not(.lead)>div:nth-child(2){grid-column:2}.n26-card.pic:not(.lead)>div:nth-child(n+3){grid-column:1/-1}.n26-card:not(.lead) .n26-app{padding-top:8px}.n26-card:not(.lead) .n26-ic{width:34px;height:34px;font-size:1.05rem}.n26-card:not(.lead) .n26-go{padding:8px 12px}}
 
 .n26-img{margin:-18px -18px 0;aspect-ratio:16/9;max-height:170px;overflow:hidden;background:#E3E6F2}.n26-img img{display:block;width:100%;height:100%;object-fit:cover}.n26-card.lead .n26-img{grid-column:1/-1;margin:-22px -22px 0;max-height:240px;aspect-ratio:auto;height:240px}.n26-card.pic::before{z-index:1}
 .n26-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:#94A3B8}
@@ -97,8 +101,23 @@ export const NOW_CSS = `
 .n26-sp{flex:0 1 auto;max-width:100%;display:flex;gap:10px;align-items:center;background:linear-gradient(135deg,rgba(16,185,129,.16),rgba(10,16,34,.9));border:1px solid rgba(52,211,153,.3);border-radius:16px;padding:10px 14px;color:#E2E8F0;text-decoration:none;font-size:.88rem}
 .n26-sp b{font:800 1rem Rubik,sans-serif;color:#F8FAFC;font-variant-numeric:tabular-nums}.n26-sp small{color:#94A3B8}
 .n26-sp.live{border-color:#FB7185}
+.n26-me{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.9rem;color:#94A3B8}
+.n26-me button,.n26-pc{appearance:none;font:700 .88rem Rubik,sans-serif;border-radius:999px;padding:7px 14px;cursor:pointer;border:1px solid #C7D2FE;background:#fff;color:#3730A3}
+.n26-pc[aria-pressed="true"]{background:linear-gradient(135deg,#0EA5E9,#6366F1);color:#fff;border-color:transparent}
+.n26-pick{display:grid;gap:12px;padding:16px;border-radius:20px;background:#fff;border:1px solid #E3E6F2;box-shadow:0 14px 34px -18px rgba(99,102,241,.35);color:#14213D}
+.n26-pick label{display:grid;gap:4px;font-weight:700;font-size:.9rem}.n26-pick select{font:inherit;font-weight:400;padding:10px;border-radius:12px;border:1px solid #CBD2E6;background:#fff;color:#14213D;max-width:100%}
+.n26-pcs,.n26-prow{display:flex;flex-wrap:wrap;gap:8px}.n26-pick small{color:#6B7891}.n26-prow .n26-go{border:0;cursor:pointer;font-size:.95rem;padding:11px 20px}
+.n26-for{--k:#8B5CF6}.n26-sp.mine{border-color:#A78BFA;background:linear-gradient(135deg,#F5F3FF,#fff)}.n26-tk.mine{border-color:#A78BFA}
 `;
 
+// Topics of a card, for ordering by what this browser cares about: from its chip and the apps it links to.
+const CHIP_T = { "טיסות": "travel", "כדורסל": "sport", "כדורגל": "sport", "כסף": "money", "קניות": "money", "רכב": "car", "חגים": "dat" };
+const HOST_T = { sport: "sport", tisa: "travel", flight: "travel", go: "travel", save: "money", cart: "money", bills: "money", check: "car", ride: "car", yahadut: "dat", dat: "dat", shabbat: "dat", chanukah: "dat", gil: "family", kids: "kids" };
+function topics(it) {
+  const t = new Set(CHIP_T[it.chip] ? [CHIP_T[it.chip]] : []);
+  for (const a of it.apps || []) { const m = /^https:\/\/([a-z]+)\.hania360\.com/.exec(a[3]); if (m && HOST_T[m[1]]) t.add(HOST_T[m[1]]); }
+  return [...t].join(" ");
+}
 function card(it, draft = false) {
   const k = CHIP[it.chip] || "#38BDF8";
   const apps = (it.apps || []).map(([ic, name, line, href, btn]) => `<a class="n26-app" href="${esc(href)}"><span class="n26-ic">${ic}</span><div><b>${esc(name)}</b><small>${esc(line)}</small></div><span class="n26-go">${esc(btn)}</span></a>`).join("");
@@ -107,7 +126,7 @@ function card(it, draft = false) {
   const until = it.until ? `עד ${+it.until.slice(8)}.${+it.until.slice(5, 7)}` : "";
   const text = `<div style="display:grid;gap:10px"><div class="n26-meta">${draft ? `<span class="n26-chip" style="--k:#FBBF24">טיוטה · ממתין לאישור</span>` : ""}<span class="n26-chip">${esc(it.chip)}</span>${until ? `<span>${until}</span>` : ""}</div>${it.big ? `<div class="n26-big">${esc(it.big)}</div>` : ""}<h3>${esc(it.title)}</h3><p>${esc(it.body)}</p>${src || im ? `<div class="n26-src">${src ? "מקור: " + src : ""}${src && im ? " · " : ""}${credit(im)}</div>` : ""}</div>`;
   const side = apps ? `<div class="n26-apps">${apps}</div>` : it.civic ? `<div class="n26-civic">מידע אזרחי בלבד, בלי עמדה ובלי קישור לאפליקציה.</div>` : "";
-  return `<article class="n26-card${it.lead ? " lead" : ""}${im ? " pic" : ""}" style="--k:${k}">${pic}${text}${side}</article>`;
+  return `<article class="n26-card${it.lead ? " lead" : ""}${im ? " pic" : ""}" style="--k:${k}" data-t="${topics(it)}"${it.for ? ` data-for="${esc(it.for.join(" "))}"` : ""}>${pic}${text}${side}</article>`;
 }
 
 /** The whole section, or "" when nothing is approved. The ticker and sport strip fill in on the phone. */
@@ -117,21 +136,8 @@ export function nowSection(items, t = Date.now(), pending = new Set()) {
   if (ordered.length && !ordered[0].lead) ordered[0] = { ...ordered[0], lead: true };
   const local = new Date(t + 2 * 3600e3), dl = new Date(t).toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "long" });
   const tick = TICKER.map(([l, v, at]) => `<span class="n26-tk"${at ? ` data-at="${esc(at)}"` : ""}><b>${esc(v || "")}</b><span>${esc(l)}</span></span>`).join("");
-  return `<section class="n26" id="now" aria-labelledby="now-h"><div class="n26-head"><div><div class="n26-live"><i></i>עכשיו</div><h2 id="now-h">מה קורה היום, ואיך זה נוגע לכם</h2></div><div class="n26-date">יום ${HEB_DAYS[local.getUTCDay()]}, ${esc(dl)} · מתעדכן כל בוקר</div></div><div class="n26-tick">${tick}</div><div class="n26-sport" id="nowSport" hidden></div><div class="n26-grid">${ordered.map((it) => card(it, pending.has(it.id))).join("")}</div></section>
-<script>(function(){
-function il(s){var m=/^(\\d{4})-(\\d\\d)-(\\d\\d)T(\\d\\d):(\\d\\d)/.exec(s);if(!m)return 0;var u=Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5]),x=new Date(u),off=Date.parse(x.toLocaleString("en-US",{timeZone:"Asia/Jerusalem"}))-Date.parse(x.toLocaleString("en-US",{timeZone:"UTC"}));return u-off}
-function fmt(ms){if(ms<=0)return "היום";var d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5);return d>1?d+" ימים":d===1?"יום ו־"+h+" שע׳":h>0?h+" שע׳":Math.max(1,Math.floor(ms/6e4))+" דק׳"}
-function tick(){document.querySelectorAll(".n26-tk[data-at]").forEach(function(e){var at=e._at||(e._at=il(e.dataset.at)),left=at-Date.now();if(left<-36e5*6){e.remove();return}e.querySelector("b").textContent=left<=0?"עכשיו":"בעוד "+fmt(left)})}
-tick();setInterval(tick,6e4);
-document.querySelectorAll(".n26-card:not(.lead) h3").forEach(function(h){h.setAttribute("role","button");h.tabIndex=0;h.onclick=h.onkeydown=function(e){if(e.type==="keydown"&&e.key!=="Enter"&&e.key!==" ")return;e.preventDefault();var c=h.closest(".n26-card");h.setAttribute("aria-expanded",c.classList.toggle("open"))}});
-var box=document.getElementById("nowSport");if(!box||!window.fetch)return;
-fetch("/api/sport/il").then(function(r){return r.ok?r.json():null}).then(function(d){if(!d||!d.matches)return;
-var now=Date.now(),ms=d.matches,lv=ms.filter(function(m){return m.live}),dn=ms.filter(function(m){return m.done}).slice(-3).reverse(),nx=ms.filter(function(m){return !m.done&&!m.live&&Date.parse(m.utc)>now}).slice(0,3);
-function t(m){return new Date(m.utc).toLocaleString("he-IL",{timeZone:"Asia/Jerusalem",weekday:"short",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"})}
-function a(m,c,mid){return '<a class="n26-sp'+c+'" href="https://sport.hania360.com/#il"><span>⚽</span><span>'+m.home.name+' <b>'+mid+'</b> '+m.away.name+'</span></a>'}
-var h=lv.map(function(m){return a(m," live",(m.score||"")+" · "+(m.min||"חי"))}).concat(dn.length&&!lv.length?[a(dn[0],"",dn[0].score)]:[]).concat(nx.map(function(m){return a(m,"",'<small>'+t(m)+'</small>')}));
-var top=d.table&&d.table[0];if(top)h.unshift('<a class="n26-sp" href="https://sport.hania360.com/#il"><span>🏆</span><span>ליגת העל: <b>'+top.name+'</b> ראשונה עם '+top.pts+' נק׳</span></a>');
-if(h.length){box.innerHTML=h.join("");box.hidden=false}}).catch(function(){})})();</script>`;
+  return `<section class="n26" id="now" aria-labelledby="now-h"><div class="n26-head"><div><div class="n26-live"><i></i>עכשיו</div><h2 id="now-h">מה קורה היום, ואיך זה נוגע לכם</h2></div><div class="n26-date">יום ${HEB_DAYS[local.getUTCDay()]}, ${esc(dl)} · מתעדכן כל בוקר</div></div><div class="n26-me" id="nowMe" hidden><span id="nowMeTxt"></span><button type="button" id="nowMeBtn"></button></div><div class="n26-pick" id="nowPick" hidden></div><div class="n26-tick">${tick}</div><div class="n26-sport" id="nowSport" hidden></div><div class="n26-grid">${ordered.map((it) => card(it, pending.has(it.id))).join("")}</div></section>
+<script>${PREF_JS}window.N26=${JSON.stringify({ he: HE, cities: CITIES }).replace(/</g, "\\u003c")};</script><script>${CLIENT}</script>`;
 }
 
 // ---------- the owner's approval page: hania360.com/now ----------
