@@ -502,13 +502,14 @@ export default {
     { const hk = /^(kids|bayit|yahadut)\.hania360\.com$/.exec(url.hostname); if (hk) return url.pathname.startsWith("/api/masach/") ? masachApi(request, env || {}, url) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : hubApp(url, hk[1]); }
     if (url.pathname === "/_bridge") { const r = bridge(url.hostname.split(".")[0]); if (r) return r; }
     if (url.hostname === "caption.hania360.com" || url.searchParams.get("app") === "caption" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CAPTIONAPP, CAPTION_FILES, CAPTION_IMAGES, "https://caption.hania360.com/");
-    // HaniaRegaTov (רגע טוב): rega.hania360.com, and /f/<room> is the family's page of a room (same page, kept out of search).
-    if (url.hostname === "rega.hania360.com" || url.searchParams.get("app") === "rega" && /workers\.dev$/.test(url.hostname)) {
+    // HaniaRegaTov (רגע טוב): regatov.hania360.com (rega.hania360.com sends there), and /f/<room> is the family's page of a room (same page, kept out of search).
+    if (url.hostname === "rega.hania360.com") return Response.redirect("https://regatov.hania360.com" + url.pathname + url.search, 301);
+    if (url.hostname === "regatov.hania360.com" || url.searchParams.get("app") === "rega" && /workers\.dev$/.test(url.hostname)) {
       if (url.pathname.startsWith("/api/rega/")) return regaApi(request, env || {}, url);
       if (url.pathname === "/api/now/feed") return nowApi(request, env || {}, url);
       if (url.pathname === "/robots.txt") return new Response("User-agent: *\nDisallow: /f/\nAllow: /\n", { headers: { "content-type": "text/plain" } });
-      if (/^\/f\/[A-Za-z0-9]{16}$/.test(url.pathname)) { const r = smallApp(new URL("/", url), REGAPAGE, REGA_FILES, REGA_IMAGES, "https://rega.hania360.com/"); const h = new Headers(r.headers); h.set("x-robots-tag", "noindex"); h.set("referrer-policy", "no-referrer"); return new Response(r.body, { status: r.status, headers: h }); }
-      return smallApp(url, REGAPAGE, REGA_FILES, REGA_IMAGES, "https://rega.hania360.com/");
+      if (/^\/f\/[A-Za-z0-9]{16}$/.test(url.pathname)) { const r = smallApp(new URL("/", url), REGAPAGE, REGA_FILES, REGA_IMAGES, "https://regatov.hania360.com/"); const h = new Headers(r.headers); h.set("x-robots-tag", "noindex"); h.set("referrer-policy", "no-referrer"); return new Response(r.body, { status: r.status, headers: h }); }
+      return smallApp(url, REGAPAGE, REGA_FILES, REGA_IMAGES, "https://regatov.hania360.com/");
     }
     if (url.hostname === "sport.hania360.com" || url.searchParams.get("app") === "sport" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/sport/") ? sportApi(request, ctx) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SPORTAPP, SPORT_FILES, SPORT_IMAGES, "https://sport.hania360.com/");
     if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
