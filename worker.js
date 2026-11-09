@@ -502,7 +502,7 @@ export default {
     { const hk = /^(kids|bayit|yahadut)\.hania360\.com$/.exec(url.hostname); if (hk) return url.pathname.startsWith("/api/masach/") ? masachApi(request, env || {}, url) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : hubApp(url, hk[1]); }
     if (url.pathname === "/_bridge") { const r = bridge(url.hostname.split(".")[0]); if (r) return r; }
     if (url.hostname === "caption.hania360.com" || url.searchParams.get("app") === "caption" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CAPTIONAPP, CAPTION_FILES, CAPTION_IMAGES, "https://caption.hania360.com/");
-    // HaniaRega (רגע טוב): rega.hania360.com, and /f/<room> is the family's page of a room (same page, kept out of search).
+    // HaniaRegaTov (רגע טוב): rega.hania360.com, and /f/<room> is the family's page of a room (same page, kept out of search).
     if (url.hostname === "rega.hania360.com" || url.searchParams.get("app") === "rega" && /workers\.dev$/.test(url.hostname)) {
       if (url.pathname.startsWith("/api/rega/")) return regaApi(request, env || {}, url);
       if (url.pathname === "/api/now/feed") return nowApi(request, env || {}, url);

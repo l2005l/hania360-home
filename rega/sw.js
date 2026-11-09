@@ -1,4 +1,4 @@
-// HaniaRega offline: the page from the network when there is one, from the cache when not.
+// HaniaRegaTov offline: the page from the network when there is one, from the cache when not.
 const C = "haniarega-v1", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(C).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C && k !== "rega-meta").map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
@@ -19,7 +19,7 @@ self.addEventListener("push", (e) => {
       const r = await fetch("/api/rega/msg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ c: room, endpoint: sub && sub.endpoint }) });
       m = r.ok ? await r.json() : null;
     } catch { m = null; }
-    if (!m || !m.title) m = { title: "💌 HaniaRega", body: "יש משהו חדש מהמשפחה.", url: "/" };
+    if (!m || !m.title) m = { title: "💌 HaniaRegaTov", body: "יש משהו חדש מהמשפחה.", url: "/" };
     await self.registration.showNotification(m.title, { body: m.body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", lang: "he", dir: "rtl", tag: "rega", renotify: true, data: { url: m.url || "/" } });
   })());
 });

@@ -1,4 +1,4 @@
-<title>HaniaRega · רגע טוב, גם מהמיטה</title>
+<title>HaniaRegaTov · רגע טוב, גם מהמיטה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&family=Secular+One&display=swap">
 <style>
@@ -217,7 +217,7 @@ document.getElementById("backBtn").onclick=function(){go("home")};
 
 function header(){
   return el("div",{class:"top"},[
-    el("div",{class:"brand"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"Rega"})])]),
+    el("div",{class:"brand"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"RegaTov"})])]),
     el("div",{class:"tools"},[
       el("button",{class:"ic",type:"button","aria-label":"הקראה בקול","aria-pressed":String(!!S.voice),title:"הקראה בקול",text:S.voice?"🔊":"🔈",on:{click:function(){S.voice=!S.voice;save();toast(S.voice?"הקראה בקול: פועלת":"הקראה בקול: כבויה");if(S.voice)say("הקראה בקול פועלת");go(CUR)}}}),
       el("button",{class:"ic",type:"button","aria-label":"מצב לילה","aria-pressed":String(!!S.night),title:"מצב לילה: מסך עמום וחם",text:S.night?"🌙":"🌤️",on:{click:function(){S.night=!S.night;save();bodyClass()}}}),
@@ -236,7 +236,7 @@ SCREENS.setup=function(){
   var gs=el("div",{class:"seg"});[["m","בן / גבר"],["f","בת / אישה"]].forEach(function(x){gs.append(el("button",{type:"button","aria-pressed":String(g===x[0]),text:x[1],on:{click:function(e){g=x[0];[].forEach.call(gs.children,function(b){b.setAttribute("aria-pressed",String(b===e.currentTarget))})}}}))});
   var nm=el("input",{class:"txt",type:"text",maxlength:"20",placeholder:"השם (לא חובה)",value:S.name||"",autocomplete:"given-name"});
   A(el("div",{class:"stack"},[
-    el("div",{class:"brand",style:"margin-top:8px"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"Rega"})])]),
+    el("div",{class:"brand",style:"margin-top:8px"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"RegaTov"})])]),
     el("h1",{class:"h1",text:"רגע טוב, גם מהמיטה"}),
     el("p",{class:"muted",style:"margin:0",text:"משחקים קלים, נשימה וצלילים, סיפורים בקול, שיחה, והודעות ותמונות מהמשפחה. בלי הרשמה ובלי פרסומות."}),
     el("b",{text:"למי זה?"}),box,el("b",{text:"איך לפנות?"}),gs,nm,
@@ -255,7 +255,7 @@ SCREENS.home=function(){
     el("div",{class:"hello"},[el("h1",{class:"h1"},[pd[0]+(S.name?", ":"")+"",S.name?el("span",{class:"grad",text:S.name}):null," "+pd[1]]),el("div",{class:"when",text:dateLine(now)+" · "+now.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"})})]),
     el("b",{text:"איך "+he("אתה","את")+" מרגיש"+he("","ה")+" עכשיו?"}),feel,tiles,
     el("div",{class:"help"},[el("b",{text:"צריכים עזרה?"}),el("span",{text:"בבית חולים: כפתור הקריאה לאחות שליד המיטה. בבית: להתקשר לבן משפחה או למד״א 101."}),el("span",{},["מצוקה רגשית, בכל שעה: ער״ן ",el("a",{href:"tel:1201",text:"1201"})])]),
-    el("p",{class:"fine",style:"text-align:center",text:"נשמר רק בטלפון הזה. HaniaRega לא נותנת עצות רפואיות."})
+    el("p",{class:"fine",style:"text-align:center",text:"נשמר רק בטלפון הזה. HaniaRegaTov לא נותנת עצות רפואיות."})
   ]));
   if(S.mode==="big"&&S.voice&&!S.saidHi){S.saidHi=1;say(pd[0]+(S.name?" "+S.name:"")+". איך "+he("אתה","את")+" מרגיש"+he("","ה")+" עכשיו?")}
   if(S.room)checkFamily(true);
@@ -428,7 +428,7 @@ SCREENS.fam=function(){
   var bell=el("button",{class:"btn ghost wide",type:"button",text:"🔔 להודיע לי כשיש תשובה",on:{click:function(){subscribe(FAMILY,"fam","").then(function(ok){toast(ok?"נודיע לך כשתגיע תשובה":"הטלפון לא מאפשר התראות כאן");if(ok)bell.hidden=true})}}});
   function paint(){fetch("/api/rega/state?c="+FAMILY,{cache:"no-store"}).then(function(r){return r.json()}).then(function(st){if(st.error){head.textContent="הקישור לא תקין";return}head.textContent=st.name?"שולחים רגע טוב ל"+st.name:"שולחים רגע טוב";list.textContent="";
     st.msgs.slice().reverse().slice(0,30).forEach(function(m){list.append(msgCard(m,FAMILY,""))})})}
-  A(el("div",{class:"stack"},[el("div",{class:"brand"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"Rega"})])]),head,
+  A(el("div",{class:"stack"},[el("div",{class:"brand"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"RegaTov"})])]),head,
     el("p",{class:"muted",style:"margin:0",text:"מה שתשלחו יופיע על המסך שלו/ה בגדול, עם צליל קטן. אפשר מילה, ברכה או תמונה מהבית."}),
     el("div",{class:"card stack"},[nm,tx,prev,file,el("button",{class:"btn ghost wide",type:"button",text:"📷 לצרף תמונה",on:{click:function(){file.click()}}}),send]),bell,el("b",{text:"מה כבר נשלח"}),list,
     el("p",{class:"fine",text:"ההודעות נמחקות אחרי 30 יום. כל מי שיש לו את הקישור יכול לראות ולכתוב."})]));
@@ -437,7 +437,7 @@ SCREENS.fam=function(){
 
 // ---------- start ----------
 bodyClass();
-if(FAMILY){document.title="HaniaRega · שולחים רגע טוב";S={mode:"adult",voice:false};bodyClass();go("fam")}
+if(FAMILY){document.title="HaniaRegaTov · שולחים רגע טוב";S={mode:"adult",voice:false};bodyClass();go("fam")}
 else if(!S.mode)go("setup");
 else{var h=location.hash.slice(1);go(SCREENS[h]&&h!=="fam"&&h!=="setup"?h:"home")}
 if(!FAMILY&&S.room)setInterval(function(){if(CUR==="home"||CUR==="clock")checkFamily(true)},45000);
