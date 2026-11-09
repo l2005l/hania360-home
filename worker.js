@@ -40,6 +40,7 @@ import { VaultBox, vaultApi } from "./kasefet/vault.js";
 import SPORTAPP, { FILES as SPORT_FILES, IMAGES as SPORT_IMAGES } from "./sport/page.js";
 import { sportApi } from "./sport/api.js";
 import { LIGHT_CSS } from "./lib/light.js";
+import { IMG, credit } from "./lib/images.js";
 import { nowItems, nowSection, nowApi, NOW_CSS, NOW_ADMIN } from "./now/desk.js";
 import { passUser } from "./lib/account.js";
 import ENGLISHAPP, { FILES as ENGLISH_FILES, IMAGES as ENGLISH_IMAGES } from "./english/page.js";
@@ -268,9 +269,13 @@ function related(a){
   const more=[...pool.filter(x=>x.cat===a.cat),...pool.filter(x=>x.cat!==a.cat)].slice(0,3);
   return more.length?`<section class="content"><h2>מדריכים נוספים</h2><ul>${more.map(x=>`<li><a href="/guides/${x.slug}">${x.title}</a></li>`).join("")}</ul></section>`:"";
 }
+const COVER_CSS='<style>.cover{margin:22px 0 26px}.cover img{display:block;width:100%;height:auto;aspect-ratio:1200/630;object-fit:cover;border-radius:22px;box-shadow:0 22px 44px -26px rgba(20,33,61,.55);background:#E3E6F2}.cover figcaption{margin-top:8px;font-size:.78rem;color:#8A94AB}.cover figcaption a{color:inherit!important}</style>';
 function articlePage(a){
-  const box=a.box||PROJECT_BOX[a.cat];
-  return layout(a.title+" — Hania360",a.desc,`<article class="legal"><p class="eyebrow">${a.cat} · ${a.read} דקות קריאה · ${a.date||"1 באוקטובר 2026"}</p><h1>${a.title}</h1><p class="lead">${a.desc}</p>${a.body}${related(a)}<section class="content"><h2>${box[0]}</h2><p>${box[1]}</p></section><section class="content"><p><strong>צוות Hania360</strong></p><p>אנחנו בונים ומפעילים את HaniaSave, HaniaION ואלינויה. המדריכים נכתבים מתוך העבודה היומיומית על הפרויקטים האלה, ומתעדכנים כשמשהו משתנה. <a href="/about">עוד עלינו</a> · <a href="/contact">מצאתם טעות? כתבו לנו</a></p></section><p><a class="cta" href="/guides">חזרה לכל המדריכים</a></p></article>`,"/guides/"+a.slug);
+  const box=a.box||PROJECT_BOX[a.cat], im=IMG[a.slug];
+  const og=im?`<meta property="og:type" content="article"><meta property="og:site_name" content="Hania360"><meta property="og:title" content="${a.title.replace(/"/g,"&quot;")}"><meta property="og:description" content="${a.desc.replace(/"/g,"&quot;")}"><meta property="og:url" content="https://hania360.com/guides/${a.slug}"><meta property="og:image" content="https://hania360.com${im.og}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">`+COVER_CSS:"";
+  const cover=im?`<figure class="cover"><img src="${im.src}" width="1200" height="630" alt="" fetchpriority="high"><figcaption>${credit(im)}</figcaption></figure>`:"";
+  const html=layout(a.title+" — Hania360",a.desc,`<article class="legal"><p class="eyebrow">${a.cat} · ${a.read} דקות קריאה · ${a.date||"1 באוקטובר 2026"}</p><h1>${a.title}</h1><p class="lead">${a.desc}</p>${cover}${a.body}${related(a)}<section class="content"><h2>${box[0]}</h2><p>${box[1]}</p></section><section class="content"><p><strong>צוות Hania360</strong></p><p>אנחנו בונים ומפעילים את HaniaSave, HaniaION ואלינויה. המדריכים נכתבים מתוך העבודה היומיומית על הפרויקטים האלה, ומתעדכנים כשמשהו משתנה. <a href="/about">עוד עלינו</a> · <a href="/contact">מצאתם טעות? כתבו לנו</a></p></section><p><a class="cta" href="/guides">חזרה לכל המדריכים</a></p></article>`,"/guides/"+a.slug);
+  return og?html.replace("<title>",og+"<title>"):html;
 }
 const ARTICLE_PAGES=Object.fromEntries(ARTICLES.map(a=>["/guides/"+a.slug,onTopic(a)?articlePage(a):articlePage(a).replace("<title>",'<meta name="robots" content="noindex, follow"><title>')]));
 
@@ -576,6 +581,8 @@ export default {
     }
     const page=pages[url.pathname];
     if (!page) return new Response(themed(layout("העמוד לא נמצא | Hania360","העמוד המבוקש לא נמצא.",`<article class="legal"><h1>העמוד לא נמצא</h1><p>ייתכן שהקישור שגוי או שהעמוד הועבר.</p><p><a href="/">לדף הבית</a> · <a href="/guides">לכל המדריכים</a></p></article>`,url.pathname),env),{status:404,headers:{"content-type":"text/html; charset=utf-8"}});
-    return new Response(themed(page, env),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
+    const ph={"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"};
+    if (page.includes('property="og:title"')) ph["x-og"]="1"; // the guide brings its own link preview (its cover photo)
+    return new Response(themed(page, env),{headers:ph});
   }
 };
