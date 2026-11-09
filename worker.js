@@ -39,6 +39,8 @@ import KASEFET_CSP from "./kasefet/csp.js";
 import { VaultBox, vaultApi } from "./kasefet/vault.js";
 import SPORTAPP, { FILES as SPORT_FILES, IMAGES as SPORT_IMAGES } from "./sport/page.js";
 import { sportApi } from "./sport/api.js";
+import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
+import { RegaRoom, regaApi } from "./rega/room.js";
 import { LIGHT_CSS } from "./lib/light.js";
 import { IMG, credit } from "./lib/images.js";
 import { nowItems, nowSection, nowApi, NOW_CSS, NOW_ADMIN } from "./now/desk.js";
@@ -48,7 +50,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
@@ -500,6 +502,14 @@ export default {
     { const hk = /^(kids|bayit|yahadut)\.hania360\.com$/.exec(url.hostname); if (hk) return url.pathname.startsWith("/api/masach/") ? masachApi(request, env || {}, url) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : hubApp(url, hk[1]); }
     if (url.pathname === "/_bridge") { const r = bridge(url.hostname.split(".")[0]); if (r) return r; }
     if (url.hostname === "caption.hania360.com" || url.searchParams.get("app") === "caption" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CAPTIONAPP, CAPTION_FILES, CAPTION_IMAGES, "https://caption.hania360.com/");
+    // HaniaRega (רגע טוב): rega.hania360.com, and /f/<room> is the family's page of a room (same page, kept out of search).
+    if (url.hostname === "rega.hania360.com" || url.searchParams.get("app") === "rega" && /workers\.dev$/.test(url.hostname)) {
+      if (url.pathname.startsWith("/api/rega/")) return regaApi(request, env || {}, url);
+      if (url.pathname === "/api/now/feed") return nowApi(request, env || {}, url);
+      if (url.pathname === "/robots.txt") return new Response("User-agent: *\nDisallow: /f/\nAllow: /\n", { headers: { "content-type": "text/plain" } });
+      if (/^\/f\/[A-Za-z0-9]{16}$/.test(url.pathname)) { const r = smallApp(new URL("/", url), REGAPAGE, REGA_FILES, REGA_IMAGES, "https://rega.hania360.com/"); const h = new Headers(r.headers); h.set("x-robots-tag", "noindex"); h.set("referrer-policy", "no-referrer"); return new Response(r.body, { status: r.status, headers: h }); }
+      return smallApp(url, REGAPAGE, REGA_FILES, REGA_IMAGES, "https://rega.hania360.com/");
+    }
     if (url.hostname === "sport.hania360.com" || url.searchParams.get("app") === "sport" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/sport/") ? sportApi(request, ctx) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SPORTAPP, SPORT_FILES, SPORT_IMAGES, "https://sport.hania360.com/");
     if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
     if (url.hostname === "english.hania360.com" || url.searchParams.get("app") === "english" && /workers\.dev$/.test(url.hostname)) return smallApp(url, ENGLISHAPP, ENGLISH_FILES, ENGLISH_IMAGES, "https://english.hania360.com/");
