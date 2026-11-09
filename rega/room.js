@@ -1,4 +1,4 @@
-// HaniaRega (רגע טוב): time well spent in a hospital bed or at home in bed.
+// HaniaRegaTov (רגע טוב): time well spent in a hospital bed or at home in bed.
 // The server side: one Durable Object per "room" (the patient and the family around them), and the AI calls.
 //
 // The room: family members open the room link and leave a message or a photo; the patient's screen shows it big,
