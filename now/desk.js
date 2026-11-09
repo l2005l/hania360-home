@@ -66,15 +66,15 @@ export const NOW_CSS = `
 @keyframes n26p{0%{box-shadow:0 0 0 0 rgba(251,113,133,.6)}100%{box-shadow:0 0 0 10px rgba(251,113,133,0)}}
 @media (prefers-reduced-motion:reduce){.n26-live i{animation:none}}
 .n26-date{color:#94A3B8;font-size:.92rem}
-.n26-tick{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.n26-tick{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0}
 .n26-tick::-webkit-scrollbar{display:none}
-.n26-tk{flex:none;display:flex;gap:8px;align-items:center;background:var(--glass);border:1px solid var(--edge);border-radius:999px;padding:8px 14px;font-size:.9rem;white-space:nowrap;color:#CBD5E1}
+.n26-tk{flex:0 1 auto;display:flex;gap:8px;align-items:center;background:var(--glass);border:1px solid var(--edge);border-radius:999px;padding:8px 14px;font-size:.9rem;white-space:nowrap;color:#CBD5E1}
 .n26-tk b{font:800 1rem/1 Rubik,sans-serif;color:#F1F5F9;font-variant-numeric:tabular-nums}
 .n26-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
 .n26-card{position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(22,32,60,.92),rgba(10,16,34,.92));border:1px solid var(--edge);border-radius:22px;padding:18px;display:grid;gap:10px;align-content:start;min-width:0;box-shadow:var(--glow)}
 .n26-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--k),transparent)}
 .n26-card.lead{grid-column:1/-1;grid-template-columns:1.35fr 1fr;gap:22px;padding:22px;background:radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--k) 22%,transparent),transparent 60%),linear-gradient(160deg,rgba(22,32,60,.95),rgba(10,16,34,.95))}
-@media (max-width:720px){.n26-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:6px;scrollbar-width:none}.n26-grid::-webkit-scrollbar{display:none}.n26-card,.n26-card.lead{flex:0 0 86%;scroll-snap-align:center;grid-template-columns:1fr}.n26-hint{display:block!important}}
+@media (max-width:720px){.n26-tick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.n26-tk{display:grid;gap:2px;justify-items:start;border-radius:14px;padding:8px 12px;font-size:.78rem;white-space:normal}.n26-tk b{font-size:.95rem}.n26-tk:last-child:nth-child(odd){grid-column:1/-1}.n26-sp:nth-child(n+3){display:none}.n26-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:6px;scrollbar-width:none}.n26-grid::-webkit-scrollbar{display:none}.n26-card,.n26-card.lead{flex:0 0 86%;scroll-snap-align:center;grid-template-columns:1fr}.n26-hint{display:block!important}}
 .n26-hint{display:none;color:#94A3B8;font-size:.8rem;text-align:center}
 .n26-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem;color:#94A3B8}
 .n26-chip{font:800 .74rem/1 Rubik,sans-serif;padding:6px 10px;border-radius:999px;color:var(--k);background:color-mix(in srgb,var(--k) 16%,transparent);border:1px solid color-mix(in srgb,var(--k) 35%,transparent)}
@@ -91,8 +91,8 @@ export const NOW_CSS = `
 .n26-go{flex:none;font:800 .85rem/1 Rubik,sans-serif;padding:10px 14px;border-radius:12px;color:#050914;background:linear-gradient(90deg,var(--c1),var(--c2))}
 .n26-app:hover .n26-go{filter:brightness(1.1)}
 .n26-civic{font-size:.8rem;color:#94A3B8;border-top:1px solid rgba(148,163,184,.2);padding-top:10px}
-.n26-sport{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none}.n26-sport::-webkit-scrollbar{display:none}
-.n26-sp{flex:none;display:flex;gap:10px;align-items:center;background:linear-gradient(135deg,rgba(16,185,129,.16),rgba(10,16,34,.9));border:1px solid rgba(52,211,153,.3);border-radius:16px;padding:10px 14px;color:#E2E8F0;text-decoration:none;font-size:.88rem;white-space:nowrap}
+.n26-sport{display:flex;flex-wrap:wrap;gap:8px}.n26-sport::-webkit-scrollbar{display:none}
+.n26-sp{flex:0 1 auto;max-width:100%;display:flex;gap:10px;align-items:center;background:linear-gradient(135deg,rgba(16,185,129,.16),rgba(10,16,34,.9));border:1px solid rgba(52,211,153,.3);border-radius:16px;padding:10px 14px;color:#E2E8F0;text-decoration:none;font-size:.88rem}
 .n26-sp b{font:800 1rem Rubik,sans-serif;color:#F8FAFC;font-variant-numeric:tabular-nums}.n26-sp small{color:#94A3B8}
 .n26-sp.live{border-color:#FB7185}
 `;
