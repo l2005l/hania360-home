@@ -567,7 +567,7 @@ export default {
     if (url.pathname.startsWith("/bills/")) return Response.redirect("https://bills.hania360.com" + url.pathname.slice(6) + url.search, 301);
     // The homepage with the "עכשיו" desk (approved items from now/feed.js). HOME_CLASSIC="1" in the Worker's
     // variables brings back the previous homepage exactly; /classic always shows it.
-    if (url.pathname === "/api/sport/il" || url.pathname === "/api/sport/euro") return sportApi(request, ctx);
+    if (/^\/api\/sport\/(il|euro|news)$/.test(url.pathname)) return sportApi(request, ctx);
     if (url.pathname.startsWith("/api/now/")) return nowApi(request, env || {}, url);
     if (url.pathname === "/now") return new Response(NOW_ADMIN,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex","referrer-policy":"no-referrer"}});
     if (url.pathname === "/classic") return new Response(HOME.replace("/*THEME*/","").replace("<title>",'<meta name="robots" content="noindex, follow"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});

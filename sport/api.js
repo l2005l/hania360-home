@@ -42,7 +42,39 @@ async function israel(ctx) {
     legend: legend.map((l) => ({ he: /playoff|championship/i.test(l.title) ? "פלייאוף עליון" : /relegation/i.test(l.title) ? "פלייאוף תחתון" : l.title, color: l.color, idx: l.idx })),
     table: rows.map((r) => ({ pos: r.idx, id: r.id, name: HE[r.id] || r.shortName, p: r.played, w: r.wins, d: r.draws, l: r.losses, gf: r.scoresStr, pts: r.pts, color: r.qualColor || "" })),
     matches: (d.fixtures && d.fixtures.allMatches || []).map((m) => ({ id: m.id, round: +m.round, home: fm(m.home), away: fm(m.away), ...fmStatus(m.status) })),
+    // The league's top scorers and assisters (player names stay as FotMob writes them, in English).
+    leaders: Object.fromEntries((d.stats && d.stats.players || []).filter((p) => p.name === "goals" || p.name === "goal_assist").map((p) => [p.name === "goals" ? "goals" : "assists", (p.topThree || []).map((x) => ({ name: x.name, team: HE[x.teamId] || x.teamName, teamId: x.teamId, value: x.value }))])),
   };
+}
+
+// One team: its stars this season, its form, its coach and stadium (FotMob team page data).
+async function team(ctx, id) {
+  const d = await get(FOTMOB + "/teams?id=" + id + "&ccode3=ISR", ctx, 600), ov = d.overview || {}, tp = ov.topPlayers || {};
+  const top = (k) => ((tp[k] && tp[k].players) || []).slice(0, 3).map((p) => ({ name: p.name, value: p.value, rank: p.rank }));
+  const coach = ((d.squad && d.squad.squad || []).find((g) => g.title === "coach") || { members: [] }).members[0];
+  return {
+    id, name: HE[id] || (d.details && d.details.name) || "",
+    coach: coach ? coach.name : (ov.lastLineupStats && ov.lastLineupStats.coach && ov.lastLineupStats.coach.name) || "",
+    venue: ov.venue && ov.venue.widget ? ov.venue.widget.name : "",
+    form: (ov.teamForm || []).map((f) => { const t = f.tooltipText || {}, home = t.homeTeamId === id, opp = home ? t.awayTeamId : t.homeTeamId; return { r: f.resultString, score: f.score, home, opp: HE[opp] || (home ? t.awayTeam : t.homeTeam), utc: t.utcTime, comp: f.tournamentName }; }),
+    goals: top("byGoals"), assists: top("byAssists"), rating: top("byRating"),
+  };
+}
+
+// Sport headlines from ynet's public RSS feed: title, link and time only, each linking to the article on ynet.
+async function news(ctx) {
+  const cache = typeof caches !== "undefined" ? caches.default : null, key = new Request("https://cache.invalid/sport-news-v1");
+  if (cache) { const hit = await cache.match(key); if (hit) return hit.json(); }
+  const r = await fetch("https://www.ynet.co.il/Integration/StoryRss3.xml", { headers: { "user-agent": UA }, cf: { cacheTtl: 600, cacheEverything: true } });
+  if (!r.ok) throw new Error("ynet " + r.status);
+  const x = await r.text(), un = (v) => (v || "").replace(/<!\[CDATA\[|\]\]>/g, "").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, "&").replace(/<[^>]+>/g, "").trim();
+  const items = [...x.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => {
+    const g = (t) => { const z = new RegExp("<" + t + ">([\\s\\S]*?)</" + t + ">").exec(m[1]); return z ? un(z[1]) : ""; };
+    return { t: g("title"), u: g("link"), d: Date.parse(g("pubDate")) || 0 };
+  }).filter((i) => i.t && /^https:\/\/www\.ynet\.co\.il\//.test(i.u)).slice(0, 30);
+  const out = { source: "ynet ספורט", items };
+  if (cache) { const put = cache.put(key, new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } })); if (ctx && ctx.waitUntil) ctx.waitUntil(put); }
+  return out;
 }
 
 async function euro(ctx) {
@@ -87,6 +119,8 @@ export async function sportApi(request, ctx) {
     if (p === "il") return json(await israel(ctx), 200, 120);
     if (p === "euro") return json(await euro(ctx), 200, 300);
     if (p === "nba") return json(await nba(ctx), 200, 600);
+    if (p === "news") return json(await news(ctx), 200, 600);
+    if (p === "team") { const id = +url.searchParams.get("id"); if (!HE[id]) return json({ error: "team" }, 400, 60); return json(await team(ctx, id), 200, 600); }
     if (p === "world") {
       const day = /^\d{8}$/.test(url.searchParams.get("d") || "") ? url.searchParams.get("d") : new Date(Date.now() + 2 * 3600e3).toISOString().slice(0, 10).replace(/-/g, "");
       return json(await world(ctx, day), 200, 120);

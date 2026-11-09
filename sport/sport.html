@@ -82,6 +82,15 @@ dialog{background:var(--bg2);color:var(--ink);border:1px solid var(--line);borde
 dialog::backdrop{background:rgba(0,0,0,.6)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#07111F;padding:10px 16px;border-radius:12px;font-weight:700;z-index:30}
 :focus-visible{outline:3px solid var(--pitch);outline-offset:2px}
+.news{display:grid;gap:3px;text-decoration:none;padding:10px 12px;border-radius:14px;background:#0A1930;border:1px solid var(--line)}
+.news b{font:700 15.5px/1.35 var(--body)}.news small{color:var(--muted);font-size:12.5px}
+.news:hover{border-color:var(--pitch)}
+.stars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.star{background:#0A1930;border:1px solid var(--line);border-radius:14px;padding:10px;display:grid;gap:2px;min-width:0}
+.star small{color:var(--muted);font-size:12px}.star b{font:800 14.5px/1.2 var(--display);direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.star span{font:900 20px/1 var(--display);color:var(--gold);font-variant-numeric:tabular-nums}
+@media (max-width:420px){.stars{grid-template-columns:1fr 1fr}.stars .star:last-child{grid-column:1/-1}}
+.lead-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13.5px}.lead-row b{color:var(--ink);direction:ltr}
 </style>
 
 <div class="wrap">
@@ -90,7 +99,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     <button class="pill" id="pickBtn" type="button">⭐ הקבוצה שלי</button>
   </header>
   <main id="main"></main>
-  <p class="note">תוצאות ולוחות משחקים מ־FotMob, היורוליג ו־ESPN. מתעדכן כל כמה דקות.</p>
+  <p class="note">תוצאות ולוחות משחקים מ־FotMob, היורוליג ו־ESPN. כותרות מ־ynet ספורט, עם קישור לכתבה. מתעדכן כל כמה דקות.</p>
 </div>
 <nav class="tabs" id="tabs" role="tablist">
   <button role="tab" data-t="home"><b>🏟️</b>ראשי</button>
@@ -121,10 +130,11 @@ function saveMe(){ls("sp.me",JSON.stringify(ME));syncMe()}
 function syncMe(){try{window.h360pref&&h360pref({f:ME.f||null,b:ME.b||null})}catch(e){}}
 addEventListener("load",syncMe);
 
-var D={il:null,euro:null,nba:null,world:{}},ERR={};
+var D={il:null,euro:null,nba:null,news:null,world:{}},TEAM={},ERR={};
+function loadTeam(id){if(!id||TEAM[id])return;TEAM[id]={wait:1};api("team?id="+id).then(function(j){TEAM[id]=j;render()}).catch(function(){TEAM[id]={err:1}})}
 function api(p){return fetch("/api/sport/"+p,{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}
 function load(k,p){if(D[k]&&k!=="world")return Promise.resolve(D[k]);return api(p).then(function(j){if(k==="world")D.world[p]=j;else D[k]=j;delete ERR[k];render();return j}).catch(function(){ERR[k]=1;render()})}
-setInterval(function(){if(document.hidden)return;D.il=null;D.euro=null;D.world={};load("il","il");load("euro","euro");if(tab==="world"||tab==="home")load("world","world?d="+wday)},120000);
+setInterval(function(){if(document.hidden)return;D.il=null;D.euro=null;D.news=null;D.world={};load("il","il");load("euro","euro");load("news","news");if(tab==="world"||tab==="home")load("world","world?d="+wday)},120000);
 
 /* ---- views ---- */
 var tab=(location.hash.slice(1)||"home");if(["home","il","hoops","world"].indexOf(tab)<0)tab="home";
@@ -143,6 +153,19 @@ function gameRow(m,meId){
 function result(m,id){if(!m.done)return null;var p=(m.score||"").split("-").map(function(x){return+x});var mine=m.home.id===id?p[0]:p[1],their=m.home.id===id?p[1]:p[0];return mine>their?"W":mine<their?"L":"D"}
 function countdown(utc){var s=Math.max(0,Date.parse(utc)-Date.now())/1000,d=Math.floor(s/86400),h=Math.floor(s%86400/3600),mi=Math.floor(s%3600/60);return el("div",{class:"count","aria-label":"עוד "+d+" ימים "+h+" שעות"},[d?el("span",d+" ימ׳"):null,el("span",h+" שע׳"),el("span",mi+" דק׳")])}
 
+/* ---- headlines (ynet sport RSS) and a little more about my team ---- */
+var NEWS_RX={10181:/הפועל ת"א|הפועל תל אביב/,7855:/מכבי ת"א|מכבי תל אביב/,9754:/באר שבע/,8173:/בית"ר/,10185:/מכבי חיפה/,1832:/נתניה/,8718:/סכנין/,8301:/הפועל חיפה/,7929:/מכבי פ"ת|מכבי פתח תקו/,459591:/הפועל ירושלים/,2095:/קריית שמונה|ק"ש/,9755:/הפועל פ"ת|הפועל פתח תקו/,89753:/רמת גן/,543580:/טבריה/,TEL:/מכבי ת"א|מכבי תל אביב/,HTA:/הפועל ת"א|הפועל תל אביב/};
+function norm(t){return String(t).replace(/[״׳'`]/g,'"').replace(/""/g,'"')}
+function ago(d){var m=Math.max(1,Math.round((Date.now()-d)/6e4));return m<60?"לפני "+m+" דק׳":m<1440?"לפני "+Math.round(m/60)+" שע׳":fmtShort.format(new Date(d))}
+function newsRow(i){return el("a",{class:"news",href:i.u,target:"_blank",rel:"noopener"},[el("b",i.t),el("small",ago(i.d)+" · ynet")])}
+function myNews(){if(!D.news)return[];var rx=[NEWS_RX[ME.f],NEWS_RX[ME.b]].filter(Boolean);if(!rx.length)return[];return D.news.items.filter(function(i){var t=norm(i.t);return rx.some(function(r){return r.test(t)})}).slice(0,3)}
+function starsBlock(id){var t=TEAM[id];if(!t||t.wait||t.err)return null;
+  var cell=function(lbl,p,unit){return p?el("div",{class:"star"},[el("small",lbl),el("b",{title:p.name,text:p.name}),el("span",{text:String(p.value)+(unit||"")})]):null};
+  var x=[cell("⚽ מלך השערים",t.goals[0]),cell("🅰️ הכי הרבה בישולים",t.assists[0]),cell("⭐ ציון ממוצע",t.rating[0])].filter(Boolean);
+  return el("div",{style:"display:grid;gap:8px"},[x.length?el("div",{class:"stars"},x):null,(t.coach||t.venue)?el("small",{style:"color:var(--muted)",text:[t.coach?"מאמן: "+t.coach:"",t.venue?"בית: "+t.venue:""].filter(Boolean).join(" · ")}):null])}
+function leadersLine(){var L=D.il&&D.il.leaders;if(!L||!L.goals||!L.goals[0])return null;var g=L.goals[0],a=L.assists&&L.assists[0];
+  return el("div",{class:"lead-row"},[el("span","👟 מלך השערים:"),el("b",g.name),el("span","("+g.team+") "+g.value),a?el("span"," · 🅰️ בישולים:"):null,a?el("b",a.name):null,a?el("span","("+a.team+") "+a.value):null])}
+
 function myFootCard(){
   if(!ME.f)return el("div",{class:"card hero"},[el("span",{class:"eyebrow",text:"הקבוצה שלי"}),el("b",{style:"font:800 20px var(--display)",text:"בוחרים קבוצה, ורואים כאן את המשחק הבא שלה"}),el("div",{class:"row"},[el("button",{class:"cta",type:"button",text:"⭐ לבחירת קבוצה",onclick:picker})])]);
   if(!D.il)return ERR.il?el("div",{class:"card"},oops()):skel(1);
@@ -155,22 +178,26 @@ function myFootCard(){
   else kids.push(el("p",{class:"empty",text:"אין משחק קרוב בלוח."}));
   var form=past.slice(-5).map(function(m){var r=result(m,id);return el("i",{class:r,title:m.home.name+" "+m.score+" "+m.away.name,text:r==="W"?"נ":r==="L"?"ה":"ת"})});
   kids.push(el("div",{class:"row",style:"justify-content:space-between"},[el("div",{class:"row"},[el("small",{style:"color:var(--muted)",text:"5 אחרונים"}),el("div",{class:"form"},form)]),last?el("small",{style:"color:var(--muted)",text:"אחרון: "+last.home.name+" "+last.score+" "+last.away.name}):null]));
+  loadTeam(id);var sb=starsBlock(id);if(sb)kids.push(sb);
   kids.push(el("div",{class:"row"},[el("button",{class:"ghost",type:"button",text:ls("sp.rem")==="1"?"🔔 תזכורת פעילה (לכבות)":"🔔 להזכיר שעה לפני כל משחק",onclick:toggleRem})]));
   return el("div",{class:"card hero"},kids);
 }
 function vHome(){
-  load("il","il");load("euro","euro");load("nba","nba");load("world","world?d="+wday);
-  var out=[myFootCard()];
+  load("il","il");load("euro","euro");load("nba","nba");load("news","news");load("world","world?d="+wday);
+  var out=[myFootCard()],mine=myNews();
+  if(mine.length)out.push(sec("📰 על הקבוצה שלי"),el("div",{class:"list"},mine.map(newsRow)));
   // Ligat ha'Al at a glance
   out.push(sec("⚽ ליגת העל",el("button",{class:"more",type:"button",text:"לטבלה המלאה ←",onclick:function(){tab="il";render()}})));
   if(!D.il)out.push(ERR.il?oops():skel(2));else{
     var t=D.il.table.slice(0,4),nr=nextRound();
-    out.push(el("div",{class:"card"},[miniTable(t),nr.length?el("small",{style:"color:var(--muted)",text:"המחזור הבא: "+when(nr[0].utc).split(" · ")[0]}):null,el("div",{class:"list"},nr.slice(0,3).map(function(m){return gameRow(m,ME.f)}))]))}
+    out.push(el("div",{class:"card"},[miniTable(t),leadersLine(),nr.length?el("small",{style:"color:var(--muted)",text:"המחזור הבא: "+when(nr[0].utc).split(" · ")[0]}):null,el("div",{class:"list"},nr.slice(0,3).map(function(m){return gameRow(m,ME.f)}))]))}
   // EuroLeague
   out.push(sec("🏀 היורוליג",el("button",{class:"more",type:"button",text:"עוד ←",onclick:function(){tab="hoops";render()}})));
   out.push(D.euro?euroNext(2):ERR.euro?oops():skel(1));
   // Deni
   out.push(D.nba?deniCard():ERR.nba?null:skel(1));
+  // the day's headlines (not the ones already shown above)
+  if(D.news&&D.news.items.length){var seen=mine.map(function(i){return i.u});out.push(sec("📰 כותרות הספורט",el("a",{href:"https://www.ynet.co.il/sport",target:"_blank",rel:"noopener",text:"עוד ב־ynet ←"})));out.push(el("div",{class:"list"},D.news.items.filter(function(i){return seen.indexOf(i.u)<0}).slice(0,4).map(newsRow)))}
   // world today
   var w=D.world["world?d="+wday];
   out.push(sec("🌍 היום בעולם",el("button",{class:"more",type:"button",text:"עוד ←",onclick:function(){tab="world";render()}})));
@@ -188,7 +215,9 @@ function vIl(){
   var rounds=[],seen={};D.il.matches.forEach(function(m){if(!seen[m.round]){seen[m.round]=1;rounds.push(m.round)}});rounds.sort(function(a,b){return a-b});
   var nr=nextRound();if(ilRound==null)ilRound=nr.length?nr[0].round:rounds[rounds.length-1];
   var games=D.il.matches.filter(function(m){return m.round===ilRound}).sort(function(a,b){return a.utc<b.utc?-1:1});
+  var L=D.il.leaders||{},lb=function(t,arr){return arr&&arr.length?el("div",{class:"card"},[el("b",{style:"font:800 16px var(--display)",text:t}),el("div",{class:"list"},arr.map(function(p,i){return el("div",{class:"game",style:"grid-template-columns:auto 1fr auto"},[el("span",{class:"score small",text:String(i+1)}),el("div",{style:"display:grid;min-width:0"},[el("b",{dir:"ltr",style:"text-align:right",text:p.name}),el("small",p.team)]),el("span",{style:"font:900 20px var(--display);color:var(--gold)",text:String(p.value)})])}))]):null};
   return[sec("⚽ ליגת העל "+(D.il.season||"")),el("div",{class:"card"},[miniTable(D.il.table,true),el("div",{class:"legend"},(D.il.legend||[]).map(function(l){return el("span",{style:"--c:"+l.color,text:l.he})}))]),
+    el("div",{class:"grid2"},[lb("👟 מלכי השערים",L.goals),lb("🅰️ מלכי הבישולים",L.assists)]),
     sec("מחזור "+ilRound),el("div",{class:"row",style:"justify-content:space-between"},[el("button",{class:"ghost",type:"button",text:"→ הקודם",disabled:ilRound<=rounds[0]?true:null,onclick:function(){ilRound--;render()}}),el("button",{class:"ghost",type:"button",text:"הבא ←",disabled:ilRound>=rounds[rounds.length-1]?true:null,onclick:function(){ilRound++;render()}})]),
     el("div",{class:"list"},games.map(function(m){return gameRow(m,ME.f)}))];
 }
