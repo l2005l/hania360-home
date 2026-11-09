@@ -36,7 +36,7 @@ export class RegaRoom {
     for (const [id, s] of Object.entries(r.subs)) {
       if (s.role !== role) continue;
       s.msg = msg;
-      if (!(await wake(v, s.endpoint, "https://rega.hania360.com"))) delete r.subs[id];
+      if (!(await wake(v, s.endpoint, "https://regatov.hania360.com"))) delete r.subs[id];
     }
   }
   async fetch(req) {

@@ -1,4 +1,4 @@
-# Builds rega/page.js from the files in rega/ (python3 rega/build.py). HaniaRega (רגע טוב), served at rega.hania360.com.
+# Builds rega/page.js from the files in rega/ (python3 rega/build.py). HaniaRegaTov (רגע טוב), served at regatov.hania360.com.
 # Rooms, conversation and stories: /api/rega/ (rega/room.js).
 import json, base64
 r = lambda p: open('rega/' + p, encoding='utf8').read()
@@ -6,7 +6,7 @@ b64 = lambda p: base64.b64encode(open('rega/' + p, 'rb').read()).decode()
 body = r('rega.html')
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaRegaTov · רגע טוב: להעביר את הזמן בנעים בבית חולים או במיטה. משחקי זיכרון ומילים, טריוויה, נשימה מרגיעה, צלילי גשם וים, סיפורים בקול, שיחה, ותמונות והודעות מהמשפחה. בחינם, בלי הרשמה.">'
-        '<link rel="canonical" href="https://rega.hania360.com/"><meta name="theme-color" content="#FBFAFF">'
+        '<link rel="canonical" href="https://regatov.hania360.com/"><meta name="theme-color" content="#FBFAFF">'
         '<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="רגע טוב">'
         '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>')
 i = body.index('<style>')
