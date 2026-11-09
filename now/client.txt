@@ -93,6 +93,13 @@ fetch("/api/sport/il").then(function(r){return r.ok?r.json():null}).then(functio
   var top=dd.table&&dd.table[0];if(top&&top.id!=O.f)rest.unshift(pill("🏆",'ליגת העל: <b>'+esc(top.name)+'</b> ראשונה עם '+top.pts+' נק׳'));
   show();
 }).catch(function(){});
+/* one headline about my team, from ynet sport */
+var RX={10181:/הפועל ת"א|הפועל תל אביב/,7855:/מכבי ת"א|מכבי תל אביב/,9754:/באר שבע/,8173:/בית"ר/,10185:/מכבי חיפה/,1832:/נתניה/,8718:/סכנין/,8301:/הפועל חיפה/,7929:/מכבי פ"ת|מכבי פתח תקו/,459591:/הפועל ירושלים/,2095:/קריית שמונה/,9755:/הפועל פ"ת|הפועל פתח תקו/,89753:/רמת גן/,543580:/טבריה/,TEL:/מכבי ת"א|מכבי תל אביב/,HTA:/הפועל ת"א|הפועל תל אביב/};
+var rx=[RX[O.f],RX[O.b]].filter(Boolean);
+if(rx.length)fetch("/api/sport/news").then(function(r){return r.ok?r.json():null}).then(function(n){if(!n||!n.items)return;
+  var hit=n.items.filter(function(i){var t=String(i.t).replace(/[״׳'`]/g,'"');return Date.now()-i.d<3*864e5&&rx.some(function(r){return r.test(t)})})[0];
+  if(hit){mine.push(pill("📰",esc(hit.t)+' <small>ynet</small>'," mine",hit.u).replace("<a ",'<a target="_blank" rel="noopener" '));show()}
+}).catch(function(){});
 if(O.b)fetch("/api/sport/euro").then(function(r){return r.ok?r.json():null}).then(function(e){if(!e||!e.games)return;
   var my=e.games.filter(function(g){return g.home.code===O.b||g.away.code===O.b}),now=Date.now(),next=my.filter(function(g){return !g.done&&Date.parse(g.utc)>now-3*36e5})[0],last=my.filter(function(g){return g.done}).slice(-1)[0],nm=O.b==="TEL"?"מכבי תל אביב":"הפועל תל אביב",H="https://sport.hania360.com/#hoops";
   var x=[];if(last)x.push(pill("🏀",esc(last.home.name)+' <b>'+last.hs+' - '+last.as+'</b> '+esc(last.away.name)," mine",H));
