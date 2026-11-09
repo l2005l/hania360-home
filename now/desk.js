@@ -152,6 +152,13 @@ export async function nowApi(request, env, url) {
     await desk(env, "/now/set", { ids, d: b.d });
     return j({ ok: true });
   }
+  // The approved items for other Hania360 pages (Hania Today): public, the same as the homepage shows.
+  if (url.pathname === "/api/now/feed") {
+    let items = []; try { items = await nowItems(env); } catch {}
+    const abs = (h) => /^https?:/.test(h) ? h : "https://hania360.com" + h;
+    const out = items.map((it) => { const im = it.img && IMG[it.img]; return { id: it.id, chip: it.chip, title: it.title, body: it.body, big: it.big || "", until: it.until, lead: !!it.lead, civic: !!it.civic, for: it.for || [], t: topics(it).split(" ").filter(Boolean), img: im ? "https://hania360.com" + im.src : "", apps: (it.apps || []).map(([ic, name, line, href, btn]) => ({ ic, name, line, href: abs(href), btn })) }; });
+    return new Response(JSON.stringify({ items: out }), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=60", "access-control-allow-origin": "*" } });
+  }
   if (url.pathname === "/api/now/list") {
     if (!want || (url.searchParams.get("k") || "").trim() !== want) return j({ error: "key" }, 403);
     const dec = (await desk(env, "/now/get")) || {}, d = today();
