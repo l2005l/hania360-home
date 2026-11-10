@@ -203,7 +203,11 @@ addEventListener("beforeinstallprompt",function(e){e.preventDefault();ev=e;box.h
 document.getElementById("hInstBtn").onclick=function(){if(ev){ev.prompt();ev.userChoice.finally(function(){ev=null;box.hidden=true})}else{document.getElementById("hIos").hidden=false}};
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!/crios|fxios/i.test(navigator.userAgent))box.hidden=false;
 document.getElementById("hIosX").onclick=function(){document.getElementById("hIos").hidden=true};
-addEventListener("appinstalled",function(){box.hidden=true})})();</script>`;
+addEventListener("appinstalled",function(){box.hidden=true})})();
+/* the owner's way in from the app (no address bar there): a phone that once opened /now with the key gets a button */
+(function(){var k="";try{k=localStorage.getItem("now.k")||""}catch(e){}if(!k)return;k=k.replace(/^"|"$/g,"");
+fetch("/api/now/list?k="+encodeURIComponent(k),{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(!d)return;var n=d.items.filter(function(i){return i.live&&!i.d}).length,a=document.createElement("a");a.href="/now";a.className="h-own";a.textContent="🛠️ אישור עכשיו"+(n?" · "+n+" ממתינים":"");document.body.append(a)}).catch(function(){})})();</script>
+<style>.h-own{position:fixed;z-index:40;inset:auto auto calc(16px + env(safe-area-inset-bottom)) 16px;padding:12px 16px;border-radius:999px;background:#14213D;color:#fff!important;font:800 .92rem Rubik,sans-serif;text-decoration:none;box-shadow:0 14px 30px -12px rgba(20,33,61,.6)}</style>`;
 // The site's light design (lib/light.js) goes on every page at serve time; HOME_CLASSIC="1" or /classic keeps the old dark site.
 const themed=(html,env)=>String((env||{}).HOME_CLASSIC||"")==="1"?html.replace("/*THEME*/",""):html.replace("/*THEME*/",LIGHT_CSS).replace('<meta name="theme-color" content="#050914">','<meta name="theme-color" content="#FBFAFF">').replace(html.includes('id="apps"')?"</main><footer>":"\u0000",INSTALL+"</main><footer>");
 function layout(title, description, body, canonical="/"){
