@@ -76,6 +76,8 @@ label{display:grid;gap:4px;font-weight:700;font-size:14px;color:var(--muted)}
 .srow .ctl{display:flex;gap:2px}
 .srow .ctl button{appearance:none;border:0;background:var(--bg);color:var(--ink);border-radius:8px;width:26px;height:34px;font-size:13px;cursor:pointer;padding:0}
 .srow select{padding:8px 4px}
+.srow .who{grid-column:2/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.srow .who .chip{padding:4px 10px;font-size:13.5px;border-radius:10px}.srow .who small{color:var(--muted);font-size:12.5px}
+.hair{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 4px}.hair p{width:100%;text-align:center;margin:0}.hair .chip{font-size:17px;padding:10px 14px}
 .week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center;font-size:12.5px}
 .week div{display:grid;gap:2px;justify-items:center}
 .week i{display:block;width:70%;background:var(--sun);border-radius:6px 6px 2px 2px;min-height:3px}
@@ -108,10 +110,10 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   function today(d) { return (d || new Date()).toLocaleDateString("en-CA"); }
   function hm(d) { return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); }
 
-  var EMOJI = ["📺", "🧸", "🛁", "🚿", "👕", "🩳", "🪥", "🚽", "🎒", "📖", "💧", "🙏", "😴", "🥛", "🍽️", "🥣", "🥪", "⏰", "🧼", "👟", "🧥", "💇", "📚", "🎵", "🤗", "🧺", "🐶", "💊", "🕯️", "⭐"];
+  var EMOJI = ["📺", "🧸", "🛁", "🚿", "👕", "🩳", "🪥", "🚽", "🎒", "📖", "💧", "🙏", "😴", "🥛", "🍽️", "🥣", "🥪", "⏰", "🧼", "👟", "🧥", "💇", "🎀", "📚", "🎵", "🤗", "🧺", "🐶", "💊", "🕯️", "⭐"];
   var DEF = {
     evening: { at: "20:00", steps: [["📺", "סוגרים מסך", 1], ["🧸", "מסדרים צעצועים", 5], ["🛁", "מקלחת", 15], ["👕", "פיג׳מה", 5], ["🪥", "צחצוח שיניים", 3], ["🚽", "שירותים", 2], ["🎒", "מכינים תיק למחר", 5], ["📖", "סיפור", 10], ["🙏", "קריאת שמע", 2], ["😴", "לילה טוב", 1]] },
-    morning: { at: "07:40", steps: [["🙏", "מודה אני", 1], ["🚽", "שירותים", 2], ["🧼", "שוטפים פנים וידיים", 2], ["👕", "מתלבשים", 6], ["🪥", "צחצוח שיניים", 3], ["🥣", "ארוחת בוקר", 15], ["🎒", "תיק וכריך", 3], ["👟", "נעליים ומעיל", 3]] }
+    morning: { at: "07:40", steps: [["🙏", "מודה אני", 1], ["🚽", "שירותים", 2], ["🧼", "שוטפים פנים וידיים", 2], ["👕", "מתלבשים", 6], ["🎀", "מסדרים שיער", 5], ["🪥", "צחצוח שיניים", 3], ["🥣", "ארוחת בוקר", 15], ["🎒", "תיק וכריך", 3], ["👟", "נעליים ומעיל", 3]] }
   };
   // Inside HaniaKids: the child chosen there (name, picture, grade), and stars sent to the child's wallet.
   var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), av: q.get("av") || "", g: /^[אבגדהוזחט]$/.test(q.get("g") || "") ? q.get("g") : "" }; } catch (e) { return null; } })();
@@ -121,6 +123,12 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   S = S || {}; S.kids = Array.isArray(S.kids) ? S.kids : [];
   S.r = S.r || JSON.parse(JSON.stringify(DEF)); S.runs = S.runs || {}; S.stars = S.stars || {}; S.goal = S.goal || { n: 20, prize: "🍦 גלידה" };
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  // A step can be only for some of the children: its 4th item is the list of their ids (none = everyone).
+  // Nov 2026: the morning routine got a hair step; routines saved before that get it once, right after dressing.
+  if (!S.hairStep) { var ms = S.r.morning && S.r.morning.steps; if (ms && !ms.some(function (x) { return x[0] === "💇" || x[0] === "🎀"; })) { var di = ms.findIndex(function (x) { return x[0] === "👕"; }); ms.splice(di < 0 ? 0 : di + 1, 0, ["🎀", "מסדרים שיער", 5]); } S.hairStep = 1; save(); }
+  function forKid(s, k) { return !s[3] || !s[3].length || s[3].indexOf(k.id) >= 0; }
+  function idxFor(r, k) { var out = []; r.steps.forEach(function (s, i) { if (forKid(s, k)) out.push(i); }); return out; }
+  var HAIR = ["🎀 קוקו", "🌾 צמה", "👯 שתי קוקיות", "🥨 קוקו מסובב", "👑 קשת", "💫 פזור ומסורק"];
   if (HUB && HUB.kid && !S.kids.some(function (k) { return k.name === HUB.kid; }) && S.kids.length < 6) { S.kids.push({ id: Math.random().toString(36).slice(2, 9), name: HUB.kid, av: HUB.av || "🦊" }); save(); }
   // Keep only the last five weeks of days.
   (function () { var cut = today(new Date(Date.now() - 35 * 864e5)); [S.runs, S.stars].forEach(function (o) { Object.keys(o).forEach(function (d) { if (d < cut) delete o[d]; }); }); })();
@@ -155,7 +163,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       })),
       el("p", { class: "clock", text: clockT }),
       S.kids.length ? el("section", { class: "card" }, [el("h2", "מי מתחיל?"), el("div", { class: "kids" }, S.kids.map(function (k) {
-        var rn = run(k), n = r.steps.length, d = rn.done.length + rn.skip.length;
+        var rn = run(k), ix = idxFor(r, k), n = ix.length || 1, d = ix.filter(function (i) { return rn.done.indexOf(i) >= 0 || rn.skip.indexOf(i) >= 0; }).length;
         return el("button", { class: "kid", type: "button", onclick: function () { start(k); } }, [el("span", { class: "av", text: k.av }), el("b", k.name), el("div", { class: "mini" }, [el("i", { style: "width:" + Math.round(100 * d / n) + "%" })]), el("span", { class: "fine", text: rn.fin ? "✓ סיים/ה! ⭐ " + starsOf(k, today()) : d ? d + " מתוך " + n : "⭐ השבוע: " + weekStars(k) })]);
       }))]) : el("section", { class: "card" }, [el("h1", "שגרה בלי ויכוחים"), el("p", { class: "lead", text: "כל שלב בתורו, עם תמונה גדולה, שעון עדין וכוכב על כל שלב. מוסיפים את הילדים למטה ומתחילים." })]),
       prizeCard(), parents()]));
@@ -177,7 +185,15 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     if (rn.fin) { goodnight(k, true); return; }
     cur = { k: k, rn: rn }; clearInterval(tick); $("home").hidden = true; $("run").hidden = false; next();
   }
-  function idxNow() { var r = R(), rn = cur.rn; for (var i = 0; i < r.steps.length; i++) if (rn.done.indexOf(i) < 0 && rn.skip.indexOf(i) < 0) return i; return -1; }
+  // The hair step: the child picks today's style (remembered for the day), and says it aloud.
+  function hairPick(k) {
+    var d = today(); S.hair = S.hair || {}; var mine = (S.hair[d] || {})[k.id] || "";
+    var box = el("div", { class: "hair", role: "group", "aria-label": "איזו תסרוקת היום?" }, [el("p", { class: "fine", text: "איזו תסרוקת היום?" })].concat(HAIR.map(function (h) {
+      return el("button", { class: "chip", type: "button", "aria-pressed": String(mine === h), text: h, onclick: function () { if (!S.hair[d]) S.hair = {}; S.hair[d] = S.hair[d] || {}; S.hair[d][k.id] = h; save(); [].forEach.call(box.querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", String(b.textContent === h)); }); sayHe(h.replace(/^\S+ /, "") + ". יופי!"); } });
+    })));
+    return box;
+  }
+  function idxNow() { var r = R(), rn = cur.rn; for (var i = 0; i < r.steps.length; i++) if (forKid(r.steps[i], cur.k) && rn.done.indexOf(i) < 0 && rn.skip.indexOf(i) < 0) return i; return -1; }
   function next() {
     var r = R(), i = idxNow(), k = cur.k;
     if (i < 0) return finish();
@@ -187,8 +203,8 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     var lt = el("span", { class: "fine", text: left() });
     $("run").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("div", { class: "run" }, [
       el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
-      el("div", { class: "dots", "aria-hidden": "true" }, r.steps.map(function (x, j) { return el("span", { class: cur.rn.done.indexOf(j) >= 0 ? "ok" : cur.rn.skip.indexOf(j) >= 0 ? "skip" : j === i ? "cur" : "", text: cur.rn.done.indexOf(j) >= 0 ? "✓" : x[0] }); })),
-      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (i + 1) + " מתוך " + r.steps.length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), ring, lt]),
+      el("div", { class: "dots", "aria-hidden": "true" }, idxFor(r, k).map(function (j) { var x = r.steps[j]; return el("span", { class: cur.rn.done.indexOf(j) >= 0 ? "ok" : cur.rn.skip.indexOf(j) >= 0 ? "skip" : j === i ? "cur" : "", text: cur.rn.done.indexOf(j) >= 0 ? "✓" : x[0] }); })),
+      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, ring, lt]),
       el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { cur.rn.done.push(i); addStars(k, 1); if (!HUB || HUB.kid === k.name) hubStars(1, "שגרה"); save(); chime(); burst(this); setTimeout(next, 650); } }),
       el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { cur.rn.skip.push(i); save(); next(); } })])]));
     sayHe("עכשיו: " + s[1]);
@@ -259,10 +275,20 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
         var lb = el("input", { value: s[1], maxlength: "26", "aria-label": "שם השלב" }); lb.addEventListener("change", function () { s[1] = lb.value.trim().slice(0, 26) || s[1]; save(); });
         var mn = el("select", { "aria-label": "דקות" }, [1, 2, 3, 5, 7, 10, 15, 20, 25, 30].map(function (m) { var o = el("option", { value: String(m), text: m + " דק׳" }); if (+s[2] === m) o.selected = true; return o; }));
         mn.addEventListener("change", function () { s[2] = +mn.value; save(); timeNote.textContent = note(); });
+        // for whom: everyone, or only some of the children (e.g. hair for the girls)
+        var who = S.kids.length > 1 ? el("div", { class: "who" }, [el("small", "למי:")].concat(S.kids.map(function (k) {
+          var on = forKid(s, k) && !!(s[3] && s[3].length), all = !s[3] || !s[3].length;
+          return el("button", { class: "chip", type: "button", "aria-pressed": String(all || on), title: "השלב הזה ל" + k.name, text: k.av + " " + k.name, onclick: function () {
+            var cur = !s[3] || !s[3].length ? S.kids.map(function (x) { return x.id; }) : s[3].slice(), at = cur.indexOf(k.id);
+            if (at >= 0) cur.splice(at, 1); else cur.push(k.id);
+            if (!cur.length) { toast("לפחות ילד/ה אחד/ת"); return; }
+            s[3] = cur.length === S.kids.length ? undefined : cur; if (!s[3]) s.length = 3; save(); drawSteps();
+          } });
+        }))) : null;
         return el("div", { class: "srow" }, [em, lb, mn, el("div", { class: "ctl" }, [
           el("button", { type: "button", "aria-label": "למעלה", text: "▲", onclick: function () { if (i) { r.steps.splice(i - 1, 0, r.steps.splice(i, 1)[0]); save(); drawSteps(); } } }),
           el("button", { type: "button", "aria-label": "למטה", text: "▼", onclick: function () { if (i < r.steps.length - 1) { r.steps.splice(i + 1, 0, r.steps.splice(i, 1)[0]); save(); drawSteps(); } } }),
-          el("button", { type: "button", "aria-label": "למחוק", text: "✕", onclick: function () { if (r.steps.length > 1) { r.steps.splice(i, 1); save(); drawSteps(); timeNote.textContent = note(); } } })])]);
+          el("button", { type: "button", "aria-label": "למחוק", text: "✕", onclick: function () { if (r.steps.length > 1) { r.steps.splice(i, 1); save(); drawSteps(); timeNote.textContent = note(); } } })]), who]);
       }));
     };
     var note = function () { return "סך הכול " + total(r) + " דקות. מתחילים ב־" + hm(startAt(r)) + "."; };
