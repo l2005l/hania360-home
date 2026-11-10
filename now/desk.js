@@ -33,6 +33,7 @@ export function isShabbat(t = Date.now()) {
   return false;
 }
 
+const TOLD = new Set(); // per Worker instance, so most page views skip the check
 const today = (t = Date.now()) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 const live = (it, d) => (!it.from || it.from <= d) && (!it.until || it.until >= d);
 
@@ -55,6 +56,9 @@ export async function nowItems(env, t = Date.now(), preview = false) {
     return false;
   });
   if (auto.length) await desk(env, "/now/set", { ids: auto, d: "auto" });
+  // New items that wait for the owner: tell the owner's phones once per item (not during Shabbat, when they go up alone).
+  const waiting = shabbat ? [] : FEED.filter((it) => live(it, d) && !dec[it.id]).map((it) => ({ id: it.id, title: it.title }));
+  if (waiting.length && waiting.some((w) => !TOLD.has(w.id))) { waiting.forEach((w) => TOLD.add(w.id)); try { await desk(env, "/now/notify", { items: waiting }); } catch {} }
   return shown;
 }
 
@@ -159,6 +163,15 @@ export async function nowApi(request, env, url) {
     const out = items.map((it) => { const im = it.img && IMG[it.img]; return { id: it.id, chip: it.chip, title: it.title, body: it.body, big: it.big || "", until: it.until, lead: !!it.lead, civic: !!it.civic, for: it.for || [], t: topics(it).split(" ").filter(Boolean), img: im ? "https://hania360.com" + im.src : "", apps: (it.apps || []).map(([ic, name, line, href, btn]) => ({ ic, name, line, href: abs(href), btn })) }; });
     return new Response(JSON.stringify({ items: out }), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=60", "access-control-allow-origin": "*" } });
   }
+  if (url.pathname === "/api/now/key") return j((await desk(env, "/now/key")) || {});
+  if (url.pathname === "/api/now/msg" && request.method === "POST") return j((await desk(env, "/now/msg")) || {});
+  if (url.pathname === "/api/now/sub" && request.method === "POST") {
+    const b = await request.json().catch(() => ({}));
+    if (!want || String(b.k || "").trim() !== want) return j({ error: "key" }, 403);
+    const r = (await desk(env, "/now/sub", { endpoint: b.sub && b.sub.endpoint })) || { error: "store" };
+    TOLD.clear();
+    return j(r);
+  }
   if (url.pathname === "/api/now/list") {
     if (!want || (url.searchParams.get("k") || "").trim() !== want) return j({ error: "key" }, 403);
     const dec = (await desk(env, "/now/get")) || {}, d = today();
@@ -169,7 +182,7 @@ export async function nowApi(request, env, url) {
 
 export const NOW_ADMIN = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#050914"><title>עכשיו · אישור</title>
 <style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#050914;color:#E2E8F0;font:16px/1.5 Rubik,system-ui,sans-serif}main{max-width:720px;margin:0 auto;padding:18px 16px 60px;display:grid;gap:14px}h1{margin:0;font-size:1.5rem}.m{color:#94A3B8;font-size:.9rem}.c{background:#0F1830;border:1px solid rgba(99,102,241,.34);border-radius:18px;padding:16px;display:grid;gap:8px}.c h2{margin:0;font-size:1.05rem}.c p{margin:0;color:#CBD5E1;font-size:.93rem}.c a{color:#7DD3FC}.row{display:flex;gap:8px;flex-wrap:wrap}button{font:700 1rem Rubik,sans-serif;border:0;border-radius:12px;padding:12px 18px;cursor:pointer}.ok{background:linear-gradient(90deg,#38BDF8,#818CF8);color:#050914}.no{background:#1E293B;color:#E2E8F0}.st{font-weight:800;font-size:.85rem}.st.ok{background:none;color:#34D399}.st.no{background:none;color:#FB7185}.st.auto{color:#FBBF24}input{width:100%;font:inherit;padding:12px;border-radius:12px;border:1px solid #334155;background:#0B1224;color:#fff}.off{opacity:.55}.all{position:sticky;bottom:10px}#pv[hidden]{display:none!important}</style></head><body><main>
-<h1>עכשיו · מה עולה לאתר</h1><p class="m" id="info">טוען…</p><a id="pv" hidden target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px;border-radius:12px;border:1px solid #38BDF8;color:#7DD3FC;text-decoration:none;font-weight:700">👀 תצוגה מקדימה: איך דף הבית ייראה עם הכול</a><div id="key" hidden class="c"><p>הקוד הוא אותו STATS_KEY של דף הנתונים. מזינים פעם אחת והוא נשמר בטלפון הזה.</p><input id="k" type="password" autocomplete="current-password" placeholder="הקוד"><button class="ok" id="save">שמירה</button></div><div id="list"></div><button class="ok all" id="all" hidden>לאשר את כל הממתינים</button></main>
+<h1>עכשיו · מה עולה לאתר</h1><p class="m" id="info">טוען…</p><button class="ok" id="bell" hidden type="button">🔔 להתריע לי בטלפון כשיש פריטים חדשים</button><a id="pv" hidden target="_blank" rel="noopener" style="display:block;text-align:center;padding:12px;border-radius:12px;border:1px solid #38BDF8;color:#7DD3FC;text-decoration:none;font-weight:700">👀 תצוגה מקדימה: איך דף הבית ייראה עם הכול</a><div id="key" hidden class="c"><p>הקוד הוא אותו STATS_KEY של דף הנתונים. מזינים פעם אחת והוא נשמר בטלפון הזה.</p><input id="k" type="password" autocomplete="current-password" placeholder="הקוד"><button class="ok" id="save">שמירה</button></div><div id="list"></div><button class="ok all" id="all" hidden>לאשר את כל הממתינים</button></main>
 <script>
 var K="";try{K=localStorage.getItem("now.k")||""}catch(e){}
 var q=new URLSearchParams(location.search).get("k");if(q){K=q;try{localStorage.setItem("now.k",q)}catch(e){}history.replaceState(null,"","/now")}
@@ -178,9 +191,14 @@ var S={ok:"✓ מאושר, באתר",no:"✕ נדחה",auto:"✓ עלה אוטו
 var B={"":[["ok","לאשר"],["no","לדחות"]],ok:[["no","להוריד מהאתר"]],auto:[["ok","להשאיר"],["no","להוריד מהאתר"]],no:[["ok","להחזיר לאתר"]]};
 function load(){if(!K){document.getElementById("key").hidden=false;document.getElementById("info").textContent="";return}
 fetch("/api/now/list?k="+encodeURIComponent(K),{cache:"no-store"}).then(function(r){if(r.status===403){K="";try{localStorage.removeItem("now.k")}catch(x){}load();throw 0}return r.json()}).then(function(d){
-document.getElementById("info").textContent=(d.shabbat?"עכשיו שבת: ממתינים עולים לבד. ":"")+"מה שמאשרים עולה לדף הבית תוך דקה, ואפשר להוריד כל פריט בכל זמן, באותה לחיצה.";document.getElementById("pv").href="/?preview="+encodeURIComponent(K);document.getElementById("pv").hidden=false;
+document.getElementById("info").textContent=(d.shabbat?"עכשיו שבת: ממתינים עולים לבד. ":"")+"מה שמאשרים עולה לדף הבית תוך דקה, ואפשר להוריד כל פריט בכל זמן, באותה לחיצה.";document.getElementById("pv").href="/?preview="+encodeURIComponent(K);document.getElementById("pv").hidden=false;bellUp();
 var w=d.items.filter(function(i){return i.live&&!i.d});document.getElementById("all").hidden=!w.length;document.getElementById("all").onclick=function(){go(w.map(function(i){return i.id}),"ok")};
 document.getElementById("list").innerHTML=d.items.map(function(i){return '<div class="c'+(i.live?"":" off")+'"><div class="m">'+e(i.chip)+" · "+e(i.from)+" עד "+e(i.until)+(i.live?"":" · לא בתוקף היום")+'</div><h2>'+e(i.title)+'</h2><p>'+e(i.body)+'</p><p class="m">'+(i.sources||[]).map(function(s){return '<a href="'+e(s[1])+'" target="_blank" rel="noopener">'+e(s[0])+'</a>'}).join(" · ")+'</p><p class="m">'+e((i.apps||[]).join(" · ")||"בלי קישור לאפליקציה")+'</p><div class="row"><span class="st '+e(i.d)+'">'+S[i.d]+'</span></div><div class="row">'+B[i.d||""].map(function(b){return '<button class="'+b[0]+'" data-id="'+e(i.id)+'" data-d="'+b[0]+'">'+b[1]+'</button>'}).join("")+'</div></div>'}).join("")}).catch(function(){})}
+function bellUp(){var b=document.getElementById("bell");if(!("serviceWorker" in navigator)||!("PushManager" in window)){return}b.hidden=false;
+navigator.serviceWorker.register("/sw.js").then(function(r){return r.pushManager.getSubscription()}).then(function(s){var on=false;try{on=localStorage.getItem("now.bell")==="1"}catch(e){}b.hidden=false;if(s&&on){b.textContent="🔔 התראות פועלות בטלפון הזה";b.className="no"}}).catch(function(){});
+b.onclick=function(){Notification.requestPermission().then(function(p){if(p!=="granted"){alert("צריך לאשר התראות בדפדפן");return}
+return navigator.serviceWorker.ready.then(function(reg){return fetch("/api/now/key").then(function(r){return r.json()}).then(function(k){var u=k.key,pad="=".repeat((4-u.length%4)%4),raw=atob((u+pad).replace(/-/g,"+").replace(/_/g,"/"));return reg.pushManager.getSubscription().then(function(s){return s||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:Uint8Array.from(raw,function(c){return c.charCodeAt(0)})})})})})
+.then(function(sub){return fetch("/api/now/sub",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({k:K,sub:sub.toJSON()})}).then(function(r){return r.json()})}).then(function(j){if(j&&j.ok){try{localStorage.setItem("now.bell","1")}catch(e){}b.textContent="🔔 התראות פועלות בטלפון הזה";b.className="no"}})}).catch(function(){})}}
 function go(ids,d){fetch("/api/now/decide",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({k:K,ids:ids,d:d})}).then(load)}
 document.getElementById("list").onclick=function(ev){var b=ev.target.closest("button[data-id]");if(b)go([b.dataset.id],b.dataset.d)};
 document.getElementById("save").onclick=function(){K=document.getElementById("k").value.trim();try{localStorage.setItem("now.k",K)}catch(x){}document.getElementById("key").hidden=true;load()};
