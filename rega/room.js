@@ -23,7 +23,10 @@ export class RegaRoom {
   async save() { await this.ctx.storage.put("r", this.r); }
   view(owner) {
     const r = this.r;
-    return { name: r.name, owner: !!owner, msgs: r.msgs.slice(-60).map((m) => ({ id: m.id, at: m.at, from: m.from, me: !!m.me, text: m.text, img: !!m.img, kind: m.kind || "" })), fam: Object.values(r.subs).filter((s) => s.role === "fam").length };
+    const now = Date.now();
+    return { name: r.name, owner: !!owner, hours: r.hours || { from: "10:00", to: "20:00", note: "" },
+      visits: (r.visits || []).filter((v) => v.at + v.mins * 6e4 > now - 36e5).sort((a, b) => a.at - b.at).map((v) => ({ id: v.id, at: v.at, mins: v.mins, who: v.who, note: v.note })),
+      msgs: r.msgs.slice(-60).map((m) => ({ id: m.id, at: m.at, from: m.from, me: !!m.me, text: m.text, img: !!m.img, kind: m.kind || "" })), fam: Object.values(r.subs).filter((s) => s.role === "fam").length };
   }
   async tidy() {
     const r = this.r, cut = Date.now() - KEEP, gone = r.msgs.filter((m) => m.at < cut || false);
@@ -84,6 +87,36 @@ export class RegaRoom {
         r.msgs.push({ id, at: Date.now(), from: r.name || "", me: true, text, img: !!img, kind: b.k || "" });
         await this.tidy(); await this.save();
         await this.notify("fam", { title: (r.name ? r.name + ": " : "") + (text || "🎨 ציור בשבילכם"), body: b.k === "call" ? "זה זמן טוב להתקשר." : "פתחו לראות.", url: "/f/" + r.id });
+        break;
+      }
+      // Visits: the family picks a time; two visits never overlap, and the patient's phone hears about it.
+      case "visit": {
+        const at = Number(b.at), mins = [20, 30, 45, 60, 90, 120].includes(+b.mins) ? +b.mins : 30, who = clean(b.who, 24);
+        if (!who || !(at > Date.now() - 6e5) || at > Date.now() + 31 * 864e5) return json({ error: "time" }, 400);
+        r.visits = (r.visits || []).filter((v) => v.at + v.mins * 6e4 > Date.now() - 864e5);
+        const clash = r.visits.find((v) => at < v.at + v.mins * 6e4 && v.at < at + mins * 6e4);
+        if (clash) return json({ error: "taken", who: clash.who, at: clash.at, mins: clash.mins }, 409);
+        if (r.visits.length >= 60) return json({ error: "full" }, 400);
+        const id = token(8), k = token(12);
+        r.visits.push({ id, k, at, mins, who, note: clean(b.note, 80), made: Date.now() });
+        const t = new Date(at), when = t.toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long", day: "numeric", month: "numeric" }) + " ב־" + t.toLocaleTimeString("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit" });
+        await this.save();
+        await this.notify("me", { title: "🤗 " + who + " מגיע/ה לבקר", body: when + (b.note ? " · " + clean(b.note, 80) : ""), url: "/#family" });
+        await this.save();
+        return json({ ...this.view(owner), mine: { id, k } });
+      }
+      case "unvisit": {
+        const v = (r.visits || []).find((x) => x.id === b.id);
+        if (!v) break;
+        if (!owner && v.k !== b.k) return json({ error: "owner" }, 403);
+        r.visits = r.visits.filter((x) => x !== v);
+        if (!owner) await this.notify("me", { title: "📅 " + v.who + " ביטל/ה ביקור", body: new Date(v.at).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long", hour: "2-digit", minute: "2-digit" }), url: "/#family" });
+        break;
+      }
+      case "hours": {
+        if (!owner) return json({ error: "owner" }, 403);
+        const hm = (x, d) => /^([01]\d|2[0-3]):[0-5]\d$/.test(x || "") ? x : d;
+        r.hours = { from: hm(b.from, "10:00"), to: hm(b.to, "20:00"), note: clean(b.note, 120) };
         break;
       }
       case "del": if (!owner) return json({ error: "owner" }, 403); { const m = r.msgs.find((x) => x.id === b.id); if (m && m.img) await this.ctx.storage.delete("img:" + m.id); r.msgs = r.msgs.filter((x) => x.id !== b.id); } break;
