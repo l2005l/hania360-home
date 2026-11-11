@@ -1,0 +1,403 @@
+<title>HaniaIvrit · לומדים לקרוא</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Noto+Sans+Hebrew:wght@500;700&display=swap">
+<style>
+/* Learning to read Hebrew: a path from the letters, through the niqqud, to words and short sentences.
+   One question per screen, big pictures and buttons; every word can be heard (the phone's Hebrew voice). */
+:root{
+  --bg:#FFF6F1; --surface:#FFFFFF; --ink:#3A1F17; --muted:#7A5E54; --line:#FBE0D3; --main:#F0663A; --main2:#C94A22; --sky:#3BA3FF; --sun:#FFC233; --bad:#F2545B; --ok2:#DDF7EC; --bad2:#FDE7E8;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif; --en:"Noto Sans Hebrew","Rubik",system-ui,sans-serif; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#1F1410;--surface:#2E1E18;--ink:#FFEFE8;--muted:#C9A99C;--line:#4A3027;--ok2:#14392D;--bad2:#3C1E21;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:17px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 48px}
+.wrap{max-width:620px;margin:0 auto;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{font-weight:900;font-size:24px;display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit}.logo b{color:var(--main)}
+.logo img{width:32px;height:32px;border-radius:9px}
+header .sp{margin-inline-start:auto}
+h1{font-weight:900;font-size:clamp(26px,7vw,36px);line-height:1.15;margin:0}
+h2{font-weight:800;font-size:20px;margin:0}
+p{margin:0}
+.lead{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr);box-shadow:0 3px 0 var(--line)}
+.btn{appearance:none;border:0;border-radius:18px;padding:14px 18px;font:inherit;font-weight:800;font-size:19px;cursor:pointer;background:var(--main);color:#fff;text-align:center;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 5px 0 var(--main2)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--main2)}
+.btn.ghost{background:transparent;border:2px solid var(--line);color:var(--ink);box-shadow:none}
+.btn.small{padding:9px 13px;font-size:15.5px;border-radius:12px;box-shadow:0 3px 0 var(--main2)}
+.btn.ghost.small{box-shadow:none}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,.chip:focus-visible,.opt:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:9px 14px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--main);color:#fff;border-color:var(--main)}
+input{font:inherit;font-size:18px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:14px;padding:12px;width:100%}
+.fine{font-size:13.5px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:80;max-width:90vw;text-align:center}
+.en{font-family:var(--en);direction:rtl;unicode-bidi:isolate}
+/* kids */
+.kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.kidb{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:20px;padding:14px 10px;font:inherit;cursor:pointer;display:grid;gap:4px;justify-items:center;box-shadow:0 4px 0 var(--line)}
+.kidb .av{font-size:44px;line-height:1}.kidb b{font-size:18px}.kidb span{font-size:13px;color:var(--muted)}
+/* the path */
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stat{background:var(--surface);border:2px solid var(--line);border-radius:99px;padding:5px 12px;font-weight:800;font-size:15px}
+.path{display:grid;gap:14px;padding:6px 0}
+.isl{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;align-items:center;appearance:none;border:0;background:transparent;color:inherit;font:inherit;text-align:start;cursor:pointer;padding:0}
+.isl:nth-child(4n+2){margin-inline-start:28px}.isl:nth-child(4n+3){margin-inline-start:56px}.isl:nth-child(4n+4){margin-inline-start:28px}
+.isl .ic{width:76px;height:76px;border-radius:50%;display:grid;place-content:center;font-size:36px;background:var(--surface);border:4px solid var(--line);box-shadow:0 6px 0 var(--line);position:relative}
+.isl.open .ic{border-color:var(--main);box-shadow:0 6px 0 var(--main2)}
+.isl.done .ic{background:var(--main);border-color:var(--main);box-shadow:0 6px 0 var(--main2)}
+.isl.lock{cursor:default}.isl.lock .ic{filter:grayscale(1);opacity:.55}
+.isl.next .ic{animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+.isl b{font-size:18px;display:block}.isl small{color:var(--muted);font-size:14px}
+.stars{font-size:14px;letter-spacing:1px}
+/* a lesson */
+.bar{height:14px;border-radius:99px;background:var(--line);overflow:hidden;flex:1}.bar i{display:block;height:100%;background:var(--main);border-radius:99px;transition:width .3s}
+.q{display:grid;gap:14px;justify-items:center;text-align:center}
+.q .ask{font-size:20px;font-weight:800}
+.big{font-size:min(30vw,130px);line-height:1.05}
+.word{font-family:var(--en);font-size:clamp(44px,13vw,72px);font-weight:700;direction:rtl;line-height:1.45}
+.say{appearance:none;border:0;border-radius:22px;background:var(--sky);color:#fff;font-size:44px;width:110px;height:110px;cursor:pointer;box-shadow:0 6px 0 #1F7FD6}
+.say.sm{width:56px;height:56px;font-size:24px;border-radius:16px;box-shadow:0 4px 0 #1F7FD6}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%}
+.opt{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:20px;min-height:96px;padding:10px;font:inherit;font-size:44px;cursor:pointer;box-shadow:0 5px 0 var(--line);display:grid;place-content:center;gap:2px}
+.opt.t{font-family:var(--en);font-size:clamp(26px,7.5vw,36px);font-weight:700;line-height:1.5;direction:rtl}
+.opt.ok{border-color:#14B37D;background:var(--ok2);box-shadow:0 5px 0 #14B37D}
+.opt.no{border-color:var(--bad);background:var(--bad2);box-shadow:0 5px 0 var(--bad)}
+.opt:disabled{cursor:default}
+.tiles{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;direction:rtl;min-height:60px}
+.tile{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;min-width:52px;padding:8px 12px;font-family:var(--en);font-size:30px;font-weight:700;cursor:pointer;box-shadow:0 4px 0 var(--line)}
+.tile.used{visibility:hidden}
+.built{border-bottom:3px dashed var(--line);width:100%;padding-bottom:8px}
+.fb{width:100%;border-radius:18px;padding:12px 14px;font-weight:800;font-size:18px;display:grid;gap:8px}
+.fb.ok{background:var(--ok2);color:#0E8F63}.fb.no{background:var(--bad2);color:#B4232A}
+@media (prefers-color-scheme:dark){.fb.ok{color:#7FE8BF}.fb.no{color:#FF9EA3}}
+.learn{display:grid;gap:10px;justify-items:center;text-align:center}
+.mt{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.mt .opt{min-height:74px;font-size:38px}.mt .opt.t{font-size:24px}
+.mt .opt.sel{border-color:var(--sky);box-shadow:0 5px 0 var(--sky)}
+.mt .opt.gone{visibility:hidden}
+.res{text-align:center;justify-items:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header><a class="logo" href="/" dir="ltr"><img src="/icons/icon-192.png" alt=""><span>Hania<b>Ivrit</b></span></a><span class="sp"></span><a class="chip" href="https://hania360.com/" style="text-decoration:none;font-size:14px;padding:7px 12px">Hania360</a></header>
+  <main id="home"></main>
+  <main id="map" hidden></main>
+  <main id="lesson" hidden></main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, a, kids) {
+    var e = document.createElement(tag);
+    if (typeof a === "string") { e.textContent = a; a = null; }
+    Object.keys(a || {}).forEach(function (k) { if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), a[k]); else if (k === "text") e.textContent = a[k]; else if (a[k] != null) e.setAttribute(k, a[k]); });
+    [].concat(kids == null ? [] : kids).forEach(function (k) { if (k != null && k !== false) e.append(typeof k === "string" || typeof k === "number" ? String(k) : k); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function show(id) { ["home", "map", "lesson"].forEach(function (x) { $(x).hidden = x !== id; }); scrollTo(0, 0); }
+
+  // ---- the path: [id, icon, name, kind, items] ----
+  // abc: [letter, a word that starts with it, picture]; sof: [final letter, a word that ends with it, picture];
+  // syl: [syllable, a word that starts with it, picture]; w: [word, -, picture]; s: [sentence, -, picture]. Everything with niqqud.
+  var NAMES = { "א": "אָלֶף", "בּ": "בֵּית", "ג": "גִּימֶל", "ד": "דָּלֶת", "ה": "הֵא", "ו": "וָו", "ז": "זַיִן", "ח": "חֵית", "ט": "טֵית", "י": "יוּד", "כּ": "כָּף", "ל": "לָמֶד", "מ": "מֵם", "נ": "נוּן", "ס": "סָמֶךְ", "ע": "עַיִן", "פּ": "פֵּא", "צ": "צָדִי", "ק": "קוּף", "ר": "רֵישׁ", "שׁ": "שִׁין", "ת": "תָּו",
+    "ך": "כָּף סוֹפִית", "ם": "מֵם סוֹפִית", "ן": "נוּן סוֹפִית", "ף": "פֵּא סוֹפִית", "ץ": "צָדִי סוֹפִית" };
+  var U = [
+    ["abc1", "א", "האותיות א–ח", "abc", [["א", "אַרְיֵה", "🦁"], ["בּ", "בַּיִת", "🏠"], ["ג", "גְּלִידָה", "🍦"], ["ד", "דָּג", "🐟"], ["ה", "הַר", "⛰️"], ["ו", "וֶרֶד", "🌹"], ["ז", "זֶבְּרָה", "🦓"], ["ח", "חָתוּל", "🐱"]]],
+    ["abc2", "ט", "האותיות ט–ס", "abc", [["ט", "טֶלֶפוֹן", "📱"], ["י", "יָד", "✋"], ["כּ", "כֶּלֶב", "🐶"], ["ל", "לִימוֹן", "🍋"], ["מ", "מְכוֹנִית", "🚗"], ["נ", "נָחָשׁ", "🐍"], ["ס", "סוּס", "🐴"]]],
+    ["abc3", "ע", "האותיות ע–ת", "abc", [["ע", "עֵץ", "🌳"], ["פּ", "פִּיל", "🐘"], ["צ", "צָב", "🐢"], ["ק", "קוֹף", "🐵"], ["ר", "רַכֶּבֶת", "🚆"], ["שׁ", "שֶׁמֶשׁ", "☀️"], ["ת", "תַּפּוּחַ", "🍎"]]],
+    ["sof", "ץ", "אותיות סופיות", "sof", [["ך", "מֶלֶךְ", "👑"], ["ם", "יָם", "🌊"], ["ן", "שָׁעוֹן", "⌚"], ["ף", "כַּף", "🥄"], ["ץ", "עֵץ", "🌳"]]],
+    ["a", "אַ", "קָמָץ ופַּתָּח: אַ", "syl", [["בָּ", "בָּנָנָה", "🍌"], ["מַ", "מַפְתֵּחַ", "🔑"], ["דָּ", "דָּג", "🐟"], ["גַּ", "גַּמָּל", "🐫"], ["סַ", "סַבְתָּא", "👵"], ["כַּ", "כַּדּוּר", "⚽"], ["פַּ", "פַּרְפַּר", "🦋"], ["תַּ", "תַּפּוּחַ", "🍎"]]],
+    ["i", "אִ", "חִירִיק: אִ", "syl", [["פִּי", "פִּיל", "🐘"], ["כִּ", "כִּסֵּא", "🪑"], ["סִי", "סִירָה", "⛵"], ["דִּ", "דִּבּוֹרָה", "🐝"], ["גִּי", "גִּיטָרָה", "🎸"], ["שִׁ", "שִׁנַּיִם", "🦷"], ["לִי", "לִימוֹן", "🍋"], ["מִ", "מִטָּה", "🛏️"]]],
+    ["e", "אֶ", "צֵירֵה וסֶגּוֹל: אֶ", "syl", [["כֶּ", "כֶּלֶב", "🐶"], ["בֵּי", "בֵּיצָה", "🥚"], ["שֶׁ", "שֶׁמֶשׁ", "☀️"], ["דֶּ", "דֶּלֶת", "🚪"], ["גֶּ", "גֶּזֶר", "🥕"], ["סֵ", "סֵפֶר", "📖"], ["פֶּ", "פֶּרַח", "🌸"], ["תֵּ", "תֵּה", "🍵"]]],
+    ["o", "אוֹ", "חוֹלָם: אוֹ", "syl", [["כּוֹ", "כּוֹבַע", "🧢"], ["שׁוֹ", "שׁוֹקוֹלָד", "🍫"], ["דּוֹ", "דּוֹב", "🐻"], ["קוֹ", "קוֹף", "🐵"], ["תּוֹ", "תּוֹף", "🥁"], ["עוֹ", "עוֹף", "🐔"], ["מוֹ", "מוֹרָה", "🧑‍🏫"], ["אוֹ", "אוֹטוֹבּוּס", "🚌"]]],
+    ["u", "אוּ", "שׁוּרוּק: אוּ", "syl", [["סוּ", "סוּס", "🐴"], ["בּוּ", "בּוּבָּה", "🪆"], ["שׁוּ", "שׁוּעָל", "🦊"], ["תּוּ", "תּוּת", "🍓"], ["דּוּ", "דּוּבִּי", "🧸"], ["גּוּ", "גּוּר", "🐕"], ["מוּ", "מוּזִיקָה", "🎵"], ["נוּ", "נוּרָה", "💡"]]],
+    ["mix", "🔀", "כל התנועות יחד", "syl", [["בָּ", "בָּנָנָה", "🍌"], ["בּוּ", "בּוּבָּה", "🪆"], ["בֵּי", "בֵּיצָה", "🥚"], ["שׁוּ", "שׁוּעָל", "🦊"], ["שִׁ", "שִׁנַּיִם", "🦷"], ["שֶׁ", "שֶׁמֶשׁ", "☀️"], ["כּוֹ", "כּוֹבַע", "🧢"], ["כִּ", "כִּסֵּא", "🪑"], ["כַּ", "כַּדּוּר", "⚽"], ["כֶּ", "כֶּלֶב", "🐶"]]],
+    ["w1", "🐟", "מילים ראשונות", "w", [["דָּג", "", "🐟"], ["יָד", "", "✋"], ["עֵץ", "", "🌳"], ["סוּס", "", "🐴"], ["תּוּת", "", "🍓"], ["יָם", "", "🌊"], ["דּוֹב", "", "🐻"], ["פִּיל", "", "🐘"]]],
+    ["w2", "🏠", "בַּבַּיִת", "w", [["בַּיִת", "", "🏠"], ["דֶּלֶת", "", "🚪"], ["חַלּוֹן", "", "🪟"], ["מִטָּה", "", "🛏️"], ["כִּסֵּא", "", "🪑"], ["מְנוֹרָה", "", "💡"], ["מַפְתֵּחַ", "", "🔑"], ["סֵפֶר", "", "📖"]]],
+    ["w3", "🐾", "חַיּוֹת", "w", [["כֶּלֶב", "", "🐶"], ["חָתוּל", "", "🐱"], ["אַרְיֵה", "", "🦁"], ["קוֹף", "", "🐵"], ["צָב", "", "🐢"], ["פָּרָה", "", "🐮"], ["צִפּוֹר", "", "🐦"], ["צְפַרְדֵּעַ", "", "🐸"]]],
+    ["w4", "🍞", "אֹכֶל", "w", [["לֶחֶם", "", "🍞"], ["חָלָב", "", "🥛"], ["גְּבִינָה", "", "🧀"], ["בֵּיצָה", "", "🥚"], ["עוּגָה", "", "🎂"], ["גֶּזֶר", "", "🥕"], ["בָּנָנָה", "", "🍌"], ["תַּפּוּחַ", "", "🍎"]]],
+    ["w5", "👨‍👩‍👧", "מִשְׁפָּחָה", "w", [["אִמָּא", "", "👩"], ["אַבָּא", "", "👨"], ["סַבְתָּא", "", "👵"], ["סַבָּא", "", "👴"], ["תִּינוֹק", "", "👶"], ["אָח", "", "👦"], ["אָחוֹת", "", "👧"], ["חָבֵר", "", "🤝"]]],
+    ["w6", "🎨", "צְבָעִים", "w", [["אָדֹם", "", "🟥"], ["כָּחֹל", "", "🟦"], ["יָרֹק", "", "🟩"], ["צָהֹב", "", "🟨"], ["כָּתֹם", "", "🟧"], ["סָגֹל", "", "🟪"], ["שָׁחֹר", "", "⬛"], ["לָבָן", "", "⬜"]]],
+    ["w7", "🙋", "הַגּוּף", "w", [["עַיִן", "", "👁️"], ["אֹזֶן", "", "👂"], ["אַף", "", "👃"], ["פֶּה", "", "👄"], ["יָד", "", "✋"], ["רֶגֶל", "", "🦵"], ["שֵׁן", "", "🦷"], ["לֵב", "", "❤️"]]],
+    ["w8", "🎒", "בְּבֵית הַסֵּפֶר", "w", [["תִּיק", "", "🎒"], ["עִפָּרוֹן", "", "✏️"], ["מַחְבֶּרֶת", "", "📓"], ["מוֹרָה", "", "🧑‍🏫"], ["סַרְגֵּל", "", "📏"], ["מִסְפָּרַיִם", "", "✂️"], ["כִּתָּה", "", "🏫"], ["צֶבַע", "", "🖍️"]]],
+    ["w9", "🌈", "בַּחוּץ", "w", [["שֶׁמֶשׁ", "", "☀️"], ["יָרֵחַ", "", "🌙"], ["כּוֹכָב", "", "⭐"], ["גֶּשֶׁם", "", "🌧️"], ["עָנָן", "", "☁️"], ["פֶּרַח", "", "🌸"], ["פַּרְפַּר", "", "🦋"], ["קֶשֶׁת", "", "🌈"]]],
+    ["w10", "🚌", "תַּחְבּוּרָה", "w", [["מְכוֹנִית", "", "🚗"], ["אוֹטוֹבּוּס", "", "🚌"], ["רַכֶּבֶת", "", "🚆"], ["מָטוֹס", "", "✈️"], ["אוֹפַנַּיִם", "", "🚲"], ["סִירָה", "", "⛵"], ["מַשָּׂאִית", "", "🚚"], ["מוֹנִית", "", "🚕"]]],
+    ["w11", "🏃", "מָה עוֹשִׂים?", "w", [["אוֹכֵל", "", "🍽️"], ["שׁוֹתֶה", "", "🥤"], ["יָשֵׁן", "", "😴"], ["רָץ", "", "🏃"], ["קוֹרֵא", "", "📖"], ["כּוֹתֵב", "", "✍️"], ["שָׁר", "", "🎤"], ["קוֹפֵץ", "", "🤸"]]],
+    ["s1", "💬", "מִשְׁפָּטִים רִאשׁוֹנִים", "s", [["יֵשׁ לִי כֶּלֶב", "", "🐶"], ["הַשֶּׁמֶשׁ חַמָּה", "", "☀️"], ["אַבָּא אוֹכֵל לֶחֶם", "", "🍞"], ["הַחָתוּל יָשֵׁן", "", "🐱"], ["הַדָּג בַּיָּם", "", "🐟"], ["אִמָּא שָׁרָה", "", "🎤"], ["הַכַּדּוּר אָדֹם", "", "🔴"], ["דָּנָה קוֹרֵאת סֵפֶר", "", "📖"]]],
+    ["s2", "🗨️", "עוֹד מִשְׁפָּטִים", "s", [["הַסּוּס רָץ מַהֵר", "", "🐴"], ["יוֹרֵד גֶּשֶׁם", "", "🌧️"], ["הַצִּפּוֹר עָפָה", "", "🐦"], ["סַבָּא שׁוֹתֶה תֵּה", "", "🍵"], ["יֵשׁ לִי תִּיק כָּחֹל", "", "🎒"], ["הַפִּיל גָּדוֹל", "", "🐘"], ["הָעוּגָה טְעִימָה", "", "🎂"], ["לַיְלָה טוֹב", "", "🌙"]]]
+  ];
+  // plain letters, without niqqud (for spelling and for checking what the child said)
+  function plain(t) { return String(t).replace(/[֑-ׇ]/g, ""); }
+  var W1 = U.findIndex(function (u) { return u[0] === "w1"; });
+  var WORDY = function (k) { return k === "w" || k === "s"; };
+  function sayOf(w, kind) { return kind === "abc" || kind === "sof" || kind === "syl" ? w[1] : w[0]; }
+  function rev(w, kind) { return (WORDY(kind) ? w[0] : w[0] + " · " + w[1]) + " " + w[2]; }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var START = { "א": 0, "ב": W1, "ג": W1 + 3, "ד": W1 + 6, "ה": W1 + 9, "ו": W1 + 11 }, LESSONS = 3;
+  var AVS = ["🦊", "🐼", "🦁", "🐸", "🦄", "🐯", "🐨", "🐙"];
+
+  // Inside HaniaKids: the child chosen there (name, picture, grade), and stars sent to the child's wallet.
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), av: q.get("av") || "", g: /^[אבגדהוזחט]$/.test(q.get("g") || "") ? q.get("g") : "" }; } catch (e) { return null; } })();
+  function hubStars(n, src) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: src }, "*"); } catch (e) {} }
+  var KEY = "haniaivrit-v1", S;
+  try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.kids = Array.isArray(S.kids) ? S.kids : [];
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  var K = null; // the child playing now
+  function today() { return new Date().toLocaleDateString("en-CA"); }
+
+  // ---- hearing Hebrew: the phone's own voice ----
+  var voice = null, warned = false;
+  function pickVoice() { try { var vs = speechSynthesis.getVoices(); voice = vs.filter(function (v) { return /^(he|iw)/i.test(v.lang); })[0] || null; } catch (e) {} }
+  if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function say(t, slow) {
+    try {
+      if (!window.speechSynthesis) throw 0;
+      var u = new SpeechSynthesisUtterance(t); u.lang = "he-IL"; if (voice) u.voice = voice; u.rate = slow ? 0.5 : 0.75; u.pitch = 1.05;
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    } catch (e) { if (!warned) { warned = true; toast("הדפדפן הזה לא מקריא בעברית. בכרום זה עובד."); } }
+  }
+  var audio = null;
+  function ding(ok) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); var t0 = audio.currentTime; (ok ? [880, 1318.5] : [260, 220]).forEach(function (f, i) { var o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0 + i * 0.1); g.gain.exponentialRampToValueAtTime(0.14, t0 + i * 0.1 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.1 + 0.25); o.connect(g); g.connect(audio.destination); o.start(t0 + i * 0.1); o.stop(t0 + i * 0.1 + 0.27); }); } catch (e) {} }
+
+  // ---- who is learning ----
+  function home() {
+    var h = $("home"); show("home");
+    var name = el("input", { maxlength: "14", placeholder: "השם שלי", "aria-label": "שם" }), grade = "א", av = AVS[S.kids.length % AVS.length];
+    var gr = el("div", { class: "row" }), avr = el("div", { class: "row" });
+    var drawG = function () { gr.replaceChildren.apply(gr, ["א", "ב", "ג", "ד", "ה", "ו"].map(function (g) { return el("button", { class: "chip", type: "button", "aria-pressed": String(g === grade), text: g + "'", onclick: function () { grade = g; drawG(); } }); })); };
+    var drawA = function () { avr.replaceChildren.apply(avr, AVS.map(function (a) { return el("button", { class: "chip", type: "button", style: "font-size:26px;padding:4px 8px", "aria-pressed": String(a === av), text: a, onclick: function () { av = a; drawA(); } }); })); };
+    drawG(); drawA();
+    h.replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [
+      el("section", { class: "card" }, [el("h1", "שָׁלוֹם! 👋 לומדים לקרוא"), el("p", { class: "lead", text: "מסלול שמתחיל מהאותיות, עובר דרך הניקוד ומגיע למילים ולמשפטים ראשונים. שומעים כל מילה, ומקבלים כוכבים." })]),
+      S.kids.length ? el("section", { class: "card" }, [el("h2", "מי לומד עכשיו?"), el("div", { class: "kids" }, S.kids.map(function (k, i) {
+        return el("button", { class: "kidb", type: "button", onclick: function () { K = k; S.cur = i; save(); map(); } }, [el("span", { class: "av", text: k.av }), el("b", k.name), el("span", "כיתה " + k.grade + "' · ⭐ " + (k.stars || 0))]);
+      }))]) : null,
+      el("section", { class: "card" }, [el("h2", S.kids.length ? "➕ עוד ילד/ה" : "מי לומד?"), name, el("span", { class: "fine", text: "באיזו כיתה? (ממנה מתחיל המסלול. הקודמים פתוחים לחזרה)" }), gr, el("span", { class: "fine", text: "בוחרים חבר למסע" }), avr,
+        el("button", { class: "btn", type: "button", text: "יוצאים לדרך 🚀", onclick: function () {
+          var n = name.value.trim().slice(0, 14); if (!n) { toast("כותבים שם"); name.focus(); return; }
+          if (S.kids.length >= 6) { toast("עד 6 ילדים"); return; }
+          var k = { name: n, grade: grade, av: av, prog: {}, stars: 0, miss: [], streak: 0, last: "" };
+          for (var i = 0; i < START[grade]; i++) k.prog[U[i][0]] = [0, 0, 0];
+          S.kids.push(k); S.cur = S.kids.length - 1; K = k; save(); map();
+        } })]),
+      el("p", { class: "fine", text: "ההתקדמות נשמרת רק בטלפון או במחשב הזה. בלי הרשמה ובלי פרסומות." })]));
+  }
+
+  // ---- the map ----
+  function unitDone(k, u) { var p = k.prog[u[0]]; return !!p && p.filter(function (x) { return x > 0; }).length >= LESSONS; }
+  function unitOpen(k, i) { return i === 0 || i <= START[k.grade] || unitDone(k, U[i - 1]); }
+  function map() {
+    var k = K, m = $("map"); show("map");
+    if (k.last !== today()) { var y = new Date(Date.now() - 864e5).toLocaleDateString("en-CA"); if (k.last !== y) k.streak = 0; }
+    var next = -1; U.forEach(function (u, i) { if (next < 0 && unitOpen(k, i) && !unitDone(k, u)) next = i; });
+    m.replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [
+      el("div", { class: "top" }, [el("button", { class: "btn ghost small", type: "button", text: k.av + " " + k.name + " ⇄", onclick: home }), el("span", { style: "margin-inline-start:auto" }), el("span", { class: "stat", text: "⭐ " + (k.stars || 0) }), el("span", { class: "stat", text: "🔥 " + (k.streak || 0) + " ימים" })]),
+      placeable(k) ? el("button", { class: "btn", type: "button", style: "background:var(--sun);color:#3A2600;box-shadow:0 5px 0 #C99316", text: "🎯 כבר יודעים קצת? בדיקת רמה קצרה", onclick: placement }) : null,
+      k.miss.length >= 4 ? el("button", { class: "btn", type: "button", style: "background:var(--sky);box-shadow:0 5px 0 #1F7FD6", text: "🔁 חזרה על " + k.miss.length + " מילים שהיו קשות", onclick: function () { start(-1, 0); } }) : null,
+      el("div", { class: "path" }, U.map(function (u, i) {
+        var open = unitOpen(k, i), done = unitDone(k, u), p = k.prog[u[0]] || [0, 0, 0], st = p.reduce(function (a, b) { return a + b; }, 0);
+        return el("button", { class: "isl" + (done ? " done" : open ? " open" : " lock") + (i === next ? " next" : ""), type: "button", "aria-label": u[2] + (open ? "" : " (נעול)"), onclick: function () { if (!open) { toast("🔒 קודם מסיימים את " + U[i - 1][2]); return; } unit(i); } }, [
+          el("span", { class: "ic", text: open ? u[1] : "🔒" }), el("span", null, [el("b", u[2]), el("small", done ? "✓ הושלם · " : open ? "שיעור " + Math.min(LESSONS, p.filter(function (x) { return x > 0; }).length + 1) + " מתוך " + LESSONS + " · " : ""), open ? el("span", { class: "stars", text: "⭐".repeat(Math.min(9, st)) || "" }) : null])]);
+      }))]));
+    var n = m.querySelector(".isl.next"); if (n) setTimeout(function () { n.scrollIntoView({ block: "center", behavior: "smooth" }); }, 200);
+  }
+  // ---- A short level check for a new child: two questions per station; two right open it and go on ----
+  var FIRST_S = U.findIndex(function (u) { return u[3] === "s"; });
+  function placeable(k) { if (k.placed) return false; var from = Math.max(3, START[k.grade] || 0); for (var i = from; i < U.length; i++) if (unitDone(k, U[i])) return false; return true; }
+  function placement() {
+    var k = K, i = Math.max(3, START[k.grade] || 0), q = 0, ok = 0, passed = [];
+    var next = function () {
+      if (i >= FIRST_S || i >= U.length) return end();
+      var u = U[i], w = shuffle(u[4])[0], opts = shuffle([w].concat(shuffle(u[4].filter(function (x) { return x !== w; })).slice(0, 3)));
+      setTimeout(function () { say(sayOf(w, u[3])); }, 250);
+      frame([el("div", { class: "q" }, [el("p", { class: "fine", text: "🎯 בדיקת רמה · " + u[2] }), el("div", { class: "big", text: w[2] }), el("button", { class: "say sm", type: "button", text: "🔊", "aria-label": "לשמוע", onclick: function () { say(sayOf(w, u[3])); } }),
+        el("div", { class: "opts" }, opts.map(function (o) { return el("button", { class: "opt t", type: "button", text: o[0], onclick: function () { if (o === w) ok++; q++; if (q === 2) { if (ok === 2) { passed.push(u); k.prog[u[0]] = [2, 2, 2]; i++; q = 0; ok = 0; next(); } else end(); } else next(); } }); })),
+        el("button", { class: "btn ghost small", type: "button", text: "לא יודע/ת, מספיק", onclick: end })])], Math.min(1, (i - 3) / (FIRST_S - 3)));
+    };
+    var end = function () { k.placed = true; save(); frame([el("div", { class: "q res" }, [el("div", { class: "big", text: passed.length ? "🚀" : "🌱" }), el("h1", passed.length ? "יודעים הרבה!" : "מתחילים מההתחלה"), el("p", { class: "lead", style: "font-size:18px", text: passed.length ? "דילגנו על " + passed.length + " תחנות. ממשיכים מ: " + (U[i] ? U[i][2] : "המשפטים") : "זה בסדר גמור. לומדים צעד אחר צעד." }), el("button", { class: "btn", type: "button", style: "width:100%", text: "למסלול ➡", onclick: map })])], 1); };
+    next();
+  }
+  function unit(i) {
+    var u = U[i], p = K.prog[u[0]] || [0, 0, 0], li = p.findIndex(function (x) { return !x; }); if (li < 0) li = 0;
+    var names = ["שיעור 1: מילים חדשות", "שיעור 2: עוד מילים", "שיעור 3: חזרה" + (u[3] === "w" && K.grade !== "א" && K.grade !== "ב" ? " ואיות" : "")];
+    var box = el("div", { class: "card" }, [el("h2", u[2]), el("div", { style: "display:grid;gap:8px" }, names.map(function (n, j) {
+      return el("button", { class: j === li ? "btn" : "btn ghost", type: "button", text: n + (p[j] ? " " + "⭐".repeat(p[j]) : ""), onclick: function () { start(i, j); } });
+    })), el("button", { class: "btn ghost small", type: "button", text: "→ חזרה למסלול", onclick: map })]);
+    show("lesson"); $("lesson").replaceChildren(box);
+  }
+
+  // ---- making a lesson: first meet the new words, then 8 questions of different kinds ----
+  function wordsOf(i, li) {
+    if (i < 0) return K.miss.slice(0, 8);
+    var w = U[i][4], half = Math.ceil(w.length / 2);
+    return li === 0 ? w.slice(0, half) : li === 1 ? w.slice(half) : w.slice();
+  }
+  function build(i, li) {
+    var kind = i < 0 ? "w" : U[i][3], ws = wordsOf(i, li), pool = i < 0 ? ws : U[i][4], qs = [], young = K.grade === "א" || K.grade === "ב";
+    if (kind === "s") {
+      ws.forEach(function (w) { qs.push({ t: "build", w: w }); });
+      shuffle(ws).slice(0, 3).forEach(function (w) { qs.push({ t: "listenS", w: w }); });
+      shuffle(ws).slice(0, 3).forEach(function (w) { qs.push({ t: "readS", w: w }); });
+      return { learn: li < 2 && i >= 0 ? ws : [], qs: shuffle(qs).slice(0, 8), pool: pool, kind: kind };
+    }
+    var types = kind === "abc" ? ["letter", "start", "listen", "start", "letter", "listen"] : kind === "sof" ? ["end", "letter", "end", "listen", "end", "letter"] : kind === "syl" ? ["first", "start", "readw", "first", "start", "readw"] : ["read", "pick", "hearw", "read", "pick", "hearw"];
+    if (li === 2 && kind === "w" && !young) types.push("spell", "spell");
+    if (li === 1 && kind === "w" && SR && K.grade !== "א") types.splice(2, 0, "speak");
+    for (var n = 0; n < 8; n++) qs.push({ t: types[n % types.length], w: ws[n % ws.length] });
+    qs = shuffle(qs);
+    if (pool.length >= 4 && kind === "w") qs.splice(4, 0, { t: "match", ws: shuffle(pool).slice(0, 4) }), qs.length = 8;
+    return { learn: li < 2 && i >= 0 ? ws : [], qs: qs, pool: pool, kind: kind };
+  }
+  var L = null;
+  function start(i, li) {
+    if (i < 0 && K.miss.length < 2) { toast("אין מילים לחזרה"); return; }
+    L = build(i, li); L.i = i; L.li = li; L.n = 0; L.bad = 0; L.missed = []; L.step = 0;
+    if (L.learn.length) learnCard(0); else ask();
+  }
+  function frame(kids, pct) {
+    show("lesson");
+    $("lesson").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("div", { class: "row", style: "flex-wrap:nowrap" }, [el("button", { class: "btn ghost small", type: "button", text: "✕", "aria-label": "יציאה", onclick: function () { speechSynthesis && speechSynthesis.cancel(); map(); } }), el("div", { class: "bar" }, [el("i", { style: "width:" + Math.round(pct * 100) + "%" })])]), el("section", { class: "card" }, kids)]));
+  }
+  function learnCard(j) {
+    var w = L.learn[j], k = L.kind, letter = k === "abc" || k === "sof", syl = k === "syl", s1 = k === "s";
+    var hear = letter ? NAMES[w[0]] + ". " + w[1] : sayOf(w, k);
+    var line = k === "abc" ? w[0] + " כמו " + w[1] : k === "sof" ? w[0] + " בסוף המילה, כמו " + w[1] : syl ? w[0] + " כמו " + w[1] : "";
+    frame([el("div", { class: "learn" }, [el("p", { class: "fine", text: (letter ? "אות חדשה " : syl ? "צירוף חדש " : s1 ? "משפט חדש " : "מילה חדשה ") + (j + 1) + " מתוך " + L.learn.length }),
+      el("div", { class: "big", text: w[2] }),
+      el("div", { class: "word", style: letter ? "font-size:clamp(70px,22vw,120px)" : s1 ? "font-size:clamp(30px,8.5vw,46px)" : "", text: w[0] }),
+      line ? el("p", { style: "font-size:24px;font-weight:800;font-family:var(--en);line-height:1.6", text: line }) : null,
+      el("div", { class: "row", style: "justify-content:center" }, [el("button", { class: "say", type: "button", "aria-label": "לשמוע", text: "🔊", onclick: function () { say(hear); } }), el("button", { class: "say sm", type: "button", "aria-label": "לאט", text: "🐢", onclick: function () { say(hear, true); } })]),
+      el("button", { class: "btn", type: "button", style: "width:100%", text: j + 1 < L.learn.length ? "הבאה ➡" : "בואו נתרגל! 🎯", onclick: function () { if (j + 1 < L.learn.length) learnCard(j + 1); else ask(); } })])], (j + 1) / (L.learn.length + L.qs.length));
+    setTimeout(function () { say(hear); }, 250);
+  }
+  function others(w, n, key) { var p = L.pool.filter(function (x) { return x[key] !== w[key] && x[2] !== w[2]; }); return shuffle(p).slice(0, n); }
+  function ask() {
+    if (L.n >= L.qs.length) return finish();
+    var q = L.qs[L.n], w = q.w, pct = (L.learn.length + L.n + 1) / (L.learn.length + L.qs.length), box = [], fb = el("div", { class: "fb", hidden: "" });
+    var answered = false;
+    var after = function (ok, right) {
+      answered = true; ding(ok);
+      if (!ok) { L.bad++; if (w && L.missed.indexOf(w) < 0) L.missed.push(w); }
+      fb.className = "fb " + (ok ? "ok" : "no"); fb.hidden = false;
+      fb.replaceChildren(el("span", ok ? ["כל הכבוד! 🎉", "מצוין! ⭐", "יוֹפִי! 👏", "נכון! 💪"][Math.floor(Math.random() * 4)] : "כמעט! התשובה:"), right || null,
+        el("button", { class: "btn", type: "button", text: "המשך ➡", onclick: function () { L.n++; ask(); } }));
+      fb.querySelector(".btn").focus();
+    };
+    var optBtns = function (items, label, isRight, text) {
+      var g = el("div", { class: "opts" });
+      shuffle(items).forEach(function (it) {
+        var b = el("button", { class: "opt" + (text ? " t" : ""), type: "button", text: label(it) });
+        b.addEventListener("click", function () { if (answered) return; var ok = isRight(it); b.classList.add(ok ? "ok" : "no"); if (!ok) [].forEach.call(g.children, function (c, k) { if (isRight(g._items[k])) c.classList.add("ok"); }); [].forEach.call(g.children, function (c) { c.disabled = true; }); if (text && WORDY(L.kind)) say(label(it)); after(ok, ok ? null : el("span", { class: "en", style: "font-size:24px;line-height:1.6", text: rev(w, L.kind) })); });
+        g.append(b);
+      });
+      g._items = [].map.call(g.children, function (c) { return items.filter(function (it) { return label(it) === c.textContent; })[0]; });
+      return g;
+    };
+    if (q.t === "listen") {
+      var opts = [w].concat(others(w, 3, 0));
+      box = [el("p", { class: "ask", text: "🎧 מה שמעת? בוחרים תמונה" }), el("button", { class: "say", type: "button", text: "🔊", "aria-label": "לשמוע שוב", onclick: function () { say(sayOf(w, L.kind)); } }), optBtns(opts, function (x) { return x[2]; }, function (x) { return x === w; })];
+      setTimeout(function () { say(sayOf(w, L.kind)); }, 250);
+    } else if (q.t === "hearw") {
+      box = [el("p", { class: "ask", text: "🎧 איזו מילה שמעת?" }), el("button", { class: "say", type: "button", text: "🔊", "aria-label": "לשמוע שוב", onclick: function () { say(w[0]); } }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[0]; }, function (x) { return x === w; }, true)];
+      setTimeout(function () { say(w[0]); }, 250);
+    } else if (q.t === "readw") {
+      box = [el("p", { class: "ask", text: "📖 מה כתוב? בוחרים תמונה" }), el("div", { class: "word", text: w[1] }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[2]; }, function (x) { return x === w; })];
+    } else if (q.t === "first") {
+      box = [el("p", { class: "ask", text: "🎧 איך מתחילה המילה?" }), el("div", { class: "big", text: w[2] }), el("button", { class: "say sm", type: "button", text: "🔊", "aria-label": "לשמוע", onclick: function () { say(w[1]); } }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[0]; }, function (x) { return x === w; }, true)];
+      setTimeout(function () { say(w[1]); }, 250);
+    } else if (q.t === "end") {
+      box = [el("p", { class: "ask", text: "איזו מילה נגמרת באות הזאת?" }), el("div", { class: "word", style: "font-size:clamp(70px,22vw,110px)", text: w[0] }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[2]; }, function (x) { return x === w; })];
+    } else if (q.t === "read") {
+      box = [el("p", { class: "ask", text: "📖 מה כתוב? בוחרים תמונה" }), el("div", { class: "word", text: w[0] }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[2]; }, function (x) { return x === w; })];
+    } else if (q.t === "pick") {
+      box = [el("p", { class: "ask", text: "איזו מילה מתאימה לתמונה?" }), el("div", { class: "big", text: w[2] }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[0]; }, function (x) { return x === w; }, true)];
+    } else if (q.t === "letter") {
+      box = [el("p", { class: "ask", text: "🎧 איזו אות שמעת?" }), el("button", { class: "say", type: "button", text: "🔊", onclick: function () { say(NAMES[w[0]]); } }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[0]; }, function (x) { return x === w; }, true)];
+      setTimeout(function () { say(NAMES[w[0]]); }, 250);
+    } else if (q.t === "start") {
+      box = [el("p", { class: "ask", text: L.kind === "abc" ? "איזו מילה מתחילה באות הזאת?" : "איזו מילה מתחילה ככה?" }), el("div", { class: "word", style: "font-size:clamp(64px,20vw,104px)", text: w[0] }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[2]; }, function (x) { return x === w; })];
+    } else if (q.t === "speak") {
+      // Saying the word: the phone listens in Hebrew; if it can't hear, the child can skip without losing a star.
+      var mic = el("button", { class: "say", type: "button", style: "background:var(--main);box-shadow:0 6px 0 var(--main2)", "aria-label": "לדבר", text: "🎤" }), heard = el("p", { class: "lead", text: "קוראים את המילה ואומרים אותה בקול" });
+      mic.addEventListener("click", function () {
+        if (answered) return; var r; try { r = new SR(); } catch (e) { after(true); return; }
+        r.lang = "he-IL"; r.maxAlternatives = 5; r.interimResults = false; mic.textContent = "👂"; heard.textContent = "מקשיבים…";
+        r.onresult = function (e) { var alts = [].map.call(e.results[0], function (a) { return plain(a.transcript).trim(); }), want = plain(w[0]), ok = alts.some(function (a) { return a.indexOf(want) >= 0 || want.indexOf(a) >= 0 && a.length > 2; }); heard.textContent = "שמעתי: " + alts[0]; mic.textContent = "🎤"; if (ok) after(true); else { heard.textContent += " · עוד ניסיון?"; } };
+        r.onerror = function () { mic.textContent = "🎤"; heard.textContent = "לא שמעתי. עוד פעם, או מדלגים."; };
+        r.onend = function () { mic.textContent = "🎤"; };
+        try { r.start(); } catch (e) {}
+      });
+      box = [el("p", { class: "ask", text: "🗣️ קוראים בקול" }), el("div", { class: "word", text: w[0] }), el("div", { class: "row", style: "justify-content:center" }, [el("button", { class: "say sm", type: "button", text: "🔊", onclick: function () { say(w[0]); } }), mic]), heard,
+        el("button", { class: "btn ghost small", type: "button", text: "דילוג", onclick: function () { if (!answered) after(true); } })];
+    } else if (q.t === "spell") {
+      var target = plain(w[0]), letters = shuffle(target.split("")), built = el("div", { class: "tiles built en" }), tl = el("div", { class: "tiles" }), got = "";
+      letters.forEach(function (ch) { var t = el("button", { class: "tile", type: "button", text: ch }); t.addEventListener("click", function () { if (answered || t.classList.contains("used")) return; t.classList.add("used"); got += ch; built.append(el("span", { class: "tile", text: ch })); if (got.length === target.length) { var ok = got === target; say(w[0]); after(ok, ok ? null : el("span", { class: "en", style: "font-size:28px", text: w[0] })); } }); tl.append(t); });
+      box = [el("p", { class: "ask", text: "✏️ מסדרים את האותיות" }), el("div", { class: "big", text: w[2] }), el("button", { class: "say sm", type: "button", text: "🔊", onclick: function () { say(w[0]); } }), built, tl,
+        el("button", { class: "btn ghost small", type: "button", text: "↺ מתחילים מחדש", onclick: function () { if (answered) return; got = ""; built.replaceChildren(); [].forEach.call(tl.children, function (c) { c.classList.remove("used"); }); } })];
+    } else if (q.t === "readS") {
+      box = [el("p", { class: "ask", text: "📖 מה כתוב? בוחרים תמונה" }), el("div", { class: "word", style: "font-size:clamp(30px,8.5vw,46px)", text: w[0] }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[2]; }, function (x) { return x === w; })];
+    } else if (q.t === "build" || q.t === "listenS") {
+      if (q.t === "listenS") {
+        box = [el("p", { class: "ask", text: "🎧 איזה משפט שמעת?" }), el("button", { class: "say", type: "button", text: "🔊", onclick: function () { say(w[0]); } }), optBtns([w].concat(others(w, 3, 0)), function (x) { return x[0]; }, function (x) { return x === w; }, true)];
+        box[2].style.gridTemplateColumns = "1fr"; box[2].querySelectorAll(".opt").forEach(function (b) { b.style.fontSize = "24px"; b.style.minHeight = "64px"; });
+        setTimeout(function () { say(w[0]); }, 250);
+      } else {
+        var parts = w[0].split(" "), bw = el("div", { class: "tiles built en" }), tw = el("div", { class: "tiles" }), got2 = [];
+        shuffle(parts.map(function (p, k) { return [p, k]; })).forEach(function (pk) { var t = el("button", { class: "tile", type: "button", text: pk[0] }); t.addEventListener("click", function () { if (answered || t.classList.contains("used")) return; t.classList.add("used"); got2.push(pk[0]); bw.append(el("span", { class: "tile", text: pk[0] })); if (got2.length === parts.length) { var ok = got2.join(" ") === w[0]; say(w[0]); after(ok, ok ? null : el("span", { class: "en", style: "font-size:22px", text: w[0] })); } }); tw.append(t); });
+        box = [el("p", { class: "ask", text: "🧩 שומעים ובונים את המשפט" }), el("div", { class: "big", style: "font-size:70px", text: w[2] }), el("button", { class: "say sm", type: "button", text: "🔊", onclick: function () { say(w[0]); } }), bw, tw,
+          el("button", { class: "btn ghost small", type: "button", text: "↺ מתחילים מחדש", onclick: function () { if (answered) return; got2 = []; bw.replaceChildren(); [].forEach.call(tw.children, function (c) { c.classList.remove("used"); }); } })];
+      }
+    } else if (q.t === "match") {
+      var left = q.ws.slice(), sel = null, done = 0, mistakes = 0, grid = el("div", { class: "mt" });
+      var pics = shuffle(left), words = shuffle(left);
+      for (var r = 0; r < 4; r++) {
+        [[pics[r], "p"], [words[r], "w"]].forEach(function (c) {
+          var b = el("button", { class: "opt" + (c[1] === "w" ? " t" : ""), type: "button", text: c[1] === "w" ? c[0][0] : c[0][2] });
+          b.addEventListener("click", function () {
+            if (b.classList.contains("gone")) return;
+            if (c[1] === "w") say(c[0][0]);
+            if (!sel || sel.k === c[1]) { if (sel) sel.b.classList.remove("sel"); sel = { b: b, k: c[1], w: c[0] }; b.classList.add("sel"); return; }
+            if (sel.w === c[0]) { ding(true); sel.b.classList.add("gone"); b.classList.add("gone"); sel = null; done++; if (done === 4) { L.bad += mistakes > 1 ? 1 : 0; L.n++; setTimeout(ask, 400); } }
+            else { ding(false); mistakes++; b.classList.add("no"); setTimeout(function () { b.classList.remove("no"); }, 400); sel.b.classList.remove("sel"); sel = null; }
+          });
+          grid.append(b);
+        });
+      }
+      box = [el("p", { class: "ask", text: "🔗 מחברים כל תמונה למילה" }), grid];
+    }
+    frame([el("div", { class: "q" }, box.concat([fb]))], pct);
+  }
+  function finish() {
+    var stars = L.bad === 0 ? 3 : L.bad <= 2 ? 2 : 1, k = K;
+    hubStars(stars, "קריאה");
+    if (L.i >= 0) { var u = U[L.i], p = k.prog[u[0]] || [0, 0, 0]; if (stars > p[L.li]) { k.stars = (k.stars || 0) + stars - p[L.li]; p[L.li] = stars; } k.prog[u[0]] = p; }
+    else { k.stars = (k.stars || 0) + 1; k.miss = k.miss.filter(function (w) { return L.missed.indexOf(w) >= 0; }); }
+    if (L.kind === "w") L.missed.forEach(function (w) { if (!k.miss.some(function (x) { return x[0] === w[0]; })) k.miss.push(w); }); k.miss = k.miss.slice(-30);
+    if (k.last !== today()) { var y = new Date(Date.now() - 864e5).toLocaleDateString("en-CA"); k.streak = k.last === y ? (k.streak || 0) + 1 : 1; k.last = today(); }
+    save();
+    var unitNow = L.i >= 0 && unitDone(k, U[L.i]), nextU = L.i + 1 < U.length ? U[L.i + 1] : null;
+    frame([el("div", { class: "q res" }, [el("div", { class: "big", text: stars === 3 ? "🏆" : stars === 2 ? "🎉" : "💪" }), el("h1", { text: stars === 3 ? "מושלם!" : stars === 2 ? "כל הכבוד!" : "ניסיון יפה!" }),
+      el("div", { style: "font-size:46px", text: "⭐".repeat(stars) + "☆".repeat(3 - stars) }),
+      unitNow && nextU ? el("p", { class: "lead", style: "font-size:18px", text: "🎁 נפתח: " + nextU[2] }) : null,
+      L.missed.length ? el("p", { class: "fine", style: "font-size:15px", text: "נחזור שוב על: " + L.missed.map(function (w) { return w[0]; }).join(", ") }) : null,
+      el("button", { class: "btn", type: "button", style: "width:100%", text: "למסלול ➡", onclick: map })])], 1);
+    if (stars >= 2) say(stars === 3 ? "מֻשְׁלָם!" : "כָּל הַכָּבוֹד!");
+  }
+
+  if (HUB && HUB.kid) {
+    var hi = S.kids.findIndex(function (k) { return k.name === HUB.kid; });
+    if (hi < 0) { var g0 = HUB.g && START[HUB.g] != null ? HUB.g : "א", nk = { name: HUB.kid, grade: g0, av: HUB.av || AVS[0], prog: {}, stars: 0, miss: [], streak: 0, last: "" }; for (var u0 = 0; u0 < START[g0]; u0++) nk.prog[U[u0][0]] = [0, 0, 0]; S.kids.push(nk); hi = S.kids.length - 1; }
+    S.cur = hi; save(); K = S.kids[hi]; map();
+  } else if (S.kids.length && S.kids[S.cur || 0]) { K = S.kids[S.cur || 0]; map(); } else home();
+})();
+</script>
