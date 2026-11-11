@@ -39,6 +39,7 @@ import KASEFET_CSP from "./kasefet/csp.js";
 import { VaultBox, vaultApi } from "./kasefet/vault.js";
 import SPORTAPP, { FILES as SPORT_FILES, IMAGES as SPORT_IMAGES } from "./sport/page.js";
 import { sportApi } from "./sport/api.js";
+import CHAGPAGE, { FILES as CHAG_FILES, IMAGES as CHAG_IMAGES } from "./chag/page.js";
 import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
 import { RegaRoom, regaApi } from "./rega/room.js";
 import { LIGHT_CSS } from "./lib/light.js";
@@ -541,6 +542,8 @@ export default {
     if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
     if (url.hostname === "english.hania360.com" || url.searchParams.get("app") === "english" && /workers\.dev$/.test(url.hostname)) return smallApp(url, ENGLISHAPP, ENGLISH_FILES, ENGLISH_IMAGES, "https://english.hania360.com/");
     if (url.hostname === "shiurim.hania360.com" || url.searchParams.get("app") === "shiurim" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shiurim/") ? tutorApi(request, env || {}, url) : smallApp(url, SHIURIMAPP, SHIURIM_FILES, SHIURIM_IMAGES, "https://shiurim.hania360.com/");
+    // HaniaChag: the holiday happening now or next (inside HaniaYahadut, which shows it only in season).
+    if (url.hostname === "chag.hania360.com" || url.searchParams.get("app") === "chag" && /workers\.dev$/.test(url.hostname)) return smallApp(url, CHAGPAGE, CHAG_FILES, CHAG_IMAGES, "https://chag.hania360.com/");
     if (url.hostname === "chanukah.hania360.com" || url.searchParams.get("app") === "chanukah" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, CHANUKAHAPP, CHANUKAH_FILES, CHANUKAH_IMAGES, "https://chanukah.hania360.com/");
     if (url.hostname === "ezra.hania360.com" || url.searchParams.get("app") === "ezra" && /workers\.dev$/.test(url.hostname)) return smallApp(url, EZRAAPP, EZRA_FILES, EZRA_IMAGES, "https://ezra.hania360.com/");
     if ((url.hostname === "hania360.com" || url.hostname === "www.hania360.com" || /workers\.dev$/.test(url.hostname)) && url.pathname === "/api/ai-usage") {

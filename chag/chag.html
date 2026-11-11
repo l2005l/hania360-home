@@ -1,0 +1,142 @@
+<title>HaniaChag · החג הקרוב</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Noto+Serif+Hebrew:wght@600;700&display=swap">
+<style>
+/* One holiday at a time: the one happening now or the next one. Its colors, when it starts and ends in my town,
+   what to do (a list to tick), the blessings to say (read aloud too), something for the family, and a greeting. */
+:root{--k:#2D4BC7;--k2:#F5C04A;--ink:#14213D;--muted:#5B6884;--line:#E3E6F2;--bg:#FBFAFF;--font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Noto Serif Hebrew","Frank Ruhl Libre","David",serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.55;color:var(--ink);padding:12px max(16px,env(safe-area-inset-left,0px)) 48px;
+  background:radial-gradient(70% 40% at 100% 0%,color-mix(in srgb,var(--k) 20%,transparent),transparent 70%),radial-gradient(60% 34% at 0% 30%,color-mix(in srgb,var(--k2) 22%,transparent),transparent 70%),var(--bg);background-attachment:fixed}
+.wrap{max-width:680px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{font-weight:900;font-size:22px;color:inherit;text-decoration:none}.logo b{color:var(--k)}
+header .sp{margin-inline-start:auto}
+select{font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}
+.hero{border-radius:28px;padding:22px 20px;color:#fff;background:linear-gradient(135deg,var(--k),color-mix(in srgb,var(--k) 55%,var(--k2)));box-shadow:0 24px 44px -26px var(--k);display:grid;gap:6px;position:relative;overflow:hidden}
+.hero .em{font-size:64px;line-height:1;position:absolute;left:18px;top:14px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25))}
+.hero h1{margin:0;font:900 clamp(30px,9vw,44px)/1.05 var(--font)}
+.hero .when{font-weight:700;opacity:.95}
+.hero .cd{display:inline-flex;width:fit-content;margin-top:6px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;font-weight:800}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:10px;box-shadow:0 1px 2px rgba(20,33,61,.05),0 14px 30px -20px color-mix(in srgb,var(--k) 60%,transparent)}
+h2{margin:0;font-size:19px}
+.times{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.t{border-radius:16px;padding:12px;background:color-mix(in srgb,var(--k) 8%,#fff);border:1px solid color-mix(in srgb,var(--k) 22%,#fff)}
+.t small{display:block;color:var(--muted);font-size:13px}.t b{font:900 26px/1.1 var(--font);font-variant-numeric:tabular-nums;color:var(--k)}.t span{display:block;font-size:13px;color:var(--muted)}
+.todo label{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-bottom:1px dashed var(--line);font-size:16px;cursor:pointer}
+.todo label:last-child{border:0}.todo input{width:24px;height:24px;accent-color:var(--k);flex:none;margin-top:2px}
+.todo input:checked+span{text-decoration:line-through;color:var(--muted)}
+.bless{display:grid;gap:8px;padding:12px;border-radius:16px;background:#FFFBEB;border:1px solid #FDE68A}
+.bless b{font-size:14px;color:#92400E}.bless p{margin:0;font:600 20px/1.7 var(--serif)}
+.btn{appearance:none;border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--k);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.ghost{background:#fff;color:var(--k);border:1.5px solid color-mix(in srgb,var(--k) 40%,#fff)}
+.btn.small{padding:7px 12px;font-size:14px;border-radius:11px;width:fit-content}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fam li{margin-bottom:6px}.fam ul{margin:0;padding-inline-start:20px}
+.more{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}.more button{flex:none;border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}
+.more button[aria-current="true"]{border-color:var(--k);background:color-mix(in srgb,var(--k) 10%,#fff)}
+.fine{font-size:13px;color:var(--muted)}
+:focus-visible{outline:3px solid var(--k2);outline-offset:2px}
+</style>
+<div class="wrap">
+  <header><a class="logo" href="https://yahadut.hania360.com/">Hania<b>Chag</b></a><span class="sp"></span><label class="fine">עיר <select id="city" aria-label="העיר לזמנים"></select></label></header>
+  <section class="hero" id="hero" aria-live="polite"></section>
+  <section class="card" id="times"></section>
+  <section class="card todo" id="todo"></section>
+  <section class="card" id="bless"></section>
+  <section class="card fam" id="fam"></section>
+  <section class="card" id="greet"></section>
+  <section class="card"><h2>החגים הבאים</h2><div class="more" id="more"></div><p class="fine">הזמנים מחושבים לפי העיר ומיועדים לעזר. לזמנים מלאים ולתפילה של היום: <a href="https://dat.hania360.com/">HaniaDat</a>.</p></section>
+</div>
+<script src="/hebcal.js"></script>
+<script>
+(function(){
+"use strict";
+var HB=window.HB,$=function(i){return document.getElementById(i)};
+function el(t,a,k){var e=document.createElement(t);if(typeof a==="string"){e.textContent=a;a=null}for(var x in a||{}){if(x==="text")e.textContent=a[x];else if(x.slice(0,2)==="on")e.addEventListener(x.slice(2),a[x]);else if(a[x]!=null)e.setAttribute(x,a[x])}[].concat(k||[]).forEach(function(c){if(c!=null)e.append(c.nodeType?c:String(c))});return e}
+var CITIES=/*CITIES*/[["ירושלים",31.778,35.235,40]];
+var LS="haniachag-v1",S;try{S=JSON.parse(localStorage.getItem(LS)||"null")}catch(e){S=null}S=S||{};S.done=S.done||{};
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+// the town: chosen here, or the Shabbat town chosen in another Hania360 app (cookie h360_i), or Jerusalem
+if(!S.city){try{var m=document.cookie.match(/(?:^|; *)h360_i=([^;]*)/),o=m?JSON.parse(decodeURIComponent(m[1])):{};if(o.c&&CITIES.some(function(c){return c[0]===o.c[0]}))S.city=o.c[0]}catch(e){}}
+S.city=S.city||"ירושלים";
+function place(){var c=CITIES.find(function(x){return x[0]===S.city})||CITIES[0];return{name:c[0],lat:c[1],lon:c[2],b:c[3]}}
+function zOn(d){var p=place();return new HB.Zmanim(new HB.Location(p.lat,p.lon,true,"Asia/Jerusalem",p.name,"IL"),d,false)}
+function hm(t){return t?t.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jerusalem"}):"--:--"}
+var DAYS=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+function dname(d){return "יום "+DAYS[d.getDay()]+", "+d.getDate()+"."+(d.getMonth()+1)}
+function noon(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate(),12)}
+var BL=function(t){return "בָּרוּךְ אַתָּה ה' אֱלֹהֵינוּ מֶלֶךְ הָעוֹלָם, "+t};
+var SHEH=["שהחיינו",BL("שֶׁהֶחֱיָנוּ וְקִיְּמָנוּ וְהִגִּיעָנוּ לַזְּמַן הַזֶּה.")];
+var YT=["הדלקת נרות יום טוב",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ לְהַדְלִיק נֵר שֶׁל יוֹם טוֹב.")];
+// Hebrew dates (hebcal months: Nisan 1 … Tishrei 7 … Kislev 9 … Shvat 11, Adar 12, Adar II 13). yt: the days that are Yom Tov (index from the first day).
+var H=[
+ {id:"rosh",n:"ראש השנה",e:"🍎",k:"#B91C1C",k2:"#F59E0B",m:7,d:1,len:2,yt:[0,1],greet:"שנה טובה ומתוקה! 🍎🍯",
+  todo:["סימנים לשולחן: תפוח בדבש, רימון, תמרים, ראש דג","לשמוע תקיעת שופר","חלה עגולה","תשליך ליד מים (ביום הראשון אחר הצהריים)","לברך את המשפחה והחברים בשנה טובה"],
+  bless:[YT,SHEH,["תפוח בדבש (אחרי ברכת בורא פרי העץ)","יְהִי רָצוֹן מִלְּפָנֶיךָ ה' אֱלֹהֵינוּ וֵאלֹהֵי אֲבוֹתֵינוּ, שֶׁתְּחַדֵּשׁ עָלֵינוּ שָׁנָה טוֹבָה וּמְתוּקָה."]],
+  fam:["כל אחד אומר משאלה אחת לשנה החדשה","מכינים יחד כרטיסי ברכה לסבא וסבתא","ציור רימון עם 613 נקודות? מתחילים ממאה 🙂"]},
+ {id:"kippur",n:"יום כיפור",e:"🕊️",k:"#334155",k2:"#CBD5E1",m:7,d:10,len:1,yt:[0],fast:true,greet:"גמר חתימה טובה 🕊️",
+  todo:["סעודה מפסקת לפני כניסת הצום, עם הרבה מים","לבקש סליחה ממי שפגענו בו","נעליים בלי עור, בגדים לבנים (מנהג)","לתכנן ליום עצמו: מנוחה, בית כנסת, ספרים לילדים"],
+  bless:[["הדלקת נרות",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ לְהַדְלִיק נֵר שֶׁל יוֹם הַכִּפּוּרִים.")],SHEH],
+  fam:["מכינים \"דף סליחה\" לבני המשפחה","רוכבים על אופניים בכביש הריק (בזהירות)","שיחה בערב: מה הייתי רוצה לשפר השנה?"]},
+ {id:"sukkot",n:"סוכות",e:"🌿",k:"#15803D",k2:"#EAB308",m:7,d:15,len:8,yt:[0,7],greet:"חג סוכות שמח! 🌿",
+  todo:["לבנות סוכה ולשים סכך","לקנות ארבעת המינים: לולב, אתרוג, הדסים, ערבות","קישוטים לסוכה עם הילדים","ארוחות בסוכה","שמחת תורה בסוף החג: הקפות"],
+  bless:[YT,SHEH,["בישיבה בסוכה",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ לֵישֵׁב בַּסֻּכָּה.")],["נטילת לולב",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל נְטִילַת לוּלָב.")]],
+  fam:["שרשראות נייר צבעוניות לסוכה","לילה אחד ישנים בסוכה","מזמינים אורחים לסוכה (אושפיזין)"]},
+ {id:"chanukah",n:"חנוכה",e:"🕎",k:"#B45309",k2:"#F5C04A",m:9,d:25,len:8,link:"https://chanukah.hania360.com/",greet:"חנוכה שמח! 🕎✨",
+  todo:["חנוכייה, נרות או שמן לשמונה ימים","לבחור מי מדליק כל ערב","סופגניות ולביבות","דמי חנוכה לילדים","משחק סביבון"],
+  bless:[["הדלקת נר חנוכה",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ לְהַדְלִיק נֵר חֲנֻכָּה.")],["",BL("שֶׁעָשָׂה נִסִּים לַאֲבוֹתֵינוּ בַּיָּמִים הָהֵם בַּזְּמַן הַזֶּה.")],["בלילה הראשון בלבד",SHEH[1]]],
+  fam:["סביבון עם אגוזים או שוקולד","כל ערב מישהו אחר מספר נס קטן שקרה לו השנה","מעוז צור ביחד אחרי ההדלקה"]},
+ {id:"tubishvat",n:"ט״ו בשבט",e:"🌳",k:"#65A30D",k2:"#A16207",m:11,d:15,len:1,greet:"ט״ו בשבט שמח! 🌳",
+  todo:["פירות יבשים ופירות ארץ ישראל על השולחן","לשתול עץ או עציץ","סדר ט״ו בשבט קטן עם המשפחה"],
+  bless:[["על פרי העץ",BL("בּוֹרֵא פְּרִי הָעֵץ.")],["על פרי חדש שעוד לא אכלנו השנה",SHEH[1]]],
+  fam:["טועמים 7 פירות ומדרגים","שותלים זרעים בכוס ומסמנים כל שבוע כמה גדל","מכינים חטיף תמרים ואגוזים"]},
+ {id:"purim",n:"פורים",e:"🎭",k:"#7C3AED",k2:"#F472B6",purim:true,d:14,len:1,greet:"פורים שמח! 🎭",
+  todo:["תחפושות לכל המשפחה","לשמוע מגילה בערב ובבוקר","משלוח מנות: שני מאכלים לפחות לחבר אחד","מתנות לאביונים: לשני עניים","סעודת פורים"],
+  bless:[["לפני קריאת המגילה",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל מִקְרָא מְגִלָּה.")],["",BL("שֶׁעָשָׂה נִסִּים לַאֲבוֹתֵינוּ בַּיָּמִים הָהֵם בַּזְּמַן הַזֶּה.")],SHEH],
+  fam:["מכינים רעשנים מבקבוקים ואורז","אפייה משותפת של אוזני המן","משלוחי מנות לשכנים עם פתק"],note:"בירושלים פורים נחגג יום אחד אחרי (שושן פורים)."},
+ {id:"pesach",n:"פסח",e:"🍷",k:"#1D4ED8",k2:"#F59E0B",m:1,d:15,len:7,yt:[0,6],greet:"חג פסח כשר ושמח! 🍷",
+  todo:["ניקיון לפסח, חדר אחד ביום","בדיקת חמץ בערב שלפני","ביעור חמץ בבוקר ערב החג","קערת הסדר: זרוע, ביצה, מרור, חרוסת, כרפס, חזרת","מצות, יין או מיץ ענבים, הגדות לכולם","אפיקומן ומתנה למי שמוצא"],
+  bless:[YT,SHEH,["בדיקת חמץ",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל בִּעוּר חָמֵץ.")],["אכילת מצה בסדר",BL("אֲשֶׁר קִדְּשָׁנוּ בְּמִצְוֹתָיו וְצִוָּנוּ עַל אֲכִילַת מַצָּה.")]],
+  fam:["כל ילד מכין שאלה משלו לסדר","מחלקים תפקידים ב\"מה נשתנה\"","מכינים יחד \"מכות מצרים\" מצחיקות לשולחן"],note:"סדר הלילה: קדש, ורחץ, כרפס, יחץ, מגיד, רחצה, מוציא מצה, מרור, כורך, שולחן עורך, צפון, ברך, הלל, נרצה."},
+ {id:"lagbaomer",n:"ל״ג בעומר",e:"🔥",k:"#EA580C",k2:"#FACC15",m:2,d:18,len:1,greet:"ל״ג בעומר שמח! 🔥",
+  todo:["לאסוף עצים (באישור ובמקום מותר)","תפוחי אדמה בנייר כסף","לבדוק הנחיות כיבוי אש של העירייה","קשת וחץ, משחקי שדה"],bless:[],
+  fam:["מדורה עם שירים וסיפורים","שיפודי מרשמלו","להשאיר את השטח נקי ולכבות עם מים"]},
+ {id:"shavuot",n:"שבועות",e:"🌾",k:"#0891B2",k2:"#FDE68A",m:3,d:6,len:1,yt:[0],greet:"חג שבועות שמח! 🌾",
+  todo:["מאכלי חלב: עוגת גבינה, בלינצ׳ס","לבוש לבן וזרי פרחים","תיקון ליל שבועות למי שרוצה","טקס ביכורים בגן"],
+  bless:[YT,SHEH],
+  fam:["אופים עוגת גבינה יחד","מכינים סלסלת ביכורים מפירות העונה","קוראים יחד את מגילת רות בקצרה"]}
+];
+// The first and last day of a holiday in Hebrew year y (Purim: Adar II in a leap year).
+function span(h,y){var m=h.purim?(HB.HDate.isLeapYear(y)?13:12):h.m;var a=noon(new HB.HDate(h.d,m,y).greg());return{a:a,z:new Date(a.getTime()+(h.len-1)*864e5),y:y}}
+function next(h,now){var y=new HB.HDate(now).getFullYear();for(var i=-1;i<2;i++){var s=span(h,y+i);if(s.z.getTime()+36e5*20>now.getTime())return s}return span(h,y+1)}
+function list(now){return H.map(function(h){return{h:h,s:next(h,now)}}).sort(function(a,b){return a.s.a-b.s.a})}
+var NOW=new Date(),want=(location.hash||"").slice(1),all=list(NOW),cur=all.find(function(x){return x.h.id===want})||all[0];
+function paint(){var h=cur.h,s=cur.s,now=new Date();document.documentElement.style.setProperty("--k",h.k);document.documentElement.style.setProperty("--k2",h.k2);document.title="HaniaChag · "+h.n;
+  var eve=new Date(s.a.getTime()-864e5),days=Math.round((noon(eve)-noon(now))/864e5),on=now>=new Date(eve.getFullYear(),eve.getMonth(),eve.getDate(),16)&&now<=new Date(s.z.getTime()+10*36e5);
+  var cd=on?"🎉 חג שמח! עכשיו "+h.n:days<=0?"ערב החג הערב":days===1?"ערב החג מחר":"עוד "+days+" ימים לערב החג";
+  var hd=new HB.HDate(s.a).render("he-x-NoNikud");
+  $("hero").replaceChildren(el("span",{class:"em","aria-hidden":"true",text:h.e}),el("h1",h.n),el("div",{class:"when",text:dname(s.a)+(h.len>1?" עד "+dname(s.z):"")}),el("div",{class:"when",style:"opacity:.8;font-weight:500",text:hd}),el("span",{class:"cd",text:cd}),
+    h.link?el("a",{class:"btn ghost",href:h.link,style:"width:fit-content;margin-top:8px;background:#fff",text:"🕎 לחנוכייה, לזמני ההדלקה ולסביבון ←"}):"");
+  // times in my town: candles the evening before each Yom Tov day that follows a weekday, and the end
+  var T=[];if(h.yt){var groups=[];h.yt.forEach(function(i){var g=groups[groups.length-1];if(g&&g[g.length-1]===i-1)g.push(i);else groups.push([i])});
+    groups.forEach(function(g){var first=new Date(s.a.getTime()+g[0]*864e5),last=new Date(s.a.getTime()+g[g.length-1]*864e5),ev=new Date(first.getTime()-864e5),z=zOn(ev),c=new Date(z.shkiah().getTime()-place().b*6e4),out=zOn(last).tzeit(8.5);
+      T.push(["הדלקת נרות",hm(c),dname(ev)+" בערב"]);if(h.fast)T.push(["הצום מתחיל (שקיעה)",hm(z.shkiah()),dname(ev)]);T.push([h.fast?"סוף הצום":"צאת החג",hm(out),dname(last)])})}
+  else if(h.id==="chanukah"){var z1=zOn(eve),wd=eve.getDay();T.push(["נר ראשון",wd===5?hm(new Date(z1.shkiah().getTime()-place().b*6e4)):hm(z1.shkiah()),dname(eve)+" בערב"+(wd===5?" (לפני נרות שבת)":"")],["הנר השמיני",dname(new Date(s.z.getTime()-864e5)),"בערב"])}
+  else if(h.id==="purim"){T.push(["מגילה בערב","אחרי "+hm(zOn(eve).tzeit(8.5)),dname(eve)],["מגילה בבוקר","מ־"+hm(zOn(s.a).sunrise()),dname(s.a)])}
+  else{T.push(["שקיעה בערב החג",hm(zOn(eve).shkiah()),dname(eve)])}
+  $("times").replaceChildren(el("h2","⏰ זמנים ב"+place().name),el("div",{class:"times"},T.map(function(t){return el("div",{class:"t"},[el("small",t[0]),el("b",t[1]),el("span",t[2])])})));if(h.note)$("times").append(el("p",{class:"fine",text:h.note}));
+  var key=h.id+":"+s.y,done=S.done[key]||[];
+  $("todo").replaceChildren.apply($("todo"),[el("h2","✅ מה עושים")].concat(h.todo.map(function(t,i){var c=el("input",{type:"checkbox"});c.checked=done.indexOf(i)>=0;c.onchange=function(){var d=S.done[key]=S.done[key]||[];if(c.checked)d.push(i);else d.splice(d.indexOf(i),1);save()};return el("label",null,[c,el("span",t)])})));
+  $("bless").hidden=!h.bless.length;$("bless").replaceChildren.apply($("bless"),[el("h2","🙏 הברכות")].concat(h.bless.map(function(b){return el("div",{class:"bless"},[b[0]?el("b",b[0]):null,el("p",b[1]),"speechSynthesis" in window?el("button",{class:"btn ghost small",type:"button",text:"🔊 להקריא",onclick:function(){speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(b[1].replace(/[֑-ׇ]/g,"").replace("ה'","אֲדֹנָי"));u.lang="he-IL";u.rate=.85;speechSynthesis.speak(u)}}):null])})));
+  $("fam").replaceChildren(el("h2","👨‍👩‍👧 למשפחה"),el("ul",null,h.fam.map(function(f){return el("li",f)})));
+  var fi=el("input",{value:S.fam||"",maxlength:"30",placeholder:"שם המשפחה",style:"font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:10px;width:100%"});
+  fi.oninput=function(){S.fam=fi.value.trim();save()};
+  $("greet").replaceChildren(el("h2","💌 ברכה לשלוח"),el("p",{style:"font-size:20px;font-weight:800",text:h.greet}),fi,el("div",{class:"row"},[el("button",{class:"btn",type:"button",text:"שליחה בוואטסאפ",onclick:function(){var t=h.greet+"\nמאחלים לכם "+h.n+" שמח"+(S.fam?" ממשפחת "+S.fam:"")+" 💙\nchag.hania360.com";window.open("https://wa.me/?text="+encodeURIComponent(t),"_blank","noopener")}})]));
+  $("more").replaceChildren.apply($("more"),all.map(function(x){return el("button",{type:"button","aria-current":String(x===cur),text:x.h.e+" "+x.h.n+" · "+x.s.a.getDate()+"."+(x.s.a.getMonth()+1),onclick:function(){cur=x;history.replaceState(null,"","#"+x.h.id);paint();scrollTo(0,0)}})}));
+}
+CITIES.forEach(function(c){var o=el("option",{value:c[0],text:c[0]});if(c[0]===S.city)o.selected=true;$("city").append(o)});
+$("city").onchange=function(){S.city=this.value;save();paint()};
+addEventListener("hashchange",function(){var w=location.hash.slice(1),x=all.find(function(y){return y.h.id===w});if(x){cur=x;paint()}});
+paint();
+})();
+</script>
