@@ -112,6 +112,14 @@ input[type=range]{width:100%;height:44px;accent-color:#6366F1}
 .replies button{min-height:66px;border-radius:18px;border:2px solid #C7D2FE;background:#fff;font-weight:700;font-size:.98rem;padding:8px}
 .link{display:flex;gap:8px;align-items:center;background:#F8F9FE;border:1px dashed #A5B4FC;border-radius:16px;padding:10px 12px;font-size:.85rem;direction:ltr;overflow:hidden}
 .link code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+/* visits */
+.visits{display:grid;gap:10px}
+.visit{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:linear-gradient(135deg,#ECFDF5,#F0F9FF);border:1px solid #A7F3D0;border-radius:20px;padding:12px 14px}
+.visit .d{display:grid;place-items:center;width:62px;height:62px;border-radius:16px;background:#fff;border:1px solid #A7F3D0;font-weight:800;line-height:1.1;text-align:center;font-size:.85rem}
+.visit .d b{font-size:1.35rem}.visit .w{font-weight:800;font-size:1.1rem}.visit small{color:var(--ink2)}
+.slots2{display:flex;gap:8px;flex-wrap:wrap}.slots2 button{border:2px solid var(--line);background:#fff;border-radius:14px;min-height:48px;padding:6px 12px;font-weight:700;font-variant-numeric:tabular-nums}
+.slots2 button[aria-pressed="true"]{border-color:var(--g2);background:#EEF2FF;color:#3730A3}.slots2 button:disabled{opacity:.45;text-decoration:line-through}
+body.night .visit{background:#1E1A14;border-color:#3A3328}body.night .visit .d,body.night .slots2 button{background:#1E1A14;border-color:#3A3328;color:var(--ink)}
 /* draw */
 .pad{width:100%;aspect-ratio:3/4;max-height:62vh;background:#fff;border-radius:22px;border:1px solid var(--line);touch-action:none;display:block;box-shadow:var(--glow)}
 .pal{display:flex;gap:8px;flex-wrap:wrap}.pal button{width:52px;height:52px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line)}
@@ -258,6 +266,7 @@ SCREENS.home=function(){
     el("p",{class:"fine",style:"text-align:center",text:"נשמר רק בטלפון הזה. HaniaRegaTov לא נותנת עצות רפואיות."})
   ]));
   if(S.mode==="big"&&S.voice&&!S.saidHi){S.saidHi=1;say(pd[0]+(S.name?" "+S.name:"")+". איך "+he("אתה","את")+" מרגיש"+he("","ה")+" עכשיו?")}
+  if(S.room)fetch("/api/rega/state?c="+S.room.id+"&own="+encodeURIComponent(S.room.own),{cache:"no-store"}).then(function(r){return r.json()}).then(function(st){var v=(st.visits||[])[0];if(!v||CUR!=="home")return;var hello=app.querySelector(".hello");if(hello)hello.append(el("div",{class:"when",style:"font-weight:700;color:#047857",text:"🤗 "+vDay(v.at)+" ב־"+vTime(v.at)+": "+v.who+" מגיע/ה לבקר"}))}).catch(function(){});
   if(S.room)checkFamily(true);
 };
 // ---- clock ----
@@ -385,8 +394,20 @@ SCREENS.family=function(){
   function paint(){checkFamily(false).then(function(st){if(!st)return;listBox.textContent="";var ms=st.msgs.slice().reverse();if(!st.msgs.some(function(m){return !m.me}))app.insertBefore(share,app.children[1]);if(!ms.length)listBox.append(el("div",{class:"card muted",text:"עוד אין הודעות. שלחו את הקישור למשפחה, ומה שהם ישלחו יופיע כאן."}));
     var seen=S.seen||0;ms.forEach(function(m){var c=msgCard(m,room,own);if(!m.me&&m.at>seen)c.style.boxShadow="0 0 0 3px #F9A8D4";listBox.append(c)});
     var newest=st.msgs.filter(function(m){return !m.me}).slice(-1)[0];if(newest&&newest.at>seen&&S.voice)say("הודעה מ"+newest.from+". "+(newest.text||"שלח תמונה"));S.seen=Date.now();S.unread=0;save()})}
-  A(el("b",{text:"תשובה בלחיצה"}),replies,listBox,push,share);paint();timers.push(setInterval(paint,30000));
+  var visBox=el("div",{class:"visits"}),hrsBox=el("div",{class:"card stack"});
+  function paintVisits(st){visBox.textContent="";var vs=st.visits||[];visBox.append(el("b",{text:"🤗 מי מגיע לבקר"}));
+    if(!vs.length)visBox.append(el("div",{class:"card muted",text:"עוד לא נקבעו ביקורים. בקישור של המשפחה יש \"לתאם ביקור\", וכל ביקור יופיע כאן."}));
+    vs.forEach(function(v){visBox.append(visitRow(v,function(){if(!confirm("לבטל את הביקור של "+v.who+"?"))return;api("op",{c:room,own:own,op:"unvisit",id:v.id}).then(function(){paint()})}))});
+    var h=st.hours||{},f=el("input",{class:"txt",type:"time",value:h.from||"10:00","aria-label":"משעה"}),t=el("input",{class:"txt",type:"time",value:h.to||"20:00","aria-label":"עד שעה"}),n=el("input",{class:"txt",type:"text",maxlength:"120",placeholder:"הערה למבקרים (למשל: לא יותר משניים בחדר)",value:h.note||""});
+    hrsBox.replaceChildren(el("b",{text:"🕐 שעות ביקור"}),el("div",{class:"row",style:"flex-wrap:nowrap"},[f,el("span",{text:"עד"}),t]),n,el("button",{class:"btn soft",type:"button",text:"שמירה",on:{click:function(){api("op",{c:room,own:own,op:"hours",from:f.value,to:t.value,note:n.value}).then(function(){toast("שעות הביקור נשמרו ✓")})}}}))}
+  var paint0=paint;paint=function(){paint0();fetch("/api/rega/state?c="+room+"&own="+encodeURIComponent(own),{cache:"no-store"}).then(function(r){return r.json()}).then(paintVisits).catch(function(){})};
+  A(visBox,el("b",{text:"תשובה בלחיצה"}),replies,listBox,hrsBox,push,share);paint();timers.push(setInterval(paint,30000));
 };
+// ---- visits ----
+function ilAt(day,hhmm){var p=hhmm.split(":"),u=Date.UTC(day.getFullYear(),day.getMonth(),day.getDate(),+p[0],+p[1]),x=new Date(u),off=Date.parse(x.toLocaleString("en-US",{timeZone:"Asia/Jerusalem"}))-Date.parse(x.toLocaleString("en-US",{timeZone:"UTC"}));return u-off}
+function vDay(at){var d=new Date(at),t=new Date(),k=Math.round((new Date(d.toDateString())-new Date(t.toDateString()))/864e5);return k===0?"היום":k===1?"מחר":d.toLocaleDateString("he-IL",{weekday:"long"})}
+function vTime(at){return new Date(at).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit",timeZone:"Asia/Jerusalem"})}
+function visitRow(v,cancel){return el("div",{class:"visit"},[el("div",{class:"d"},[el("small",{text:vDay(v.at)}),el("b",{text:vTime(v.at)})]),el("div",{},[el("div",{class:"w",text:"🤗 "+v.who}),el("small",{text:v.mins+" דק׳"+(v.note?" · "+v.note:"")})]),cancel?el("button",{class:"btn soft",type:"button",style:"min-height:44px;padding:8px 12px",text:"ביטול",on:{click:cancel}}):el("span")])}
 // ---- push (both sides) ----
 function b64(u){var p="=".repeat((4-u.length%4)%4),s=atob((u+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(s,function(c){return c.charCodeAt(0)})}
 function subscribe(room,role,own){if(!("serviceWorker" in navigator)||!("PushManager" in window))return Promise.resolve(false);
@@ -426,11 +447,27 @@ SCREENS.fam=function(){
   var send=el("button",{class:"btn wide",type:"button",text:"💌 לשלוח",on:{click:function(){var from=nm.value.trim();if(!from){toast("כתבו את השם שלכם");nm.focus();return}if(!tx.value.trim()&&!img){toast("כתבו משהו או צרפו תמונה");return}LS.set("rg.from",from);send.disabled=true;
     api("op",{c:FAMILY,op:"post",from:from,text:tx.value.trim(),img:img}).then(function(){tx.value="";img="";prev.hidden=true;file.value="";toast("נשלח ✓ זה יופיע אצלו/ה בגדול");paint()}).catch(function(e){toast(e&&e.error==="no room"?"החדר לא נמצא":"לא נשלח. נסו שוב.")}).finally(function(){send.disabled=false})}}});
   var bell=el("button",{class:"btn ghost wide",type:"button",text:"🔔 להודיע לי כשיש תשובה",on:{click:function(){subscribe(FAMILY,"fam","").then(function(ok){toast(ok?"נודיע לך כשתגיע תשובה":"הטלפון לא מאפשר התראות כאן");if(ok)bell.hidden=true})}}});
-  function paint(){fetch("/api/rega/state?c="+FAMILY,{cache:"no-store"}).then(function(r){return r.json()}).then(function(st){if(st.error){head.textContent="הקישור לא תקין";return}head.textContent=st.name?"שולחים רגע טוב ל"+st.name:"שולחים רגע טוב";list.textContent="";
+  function paint(){fetch("/api/rega/state?c="+FAMILY,{cache:"no-store"}).then(function(r){return r.json()}).then(function(st){if(st.error){head.textContent="הקישור לא תקין";return}head.textContent=st.name?"שולחים רגע טוב ל"+st.name:"שולחים רגע טוב";list.textContent="";ST=st;drawDays();drawTimes();drawMine();
     st.msgs.slice().reverse().slice(0,30).forEach(function(m){list.append(msgCard(m,FAMILY,""))})})}
+  // ---- coordinating a visit ----
+  var MY=LS.get("rg.myvisits",{}),ST=null,dayI=0,slot="",mins=30;
+  var days=el("div",{class:"slots2",role:"group","aria-label":"יום"}),times=el("div",{class:"slots2",role:"group","aria-label":"שעה"}),durs=el("div",{class:"seg"}),vNote=el("input",{class:"txt",type:"text",maxlength:"80",placeholder:"הערה (לא חובה): מביא/ה אוכל, באים עם הילדים…"}),vList=el("div",{class:"visits"}),hrsNote=el("p",{class:"fine",style:"margin:0"});
+  [[30,"חצי שעה"],[60,"שעה"],[90,"שעה וחצי"]].forEach(function(x){durs.append(el("button",{type:"button","aria-pressed":String(x[0]===mins),text:x[1],on:{click:function(e){mins=x[0];[].forEach.call(durs.children,function(b){b.setAttribute("aria-pressed",String(b===e.currentTarget))});drawTimes()}}}))});
+  function dayAt(i){var d=new Date();d.setHours(12,0,0,0);return new Date(d.getTime()+i*864e5)}
+  function drawDays(){days.textContent="";for(var i=0;i<7;i++)(function(i){var d=dayAt(i);days.append(el("button",{type:"button","aria-pressed":String(i===dayI),text:i===0?"היום":i===1?"מחר":d.toLocaleDateString("he-IL",{weekday:"short",day:"numeric",month:"numeric"}),on:{click:function(){dayI=i;slot="";drawDays();drawTimes()}}}))})(i)}
+  function drawTimes(){times.textContent="";if(!ST)return;var h=ST.hours||{from:"10:00",to:"20:00"},a=h.from.split(":"),z=h.to.split(":"),m0=+a[0]*60+ +a[1],m1=+z[0]*60+ +z[1],day=dayAt(dayI);
+    hrsNote.textContent="שעות ביקור: "+h.from+"–"+h.to+(h.note?" · "+h.note:"");
+    for(var m=m0;m+mins<=m1;m+=30){var hh=String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"),at=ilAt(day,hh),end=at+mins*6e4,clash=(ST.visits||[]).find(function(v){return at<v.at+v.mins*6e4&&v.at<end});
+      (function(hh,at,clash){times.append(el("button",{type:"button","aria-pressed":String(slot===hh),disabled:clash||at<Date.now()?"disabled":null,title:clash?"תפוס: "+clash.who:"",text:hh+(clash?" · "+clash.who:""),on:{click:function(){slot=hh;drawTimes()}}}))})(hh,at,clash)}
+    if(!times.children.length)times.append(el("span",{class:"muted",text:"אין שעות פנויות ביום הזה"}))}
+  function drawMine(){vList.textContent="";var vs=(ST&&ST.visits)||[];if(!vs.length)return;vList.append(el("b",{text:"ביקורים שנקבעו"}));
+    vs.forEach(function(v){vList.append(visitRow(v,MY[v.id]?function(){api("op",{c:FAMILY,op:"unvisit",id:v.id,k:MY[v.id]}).then(function(){delete MY[v.id];LS.set("rg.myvisits",MY);toast("הביקור בוטל");paint()})}:null))})}
+  var book=el("button",{class:"btn wide",type:"button",text:"🤗 לקבוע ביקור",on:{click:function(){var who=nm.value.trim();if(!who){toast("כתבו את השם שלכם למעלה");nm.focus();return}if(!slot){toast("בחרו שעה");return}LS.set("rg.from",who);book.disabled=true;
+    api("op",{c:FAMILY,op:"visit",at:ilAt(dayAt(dayI),slot),mins:mins,who:who,note:vNote.value.trim()}).then(function(j){MY[j.mine.id]=j.mine.k;LS.set("rg.myvisits",MY);slot="";vNote.value="";toast("הביקור נקבע ✓ זה יופיע אצלו/ה");paint()}).catch(function(e){toast(e&&e.error==="taken"?"השעה הזו כבר תפוסה ("+e.who+")":"לא הצלחנו לקבוע. נסו שוב.");paint()}).finally(function(){book.disabled=false})}}});
+  var visitCard=el("div",{class:"card stack"},[el("b",{style:"font-size:1.15rem",text:"📅 לתאם ביקור"}),hrsNote,days,durs,times,vNote,book,vList]);
   A(el("div",{class:"stack"},[el("div",{class:"brand"},[el("span",{class:"mark",text:"H360"}),el("span",{},[el("span",{text:"Hania"}),el("span",{class:"grad",text:"RegaTov"})])]),head,
     el("p",{class:"muted",style:"margin:0",text:"מה שתשלחו יופיע על המסך שלו/ה בגדול, עם צליל קטן. אפשר מילה, ברכה או תמונה מהבית."}),
-    el("div",{class:"card stack"},[nm,tx,prev,file,el("button",{class:"btn ghost wide",type:"button",text:"📷 לצרף תמונה",on:{click:function(){file.click()}}}),send]),bell,el("b",{text:"מה כבר נשלח"}),list,
+    el("div",{class:"card stack"},[nm,tx,prev,file,el("button",{class:"btn ghost wide",type:"button",text:"📷 לצרף תמונה",on:{click:function(){file.click()}}}),send]),visitCard,bell,el("b",{text:"מה כבר נשלח"}),list,
     el("p",{class:"fine",text:"ההודעות נמחקות אחרי 30 יום. כל מי שיש לו את הקישור יכול לראות ולכתוב."})]));
   paint();timers.push(setInterval(paint,45000));
 };
