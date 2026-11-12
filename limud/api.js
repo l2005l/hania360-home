@@ -25,7 +25,7 @@ async function sefaria(ref, version) {
 async function source(ref, kind) {
   if (kind === "halacha") return sefaria(ref, "hebrew");
   const amudim = /\d+[ab]$/.test(ref) ? [ref] : [ref + "a", ref + "b"];
-  const parts = await Promise.all(amudim.map((a) => sefaria(a, "hebrew|William Davidson Edition - Hebrew")));
+  const parts = await Promise.all(amudim.map((a) => sefaria("Steinsaltz on " + a, "hebrew")));
   return parts.filter(Boolean).join("\n");
 }
 
