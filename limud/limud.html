@@ -1,0 +1,326 @@
+<title>HaniaLimud · לימוד יומי</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Noto+Serif+Hebrew:wght@500;600;700&display=swap">
+<style>
+/* The daily learning: today's daf (Daf Yomi) and today's halacha (Halakhah Yomit, Shulchan Arukh), with help.
+   The texts come live from Sefaria: the Gemara with niqqud and the Steinsaltz explanation (William Davidson edition),
+   Rashi and Tosafot line by line, and the Shulchan Arukh with the Rema. On top: a glossary of the common
+   Aramaic terms, a short "how to learn" guide, AI help that reads the day's text (marked as such),
+   a daily reminder at a chosen hour (none on Shabbat), and a streak of the days learned. */
+:root{--k:#23356E;--k2:#C8963E;--ink:#1B2238;--muted:#5D6580;--line:#E6E1D3;--bg:#FBF8F1;--paper:#FFFDF8;--fs:21px;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Noto Serif Hebrew","Frank Ruhl Libre","David",serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.55;color:var(--ink);padding:12px max(16px,env(safe-area-inset-left,0px)) 56px;
+  background:radial-gradient(70% 36% at 100% 0%,color-mix(in srgb,var(--k2) 22%,transparent),transparent 70%),radial-gradient(60% 30% at 0% 24%,color-mix(in srgb,var(--k) 12%,transparent),transparent 70%),var(--bg);background-attachment:fixed}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}
+.logo{font-weight:900;font-size:22px;color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}.logo b{color:var(--k2)}.logo img{width:30px;height:30px;border-radius:9px}
+header .sp{margin-inline-start:auto}
+.streak{font-weight:800;font-size:14px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:5px}
+.tabs button{appearance:none;border:0;background:none;border-radius:13px;padding:10px 4px;font:inherit;font-weight:800;cursor:pointer;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--k);color:#fff}
+.hero{border-radius:26px;padding:18px 18px 16px;color:#fff;background:linear-gradient(135deg,var(--k),color-mix(in srgb,var(--k) 70%,#000));box-shadow:0 22px 40px -26px var(--k);display:grid;gap:8px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;inset:auto -40px -60px auto;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--k2) 60%,transparent),transparent 70%)}
+.hero small{opacity:.85;font-weight:700}
+.hero h1{margin:0;font:700 clamp(28px,8vw,40px)/1.15 var(--serif)}
+.hero .nav{display:flex;gap:6px;align-items:center;position:relative;z-index:1}
+.hero .nav button{appearance:none;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;border-radius:12px;padding:6px 12px;font:inherit;font-weight:800;cursor:pointer}
+.hero .nav .d{margin-inline-start:auto;font-size:14px;opacity:.9}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:10px;box-shadow:0 1px 2px rgba(27,34,56,.05),0 14px 30px -22px rgba(35,53,110,.5)}
+h2{margin:0;font-size:19px}h3{margin:0;font-size:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{appearance:none;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{border-color:var(--k);background:color-mix(in srgb,var(--k) 9%,#fff);color:var(--k)}
+.btn{appearance:none;border:0;border-radius:14px;padding:12px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--k);color:#fff;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.gold{background:var(--k2);color:#22180A}
+.btn.ghost{background:#fff;color:var(--k);border:1.5px solid color-mix(in srgb,var(--k) 35%,#fff)}
+.btn.small{padding:7px 12px;font-size:14px;border-radius:11px}
+.btn[disabled]{opacity:.55;cursor:default}
+.amud{font-weight:900;color:var(--k2);font-size:14px;letter-spacing:.02em;border-bottom:2px solid var(--line);padding-bottom:4px}
+.seg{display:grid;gap:8px;padding:12px 0;border-bottom:1px dashed var(--line)}
+.seg:last-child{border-bottom:0}
+.ar{font:500 var(--fs)/1.9 var(--serif);margin:0}
+.ar b,.ar strong{font-weight:700}
+.ex{font-size:calc(var(--fs) - 4px);line-height:1.75;margin:0;padding:10px 12px;border-radius:14px;background:color-mix(in srgb,var(--k) 5%,#fff);border-inline-start:4px solid color-mix(in srgb,var(--k) 45%,#fff)}
+.ex b,.ex strong{color:var(--k)}
+.ex .tr{color:#8A5A12;font-weight:600}
+.cm{font-size:calc(var(--fs) - 5px);line-height:1.7;margin:0;padding:8px 12px;border-radius:12px;background:#FFF8E8;border:1px solid #F3E2B8}
+.cm em{font-style:normal;font-weight:800;color:#8A5A12}
+.terms{display:flex;gap:6px;flex-wrap:wrap}
+.term{appearance:none;border:1px solid #E8D9B5;background:#FFFBF0;border-radius:10px;padding:3px 9px;font:inherit;font-size:13px;cursor:pointer;color:#6B4A10}
+.term[aria-expanded="true"]{background:#F6E7C1}
+.ai{border:1.5px dashed color-mix(in srgb,var(--k2) 60%,#fff);background:#FFFDF6}
+.ai .ans{white-space:pre-wrap;font-size:16px;line-height:1.75;margin:0}
+.ai .ans:empty{display:none}
+.ai input{flex:1;min-width:0;font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.fine{font-size:13px;color:var(--muted)}
+.done{width:100%;font-size:17px;padding:14px}
+.load{color:var(--muted);text-align:center;padding:30px 0}
+.hal{font:500 var(--fs)/1.9 var(--serif);margin:0}
+.hal .rema{display:block;margin-top:6px;padding:6px 10px;border-radius:10px;background:#F2F5FF;font-size:calc(var(--fs) - 3px)}
+.hal .rema:before{content:"הגה (הרמ״א) · ";font:800 13px var(--font);color:var(--k)}
+.seif{display:grid;gap:4px;padding:10px 0;border-bottom:1px dashed var(--line)}.seif:last-child{border:0}
+.seif>small{font-weight:900;color:var(--k2)}
+.glossary{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.glossary div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.glossary b{font-family:var(--serif);font-size:17px;display:block}
+.steps{margin:0;padding-inline-start:20px;display:grid;gap:8px}
+input[type=time],select{font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-weight:700;z-index:50;max-width:90vw}
+a{color:var(--k)}
+:focus-visible{outline:3px solid var(--k2);outline-offset:2px}
+</style>
+<div class="wrap">
+  <header><a class="logo" href="https://yahadut.hania360.com/"><img src="/icons/icon-192.png" alt=""><span>Hania<b>Limud</b></span></a><span class="sp"></span><span class="streak" id="streak"></span></header>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="t-daf" aria-selected="true">📜 דף יומי</button>
+    <button role="tab" id="t-hal" aria-selected="false">⚖️ הלכה יומית</button>
+    <button role="tab" id="t-how" aria-selected="false">🧭 איך לומדים</button>
+  </div>
+  <section class="hero" id="hero" aria-live="polite"></section>
+  <main id="main" style="display:grid;gap:14px"></main>
+  <section class="card" id="rem"></section>
+  <p class="fine" id="credit"></p>
+</div>
+<script>
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  function el(t, a, k) {
+    var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; }
+    for (var x in a || {}) { if (x === "text") e.textContent = a[x]; else if (x.slice(0, 2) === "on") e.addEventListener(x.slice(2), a[x]); else if (a[x] != null && a[x] !== false) e.setAttribute(x, a[x]); }
+    [].concat(k == null ? [] : k).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  var LS = "hanialimud-v1", S; try { S = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.learned = S.learned || {}; if (S.ex == null) S.ex = true; S.fs = S.fs || 21; S.rem = S.rem || { on: false, at: "07:30", sat: false };
+  function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+  document.documentElement.style.setProperty("--fs", S.fs + "px");
+  function ymd(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  var DAY = new Date(); DAY.setHours(12, 0, 0, 0);
+  var TAB = /^#(hal|how)/.test(location.hash) ? location.hash.slice(1, 4) : "daf";
+
+  // ---- Sefaria ----
+  var SF = "https://www.sefaria.org/api/";
+  var memo = {};
+  function get(u) { if (!memo[u]) memo[u] = fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function (e) { delete memo[u]; throw e; }); return memo[u]; }
+  function calendar(d) { return get(SF + "calendars?timezone=Asia/Jerusalem&diaspora=0&year=" + d.getFullYear() + "&month=" + (d.getMonth() + 1) + "&day=" + d.getDate()).then(function (j) {
+    var o = {}; (j.calendar_items || []).forEach(function (i) { if (i.title.en === "Daf Yomi") o.daf = i; if (i.title.en === "Halakhah Yomit") o.hal = i; }); return o; }); }
+  function text(ref, version) { return get(SF + "v3/texts/" + encodeURIComponent(ref) + "?version=" + encodeURIComponent(version) + "&return_format=default").then(function (j) { return j.versions && j.versions[0] ? j.versions[0].text : []; }).catch(function () { return []; }); }
+  // Sefaria's texts carry a little HTML (bold for the quoted words, line breaks). Only that is kept.
+  var KEEP = { B: 1, STRONG: 1, I: 1, EM: 1, BR: 1, SMALL: 1, SPAN: 1 };
+  function rich(html, cls) {
+    var t = document.createElement("template"); t.innerHTML = String(html || "");
+    (function walk(n) { [].slice.call(n.childNodes).forEach(function (c) {
+      if (c.nodeType === 3) return; if (c.nodeType !== 1) { c.remove(); return; }
+      if (c.tagName === "SUP" || (c.classList && c.classList.contains("footnote"))) { c.remove(); return; }
+      walk(c); if (!KEEP[c.tagName]) { c.replaceWith.apply(c, [].slice.call(c.childNodes)); return; }
+      [].slice.call(c.attributes).forEach(function (a) { c.removeAttribute(a.name); });
+    }); })(t.content);
+    var p = el("p", { class: cls }); p.append(t.content); return p;
+  }
+  // In the Steinsaltz explanation, the translation of each Aramaic phrase is in [brackets]; it gets its own colour.
+  function brackets(p) {
+    var w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT), ns = []; while (w.nextNode()) ns.push(w.currentNode);
+    ns.forEach(function (n) { var s = n.nodeValue; if (s.indexOf("[") < 0) return; var f = document.createDocumentFragment(), re = /\[([^\]]+)\]/g, last = 0, m;
+      while ((m = re.exec(s))) { f.append(s.slice(last, m.index)); f.append(el("span", { class: "tr", text: "[" + m[1] + "]" })); last = re.lastIndex; }
+      f.append(s.slice(last)); n.replaceWith(f); });
+    return p;
+  }
+  var plain = function (s) { return String(s || "").replace(/<[^>]+>/g, "").replace(/[֑-ׇ]/g, "").replace(/[^א-ת"' ]/g, " ").replace(/\s+/g, " "); };
+
+  // ---- the common Aramaic terms ----
+  var GLOSS = [["מיתיבי", "מקשים, בדרך כלל מברייתא"], ["תיובתא", "קושיה שמפילה את הדעה"], ["תא שמע", "בוא ושמע: מביאים ראיה"], ["איבעיא להו", "שאלו בבית המדרש"], ["תנו רבנן", "שנו חכמים: פותחים ברייתא"],
+    ["תניא", "שנינו בברייתא"], ["תנן", "שנינו במשנה"], ["אמר מר", "אמר החכם: חוזרים לציטוט ומפרשים אותו"], ["מאי טעמא", "מה הטעם?"], ["מנא הני מילי", "מניין הדברים? (מקור בפסוק)"], ["מנלן", "מניין לנו?"],
+    ["אי נמי", "או גם, לחלופין"], ["הכי נמי מסתברא", "כך גם מסתבר: תוספת ראיה"], ["קשיא", "קשה: קושיה שנשארת"], ["תיקו", "השאלה נשארת בלי הכרעה"], ["שמע מינה", "למד מזה"], ["לא קשיא", "אין קושיה: מיד בא תירוץ"],
+    ["הכא", "כאן"], ["התם", "שם"], ["השתא", "עכשיו"], ["איכא דאמרי", "יש אומרים: נוסח אחר של הדיון"], ["לימא", "האם נאמר? (הצעה שבדרך כלל נדחית)"], ["אמאי", "למה?"], ["היכי דמי", "איך מדובר? באיזה מקרה?"],
+    ["דכתיב", "שכתוב בפסוק"], ["מתקיף לה", "מקשה על זה"], ["אתמר", "נאמר: פותח מחלוקת אמוראים"], ["פשיטא", "פשוט! למה צריך לומר את זה?"], ["מהו", "מה הדין?"], ["תרגמה", "הסביר אותה"], ["אליבא", "לפי שיטת"],
+    ["מיבעי ליה", "צריך אותו (הפסוק) לדרשה אחרת"], ["הני מילי", "הדברים האלה (אמורים רק ב...)"], ["בשלמא", "נניח שמובן... (ומכאן הקושיה)"], ["אלמא", "מכאן ש..."], ["גופא", "גוף הדבר: חוזרים לעניין שהוזכר"],
+    ["ורמינהו", "והקשו סתירה בין שני מקורות"], ["לא צריכא", "לא נצרכה אלא ל...: מקרה מיוחד"], ["סלקא דעתך", "עלה בדעתך (לחשוב ש...)"], ["קא משמע לן", "משמיע לנו: מלמד אותנו"], ["רבנן", "חכמים"],
+    ["אמר ליה", "אמר לו"], ["אמרי", "אומרים (בבית המדרש)"], ["אלא", "אלא: חוזרים בהם ומציעים משהו אחר"], ["דילמא", "שמא, אולי"], ["ותו", "ועוד"], ["מאי איכא", "מה יש? מה ההבדל?"], ["תסתיים", "תסתיים: הוכחה שכך אמר"]];
+  function termsIn(s) { var p = " " + plain(s) + " "; return GLOSS.filter(function (g) { return p.indexOf(" " + g[0] + " ") >= 0 || p.indexOf(" ו" + g[0] + " ") >= 0 || p.indexOf(" ד" + g[0] + " ") >= 0; }); }
+  function termRow(s) {
+    var ts = termsIn(s); if (!ts.length) return null; var box = el("div", { class: "terms" }), note = el("p", { class: "fine", hidden: "" });
+    ts.forEach(function (g) { var b = el("button", { class: "term", type: "button", "aria-expanded": "false", text: "📘 " + g[0] }); b.onclick = function () {
+      var open = b.getAttribute("aria-expanded") === "true"; [].forEach.call(box.querySelectorAll(".term"), function (x) { x.setAttribute("aria-expanded", "false"); });
+      if (open) { note.hidden = true; return; } b.setAttribute("aria-expanded", "true"); note.textContent = g[0] + " = " + g[1]; note.hidden = false; }; box.append(b); });
+    return el("div", null, [box, note]);
+  }
+
+  // ---- learned days ----
+  // Days in a row; a Shabbat without learning (no phone) does not break the streak.
+  function streak() { var n = 0, d = new Date(); d.setHours(12, 0, 0, 0); if (!S.learned[ymd(d)]) d.setDate(d.getDate() - 1);
+    for (var i = 0; i < 4000; i++) { if (S.learned[ymd(d)]) n++; else if (d.getDay() !== 6) break; d.setDate(d.getDate() - 1); }
+    return n; }
+  function drawStreak() { var n = streak(); $("streak").textContent = n > 1 ? "🔥 " + n + " ימים ברצף" : n ? "🔥 יום ראשון ברצף" : "📚 לימוד יומי"; }
+  function doneBtn(key, label) {
+    var k = ymd(DAY), was = !!(S.learned[k] || {})[key];
+    return el("button", { class: "btn done " + (was ? "ghost" : "gold"), type: "button", text: was ? "✓ " + label + " · נלמד" : "✅ למדתי את " + label, onclick: function () {
+      S.learned[k] = S.learned[k] || {}; if (S.learned[k][key]) delete S.learned[k][key]; else S.learned[k][key] = 1;
+      if (!Object.keys(S.learned[k]).length) delete S.learned[k]; save(); drawStreak(); render(); if (!was) toast("כל הכבוד! 🎉"); } });
+  }
+
+  // ---- AI help ----
+  function aiBox(ref, kind) {
+    var ans = el("p", { class: "ans", "aria-live": "polite" }), q = el("input", { maxlength: "300", placeholder: kind === "daf" ? "שאלה על הדף, למשל: מה הקושיה על רב?" : "שאלה על ההלכה" }), busy = false;
+    var ask = function (mode, btn) { if (busy) return; if (mode === "ask" && q.value.trim().length < 3) { q.focus(); return; } busy = true; ans.textContent = "✨ קורא את הטקסט וכותב..."; if (btn) btn.disabled = true;
+      fetch("/api/limud/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ref: ref, kind: kind, mode: mode, q: q.value }) }).then(function (r) { return r.json(); })
+        .then(function (j) { ans.textContent = j.answer || "לא הצלחנו לענות עכשיו. נסו שוב בעוד רגע."; }).catch(function () { ans.textContent = "אין חיבור כרגע."; })
+        .then(function () { busy = false; if (btn) btn.disabled = false; }); };
+    var b1 = el("button", { class: "btn small", type: "button", text: kind === "daf" ? "✨ הסבר פשוט של הדף" : "✨ בשפה פשוטה" }), b2 = el("button", { class: "btn small ghost", type: "button", text: "❓ שאלות חזרה" });
+    b1.onclick = function () { ask("explain", b1); }; b2.onclick = function () { ask("quiz", b2); };
+    var f = el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); ask("ask"); } }, [q, el("button", { class: "btn small", type: "submit", text: "לשאול" })]);
+    return el("section", { class: "card ai" }, [el("h2", "🤝 חברותא: עזרה בלימוד"), el("div", { class: "row" }, [b1, b2]), f, ans,
+      el("p", { class: "fine", text: "התשובות נכתבות בבינה מלאכותית שקוראת את הטקסט של היום. יכולות להיות בהן טעויות, ולהלכה למעשה שואלים רב." })]);
+  }
+
+  // ---- the hero: what is learned that day, and moving between days ----
+  function hero(small, title, sub) {
+    var t = new Date(); t.setHours(12, 0, 0, 0); var off = Math.round((DAY - t) / 864e5);
+    var mv = function (n) { DAY = new Date(DAY.getTime() + n * 864e5); render(); };
+    $("hero").replaceChildren.apply($("hero"), [el("small", small), el("h1", title), sub ? el("div", { style: "opacity:.9;font-weight:600", text: sub }) : null,
+      el("div", { class: "nav" }, [el("button", { type: "button", text: "→ אתמול", onclick: function () { mv(-1); } }), off ? el("button", { type: "button", text: "היום", onclick: function () { mv(-off); } }) : null,
+        el("button", { type: "button", text: "מחר ←", onclick: function () { mv(1); } }),
+        el("span", { class: "d", text: (off === 0 ? "היום, " : off === -1 ? "אתמול, " : off === 1 ? "מחר, " : "") + DAY.toLocaleDateString("he-IL-u-ca-hebrew", { day: "numeric", month: "long" }) })])].filter(Boolean));
+  }
+  function sizeRow() {
+    var opt = function (on, txt, fn) { return el("button", { class: "chip", type: "button", "aria-pressed": String(on), text: txt, onclick: fn }); };
+    return el("div", { class: "row" }, [opt(S.ex, "📖 ביאור ותרגום", function () { S.ex = !S.ex; save(); render(); }), opt(!!S.rashi, "רש״י", function () { S.rashi = !S.rashi; save(); render(); }), opt(!!S.tos, "תוספות", function () { S.tos = !S.tos; save(); render(); }),
+      el("span", { class: "sp", style: "margin-inline-start:auto" }), el("button", { class: "chip", type: "button", "aria-label": "טקסט קטן יותר", text: "א−", onclick: function () { S.fs = Math.max(16, S.fs - 2); save(); document.documentElement.style.setProperty("--fs", S.fs + "px"); } }),
+      el("button", { class: "chip", type: "button", "aria-label": "טקסט גדול יותר", text: "א+", onclick: function () { S.fs = Math.min(32, S.fs + 2); save(); document.documentElement.style.setProperty("--fs", S.fs + "px"); } })]);
+  }
+
+  // Sefaria's address form of a ref ("Bekhorot.55", "Shulchan_Arukh,_Orach_Chayim.296.4-6")
+  function dotted(it) { return it.url || String(it.ref).replace(/ (\d+)(?::(\d+))?(-[\d:]+)?$/, function (m, a, b, c) { return "." + a + (b ? "." + b : "") + (c ? c.replace(":", ".") : ""); }).replace(/ /g, "_"); }
+  var seq = 0;
+  function render() {
+    var my = ++seq; drawStreak();
+    ["daf", "hal", "how"].forEach(function (t) { $("t-" + t).setAttribute("aria-selected", String(t === TAB)); });
+    try { history.replaceState(null, "", TAB === "daf" ? location.pathname : "#" + TAB); } catch (e) {}
+    var main = $("main");
+    if (TAB === "how") { $("hero").replaceChildren(el("small", "לפני שמתחילים"), el("h1", "איך לומדים דף גמרא")); main.replaceChildren(how()); return; }
+    main.replaceChildren(el("div", { class: "card load", text: "טוען את הלימוד של היום..." }));
+    $("hero").replaceChildren(el("small", TAB === "daf" ? "הדף היומי" : "הלכה יומית"), el("h1", "..."));
+    calendar(DAY).then(function (c) { if (my !== seq) return; if (TAB === "daf") daf(c.daf, my); else hal(c.hal, my); })
+      .catch(function () { if (my !== seq) return; main.replaceChildren(el("div", { class: "card load", text: "אין חיבור לספריא כרגע. נסו שוב בעוד רגע." })); });
+  }
+
+  // ---- the daf ----
+  function daf(it, my) {
+    if (!it) { $("main").replaceChildren(el("div", { class: "card load", text: "לא מצאנו את הדף של היום." })); return; }
+    var ref = dotted(it), he = "מסכת " + it.displayValue.he.replace(/ ([^ ]+)$/, " דף $1");
+    hero("הדף היומי", he, null);
+    var amudim = [ref + "a", ref + "b"];
+    Promise.all(amudim.map(function (a) { return Promise.all([text(a, "hebrew|William Davidson Edition - Vocalized Aramaic"), S.ex ? text("Steinsaltz on " + a, "hebrew") : [], S.rashi ? text("Rashi on " + a, "hebrew") : [], S.tos ? text("Tosafot on " + a, "hebrew") : []]); }))
+      .then(function (both) {
+        if (my !== seq) return;
+        var card = el("section", { class: "card" }, [sizeRow()]);
+        both.forEach(function (t, ai) {
+          if (!t[0] || !t[0].length) return;
+          card.append(el("div", { class: "amud", text: ai ? "עמוד ב׳" : "עמוד א׳" }));
+          t[0].forEach(function (seg, i) {
+            var rs = [].concat(t[2][i] || []), ts = [].concat(t[3][i] || []);
+            card.append(el("div", { class: "seg" }, [rich(seg, "ar"), S.ex && t[1][i] ? brackets(rich(t[1][i], "ex")) : null, termRow(seg)]
+              .concat(rs.map(function (r) { var p = rich(r, "cm"); p.prepend(el("em", "רש״י: ")); return p; }))
+              .concat(ts.map(function (r) { var p = rich(r, "cm"); p.prepend(el("em", "תוספות: ")); return p; }))));
+          });
+        });
+        if (!card.querySelector(".seg")) card.append(el("p", { class: "load", text: "הטקסט לא נטען. נסו שוב." }));
+        card.append(doneBtn("daf", "הדף"));
+        $("main").replaceChildren(card, aiBox(ref, "daf"),
+          el("p", { class: "fine" }, ["ללימוד בהרחבה: ", el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(ref + "a") + "?lang=he", target: "_blank", rel: "noopener", text: "הדף בספריא" }), " · ",
+            el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(ref + "a") + "?lang=he&with=Steinsaltz", target: "_blank", rel: "noopener", text: "עם כל המפרשים" })]));
+      });
+  }
+
+  // ---- the halacha ----
+  function hal(it, my) {
+    if (!it) { $("main").replaceChildren(el("div", { class: "card load", text: "לא מצאנו את ההלכה של היום." })); return; }
+    var ref = dotted(it);
+    hero("הלכה יומית · שולחן ערוך", it.displayValue.he.replace(/^שולחן ערוך, /, ""), "שולחן ערוך עם הגהות הרמ״א");
+    text(ref, "hebrew").then(function (t) {
+      if (my !== seq) return;
+      // one siman gives a list of seifim; a range over two simanim gives a list per siman
+      var m2 = /\.(\d+)\.(\d+)/.exec(ref), si = m2 ? +m2[1] : 0, first = m2 ? +m2[2] : 1, arr = [];
+      var src = Array.isArray(t) ? t : [t];
+      if (src.length && Array.isArray(src[0])) src.forEach(function (sm, j) { sm.forEach(function (x, k) { arr.push([x, "סימן " + gem(si + j) + " סעיף " + gem((j ? 1 : first) + k)]); }); });
+      else src.forEach(function (x, k) { arr.push([x, "סעיף " + gem(first + k)]); });
+      var card = el("section", { class: "card" }, [sizeRow()]);
+      arr.forEach(function (row) {
+        // the Rema's gloss starts with "הגה"
+        var html = String(row[0] || ""), at = html.search(/(^|\s)הגה(\s|:)/), p;
+        if (at >= 0) { p = rich(html.slice(0, at), "hal"); var g = rich(html.slice(at).replace(/^\s*הגה[:\s]*/, ""), "rema"); var sp = el("span", { class: "rema" }); sp.append.apply(sp, [].slice.call(g.childNodes)); p.append(sp); }
+        else p = rich(html, "hal");
+        card.append(el("div", { class: "seif" }, [el("small", row[1]), p]));
+      });
+      card.append(doneBtn("hal", "ההלכה"));
+      $("main").replaceChildren(card, aiBox(ref, "halacha"),
+        el("p", { class: "fine" }, ["עם המשנה ברורה ושאר המפרשים: ", el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(ref) + "?lang=he", target: "_blank", rel: "noopener", text: "בספריא" })]));
+    });
+  }
+  function gem(n) { var o = "", L = [[400, "ת"], [300, "ש"], [200, "ר"], [100, "ק"], [90, "צ"], [80, "פ"], [70, "ע"], [60, "ס"], [50, "נ"], [40, "מ"], [30, "ל"], [20, "כ"], [10, "י"], [9, "ט"], [8, "ח"], [7, "ז"], [6, "ו"], [5, "ה"], [4, "ד"], [3, "ג"], [2, "ב"], [1, "א"]];
+    L.forEach(function (x) { while (n >= x[0]) { if (n === 15) { o += "טו"; n = 0; break; } if (n === 16) { o += "טז"; n = 0; break; } o += x[1]; n -= x[0]; } }); return o.length > 1 ? o.slice(0, -1) + "״" + o.slice(-1) : o + "׳"; }
+
+  // ---- how to learn ----
+  function how() {
+    var f = document.createDocumentFragment();
+    f.append(el("section", { class: "card" }, [el("h2", "📜 דף יומי בחצי שעה"), el("ol", { class: "steps" }, [
+      el("li", "קוראים כל קטע בקול, בארמית. הניקוד עוזר לקרוא נכון."),
+      el("li", "מיד אחריו קוראים את הביאור. מה שבסוגריים [כך] הוא התרגום המילולי, והשאר מחבר את הדברים."),
+      el("li", "שואלים בכל קטע: זו שאלה, תשובה, ראיה או קושיה? מילים כמו מיתיבי, תא שמע ותיובתא מסמנות את זה. לוחצים על 📘 כדי לראות מה הן אומרות."),
+      el("li", "בסוף העמוד עוצרים ומסכמים לעצמכם במשפט אחד: מה היה הנושא ומה המסקנה. ✨ \"הסבר פשוט\" יכול לעזור לבדוק."),
+      el("li", "מי שיש לו עוד זמן פותח את רש״י, ואחר כך את התוספות."),
+      el("li", "למחרת, לפני הדף החדש, עונים על ❓ שאלות החזרה של אתמול. כך הדף נשאר בראש.")])]));
+    f.append(el("section", { class: "card" }, [el("h2", "⚖️ הלכה יומית בחמש דקות"), el("ol", { class: "steps" }, [
+      el("li", "קוראים את הסעיף. מה שכתוב לפני \"הגה\" הוא דברי המחבר, רבי יוסף קארו, ובדרך כלל כך נוהגים הספרדים."),
+      el("li", "הגה היא הוספה של הרמ״א, ובדרך כלל כך נוהגים האשכנזים."),
+      el("li", "✨ \"בשפה פשוטה\" מסביר כל סעיף. למשנה ברורה ולשאר המפרשים יש קישור לספריא."),
+      el("li", "שאלה למעשה, מה עושים אצלי בבית? שואלים רב.")])]));
+    f.append(el("section", { class: "card" }, [el("h2", "📘 מילון מונחים"), el("p", { class: "fine", text: "המילים שחוזרות בכל דף. בדף עצמו, מתחת לכל קטע, מופיעות המילים שיש בו." }),
+      el("div", { class: "glossary" }, GLOSS.map(function (g) { return el("div", null, [el("b", g[0]), el("span", { class: "fine", text: g[1] })]); }))]));
+    return f;
+  }
+
+  // ---- the daily reminder (HaniaDat's reminder service): the next 14 days, each with what is learned that day ----
+  var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
+  function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
+  function items() {
+    var p = S.rem.at.split(":"), now = Date.now(), days = [];
+    for (var i = 0; i < 14; i++) { var d = new Date(); d.setDate(d.getDate() + i); d.setHours(+p[0], +p[1], 0, 0); if (d.getTime() > now && (S.rem.sat || d.getDay() !== 6)) days.push(d); }
+    return Promise.all(days.map(function (d) { return calendar(d).then(function (c) {
+      var s = (c.daf ? "📜 " + c.daf.displayValue.he : "") + (c.hal ? " · ⚖️ " + c.hal.displayValue.he.replace(/^שולחן ערוך, אורח חיים /, "או״ח ") : "");
+      return { t: d.getTime() + 10 * 6e4, label: (s || "📚 הלימוד היומי מחכה").slice(0, 70) }; }).catch(function () { return { t: d.getTime() + 10 * 6e4, label: "📚 הדף היומי וההלכה היומית מחכים" }; }); }));
+  }
+  function sync(on) {
+    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t" }); });
+    return items().then(function (it) { return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaLimud · לימוד יומי", items: it }); }); })
+      .then(function (j) { if (!j || !j.ok) throw new Error("sub"); S.rem.sync = ymd(new Date()); save(); });
+  }
+  function remCard() {
+    var c = $("rem"), at = el("input", { type: "time", value: S.rem.at, "aria-label": "שעת התזכורת" });
+    var on = el("button", { class: "btn " + (S.rem.on ? "ghost" : ""), type: "button", text: S.rem.on ? "🔕 לכבות את התזכורת" : "🔔 תזכורת כל יום" });
+    var sat = el("button", { class: "chip", type: "button", "aria-pressed": String(!!S.rem.sat), text: "גם בשבת" });
+    on.onclick = function () {
+      if (!canPush) { toast("בטלפון הזה אין התראות מהאתר. באייפון: מוסיפים את האתר למסך הבית."); return; }
+      var want = !S.rem.on; on.disabled = true;
+      (want ? Notification.requestPermission().then(function (p) { if (p !== "granted") throw new Error("perm"); return sync(true); }) : sync(false))
+        .then(function () { S.rem.on = want; save(); remCard(); toast(want ? "🔔 נזכיר כל יום ב־" + S.rem.at : "התזכורת כבויה"); })
+        .catch(function () { on.disabled = false; toast("לא הצלחנו להפעיל תזכורת"); });
+    };
+    at.onchange = function () { S.rem.at = at.value || "07:30"; save(); if (S.rem.on) sync(true).catch(function () {}); };
+    sat.onclick = function () { S.rem.sat = !S.rem.sat; save(); remCard(); if (S.rem.on) sync(true).catch(function () {}); };
+    c.replaceChildren(el("h2", "🔔 לימוד כל יום"), el("p", { class: "fine", text: "התראה בשעה שבוחרים, עם הדף וההלכה של אותו יום. בלי שבת, אלא אם מסמנים." }),
+      el("div", { class: "row" }, [el("label", { class: "fine" }, ["בשעה ", at]), sat]), on);
+  }
+  // keep the reminder list two weeks ahead
+  if (S.rem.on && canPush && S.rem.sync !== ymd(new Date())) setTimeout(function () { sync(true).catch(function () {}); }, 1500);
+
+  ["daf", "hal", "how"].forEach(function (t) { $("t-" + t).onclick = function () { TAB = t; render(); scrollTo(0, 0); }; });
+  $("credit").append("הטקסטים מ", el("a", { href: "https://www.sefaria.org.il/", target: "_blank", rel: "noopener", text: "ספריא" }),
+    ": הגמרא המנוקדת וביאור הרב שטיינזלץ, מהדורת William Davidson (CC BY-NC). רש״י, תוספות והשולחן ערוך: נחלת הכלל. הלוח היומי לפי ספריא.");
+  remCard(); render();
+})();
+</script>
