@@ -56,9 +56,12 @@ label{display:grid;gap:4px;font-weight:700;font-size:14px;color:var(--muted)}
 .ring{--p:0;width:120px;height:120px;border-radius:50%;background:conic-gradient(var(--sun) calc(var(--p)*1%),var(--line) 0);display:grid;place-content:center}
 .ring b{width:96px;height:96px;border-radius:50%;background:var(--surface);display:grid;place-content:center;font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;direction:ltr}
 .ring.over{background:conic-gradient(#FF8A65 100%,var(--line) 0)}
+.ring.paused{filter:grayscale(.8);opacity:.75}
+.chip.pz{padding:6px 12px;font-size:14px}
+.dots button{appearance:none;font:inherit;cursor:pointer;color:inherit}
 .done{font-size:clamp(24px,7vw,32px)!important;padding:18px 30px!important;width:100%}
 .dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-.dots span{font-size:24px;width:42px;height:42px;border-radius:12px;display:grid;place-content:center;background:var(--surface);border:2px solid var(--line)}
+.dots span,.dots button{font-size:24px;width:42px;height:42px;border-radius:12px;display:grid;place-content:center;background:var(--surface);border:2px solid var(--line)}
 .dots span.ok{background:var(--ok2);border-color:var(--ok)}.dots span.cur{border-color:var(--main);transform:scale(1.12)}
 .dots span.skip{opacity:.35}
 /* good night */
@@ -143,7 +146,9 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   function run(k) { var d = today(); S.runs[d] = S.runs[d] || {}; var key = MODE + ":" + k.id; S.runs[d][key] = S.runs[d][key] || { done: [], skip: [], fin: 0 }; return S.runs[d][key]; }
   function starsOf(k, d) { return ((S.stars[d] || {})[k.id]) || 0; }
   function addStars(k, n) { var d = today(); S.stars[d] = S.stars[d] || {}; S.stars[d][k.id] = (S.stars[d][k.id] || 0) + n; }
-  function weekStars(k) { var s = 0; for (var i = 0; i < 7; i++) s += starsOf(k, today(new Date(Date.now() - i * 864e5))); return s; }
+  // The prize week runs Sunday to Saturday, and starts again every Sunday.
+  function weekDays() { var d = new Date(), out = []; d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - d.getDay()); for (var i = 0; i < 7; i++) { out.push(new Date(d)); d.setDate(d.getDate() + 1); } return out; }
+  function weekStars(k) { return weekDays().reduce(function (a, d) { return a + starsOf(k, today(d)); }, 0); }
   function theme() { [document.documentElement, document.body].forEach(function (x) { x.classList.toggle("night", MODE === "evening"); x.classList.toggle("morning", MODE === "morning"); }); }
 
   // ---- a voice (where the phone has Hebrew) and a soft sound ----
@@ -174,8 +179,8 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     return el("section", { class: "card prize" }, [el("h2", "🏆 הפרס של השבוע: " + S.goal.prize)].concat(S.kids.map(function (k) {
       var w = weekStars(k), pct = Math.min(100, Math.round(100 * w / S.goal.n));
       return el("div", { class: "prize" }, [el("div", { class: "row" }, [el("b", k.av + " " + k.name), el("span", { class: "fine", style: "margin-inline-start:auto", text: w >= S.goal.n ? "🎉 הגיע/ה ליעד!" : w + " / " + S.goal.n + " ⭐" })]), el("div", { class: "big-bar" }, [el("i", { style: "width:" + pct + "%" })]),
-        el("div", { class: "week" }, [6, 5, 4, 3, 2, 1, 0].map(function (i) { var d = new Date(Date.now() - i * 864e5), n = starsOf(k, today(d)); return el("div", null, [el("div", { class: "col" }, [el("i", { style: "height:" + Math.min(100, n * 6) + "%" })]), el("span", { text: "אבגדהוש"[d.getDay()] + "׳" }), el("span", { class: "fine", text: n || "" })]); }))]);
-    })).concat([el("p", { class: "fine", text: "כוכב על כל שלב, ועוד 3 כוכבים כשמסיימים בזמן. השבוע נספר משבעת הימים האחרונים." })]));
+        el("div", { class: "week" }, weekDays().map(function (d) { var n = starsOf(k, today(d)), fut = today(d) > today(); return el("div", null, [el("div", { class: "col" }, [el("i", { style: "height:" + Math.min(100, n * 6) + "%" })]), el("span", { text: "אבגדהוש"[d.getDay()] + "׳", style: fut ? "opacity:.45" : today(d) === today() ? "font-weight:900" : "" }), el("span", { class: "fine", text: n || "" })]); }))]);
+    })).concat([el("p", { class: "fine", text: "כוכב על כל שלב, ועוד 3 כוכבים כשמסיימים בזמן. השבוע מתחיל מחדש בכל יום ראשון." })]));
   }
 
   // ---- the child's routine: one step at a time ----
@@ -193,28 +198,48 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     })));
     return box;
   }
-  function idxNow() { var r = R(), rn = cur.rn; for (var i = 0; i < r.steps.length; i++) if (forKid(r.steps[i], cur.k) && rn.done.indexOf(i) < 0 && rn.skip.indexOf(i) < 0) return i; return -1; }
+  function idxNow() { var r = R(), rn = cur.rn; if (rn.pick != null && rn.done.indexOf(rn.pick) < 0 && rn.skip.indexOf(rn.pick) < 0 && r.steps[rn.pick]) return rn.pick; rn.pick = null; for (var i = 0; i < r.steps.length; i++) if (forKid(r.steps[i], cur.k) && rn.done.indexOf(i) < 0 && rn.skip.indexOf(i) < 0) return i; return -1; }
+  // Each step keeps its own clock (rn.el: seconds so far), so it can be paused, left and picked up again.
+  // A step that was finished or skipped by mistake can be brought back; its star is not given twice.
   function next() {
-    var r = R(), i = idxNow(), k = cur.k;
+    var r = R(), i = idxNow(), k = cur.k, rn = cur.rn;
     if (i < 0) return finish();
-    var s = r.steps[i], mins = +s[2] || 1, t0 = Date.now(), ring = el("div", { class: "ring" }, [el("b", mins + ":00")]);
-    cur.rn.at = cur.rn.at || t0; save();
+    rn.el = rn.el || {}; rn.hist = rn.hist || []; rn.paid = rn.paid || [];
+    var s = r.steps[i], mins = +s[2] || 1, ring = el("div", { class: "ring" }, [el("b", mins + ":00")]);
+    var paused = !!rn.paused, base = rn.el[i] || 0, t0 = Date.now();
+    var gone = function () { return paused ? base : base + (Date.now() - t0) / 1000; };
+    var keep = function () { rn.el[i] = Math.round(gone()); save(); };
+    rn.at = rn.at || t0; save();
     var left = function () { var en = endAt(r), m = Math.round((en - Date.now()) / 6e4); return MODE === "evening" ? (m > 0 ? "עוד " + m + " דק׳ למיטה" : "כבר זמן לישון 😴") : (m > 0 ? "עוד " + m + " דק׳ ליציאה" : "יוצאים! 🏃"); };
     var lt = el("span", { class: "fine", text: left() });
+    var go = function (j) { keep(); rn.paused = false; rn.pick = j; save(); next(); };
+    var pz = el("button", { class: "chip pz", type: "button" });
+    var drawPause = function () { pz.textContent = paused ? "▶ ממשיכים" : "⏸ עצירה"; pz.setAttribute("aria-pressed", String(paused)); ring.classList.toggle("paused", paused); };
+    pz.onclick = function () { if (paused) { paused = false; t0 = Date.now(); } else { base = gone(); paused = true; } rn.paused = paused; keep(); drawPause(); paint(); if (paused) sayHe("עצרנו. ממשיכים כשמוכנים."); };
+    var back = rn.hist.length ? el("button", { class: "btn ghost small", type: "button", text: "↩ חזרה לקודמת", title: "חזרה לשלב שסומן בטעות", onclick: function () {
+      var j = rn.hist.pop(), d = rn.done.indexOf(j), x = rn.skip.indexOf(j); if (d >= 0) rn.done.splice(d, 1); if (x >= 0) rn.skip.splice(x, 1); go(j); } }) : null;
+    var dots = idxFor(r, k).map(function (j) {
+      var x = r.steps[j], ok = rn.done.indexOf(j) >= 0, sk = rn.skip.indexOf(j) >= 0, open = !ok && !sk && j !== i;
+      return el(open ? "button" : "span", open ? { class: "", type: "button", text: x[0], title: "לעבור ל" + x[1], "aria-label": "לעבור ל" + x[1], onclick: function () { go(j); } } : { class: ok ? "ok" : sk ? "skip" : "cur", text: ok ? "✓" : x[0] });
+    });
     $("run").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("div", { class: "run" }, [
-      el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
-      el("div", { class: "dots", "aria-hidden": "true" }, idxFor(r, k).map(function (j) { var x = r.steps[j]; return el("span", { class: cur.rn.done.indexOf(j) >= 0 ? "ok" : cur.rn.skip.indexOf(j) >= 0 ? "skip" : j === i ? "cur" : "", text: cur.rn.done.indexOf(j) >= 0 ? "✓" : x[0] }); })),
-      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, ring, lt]),
-      el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { cur.rn.done.push(i); addStars(k, 1); if (!HUB || HUB.kid === k.name) hubStars(1, "שגרה"); save(); chime(); burst(this); setTimeout(next, 650); } }),
-      el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { cur.rn.skip.push(i); save(); next(); } })])]));
-    sayHe("עכשיו: " + s[1]);
-    clearInterval(tick);
+      el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { keep(); clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
+      el("div", { class: "dots" }, dots),
+      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, ring, pz, lt]),
+      el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { keep(); rn.paused = false; rn.done.push(i); rn.hist.push(i); if (rn.paid.indexOf(i) < 0) { rn.paid.push(i); addStars(k, 1); if (!HUB || HUB.kid === k.name) hubStars(1, "שגרה"); } save(); chime(); burst(this); setTimeout(next, 650); } }),
+      el("div", { class: "row", style: "justify-content:center" }, [back, el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { keep(); rn.paused = false; rn.skip.push(i); rn.hist.push(i); save(); next(); } })])])]));
+    drawPause();
+    sayHe((base ? "חוזרים ל: " : "עכשיו: ") + s[1]);
+    var paint = function () {
+      var g = gone(), rest = mins * 60 - g, b = ring.firstChild;
+      if (paused) { b.textContent = "⏸"; return; }
+      if (rest >= 0) { ring.classList.remove("over"); b.textContent = Math.floor(rest / 60) + ":" + String(Math.floor(rest % 60)).padStart(2, "0"); ring.style.setProperty("--p", String(Math.min(100, 100 * g / (mins * 60)))); }
+      else { b.textContent = "⏰"; if (!ring.classList.contains("over")) { ring.classList.add("over"); if (g - mins * 60 < 2) chime([523, 523]); } }
+    };
+    paint(); clearInterval(tick); var n = 0;
     tick = setInterval(function () {
       if ($("run").hidden) { clearInterval(tick); return; }
-      var gone = (Date.now() - t0) / 1000, rest = mins * 60 - gone, b = ring.firstChild;
-      if (rest >= 0) { b.textContent = Math.floor(rest / 60) + ":" + String(Math.floor(rest % 60)).padStart(2, "0"); ring.style.setProperty("--p", String(Math.min(100, 100 * gone / (mins * 60)))); }
-      else if (!ring.classList.contains("over")) { ring.classList.add("over"); b.textContent = "⏰"; chime([523, 523]); }
-      lt.textContent = left();
+      paint(); lt.textContent = left(); if (++n % 10 === 0 && !paused) keep();
     }, 500);
   }
   function burst(btn) {
