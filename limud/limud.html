@@ -83,6 +83,7 @@ a{color:var(--k)}
   <section class="card" id="rem"></section>
   <p class="fine" id="credit"></p>
 </div>
+<script src="/hebcal.js"></script>
 <script>
 (function () {
   "use strict";
@@ -95,7 +96,7 @@ a{color:var(--k)}
   }
   function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
   var LS = "hanialimud-v1", S; try { S = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) { S = null; }
-  S = S || {}; S.learned = S.learned || {}; if (S.ex == null) S.ex = true; S.fs = S.fs || 21; S.rem = S.rem || { on: false, at: "07:30", sat: false };
+  S = S || {}; S.learned = S.learned || {}; if (S.ex == null) S.ex = true; S.fs = S.fs || 21; S.rem = S.rem || { on: false, at: "07:30" }; delete S.rem.sat;
   function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
   document.documentElement.style.setProperty("--fs", S.fs + "px");
   function ymd(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
@@ -287,10 +288,39 @@ a{color:var(--k)}
   var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
   function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
+  // No reminder from candle lighting to the end of Shabbat (or a holiday), by the times of the chosen town.
+  // A reminder that falls inside is moved to a quarter of an hour after Shabbat ends, when that is the same evening;
+  // otherwise that day has none.
+  var CITIES = /*CITIES*/[["ירושלים", 31.778, 35.235, 40]];
+  if (!S.city) { try { var cm = document.cookie.match(/(?:^|; *)h360_i=([^;]*)/), co = cm ? JSON.parse(decodeURIComponent(cm[1])) : {}; if (co.c && CITIES.some(function (c) { return c[0] === co.c[0]; })) S.city = co.c[0]; } catch (e) {} }
+  function place() { var c = CITIES.filter(function (x) { return x[0] === S.city; })[0] || CITIES[0]; return { name: c[0], lat: c[1], lon: c[2], b: c[3] }; }
+  function zOn(d) { var p = place(); return new HB.Zmanim(new HB.Location(p.lat, p.lon, true, "Asia/Jerusalem", p.name, "IL"), d, false); }
+  // Yom Tov in Israel (Hebrew month numbers: Nisan 1 ... Tishrei 7)
+  var YT = { "7-1": 1, "7-2": 1, "7-10": 1, "7-15": 1, "7-22": 1, "1-15": 1, "1-21": 1, "3-6": 1 };
+  function holy(d) { if (d.getDay() === 6) return true; try { var h = new HB.HDate(d); return !!YT[h.getMonth() + "-" + h.getDate()]; } catch (e) { return false; } }
+  // when the holy time around this moment ends, or 0 if the moment is not inside one
+  function holyEnd(t) {
+    if (!window.HB) return 0;
+    var day = new Date(t); day.setHours(12, 0, 0, 0);
+    var start = function (d) { var e = new Date(d.getTime() - 864e5); return zOn(e).shkiah().getTime() - place().b * 6e4; };
+    var end = function (d) { return zOn(d).tzeit(8.5).getTime(); };
+    for (var i = -1; i <= 1; i++) {
+      var d = new Date(day.getTime() + i * 864e5); if (!holy(d)) continue;
+      var a = d, z = d; while (holy(new Date(a.getTime() - 864e5))) a = new Date(a.getTime() - 864e5); while (holy(new Date(z.getTime() + 864e5))) z = new Date(z.getTime() + 864e5);
+      if (t >= start(a) && t < end(z)) return end(z);
+    }
+    return 0;
+  }
   function items() {
     var p = S.rem.at.split(":"), now = Date.now(), days = [];
-    for (var i = 0; i < 14; i++) { var d = new Date(); d.setDate(d.getDate() + i); d.setHours(+p[0], +p[1], 0, 0); if (d.getTime() > now && (S.rem.sat || d.getDay() !== 6)) days.push(d); }
-    return Promise.all(days.map(function (d) { return calendar(d).then(function (c) {
+    for (var i = 0; i < 15; i++) {
+      var d = new Date(); d.setDate(d.getDate() + i); d.setHours(+p[0], +p[1], 0, 0);
+      var t = d.getTime(), e = holyEnd(t);
+      if (e) { var after = e + 15 * 6e4; if (new Date(after).toDateString() !== d.toDateString()) continue; t = after; }
+      if (t > now) days.push(new Date(t));
+    }
+    days = days.slice(0, 14);
+    return Promise.all(days.map(function (d) { var cd = new Date(d); return calendar(cd).then(function (c) {
       var s = (c.daf ? "📜 " + c.daf.displayValue.he : "") + (c.hal ? " · ⚖️ " + c.hal.displayValue.he.replace(/^שולחן ערוך, אורח חיים /, "או״ח ") : "");
       return { t: d.getTime() + 10 * 6e4, label: (s || "📚 הלימוד היומי מחכה").slice(0, 70) }; }).catch(function () { return { t: d.getTime() + 10 * 6e4, label: "📚 הדף היומי וההלכה היומית מחכים" }; }); }));
   }
@@ -302,7 +332,8 @@ a{color:var(--k)}
   function remCard() {
     var c = $("rem"), at = el("input", { type: "time", value: S.rem.at, "aria-label": "שעת התזכורת" });
     var on = el("button", { class: "btn " + (S.rem.on ? "ghost" : ""), type: "button", text: S.rem.on ? "🔕 לכבות את התזכורת" : "🔔 תזכורת כל יום" });
-    var sat = el("button", { class: "chip", type: "button", "aria-pressed": String(!!S.rem.sat), text: "גם בשבת" });
+    var city = el("select", { "aria-label": "העיר, לזמני השבת" }, CITIES.map(function (c) { var o = el("option", { value: c[0], text: c[0] }); if (c[0] === place().name) o.selected = true; return o; }));
+    city.onchange = function () { S.city = city.value; save(); if (S.rem.on) sync(true).catch(function () {}); };
     on.onclick = function () {
       if (!canPush) { toast("בטלפון הזה אין התראות מהאתר. באייפון: מוסיפים את האתר למסך הבית."); return; }
       var want = !S.rem.on; on.disabled = true;
@@ -311,9 +342,8 @@ a{color:var(--k)}
         .catch(function () { on.disabled = false; toast("לא הצלחנו להפעיל תזכורת"); });
     };
     at.onchange = function () { S.rem.at = at.value || "07:30"; save(); if (S.rem.on) sync(true).catch(function () {}); };
-    sat.onclick = function () { S.rem.sat = !S.rem.sat; save(); remCard(); if (S.rem.on) sync(true).catch(function () {}); };
-    c.replaceChildren(el("h2", "🔔 לימוד כל יום"), el("p", { class: "fine", text: "התראה בשעה שבוחרים, עם הדף וההלכה של אותו יום. בלי שבת, אלא אם מסמנים." }),
-      el("div", { class: "row" }, [el("label", { class: "fine" }, ["בשעה ", at]), sat]), on);
+    c.replaceChildren(el("h2", "🔔 לימוד כל יום"), el("p", { class: "fine", text: "התראה בשעה שבוחרים, עם הדף וההלכה של אותו יום. מכניסת שבת ועד צאת השבת (וכך גם בחג) אין התראות. אם השעה נופלת בשבת, ההתראה מגיעה רבע שעה אחרי צאת השבת, לפי זמני העיר." }),
+      el("div", { class: "row" }, [el("label", { class: "fine" }, ["בשעה ", at]), el("label", { class: "fine" }, ["עיר ", city])]), on);
   }
   // keep the reminder list two weeks ahead
   if (S.rem.on && canPush && S.rem.sync !== ymd(new Date())) setTimeout(function () { sync(true).catch(function () {}); }, 1500);
