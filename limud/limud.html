@@ -250,8 +250,8 @@ a{color:var(--k)}
       var card = el("section", { class: "card" }, [sizeRow()]);
       arr.forEach(function (row) {
         // the Rema's gloss starts with "הגה"
-        var html = String(row[0] || ""), at = html.search(/(^|\s)הגה(\s|:)/), p;
-        if (at >= 0) { p = rich(html.slice(0, at), "hal"); var g = rich(html.slice(at).replace(/^\s*הגה[:\s]*/, ""), "rema"); var sp = el("span", { class: "rema" }); sp.append.apply(sp, [].slice.call(g.childNodes)); p.append(sp); }
+        var html = String(row[0] || ""), mm = /(^|[^\u05D0-\u05EA])הגה(?=[\s:<])/.exec(html), at = mm ? mm.index + mm[1].length : -1, p;
+        if (at >= 0) { p = rich(html.slice(0, at), "hal"); var g = rich(html.slice(at).replace(/^הגה(<\/[a-z]+>)?[:\s]*/, ""), "rema"); var sp = el("span", { class: "rema" }); sp.append.apply(sp, [].slice.call(g.childNodes)); p.append(sp); }
         else p = rich(html, "hal");
         card.append(el("div", { class: "seif" }, [el("small", row[1]), p]));
       });
