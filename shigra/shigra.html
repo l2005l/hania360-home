@@ -57,6 +57,13 @@ label{display:grid;gap:4px;font-weight:700;font-size:14px;color:var(--muted)}
 .ring b{width:96px;height:96px;border-radius:50%;background:var(--surface);display:grid;place-content:center;font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;direction:ltr}
 .ring.over{background:conic-gradient(#FF8A65 100%,var(--line) 0)}
 .ring.paused{filter:grayscale(.8);opacity:.75}
+.story-ov{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:14px max(16px,env(safe-area-inset-left,0px)) 110px}
+.story-in{max-width:640px;margin:0 auto;display:grid;gap:12px}
+.story-page{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:20px 18px;display:grid;gap:12px}
+.story-page h2{text-align:center;font-size:clamp(22px,6vw,28px)}
+.story-page p{margin:0;font-size:clamp(19px,5vw,22px);line-height:1.85}
+.story-page .s{border-radius:6px;transition:background .25s}.story-page .s.on{background:color-mix(in srgb,var(--sun) 45%,transparent)}
+.story-bar{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:8px 10px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:61}
 .chip.pz{padding:6px 12px;font-size:14px}
 .dots button{appearance:none;font:inherit;cursor:pointer;color:inherit}
 .done{font-size:clamp(24px,7vw,32px)!important;padding:18px 30px!important;width:100%}
@@ -234,7 +241,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     $("run").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("div", { class: "run" }, [
       el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { keep(); clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
       el("div", { class: "dots" }, dots),
-      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, ring, pz, lt]),
+      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, s[0] === "📖" || /סיפור/.test(s[1]) ? el("button", { class: "btn small", type: "button", style: "background:var(--sun);color:#2B2240", text: "📖 לפתוח סיפור לילה", onclick: function () { storyOpen(k); } }) : null, ring, pz, lt]),
       el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { keep(); rn.paused = false; rn.done.push(i); rn.hist.push(i); if (rn.paid.indexOf(i) < 0) { rn.paid.push(i); addStars(k, 1); if (!HUB || HUB.kid === k.name) hubStars(1, "שגרה"); } save(); chime(); burst(this); setTimeout(next, 650); } }),
       el("div", { class: "row", style: "justify-content:center" }, [back, el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { keep(); rn.paused = false; rn.skip.push(i); rn.hist.push(i); save(); next(); } })])])]));
     drawPause();
@@ -250,6 +257,62 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       if ($("run").hidden) { clearInterval(tick); return; }
       paint(); lt.textContent = left(); if (++n % 10 === 0 && !paused) keep();
     }, 500);
+  }
+  // ---- the bedtime story (the story step): a story written for this child by HaniaSipur's AI, read by a parent
+  // or read aloud by the phone, one sentence lit at a time. Stories are kept on this phone, per child.
+  var DEV = (function () { try { var d = localStorage.getItem("sh.dev"); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(18)), function (x) { return "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x % 57]; }).join(""); localStorage.setItem("sh.dev", d); } return d; } catch (e) { return "shigra" + Math.random().toString(36).slice(2, 14); } })();
+  var STV = [["sleep", "😴 לישון טוב"], ["friend", "🤝 חבר טוב"], ["brave", "🦁 אומץ"], ["dark", "🌙 לא לפחד מהחושך"], ["share", "🎁 לשתף"], ["sorry", "💛 סליחה"]];
+  var STF = ["dragon", "cat", "owl", "dog", "unicorn", "robot", "bear", "turtle"], STP = ["space", "forest", "sea", "castle", "clouds", "farm"];
+  var reader = null;
+  function storyStop() { if (reader) { reader.stop = true; reader = null; } try { speechSynthesis.cancel(); } catch (e) {} }
+  function storyOpen(k, view) {
+    storyStop(); var ov = document.querySelector(".story-ov"); if (!ov) { ov = el("div", { class: "story-ov", role: "dialog", "aria-label": "סיפור לילה" }); document.body.append(ov); }
+    var close = el("button", { class: "btn ghost small", type: "button", text: "✕ חזרה לשגרה", onclick: function () { storyStop(); ov.remove(); } });
+    S.stories = S.stories || [];
+    if (view) return storyRead(ov, k, view, close);
+    var box = el("div", { class: "story-in" }, [el("div", { class: "row" }, [close]), el("h2", "📖 סיפור לילה ל" + k.name)]);
+    if (!k.g) {
+      box.append(el("p", { class: "fine", text: "פעם אחת, בשביל הסיפור:" }), el("div", { class: "row" }, [["m", "👦 בן"], ["f", "👧 בת"]].map(function (o) { return el("button", { class: "chip", type: "button", text: o[1], onclick: function () { k.g = o[0]; save(); storyOpen(k); } }); })));
+      ov.replaceChildren(box); return;
+    }
+    if (!k.age) k.age = 6;
+    S.stv = S.stv || "sleep";
+    var go = el("button", { class: "btn go", type: "button", text: "✨ סיפור חדש", onclick: function () {
+      go.disabled = true; go.textContent = "✍️ כותבים סיפור ל" + k.name + "...";
+      fetch("/api/sipur/story", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: DEV, name: k.name, g: k.g, age: k.age, place: STP[Math.random() * STP.length | 0], friend: STF[Math.random() * STF.length | 0], value: S.stv, len: "short" }) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.paragraphs) throw new Error(j.error || "x"); return j; }); })
+        .then(function (j) { var st = { id: Date.now().toString(36), at: Date.now(), kid: k.id, title: j.title, paragraphs: j.paragraphs }; S.stories.unshift(st); S.stories = S.stories.slice(0, 30); save(); storyOpen(k, st); })
+        .catch(function (e) { go.disabled = false; go.textContent = "✨ סיפור חדש"; toast(e.message === "device" || e.message === "day" ? "היום כבר נכתבו הרבה סיפורים. אפשר לקרוא סיפור ששמרנו 📚" : "לא הצלחנו לכתוב עכשיו. נסו שוב."); });
+    } });
+    box.append(el("section", { class: "card" }, [el("b", "על מה הסיפור?"), el("div", { class: "row" }, STV.map(function (v) { return el("button", { class: "chip", type: "button", "aria-pressed": String(S.stv === v[0]), text: v[1], onclick: function () { S.stv = v[0]; save(); storyOpen(k); } }); })),
+      el("div", { class: "row" }, [el("span", { class: "fine", text: "גיל:" })].concat([3, 4, 5, 6, 7, 8, 9, 10].map(function (a) { return el("button", { class: "chip", type: "button", "aria-pressed": String(k.age === a), text: String(a), onclick: function () { k.age = a; save(); storyOpen(k); } }); }))),
+      go, el("p", { class: "fine", text: "סיפור קצר (2–3 דקות) שנכתב רק ל" + k.name + " בבינה מלאכותית. אפשר להקריא בעצמכם, או ללחוץ ▶ והטלפון יקריא." })]));
+    var mine = S.stories.filter(function (x) { return x.kid === k.id; });
+    if (mine.length) box.append(el("section", { class: "card" }, [el("b", "📚 סיפורים ששמרנו")].concat(mine.slice(0, 12).map(function (x) {
+      return el("button", { class: "chip", type: "button", style: "text-align:start;border-radius:14px", text: "📖 " + x.title + " · " + new Date(x.at).toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }), onclick: function () { storyOpen(k, x); } }); }))));
+    ov.replaceChildren(box);
+  }
+  function storyRead(ov, k, st, close) {
+    var spans = [], idx = 0, rate = S.strate || 0.9;
+    var page = el("article", { class: "story-page" }, [el("h2", st.title)].concat(st.paragraphs.map(function (p) {
+      return el("p", null, String(p).replace(/([.!?…])\s+/g, "$1\n").split("\n").map(function (t) { var x = el("span", { class: "s", text: t + " " }); spans.push(x); return x; })); })));
+    var play = el("button", { class: "btn go", type: "button", style: "min-width:150px", text: "▶ הקראה" });
+    var mark = function (i) { spans.forEach(function (x, j) { x.classList.toggle("on", j === i); }); if (spans[i]) spans[i].scrollIntoView({ behavior: "smooth", block: "center" }); };
+    var voice = function () { var vs = ("speechSynthesis" in window) ? speechSynthesis.getVoices() : [], he = vs.filter(function (v) { return /^he|^iw/i.test(v.lang); }); return he.filter(function (v) { return /Carmit|Google/i.test(v.name); })[0] || he[0] || null; };
+    var go = function (from) {
+      if (!("speechSynthesis" in window)) { toast("הטלפון לא יודע להקריא. אפשר לקרוא בקול 😊"); return; }
+      storyStop(); var r = reader = { stop: false }, v = voice(); play.textContent = "⏸ עצירה";
+      (function next(i) {
+        if (r.stop) return; if (i >= spans.length) { mark(-1); reader = null; idx = 0; play.textContent = "▶ הקראה"; return; }
+        idx = i; mark(i); var u = new SpeechSynthesisUtterance(spans[i].textContent); u.lang = "he-IL"; if (v) u.voice = v; u.rate = rate; u.pitch = 1.05;
+        u.onend = function () { setTimeout(function () { next(i + 1); }, /[.!?…]\s*$/.test(spans[i].textContent) ? 350 : 120); }; u.onerror = function () { if (!r.stop) next(i + 1); };
+        speechSynthesis.speak(u); })(from || 0);
+    };
+    play.onclick = function () { if (reader) { var at = idx; storyStop(); idx = at; play.textContent = "▶ המשך"; } else go(idx); };
+    var speed = function (d) { return el("button", { class: "chip", type: "button", text: d < 0 ? "🐢 לאט" : "🐇 מהר", onclick: function () { rate = Math.max(0.6, Math.min(1.2, +(rate + d).toFixed(1))); S.strate = rate; save(); toast("מהירות " + rate); if (reader) go(idx); } }); };
+    ov.replaceChildren(el("div", { class: "story-in" }, [el("div", { class: "row" }, [close, el("button", { class: "btn ghost small", type: "button", text: "📚 עוד סיפורים", onclick: function () { storyOpen(k); } })]), page,
+      el("div", { class: "story-bar" }, [play, speed(-0.1), speed(0.1)])]));
+    ov.scrollTop = 0;
   }
   function burst(btn) {
     var r = btn.getBoundingClientRect();
