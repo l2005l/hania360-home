@@ -49,19 +49,23 @@ const ASK = {
 // The model reads the opening of the portion (Sefaria's Hebrew text) and the portion's name; the answer is JSON.
 // POST /api/limud/table {ref, name}; the same for everyone, so cached for ten days.
 const TABLE_SYS = "אתה מכין חומר קצר לשולחן שבת של משפחה דתית־מסורתית בישראל, על פרשת השבוע. כותבים בעברית פשוטה, חמה ומדויקת, בלי מדרשים מומצאים ובלי ציטוטים שאינך בטוח בהם. " +
-  "כותבים רק דברים שכתובים בפסוקים שניתנו, לפי הסדר שלהם, בלי להוסיף אירועים, מקומות או פרטים שלא כתובים בהם. כל שאלה צריכה תשובה ברורה מתוך הפרשה. לא פוסקים הלכה. עונים ב־JSON בלבד.";
+  "את השם כותבים ה׳ ואת המילה אלוהים כותבים אלוקים. כותבים רק דברים שכתובים בפסוקים שניתנו, לפי הסדר שלהם, בלי להוסיף אירועים, מקומות או פרטים שלא כתובים בהם. כל שאלה צריכה תשובה ברורה מתוך הפרשה. לא פוסקים הלכה. עונים ב־JSON בלבד.";
 const TABLE_ASK = "החזר JSON בדיוק במבנה הזה, בלי טקסט נוסף:\n" +
-  '{"story":["4 עד 6 משפטים קצרים שמספרים לילדים מה קורה בפרשה, לפי הסדר"],' +
+  '{"story":["5 עד 7 משפטים קצרים (עד 20 מילים כל אחד) שמספרים לילדים מה קורה בפרשה, לפי הסדר"],' +
   '"small":["2 שאלות פשוטות לילדים בני 3 עד 6"],"big":["3 שאלות לילדים בני 7 עד 12, שתיים על מה שקרה ואחת שמחברת לחיים שלהם"],' +
   '"adult":["2 שאלות למחשבה לנוער ולמבוגרים"],"riddle":{"q":"חידה קצרה על משהו מהפרשה","a":"התשובה"},"value":"מילה או שתיים: הרעיון שאפשר לקחת לשבוע"}';
 // Some models hand back the JSON already parsed.
 function loose(t) { if (t && typeof t === "object") return t; const s = String(t || ""), a = s.indexOf("{"), b = s.lastIndexOf("}"); if (a < 0 || b < a) return null; try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; } }
-const strs = (a, n, len) => (Array.isArray(a) ? a : []).map((x) => strip(x).slice(0, len)).filter(Boolean).slice(0, n);
+// For the Shabbat table: the Name is written ה׳ and אלוקים, as in printed material for the home.
+const holy = (t) => String(t).replace(/יהוה|יקוק|ה'(?=[\s,.:;!?]|$)/g, "ה׳").replace(/(^|[^\u05D0-\u05EA])([והלבמשכ]{0,3})אלו?הי/g, "$1$2אלוקי");
+// a sentence that is too long is cut at the end of a sentence (or a word), never in the middle of a word
+const cut = (t, len) => { t = holy(strip(t)); if (t.length <= len) return t; const a = t.slice(0, len), p = Math.max(a.lastIndexOf(". "), a.lastIndexOf("! "), a.lastIndexOf("? ")); return p > len * 0.5 ? a.slice(0, p + 1) : a.slice(0, a.lastIndexOf(" ")) + "..."; };
+const strs = (a, n, len) => (Array.isArray(a) ? a : []).map((x) => cut(x, len)).filter(Boolean).slice(0, n);
 async function table(request, env, ctx) {
   const b = await request.json().catch(() => ({}));
   const ref = String(b.ref || "").slice(0, 80), name = strip(b.name).slice(0, 30);
   if (!/^[A-Za-z][A-Za-z_ ,'.0-9:-]{1,79}$/.test(ref) || !name) return json({ error: "bad" }, 400);
-  const key = new Request("https://limud.hania360.com/ai-cache/v2/table/" + encodeURIComponent(ref));
+  const key = new Request("https://limud.hania360.com/ai-cache/v3/table/" + encodeURIComponent(ref));
   const hit = await caches.default.match(key); if (hit) return hit;
   // the whole portion, without niqqud and cantillation marks; if that is too much for the model, a shorter part
   const full = (await sefaria(ref.replace(/ /g, "_"), "hebrew")).replace(/[\u0591-\u05C7]/g, "").replace(/\{[פס]\}/g, "").replace(/\s+/g, " ");
@@ -75,8 +79,8 @@ async function table(request, env, ctx) {
     if (!o && raw) why.push(n + ": not json: " + String(raw).slice(0, 80));
   }
   if (!o) return json({ error: "busy", why }, 503);
-  const r = { story: strs(o.story, 7, 220), small: strs(o.small, 3, 140), big: strs(o.big, 4, 160), adult: strs(o.adult, 3, 180),
-    riddle: o.riddle && o.riddle.q ? { q: strip(o.riddle.q).slice(0, 200), a: strip(o.riddle.a).slice(0, 160) } : null, value: strip(o.value).slice(0, 40) };
+  const r = { story: strs(o.story, 7, 260), small: strs(o.small, 3, 140), big: strs(o.big, 4, 160), adult: strs(o.adult, 3, 180),
+    riddle: o.riddle && o.riddle.q ? { q: cut(o.riddle.q, 200), a: cut(o.riddle.a, 160) } : null, value: cut(o.value, 40) };
   if (!r.story.length) return json({ error: "busy" }, 503);
   const res = json(r, 200, "public, max-age=864000");
   ctx && ctx.waitUntil ? ctx.waitUntil(caches.default.put(key, res.clone())) : await caches.default.put(key, res.clone());
