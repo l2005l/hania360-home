@@ -1,0 +1,189 @@
+<title>HaniaBracha · איזו ברכה?</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<style>
+/* "Which blessing?" for children: a food appears, the child picks its blessing (before, and at the third level after),
+   from six big buttons with pictures, so children who do not read yet can play (the phone reads the question).
+   Three levels: the everyday foods, the ones people get wrong (a banana is האדמה), and the blessing after.
+   Only foods whose blessing is plain are used; a short note says why after every answer. Stars go to the HaniaKids wallet. */
+:root{--bg:#FFF9EE;--surface:#fff;--ink:#2A2140;--muted:#6B6383;--line:#F1E6CF;--main:#7C5CFF;--main2:#5B3FD9;--ok:#14B37D;--bad:#FF6B6B;--sun:#FFC83D;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17132A;--surface:#221C3D;--ink:#F3EEFF;--muted:#B5ACD6;--line:#352C5C}}
+:root[data-theme="dark"]{--bg:#17132A;--surface:#221C3D;--ink:#F3EEFF;--muted:#B5ACD6;--line:#352C5C}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;color:var(--ink);background:radial-gradient(70% 34% at 100% 0%,color-mix(in srgb,var(--sun) 26%,transparent),transparent 70%),radial-gradient(60% 30% at 0% 30%,color-mix(in srgb,var(--main) 14%,transparent),transparent 70%),var(--bg);background-attachment:fixed;padding:12px max(16px,env(safe-area-inset-left,0px)) 50px}
+.wrap{max-width:600px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}.logo{font-weight:900;font-size:22px;color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}.logo b{color:var(--main)}.logo img{width:30px;height:30px;border-radius:9px}
+header .sp{margin-inline-start:auto}.stars{font-weight:800;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px}
+body.inhub header .logo{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px;display:grid;gap:12px;box-shadow:0 16px 34px -26px rgba(42,33,64,.55)}
+h1{margin:0;font-size:clamp(26px,7.5vw,36px);line-height:1.15}h2{margin:0;font-size:20px}
+.lead{margin:0;color:var(--muted)}.fine{font-size:13px;color:var(--muted)}
+.levels{display:grid;gap:10px}
+.lvl{display:flex;gap:12px;align-items:center;text-align:start;appearance:none;border:2px solid var(--line);background:var(--surface);border-radius:20px;padding:14px;cursor:pointer;font:inherit;color:inherit}
+.lvl .e{font-size:38px}.lvl b{display:block;font-size:18px}.lvl .st{margin-inline-start:auto;font-size:18px;letter-spacing:2px}
+.btn{appearance:none;border:0;border-radius:16px;padding:13px 18px;font:inherit;font-weight:800;cursor:pointer;background:var(--main);color:#fff;box-shadow:0 4px 0 var(--main2);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.ghost{background:var(--surface);color:var(--main);border:1.5px solid var(--line);box-shadow:none}.btn.small{padding:8px 13px;font-size:14px;border-radius:12px}
+.food{font-size:96px;text-align:center;line-height:1.1}
+.ask{text-align:center;font-size:22px;font-weight:800;margin:0}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.opt{appearance:none;border:2px solid var(--line);background:var(--surface);border-radius:18px;padding:12px 8px;font:inherit;cursor:pointer;color:var(--ink);display:grid;gap:2px;justify-items:center;box-shadow:0 4px 0 var(--line)}
+.opt .i{font-size:34px}.opt b{font-size:17px}.opt small{color:var(--muted);font-size:12.5px;line-height:1.3}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--surface));box-shadow:0 4px 0 var(--ok)}
+.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface));opacity:.8}
+.opt:disabled{cursor:default}
+.fb{border-radius:16px;padding:12px 14px;font-weight:700;display:grid;gap:6px}
+.fb.ok{background:color-mix(in srgb,var(--ok) 14%,var(--surface))}.fb.no{background:color-mix(in srgb,var(--bad) 12%,var(--surface))}
+.fb .bl{font-weight:800;color:var(--main)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--main),var(--sun))}
+.say{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;margin:0 auto;display:block}
+.big{font-size:64px;text-align:center}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+@media (max-width:360px){.opt .i{font-size:28px}.food{font-size:80px}}
+</style>
+<div class="wrap">
+  <header><a class="logo" href="https://yahadut.hania360.com/"><img src="/icons/icon-192.png" alt=""><span>Hania<b>Bracha</b></span></a><span class="sp"></span><span class="stars" id="stars"></span></header>
+  <main id="app" style="display:grid;gap:14px"></main>
+</div>
+<script>
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  function el(t, a, k) {
+    var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; }
+    for (var x in a || {}) { if (x === "text") e.textContent = a[x]; else if (x.slice(0, 2) === "on") e.addEventListener(x.slice(2), a[x]); else if (a[x] != null && a[x] !== false) e.setAttribute(x, a[x]); }
+    [].concat(k == null ? [] : k).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20) }; } catch (e) { return null; } })();
+  if (HUB) document.body.classList.add("inhub");
+  function hubStars(n) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: "איזו ברכה?" }, "*"); } catch (e) {} }
+  var KEY = "haniabracha-v1", S; try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.best = S.best || {}; S.stars = S.stars || 0;
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function drawStars() { $("stars").textContent = "⭐ " + S.stars; }
+
+  // ---- the blessings ----
+  var OPEN = "בָּרוּךְ אַתָּה ה׳ אֱלֹקֵינוּ מֶלֶךְ הָעוֹלָם";
+  var B = { motzi: ["🍞", "הַמּוֹצִיא", "הַמּוֹצִיא לֶחֶם מִן הָאָרֶץ"], mezonot: ["🍰", "מְזוֹנוֹת", "בּוֹרֵא מִינֵי מְזוֹנוֹת"], gefen: ["🍷", "הַגֶּפֶן", "בּוֹרֵא פְּרִי הַגָּפֶן"],
+    etz: ["🌳", "הָעֵץ", "בּוֹרֵא פְּרִי הָעֵץ"], adama: ["🌱", "הָאֲדָמָה", "בּוֹרֵא פְּרִי הָאֲדָמָה"], shehakol: ["💧", "שֶׁהַכֹּל", "שֶׁהַכֹּל נִהְיָה בִּדְבָרוֹ"] };
+  var AFTER = { mazon: ["🍞", "בִּרְכַּת הַמָּזוֹן", "אחרי לחם"], michya: ["🍰", "עַל הַמִּחְיָה", "אחרי עוגה, עוגיות ופסטה"], gefen: ["🍷", "עַל הַגֶּפֶן", "אחרי יין ומיץ ענבים"],
+    etz: ["🌳", "עַל הָעֵץ", "אחרי פירות משבעת המינים"], nefashot: ["💧", "בּוֹרֵא נְפָשׁוֹת", "אחרי כל השאר"] };
+  // [emoji, name, blessing before, why, blessing after, level: 1 everyday, 2 the ones people get wrong]
+  var FOOD = [
+    ["🍞", "לֶחֶם", "motzi", "על לחם מברכים המוציא, ואז לא צריך לברך על שאר האוכל בארוחה.", "mazon", 1],
+    ["🫓", "פִּיתָה", "motzi", "פיתה היא לחם, אז המוציא.", "mazon", 1],
+    ["🥯", "בֵּייגֶל", "motzi", "בייגל עשוי מבצק של לחם, אז המוציא.", "mazon", 2],
+    ["🍰", "עוּגָה", "mezonot", "עוגה עשויה מקמח, אבל היא לא לחם, אז מזונות.", "michya", 1],
+    ["🍪", "עוּגִיָּה", "mezonot", "עוגייה עשויה מקמח, אז מזונות.", "michya", 1],
+    ["🍝", "פַּסְטָה", "mezonot", "פסטה עשויה מקמח חיטה, אז מזונות.", "michya", 1],
+    ["🥐", "קְרוּאָסוֹן", "mezonot", "מאפה מתוק עשוי מקמח, אז מזונות.", "michya", 2],
+    ["🧇", "וַפֶל", "mezonot", "וופל עשוי מקמח, אז מזונות.", "michya", 2],
+    ["🍷", "יַיִן", "gefen", "יין עשוי מענבים, ויש לו ברכה מיוחדת: הגפן.", "gefen", 1],
+    ["🧃", "מִיץ עֲנָבִים", "gefen", "גם על מיץ ענבים מברכים הגפן, כמו על יין.", "gefen", 2],
+    ["🍎", "תַּפּוּחַ", "etz", "תפוח גדל על עץ, אז העץ.", "nefashot", 1],
+    ["🍐", "אַגָּס", "etz", "אגס גדל על עץ, אז העץ.", "nefashot", 1],
+    ["🍊", "תַּפּוּז", "etz", "תפוז גדל על עץ, אז העץ.", "nefashot", 1],
+    ["🍑", "אֲפַרְסֵק", "etz", "אפרסק גדל על עץ, אז העץ.", "nefashot", 1],
+    ["🍒", "דֻּבְדְּבָן", "etz", "דובדבן גדל על עץ, אז העץ.", "nefashot", 2],
+    ["🥭", "מַנְגּוֹ", "etz", "מנגו גדל על עץ, אז העץ.", "nefashot", 2],
+    ["🥑", "אָבוֹקָדוֹ", "etz", "אבוקדו גדל על עץ, אז העץ.", "nefashot", 2],
+    ["🍇", "עֲנָבִים", "etz", "על ענבים מברכים העץ (רק על יין ומיץ ענבים מברכים הגפן). ענבים הם משבעת המינים.", "etz", 2],
+    ["🫒", "זֵיתִים", "etz", "זית גדל על עץ, והוא משבעת המינים.", "etz", 2],
+    ["🌴", "תְּמָרִים", "etz", "תמר גדל על עץ, והוא משבעת המינים.", "etz", 2],
+    ["🥒", "מְלָפְפוֹן", "adama", "מלפפון גדל על צמח נמוך באדמה, אז האדמה.", "nefashot", 1],
+    ["🍅", "עַגְבָנִיָּה", "adama", "עגבנייה גדלה על צמח שלא נשאר משנה לשנה, אז האדמה.", "nefashot", 1],
+    ["🥕", "גֶּזֶר", "adama", "גזר גדל בתוך האדמה, אז האדמה.", "nefashot", 1],
+    ["🫑", "פִּלְפֵּל", "adama", "פלפל גדל על צמח נמוך, אז האדמה.", "nefashot", 1],
+    ["🍌", "בָּנָנָה", "adama", "מפתיע: בננה גדלה על צמח שהגזע שלו לא נשאר שנים כמו עץ, אז האדמה.", "nefashot", 2],
+    ["🍓", "תּוּת", "adama", "תות שדה גדל על שיח נמוך שקרוב לאדמה, אז האדמה.", "nefashot", 2],
+    ["🍉", "אֲבַטִּיחַ", "adama", "אבטיח גדל על האדמה ולא על עץ, אז האדמה.", "nefashot", 2],
+    ["🍈", "מֵלוֹן", "adama", "מלון גדל על האדמה, אז האדמה.", "nefashot", 2],
+    ["🥜", "בָּטְנִים", "adama", "בוטנים גדלים בתוך האדמה, אז האדמה.", "nefashot", 2],
+    ["💧", "מַיִם", "shehakol", "על מים מברכים שהכל.", "nefashot", 1],
+    ["🥛", "חָלָב", "shehakol", "חלב לא גדל מהאדמה, אז שהכל.", "nefashot", 1],
+    ["🥚", "בֵּיצָה", "shehakol", "ביצה לא גדלה מהאדמה, אז שהכל.", "nefashot", 1],
+    ["🧀", "גְּבִינָה", "shehakol", "גבינה עשויה מחלב, אז שהכל.", "nefashot", 1],
+    ["🍫", "שׁוֹקוֹלָד", "shehakol", "על שוקולד מברכים שהכל.", "nefashot", 1],
+    ["🍬", "סֻכָּרִיָּה", "shehakol", "על סוכרייה מברכים שהכל.", "nefashot", 1],
+    ["🍗", "עוֹף", "shehakol", "על בשר ועוף מברכים שהכל.", "nefashot", 1],
+    ["🐟", "דָּג", "shehakol", "על דג מברכים שהכל.", "nefashot", 1],
+    ["🍦", "גְּלִידָה", "shehakol", "על גלידה מברכים שהכל.", "nefashot", 2],
+    ["🍄", "פִּטְרִיּוֹת", "shehakol", "מפתיע: פטריות לא יונקות מהאדמה כמו צמח, אז שהכל.", "nefashot", 2],
+    ["🥤", "מִיץ תַּפּוּזִים", "shehakol", "מפתיע: על פרי מברכים העץ, אבל על מיץ סחוט (חוץ ממיץ ענבים) מברכים שהכל.", "nefashot", 2]
+  ];
+  var LEVELS = [["1", "🍎", "מתחילים", "לחם, עוגה, פרי, ירק ומים", 1], ["2", "🍌", "מלכודות", "בננה? תות? פטריות? מה מברכים?", 2], ["3", "🙏", "ברכה אחרונה", "מה מברכים אחרי שאוכלים", 3]];
+
+  // ---- the phone's voice ----
+  var VOICE = null; function pickV() { try { VOICE = speechSynthesis.getVoices().filter(function (v) { return /^(he|iw)/i.test(v.lang); })[0] || null; } catch (e) {} } pickV(); try { speechSynthesis.onvoiceschanged = pickV; } catch (e) {}
+  function say(t) { try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = "he-IL"; if (VOICE) u.voice = VOICE; u.rate = 0.85; speechSynthesis.speak(u); } catch (e) {} }
+  var plain = function (t) { return String(t).replace(/[֑-ׇ]/g, ""); };
+
+  var app = $("app");
+  function show() { app.replaceChildren.apply(app, [].slice.call(arguments).filter(Boolean)); scrollTo(0, 0); }
+  function home() {
+    drawStars();
+    show(el("section", { class: "card" }, [el("h1", "🙏 איזו ברכה?" + (HUB && HUB.kid ? "" : "")), el("p", { class: "lead", text: "מופיע מאכל, ובוחרים איזו ברכה מברכים עליו. כל תשובה נכונה שווה כוכב." })]),
+      el("section", { class: "levels" }, LEVELS.map(function (L) {
+        var b = S.best[L[0]] || 0;
+        return el("button", { class: "lvl", type: "button", onclick: function () { play(L); } }, [el("span", { class: "e", text: L[1] }), el("span", null, [el("b", "שלב " + L[0] + ": " + L[2]), el("span", { class: "fine", text: L[3] })]), el("span", { class: "st", "aria-label": b + " מתוך 3 כוכבים", text: "★★★".slice(0, b) + "☆☆☆".slice(0, 3 - b) })]);
+      })),
+      el("details", { class: "card" }, [el("summary", { style: "font-weight:800;cursor:pointer", text: "📖 הברכות (להורים ולגדולים)" }),
+        el("p", { style: "margin:0;font-weight:700", text: OPEN + "..." }),
+        el("div", { style: "display:grid;gap:4px" }, Object.keys(B).map(function (k) { return el("div", null, [B[k][0] + " ", el("b", B[k][2])]); })),
+        el("p", { class: "fine", text: "ברכה אחרונה: אחרי לחם ברכת המזון; אחרי עוגה ופסטה על המחיה; אחרי יין על הגפן; אחרי ענבים, תאנים, רימונים, זיתים ותמרים על העץ; ואחרי כל השאר בורא נפשות. ברכה אחרונה מברכים כשאכלו מספיק (כזית) או שתו מספיק (רביעית)." }),
+        el("p", { class: "fine", text: "במשחק יש רק מאכלים שהברכה עליהם ברורה. יש מאכלים שבהם יש מנהגים ודעות שונות, ולשאלה שואלים רב." })]));
+  }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.random() * (i + 1) | 0, t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  function play(L) {
+    var after = L[4] === 3;
+    var pool = after ? FOOD.slice() : FOOD.filter(function (f) { return L[4] === 2 ? f[5] === 2 : f[5] === 1; });
+    // the blessing after: make sure every kind of answer turns up
+    var qs = after ? shuffle(["mazon", "michya", "gefen", "etz", "nefashot"].map(function (k) { return shuffle(pool.filter(function (f) { return f[4] === k; }))[0]; }).concat(shuffle(pool).slice(0, 3))) : shuffle(pool).slice(0, 8);
+    qs = qs.filter(function (f, i) { return qs.indexOf(f) === i; }).slice(0, 8);
+    var i = 0, right = 0;
+    var next = function () {
+      if (i >= qs.length) return end(L, right, qs.length);
+      var f = qs[i], opts = after ? AFTER : B, ans = after ? f[4] : f[2], done = false;
+      var q = after ? "מה מברכים אחרי שאוכלים " + plain(f[1]) + "?" : "איזו ברכה מברכים על " + plain(f[1]) + "?";
+      var fb = el("div", { hidden: "" });
+      var grid = el("div", { class: "opts" }, Object.keys(opts).map(function (k) {
+        var o = opts[k];
+        return el("button", { class: "opt", type: "button", "data-k": k, onclick: function (e) {
+          if (done) return; var b = e.currentTarget, ok = k === ans;
+          if (!ok && !b.classList.contains("no")) { b.classList.add("no"); if (!fb.hidden) return; }
+          done = ok || true;
+          [].forEach.call(grid.children, function (x) { x.disabled = true; if (x.getAttribute("data-k") === ans) x.classList.add("ok"); });
+          if (ok) right++;
+          var a = opts[ans];
+          fb.className = "fb " + (ok ? "ok" : "no"); fb.hidden = false;
+          fb.replaceChildren(el("span", ok ? ["נכון! 🎉", "יופי! ⭐", "כל הכבוד! 👏"][i % 3] : "הפעם זה " + a[1]), after ? null : el("span", { class: "bl", text: OPEN + " " + a[2] }), el("span", { class: "fine", style: "color:inherit;font-weight:600", text: after ? afterWhy(f) : f[3] }),
+            el("button", { class: "btn", type: "button", text: i + 1 < qs.length ? "הבא ←" : "לתוצאה 🏁", onclick: function () { i++; next(); } }));
+          say(ok ? "נכון! " + plain(after ? a[1] : a[2]) : "הפעם זה " + plain(a[1]) + ". " + (after ? "" : f[3]));
+        } }, [el("span", { class: "i", text: o[0] }), el("b", o[1]), after ? el("small", o[2]) : null]);
+      }));
+      show(el("section", { class: "card" }, [el("div", { style: "display:flex;gap:8px;align-items:center" }, [el("button", { class: "btn ghost small", type: "button", text: "✕", "aria-label": "יציאה", onclick: function () { try { speechSynthesis.cancel(); } catch (e) {} home(); } }),
+          el("div", { class: "bar", style: "flex:1" }, [el("i", { style: "width:" + Math.round(100 * i / qs.length) + "%" })]), el("span", { class: "fine", text: (i + 1) + "/" + qs.length })]),
+        el("div", { class: "food", "aria-hidden": "true", text: f[0] }), el("p", { class: "ask", text: q }),
+        el("button", { class: "say", type: "button", text: "🔊 לשמוע", onclick: function () { say(q); } }), grid, fb]));
+      setTimeout(function () { say(q); }, 300);
+    };
+    next();
+  }
+  function afterWhy(f) {
+    return f[4] === "mazon" ? "אחרי לחם מברכים ברכת המזון." : f[4] === "michya" ? "אחרי מאפה מקמח (כמו עוגה ופסטה) מברכים על המחיה." : f[4] === "gefen" ? "אחרי יין ומיץ ענבים מברכים על הגפן."
+      : f[4] === "etz" ? plain(f[1]) + " הם משבעת המינים שהארץ נשתבחה בהם, אז מברכים על העץ." : "אחרי " + plain(f[1]) + " מברכים בורא נפשות.";
+  }
+  function end(L, right, n) {
+    var st = right === n ? 3 : right >= n - 2 ? 2 : right >= n / 2 ? 1 : 0;
+    S.stars += right; if (st > (S.best[L[0]] || 0)) S.best[L[0]] = st; save(); drawStars(); hubStars(right);
+    say(st === 3 ? "מושלם! כל הכבוד!" : "יפה מאוד! " + right + " תשובות נכונות");
+    show(el("section", { class: "card", style: "text-align:center" }, [el("div", { class: "big", text: st === 3 ? "🏆" : st === 2 ? "🌟" : "💪" }), el("h1", right + " מתוך " + n),
+      el("p", { class: "lead", text: st === 3 ? "מושלם! את/ה יודע/ת את הברכות!" : st >= 1 ? "כל הכבוד! עוד קצת ואת/ה אלוף/ה." : "מתאמנים עוד פעם, ובפעם הבאה זה יהיה קל יותר." }),
+      el("div", { style: "font-size:30px;letter-spacing:4px", text: "★★★".slice(0, st) + "☆☆☆".slice(0, 3 - st) }), HUB ? el("p", { class: "fine", text: "⭐ " + right + " כוכבים נכנסו לארנק" }) : null,
+      el("div", { class: "row", style: "display:flex;gap:8px;justify-content:center;flex-wrap:wrap" }, [el("button", { class: "btn", type: "button", text: "🔁 עוד סיבוב", onclick: function () { play(L); } }),
+        L[4] < 3 && st >= 2 ? el("button", { class: "btn ghost", type: "button", text: "לשלב הבא ←", onclick: function () { play(LEVELS[L[4]]); } }) : null, el("button", { class: "btn ghost", type: "button", text: "לשלבים", onclick: home })])]));
+  }
+  home();
+})();
+</script>
