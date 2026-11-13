@@ -57,6 +57,14 @@ label{display:grid;gap:4px;font-weight:700;font-size:14px;color:var(--muted)}
 .ring b{width:96px;height:96px;border-radius:50%;background:var(--surface);display:grid;place-content:center;font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;direction:ltr}
 .ring.over{background:conic-gradient(#FF8A65 100%,var(--line) 0)}
 .ring.paused{filter:grayscale(.8);opacity:.75}
+img.ph{border-radius:50%;object-fit:cover;vertical-align:middle;border:2px solid var(--line);background:var(--surface);display:inline-block}
+.wx{display:grid;gap:4px;justify-items:center;text-align:center;background:color-mix(in srgb,var(--sun) 16%,var(--surface));border:1px solid var(--line);border-radius:16px;padding:10px 14px;font-weight:700}
+.wx b{font-size:18px}.wx small{color:var(--muted);font-weight:600}
+.faces{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}.faces button{appearance:none;border:2px solid var(--line);background:var(--surface);border-radius:16px;font-size:30px;padding:4px 8px;cursor:pointer}
+.faces button[aria-pressed="true"]{border-color:var(--main);background:color-mix(in srgb,var(--main) 14%,var(--surface))}
+.diary{display:grid;gap:6px}.diary div{display:flex;gap:8px;align-items:baseline;border-bottom:1px dashed var(--line);padding-bottom:4px}
+.mic{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:4px 7px;cursor:pointer;font-size:15px}.mic.rec{background:#FF5D5D;color:#fff;border-color:#FF5D5D}
+.join{border:2px solid var(--main)}
 .story-ov{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:14px max(16px,env(safe-area-inset-left,0px)) 110px}
 .story-in{max-width:640px;margin:0 auto;display:grid;gap:12px}
 .story-page{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:20px 18px;display:grid;gap:12px}
@@ -119,7 +127,10 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
   function today(d) { return (d || new Date()).toLocaleDateString("en-CA"); }
   function hm(d) { return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); }
+  // A child's picture: a small photo the parents chose, or the animal.
+  function avatar(k, px) { return k.ph ? el("img", { class: "ph", src: k.ph, alt: "", width: String(px), height: String(px), style: "width:" + px + "px;height:" + px + "px" }) : el("span", { text: k.av }); }
 
+  var CITIES = /*CITIES*/[["ירושלים", 31.778, 35.235, 40]];
   var EMOJI = ["📺", "🧸", "🛁", "🚿", "👕", "🩳", "🪥", "🚽", "🎒", "📖", "💧", "🙏", "😴", "🥛", "🍽️", "🥣", "🥪", "⏰", "🧼", "👟", "🧥", "💇", "🎀", "📚", "🎵", "🤗", "🧺", "🐶", "💊", "🕯️", "⭐"];
   var DEF = {
     evening: { at: "20:00", steps: [["📺", "סוגרים מסך", 1], ["🧸", "מסדרים צעצועים", 5], ["🛁", "מקלחת", 15], ["👕", "פיג׳מה", 5], ["🪥", "צחצוח שיניים", 3], ["🚽", "שירותים", 2], ["🎒", "מכינים תיק למחר", 5], ["📖", "סיפור", 10], ["🙏", "קריאת שמע", 2], ["😴", "לילה טוב", 1]] },
@@ -135,7 +146,8 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   if (!Array.isArray(S.goal.list)) { S.goal.list = [S.goal.prize].concat(["🍦 גלידה", "🎬 ערב סרט", "🛝 יציאה לגינה", "🍕 פיצה", "🎨 יצירה ביחד"].filter(function (p) { return p !== S.goal.prize; })); if (S.goal.rot == null) S.goal.rot = true; }
   if (S.goal.noSat == null) S.goal.noSat = S.remShabbat === false;
   if (S.goal.w0 == null) anchor();
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function store() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function save() { stamp(); store(); if (S.fam && DIRTY) famPush(); }
   // A step can be only for some of the children: its 4th item is the list of their ids (none = everyone).
   // Nov 2026: the morning routine got a hair step; routines saved before that get it once, right after dressing.
   if (!S.hairStep) { var ms = S.r.morning && S.r.morning.steps; if (ms && !ms.some(function (x) { return x[0] === "💇" || x[0] === "🎀"; })) { var di = ms.findIndex(function (x) { return x[0] === "👕"; }); ms.splice(di < 0 ? 0 : di + 1, 0, ["🎀", "מסדרים שיער", 5]); } S.hairStep = 1; save(); }
@@ -182,10 +194,10 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       el("div", { class: "mode" }, [["evening", "🌙", "שגרת ערב", "במיטה ב־" + S.r.evening.at], ["morning", "☀️", "שגרת בוקר", "יוצאים ב־" + S.r.morning.at]].map(function (m) {
         return el("button", { type: "button", "aria-pressed": String(MODE === m[0]), onclick: function () { MODE = m[0]; home(); } }, [el("span", { text: m[1] }), m[2], el("small", m[3])]);
       })),
-      el("p", { class: "clock", text: clockT }),
+      joinCard(), el("p", { class: "clock", text: clockT }),
       S.kids.length ? el("section", { class: "card" }, [el("h2", "מי מתחיל?"), el("div", { class: "kids" }, S.kids.map(function (k) {
         var rn = run(k), ix = idxFor(r, k), n = ix.length || 1, d = ix.filter(function (i) { return rn.done.indexOf(i) >= 0 || rn.skip.indexOf(i) >= 0; }).length;
-        return el("button", { class: "kid", type: "button", onclick: function () { start(k); } }, [el("span", { class: "av", text: k.av }), el("b", k.name), el("div", { class: "mini" }, [el("i", { style: "width:" + Math.round(100 * d / n) + "%" })]), el("span", { class: "fine", text: rn.fin ? "✓ סיים/ה! ⭐ " + starsOf(k, today()) : d ? d + " מתוך " + n : "⭐ השבוע: " + weekStars(k) })]);
+        return el("button", { class: "kid", type: "button", onclick: function () { start(k); } }, [el("span", { class: "av" }, [avatar(k, 58)]), el("b", k.name), el("div", { class: "mini" }, [el("i", { style: "width:" + Math.round(100 * d / n) + "%" })]), el("span", { class: "fine", text: rn.fin ? "✓ סיים/ה! ⭐ " + starsOf(k, today()) : d ? d + " מתוך " + n : "⭐ השבוע: " + weekStars(k) })]);
       }))]) : el("section", { class: "card" }, [el("h1", "שגרה בלי ויכוחים"), el("p", { class: "lead", text: "כל שלב בתורו, עם תמונה גדולה, שעון עדין וכוכב על כל שלב. מוסיפים את הילדים למטה ומתחילים." })]),
       prizeCard(), parents()]));
     tick = setInterval(function () { if (!$("home").hidden && !document.querySelector("input:focus,select:focus")) home(); }, 60000);
@@ -194,7 +206,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     if (!S.kids.length) return null;
     return el("section", { class: "card prize" }, [el("h2", "🏆 הפרס של השבוע: " + prizeOf())].concat(S.kids.map(function (k) {
       var w = weekStars(k), pct = Math.min(100, Math.round(100 * w / S.goal.n));
-      return el("div", { class: "prize" }, [el("div", { class: "row" }, [el("b", k.av + " " + k.name), el("span", { class: "fine", style: "margin-inline-start:auto", text: w >= S.goal.n ? "🎉 הגיע/ה ליעד!" : w + " / " + S.goal.n + " ⭐" })]), el("div", { class: "big-bar" }, [el("i", { style: "width:" + pct + "%" })]),
+      return el("div", { class: "prize" }, [el("div", { class: "row" }, [el("b", { style: "display:inline-flex;gap:6px;align-items:center" }, [avatar(k, 26), k.name]), el("span", { class: "fine", style: "margin-inline-start:auto", text: w >= S.goal.n ? "🎉 הגיע/ה ליעד!" : w + " / " + S.goal.n + " ⭐" })]), el("div", { class: "big-bar" }, [el("i", { style: "width:" + pct + "%" })]),
         el("div", { class: "week" }, weekDays().map(function (d) { var n = starsOf(k, today(d)), fut = today(d) > today(); return el("div", null, [el("div", { class: "col" }, [el("i", { style: "height:" + Math.min(100, n * 6) + "%" })]), el("span", { text: "אבגדהוש"[d.getDay()] + "׳", style: fut ? "opacity:.45" : today(d) === today() ? "font-weight:900" : "" }), el("span", { class: "fine", text: n || "" })]); }))]);
     })).concat([el("p", { class: "fine", text: "כוכב על כל שלב, ועוד 3 כוכבים כשמסיימים בזמן. השבוע מתחיל מחדש בכל יום ראשון" + (S.goal.noSat ? " ונגמר בשישי." : ".") + (S.goal.rot && (S.goal.list || []).length > 1 ? " בשבוע הבא: " + prizeOf(1) : "") })]));
   }
@@ -239,13 +251,13 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       return el(open ? "button" : "span", open ? { class: "", type: "button", text: x[0], title: "לעבור ל" + x[1], "aria-label": "לעבור ל" + x[1], onclick: function () { go(j); } } : { class: ok ? "ok" : sk ? "skip" : "cur", text: ok ? "✓" : x[0] });
     });
     $("run").replaceChildren(el("div", { class: "wrap", style: "padding:0" }, [el("div", { class: "run" }, [
-      el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { keep(); clearInterval(tick); home(); } }), el("span", { text: k.av + " " + k.name }), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
+      el("div", { class: "who" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: function () { keep(); clearInterval(tick); home(); } }), el("span", { style: "display:inline-flex;gap:6px;align-items:center" }, [avatar(k, 30), k.name]), el("span", { class: "sp" }), el("span", { class: "fine", text: "⭐ " + starsOf(k, today()) })]),
       el("div", { class: "dots" }, dots),
-      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, s[0] === "📖" || /סיפור/.test(s[1]) ? el("button", { class: "btn small", type: "button", style: "background:var(--sun);color:#2B2240", text: "📖 לפתוח סיפור לילה", onclick: function () { storyOpen(k); } }) : null, ring, pz, lt]),
+      el("div", { class: "step" }, [el("p", { class: "fine", text: "שלב " + (idxFor(r, k).indexOf(i) + 1) + " מתוך " + idxFor(r, k).length }), el("div", { class: "em", text: s[0] }), el("div", { class: "lb", text: s[1] }), s[0] === "💇" || s[0] === "🎀" ? hairPick(k) : null, MODE === "morning" && (s[0] === "👕" || s[0] === "🧥" || /מתלבש|מעיל|לבוש/.test(s[1])) ? wxCard() : null, s[0] === "📖" || /סיפור/.test(s[1]) ? el("button", { class: "btn small", type: "button", style: "background:var(--sun);color:#2B2240", text: "📖 לפתוח סיפור לילה", onclick: function () { storyOpen(k); } }) : null, ring, pz, lt]),
       el("button", { class: "btn go done", type: "button", text: "✅ סיימתי!", onclick: function () { keep(); rn.paused = false; rn.done.push(i); rn.hist.push(i); if (rn.paid.indexOf(i) < 0) { rn.paid.push(i); addStars(k, 1); if (!HUB || HUB.kid === k.name) hubStars(1, "שגרה"); } save(); chime(); burst(this); setTimeout(next, 650); } }),
       el("div", { class: "row", style: "justify-content:center" }, [back, el("button", { class: "btn ghost small", type: "button", text: "⏭ לא היום", onclick: function () { keep(); rn.paused = false; rn.skip.push(i); rn.hist.push(i); save(); next(); } })])])]));
     drawPause();
-    sayHe((base ? "חוזרים ל: " : "עכשיו: ") + s[1]);
+    if (s[4] && !S.mute) playVoice(s[4]).catch(function () { sayHe((base ? "חוזרים ל: " : "עכשיו: ") + s[1]); }); else sayHe((base ? "חוזרים ל: " : "עכשיו: ") + s[1]);
     var paint = function () {
       var g = gone(), rest = mins * 60 - g, b = ring.firstChild;
       if (paused) { b.textContent = "⏸"; return; }
@@ -320,7 +332,8 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   }
   function finish() {
     clearInterval(tick); var k = cur.k, r = R(), onTime = Date.now() <= endAt(r).getTime() + 5 * 6e4;
-    if (!cur.rn.fin) { cur.rn.fin = Date.now(); if (onTime) { addStars(k, 3); if (!HUB || HUB.kid === k.name) hubStars(3, "שגרה בזמן"); } save(); }
+    if (!cur.rn.fin) { cur.rn.fin = Date.now(); if (onTime) { addStars(k, 3); if (!HUB || HUB.kid === k.name) hubStars(3, "שגרה בזמן"); } save();
+      if (S.fam) famApi({ op: "note", dev: DEV, title: "⭐ " + k.name + (k.g === "f" ? " סיימה" : k.g === "m" ? " סיים" : " סיים/ה") + " את שגרת ה" + (MODE === "evening" ? "ערב" : "בוקר"), body: "ב־" + hm(new Date()) + " · ⭐ " + starsOf(k, today()) + " כוכבים היום" + (onTime ? " · בזמן!" : "") }).catch(function () {}); }
     chime([523, 659, 784, 1046.5]);
     goodnight(k, false, onTime);
   }
@@ -331,6 +344,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       el("div", { class: "moon", text: ev ? "🌙" : "☀️" }), el("h1", (ev ? "לילה טוב, " : "יום נפלא, ") + k.name + "!"),
       el("p", { style: "font-size:22px;font-weight:800", text: "⭐ " + starsOf(k, today()) + " כוכבים היום" + (onTime && !again ? " · כולל בונוס של 3 על הזמן!" : "") }),
       ev && S.shema !== false ? el("div", { class: "shema" }, [el("p", "שְׁמַע יִשְׂרָאֵל, ה׳ אֱלֹהֵינוּ, ה׳ אֶחָד.")]) : null,
+      ev ? diaryCard(k) : null,
       ev ? el("button", { class: "btn", type: "button", text: "🌌 אור לילה", onclick: nightLight }) : null,
       el("button", { class: "btn ghost", type: "button", text: "→ חזרה", onclick: home })])]));
     if (!again) sayHe(ev ? "לילה טוב " + k.name : "יום נפלא " + k.name);
@@ -361,7 +375,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     d.append(inner); if (S.parOpen) d.open = true; d.addEventListener("toggle", function () { S.parOpen = d.open; save(); });
     // kids
     var nm = el("input", { maxlength: "14", placeholder: "שם", "aria-label": "שם הילד/ה", style: "flex:1;min-width:120px" });
-    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "👧 הילדים"), el("div", { class: "row" }, S.kids.map(function (k, i) { return el("span", { class: "chip", style: "display:inline-flex;gap:6px;align-items:center" }, [el("button", { class: "btn small ghost", style: "padding:0 4px;font-size:22px", type: "button", title: "להחליף דמות", text: k.av, onclick: function () { k.av = AVS[(AVS.indexOf(k.av) + 1) % AVS.length]; save(); home(); } }), k.name, el("button", { class: "btn small ghost", style: "padding:2px 6px", type: "button", "aria-label": "להסיר את " + k.name, text: "✕", onclick: function () { if (confirmDel(k)) { S.kids.splice(i, 1); save(); home(); } } })]); })),
+    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "👧 הילדים"), el("div", { class: "row" }, S.kids.map(function (k, i) { return el("span", { class: "chip", style: "display:inline-flex;gap:6px;align-items:center" }, [el("button", { class: "btn small ghost", style: "padding:0 4px;font-size:22px", type: "button", title: "להחליף דמות", text: k.av, onclick: function () { k.av = AVS[(AVS.indexOf(k.av) + 1) % AVS.length]; save(); home(); } }), k.ph ? avatar(k, 28) : null, k.name, photoBtn(k), el("button", { class: "btn small ghost", style: "padding:2px 6px", type: "button", "aria-label": "להסיר את " + k.name, text: "✕", onclick: function () { if (confirmDel(k)) { S.kids.splice(i, 1); save(); home(); } } })]); })),
       el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); var v = nm.value.trim(); if (!v) return; if (S.kids.length >= 6) { toast("עד 6 ילדים"); return; } S.kids.push({ id: Math.random().toString(36).slice(2, 9), name: v.slice(0, 14), av: AVS[S.kids.length % AVS.length] }); save(); home(); } }, [nm, el("button", { class: "btn small", type: "submit", style: "box-shadow:none", text: "הוספה" })])]));
     // steps of the routine shown above
     var r = R(), list = el("div", { class: "steps" });
@@ -379,10 +393,10 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
             var cur = !s[3] || !s[3].length ? S.kids.map(function (x) { return x.id; }) : s[3].slice(), at = cur.indexOf(k.id);
             if (at >= 0) cur.splice(at, 1); else cur.push(k.id);
             if (!cur.length) { toast("לפחות ילד/ה אחד/ת"); return; }
-            s[3] = cur.length === S.kids.length ? undefined : cur; if (!s[3]) s.length = 3; save(); drawSteps();
+            s[3] = cur.length === S.kids.length ? null : cur; save(); drawSteps();
           } });
         }))) : null;
-        return el("div", { class: "srow" }, [em, lb, mn, el("div", { class: "ctl" }, [
+        return el("div", { class: "srow" }, [em, lb, mn, el("div", { class: "ctl" }, [voiceCtl(s, drawSteps),
           el("button", { type: "button", "aria-label": "למעלה", text: "▲", onclick: function () { if (i) { r.steps.splice(i - 1, 0, r.steps.splice(i, 1)[0]); save(); drawSteps(); } } }),
           el("button", { type: "button", "aria-label": "למטה", text: "▼", onclick: function () { if (i < r.steps.length - 1) { r.steps.splice(i + 1, 0, r.steps.splice(i, 1)[0]); save(); drawSteps(); } } }),
           el("button", { type: "button", "aria-label": "למחוק", text: "✕", onclick: function () { if (r.steps.length > 1) { r.steps.splice(i, 1); save(); drawSteps(); timeNote.textContent = note(); } } })]), who]);
@@ -413,10 +427,181 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       plist, add, el("label", null, ["ביעד של", gn]),
       el("h2", "⚙️ אפשרויות"), el("div", { class: "row" }, [opt("mute", "🔊 הקראת השלבים"), opt("shema", "🙏 שמע ישראל בסוף"), opt("noise", "🌊 רעש לבן באור הלילה")])]));
     inner.append(reminders());
-    inner.append(el("p", { class: "fine", text: "הכול נשמר רק בטלפון הזה. רוצים שגם המסך ייסגר בשעת השינה? ב־HaniaMasach אפשר לקבוע שעת שינה לכל ילד." }));
+    inner.append(famCard());
+    var dc = diaryList(); if (dc) inner.append(dc);
+    var cs = el("select", { "aria-label": "העיר, למזג האוויר" }, CITIES.map(function (c) { var o = el("option", { value: c[0], text: c[0] }); if (c[0] === place().name) o.selected = true; return o; }));
+    cs.addEventListener("change", function () { S.city = cs.value; store(); try { localStorage.removeItem("sh.wx"); } catch (e) {} });
+    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "🌤️ מזג האוויר בבוקר"), el("p", { class: "fine", text: "בשלב \"מתלבשים\" מופיע מזג האוויר של היום, ומה כדאי ללבוש." }), el("label", null, ["העיר", cs])]));
+    inner.append(el("p", { class: "fine", text: (S.fam ? "הכול נשמר בטלפון הזה ובטלפונים ששותפו." : "הכול נשמר רק בטלפון הזה.") + " רוצים שגם המסך ייסגר בשעת השינה? ב־HaniaMasach אפשר לקבוע שעת שינה לכל ילד." }));
     return el("section", { class: "card" }, [d]);
   }
   function confirmDel(k) { return window.confirm ? confirm("להסיר את " + k.name + "?") : true; }
+
+  // ---- the child's photo: a small square picture, kept with the child (and shared with the family) ----
+  function photoBtn(k) {
+    var inp = el("input", { type: "file", accept: "image/*", hidden: "", "aria-label": "תמונה של " + k.name });
+    inp.addEventListener("change", function () {
+      var f = inp.files && inp.files[0]; if (!f) return;
+      var img = new Image(), url = URL.createObjectURL(f);
+      img.onload = function () { var n = Math.min(img.width, img.height), c = document.createElement("canvas"); c.width = c.height = 160; c.getContext("2d").drawImage(img, (img.width - n) / 2, (img.height - n) / 2, n, n, 0, 0, 160, 160); URL.revokeObjectURL(url); k.ph = c.toDataURL("image/jpeg", 0.8); save(); home(); toast("📷 התמונה נשמרה"); };
+      img.onerror = function () { toast("לא הצלחנו לפתוח את התמונה"); }; img.src = url;
+    });
+    return el("span", { style: "display:inline-flex;gap:2px" }, [inp, el("button", { class: "btn small ghost", style: "padding:2px 6px", type: "button", title: "תמונה של " + k.name, text: "📷", onclick: function () { inp.click(); } }),
+      k.ph ? el("button", { class: "btn small ghost", style: "padding:2px 6px;font-size:12px", type: "button", title: "בלי תמונה", text: "↺", onclick: function () { delete k.ph; save(); home(); } }) : null]);
+  }
+
+  // ---- the weather when getting dressed (Open-Meteo, for the chosen town), kept for an hour ----
+  if (!S.city) { try { var cm = document.cookie.match(/(?:^|; *)h360_i=([^;]*)/), co = cm ? JSON.parse(decodeURIComponent(cm[1])) : {}; if (co.c && CITIES.some(function (c) { return c[0] === co.c[0]; })) S.city = co.c[0]; } catch (e) {} }
+  function place() { var c = CITIES.filter(function (x) { return x[0] === S.city; })[0] || CITIES[0]; return { name: c[0], lat: c[1], lon: c[2] }; }
+  function weather() {
+    var p = place(), c = null; try { c = JSON.parse(localStorage.getItem("sh.wx") || "null"); } catch (e) {}
+    if (c && c.city === p.name && c.day === today() && Date.now() - c.at < 36e5) return Promise.resolve(c);
+    return fetch("https://api.open-meteo.com/v1/forecast?latitude=" + p.lat + "&longitude=" + p.lon + "&hourly=temperature_2m,precipitation_probability,weather_code&timezone=Asia%2FJerusalem&forecast_days=1")
+      .then(function (r) { return r.json(); }).then(function (j) {
+        var h = j.hourly, lo = 99, hi = -99, rain = 0, wet = false, now = null, hr = new Date().getHours();
+        h.time.forEach(function (t, i) { var H = +t.slice(11, 13); if (H === Math.max(6, Math.min(hr, 16))) now = Math.round(h.temperature_2m[i]); if (H < 7 || H > 16) return; lo = Math.min(lo, h.temperature_2m[i]); hi = Math.max(hi, h.temperature_2m[i]); rain = Math.max(rain, h.precipitation_probability[i] || 0); if (/^(5[1-9]|6[0-7]|8[0-2]|9[5-9])$/.test(String(h.weather_code[i]))) wet = true; });
+        var o = { city: p.name, day: today(), at: Date.now(), lo: Math.round(lo), hi: Math.round(hi), now: now, rain: rain, wet: wet };
+        try { localStorage.setItem("sh.wx", JSON.stringify(o)); } catch (e) {} return o;
+      });
+  }
+  function dress(w) {
+    var t = w.lo, tip = t <= 10 ? "🧥 מעיל חם, ואולי כובע וצעיף" : t <= 14 ? "🧥 מעיל או קפוצ׳ון עבה" : t <= 18 ? "🧶 סוודר או קפוצ׳ון" : t <= 23 ? "👕 חולצה קצרה, ומשהו דק לבוקר" : "🩳 בגדים קלים, כובע ובקבוק מים";
+    var out = [tip]; if (w.wet || w.rain >= 50) out.push("☔ מעיל גשם או מטריה"); else if (w.rain >= 30) out.push("🌂 אולי יירד גשם"); if (w.hi - w.lo >= 8 && t <= 18) out.push("🧅 שכבות: בצהריים יהיה חם יותר");
+    return out;
+  }
+  function wxCard() {
+    var box = el("div", { class: "wx", "aria-live": "polite" }, [el("small", "בודקים את מזג האוויר...")]);
+    weather().then(function (w) {
+      var tips = dress(w);
+      box.replaceChildren(el("b", "🌤️ היום ב" + w.city + ": בין " + w.lo + " ל־" + w.hi + " מעלות" + (w.rain >= 30 ? " · ☔ " + w.rain + "% גשם" : "")), el("span", tips.join(" · ")));
+      try { if (!S.mute && box.isConnected) { var v = speechSynthesis.getVoices().filter(function (x) { return /^he|^iw/i.test(x.lang); })[0]; if (v) { var u = new SpeechSynthesisUtterance("היום " + w.lo + " עד " + w.hi + " מעלות. " + tips.map(function (x) { return x.replace(/^\S+ /, ""); }).join(". ")); u.voice = v; u.lang = v.lang; u.rate = 0.9; speechSynthesis.speak(u); } } } catch (e) {}
+    }).catch(function () { box.remove(); });
+    return box;
+  }
+
+  // ---- "how was the day?" at the end of the evening routine ----
+  var FACES = ["😄", "🙂", "😐", "😕", "😢"];
+  function diaryCard(k) {
+    var d = today(); S.diary = S.diary || {}; var e = (S.diary[d] || {})[k.id] || {};
+    var put = function (o) { S.diary[d] = S.diary[d] || {}; S.diary[d][k.id] = Object.assign({}, S.diary[d][k.id] || {}, o, { t: Date.now() }); save(); };
+    var txt = el("textarea", { rows: "2", maxlength: "140", placeholder: "משהו טוב שקרה היום...", "aria-label": "משהו טוב שקרה היום", style: "width:100%;font:inherit;font-size:17px;border:1.5px solid var(--line);border-radius:14px;padding:10px;background:var(--surface);color:var(--ink)" });
+    txt.value = e.txt || ""; txt.addEventListener("change", function () { put({ txt: txt.value.trim().slice(0, 140) }); toast("נשמר 💛"); });
+    var faces = el("div", { class: "faces", role: "group", "aria-label": "איך היה היום?" }, FACES.map(function (f) { return el("button", { type: "button", "aria-pressed": String(e.f === f), text: f, onclick: function () { put({ f: f }); [].forEach.call(faces.children, function (b) { b.setAttribute("aria-pressed", String(b.textContent === f)); }); } }); }));
+    return el("div", { style: "display:grid;gap:8px;width:100%" }, [el("b", { style: "font-size:19px", text: "💬 איך היה היום, " + k.name + "?" }), faces, txt]);
+  }
+  function diaryList() {
+    var rows = [], D = S.diary || {};
+    Object.keys(D).sort().reverse().slice(0, 14).forEach(function (d) { S.kids.forEach(function (k) { var e = D[d][k.id]; if (e && (e.f || e.txt)) rows.push(el("div", null, [el("small", { class: "fine", text: new Date(d + "T12:00").toLocaleDateString("he-IL", { weekday: "short", day: "numeric", month: "numeric" }) }), avatar(k, 22), el("span", { text: (e.f || "") + " " + (e.txt || "") })])); }); });
+    return rows.length ? el("details", null, [el("summary", "📔 איך היה היום? (שבועיים אחרונים)"), el("div", { class: "diary", style: "margin-top:8px" }, rows)]) : null;
+  }
+
+  // ---- the parents' own voice for a step: recorded once (up to 8 seconds), played instead of the phone's voice ----
+  function idb() { return new Promise(function (res, rej) { var q = indexedDB.open("shigra-voice", 1); q.onupgradeneeded = function () { q.result.createObjectStore("v"); }; q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; }); }
+  function vGet(id) { return idb().then(function (db) { return new Promise(function (res) { var g = db.transaction("v").objectStore("v").get(id); g.onsuccess = function () { res(g.result || null); }; g.onerror = function () { res(null); }; }); }); }
+  function vPut(id, blob) { return idb().then(function (db) { return new Promise(function (res) { var t = db.transaction("v", "readwrite"); t.objectStore("v").put(blob, id); t.oncomplete = function () { res(); }; t.onerror = function () { res(); }; }); }); }
+  function b64(blob) { return new Promise(function (res) { var r = new FileReader(); r.onload = function () { res(String(r.result).split(",")[1] || ""); }; r.readAsDataURL(blob); }); }
+  function voiceBlob(id) {
+    return vGet(id).then(function (b) {
+      if (b || !S.fam) return b;
+      return famApi({ op: "voice-get", id: id }).then(function (j) { if (!j.data) return null; var bin = atob(j.data), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); var bl = new Blob([a], { type: j.mime }); return vPut(id, bl).then(function () { return bl; }); });
+    });
+  }
+  var playing = null;
+  function playVoice(id) { return voiceBlob(id).then(function (b) { if (!b) throw new Error("none"); try { speechSynthesis.cancel(); } catch (e) {} if (playing) playing.pause(); playing = new Audio(URL.createObjectURL(b)); return playing.play(); }); }
+  function voiceCtl(s, redraw) {
+    if (!window.MediaRecorder || !navigator.mediaDevices) return null;
+    var b = el("button", { class: "mic", type: "button", title: s[4] ? "הקול שלכם לשלב הזה (לחיצה לשמיעה)" : "להקליט את ההוראה בקול שלכם", text: s[4] ? "🔊" : "🎤" });
+    b.onclick = function () {
+      if (s[4]) { playVoice(s[4]).catch(function () { toast("ההקלטה לא נמצאה בטלפון הזה"); }); return; }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (st) {
+        var rec = new MediaRecorder(st), parts = [], t0 = Date.now(), iv;
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) parts.push(e.data); };
+        rec.onstop = function () {
+          clearInterval(iv); st.getTracks().forEach(function (t) { t.stop(); });
+          var blob = new Blob(parts, { type: rec.mimeType || "audio/webm" }); if (blob.size < 800) { toast("ההקלטה קצרה מדי"); redraw(); return; }
+          var id = Math.random().toString(36).slice(2, 12).replace(/[^a-z0-9]/g, "x");
+          vPut(id, blob).then(function () { s[4] = id; save(); redraw(); toast("🎤 נשמר. מעכשיו הילדים ישמעו את הקול שלכם בשלב הזה");
+            if (S.fam) b64(blob).then(function (data) { return famApi({ op: "voice-put", id: id, mime: (blob.type || "audio/webm").split(";")[0], data: data }); }).catch(function () {}); });
+        };
+        rec.start(); b.classList.add("rec");
+        iv = setInterval(function () { var n = Math.round((Date.now() - t0) / 1000); b.textContent = "⏺ " + n + " · עצירה"; if (n >= 8 && rec.state === "recording") rec.stop(); }, 250);
+        b.onclick = function () { if (rec.state === "recording") rec.stop(); };
+      }).catch(function () { toast("צריך לאשר גישה למיקרופון"); });
+    };
+    var del = s[4] ? el("button", { class: "mic", type: "button", title: "למחוק את ההקלטה", "aria-label": "למחוק את ההקלטה", text: "✕🎤", onclick: function () { s[4] = null; save(); redraw(); } }) : null;
+    return el("span", { style: "display:inline-flex;gap:3px" }, [b, del]);
+  }
+
+  // ---- sharing with another parent: the same routine on both phones (shigra/family.js) ----
+  var SHARED = ["kids", "r", "goal", "opts"], SN = {}, SNR = {}, SNO = "", DIRTY = false;
+  function optsOf() { return { mute: !!S.mute, shema: S.shema !== false, noise: S.noise !== false }; }
+  function docOf() { return { kids: S.kids, r: S.r, goal: S.goal, opts: optsOf(), runs: S.runs, stars: S.stars, hair: S.hair || {}, diary: S.diary || {}, stories: S.stories || [], _t: S._t || {} }; }
+  function plainRun(x) { var o = Object.assign({}, x); delete o.u; return JSON.stringify(o); }
+  function others() { return JSON.stringify([S.stars, S.hair || {}, S.diary || {}, (S.stories || []).map(function (x) { return x.id; })]); }
+  // what changed since the last look: whole fields get a time, a run gets its own time (u)
+  function stamp() {
+    if (!SHARED) return; // the first saves, before this part of the page has run
+    S._t = S._t || {}; var now = Date.now();
+    SHARED.forEach(function (f) { var j = JSON.stringify(f === "opts" ? optsOf() : S[f]); if (SN[f] !== undefined && SN[f] !== j) { S._t[f] = now; DIRTY = true; } SN[f] = j; });
+    Object.keys(S.runs).forEach(function (d) { Object.keys(S.runs[d]).forEach(function (k) { var x = S.runs[d][k], j = plainRun(x), id = d + "|" + k; if (SNR[id] !== j) { if (SNR[id] !== undefined || !x.u) { x.u = now; DIRTY = true; } SNR[id] = j; } }); });
+    var o = others(); if (SNO && SNO !== o) DIRTY = true; SNO = o;
+  }
+  function resnap() { SN = {}; SNR = {}; SHARED.forEach(function (f) { SN[f] = JSON.stringify(f === "opts" ? optsOf() : S[f]); }); Object.keys(S.runs).forEach(function (d) { Object.keys(S.runs[d]).forEach(function (k) { SNR[d + "|" + k] = plainRun(S.runs[d][k]); }); }); SNO = others(); }
+  resnap();
+  function famApi(b) { return fetch("/api/shigra/fam", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ fam: S.fam && S.fam.id, key: S.fam && S.fam.key }, b)) }).then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j.error || "x"); e.status = r.status; throw e; } return j; }); }); }
+  // put the shared copy into this phone, keeping the objects a running step holds
+  function apply(doc, ver) {
+    if (!doc) return; var curChanged = false;
+    if (Array.isArray(doc.kids)) S.kids = doc.kids.map(function (n) { var o = S.kids.filter(function (x) { return x.id === n.id; })[0]; if (!o) return n; Object.keys(o).forEach(function (k) { delete o[k]; }); return Object.assign(o, n); });
+    if (doc.r) S.r = doc.r; if (doc.goal) S.goal = doc.goal;
+    if (doc.opts) { S.mute = !!doc.opts.mute; S.shema = doc.opts.shema; S.noise = doc.opts.noise; }
+    var R2 = doc.runs || {};
+    Object.keys(R2).forEach(function (d) { S.runs[d] = S.runs[d] || {}; Object.keys(R2[d]).forEach(function (k) { var o = S.runs[d][k], n = R2[d][k]; if (!o) { S.runs[d][k] = n; return; } if ((+n.u || 0) > (+o.u || 0)) { Object.keys(o).forEach(function (x) { delete o[x]; }); Object.assign(o, n); if (cur && cur.rn === o) curChanged = true; } }); });
+    S.stars = doc.stars || S.stars; S.hair = doc.hair || S.hair; S.diary = doc.diary || S.diary; S.stories = doc.stories || S.stories; S._t = doc._t || S._t;
+    S.fam.ver = ver; resnap(); DIRTY = false; store();
+    var busy = document.querySelector("input:focus,select:focus,textarea:focus,.story-ov") || document.querySelector(".mic.rec");
+    if (!$("run").hidden) { if (curChanged && !busy) next(); } else if (!busy) home();
+  }
+  var pushT = null, pushing = false;
+  function famPush() { clearTimeout(pushT); pushT = setTimeout(function () { if (pushing) { famPush(); return; } pushing = true; DIRTY = false;
+    famApi({ op: "put", doc: docOf() }).then(function (j) { if (j.ver !== S.fam.ver) apply(j.doc, j.ver); }).catch(function (e) { DIRTY = true; if (e.status === 403) famGone(); }).then(function () { pushing = false; }); }, 1200); }
+  function famPoll() { if (!S.fam || pushing || DIRTY || document.hidden) return; famApi({ op: "get", ver: S.fam.ver }).then(function (j) { if (!j.same && j.doc) apply(j.doc, j.ver); }).catch(function (e) { if (e.status === 403) famGone(); }); }
+  function famGone() { toast("השיתוף הזה כבר לא פעיל"); delete S.fam; store(); home(); }
+  setInterval(famPoll, 15000); document.addEventListener("visibilitychange", famPoll);
+  function famLink() { return location.origin + "/#fam=" + S.fam.id + "." + S.fam.key; }
+  function famShare() { var t = "השגרה של הילדים, משותפת לשנינו: אותם שלבים, אותה התקדמות ואותם כוכבים. פותחים מהטלפון שלך:\n" + famLink(); return el("div", { class: "row" }, [el("a", { class: "btn small", style: "box-shadow:none;text-decoration:none", href: "https://wa.me/?text=" + encodeURIComponent(t), target: "_blank", rel: "noopener", text: "💬 לשלוח בוואטסאפ" }), el("button", { class: "btn small ghost", type: "button", text: "📋 להעתיק קישור", onclick: function () { try { navigator.clipboard.writeText(famLink()).then(function () { toast("הקישור הועתק"); }); } catch (e) { prompt("הקישור:", famLink()); } } })]); }
+  function famNote(on) {
+    var done = function (ep) { return famApi({ op: on ? "sub" : "unsub", dev: DEV, endpoint: ep }).then(function () { S.fam.note = on; store(); home(); toast(on ? "🔔 נודיע כשילד מסיים שגרה בטלפון אחר" : "ההודעות כבויות"); }); };
+    if (!on) return done("").catch(function () {});
+    if (!canPush) { toast("כאן אין התראות. באייפון: שיתוף ← הוספה למסך הבית"); return; }
+    (PUSH_HUB ? hubPush("endpoint", {}).then(function (j) { if (!j.endpoint) throw new Error("x"); return j.endpoint; })
+      : Notification.requestPermission().then(function (p) { if (p !== "granted") throw new Error("perm"); return getSub(true); }).then(function (s) { return s.endpoint; }))
+      .then(done).catch(function () { toast("לא הצלחנו להפעיל הודעות"); });
+  }
+  function famCard() {
+    var box = el("div", { style: "display:grid;gap:8px" }, [el("h2", "👨‍👩‍👧 שיתוף עם הורה נוסף")]);
+    if (!S.fam) {
+      box.append(el("p", { class: "fine", text: "ההורה השני יראה בטלפון שלו בדיוק אותה שגרה: הילדים, השלבים, ההתקדמות של היום, הכוכבים, הפרס וההקלטות. כל שינוי אצל אחד מופיע תוך רגע אצל השני." }),
+        el("button", { class: "btn small", type: "button", text: "🔗 ליצור קישור לשיתוף", onclick: function (ev) { var b = ev.currentTarget; b.disabled = true; stamp();
+          famApi({ op: "new", doc: docOf() }).then(function (j) { S.fam = { id: j.fam, key: j.key, ver: j.ver }; store(); home(); toast("✓ השגרה משותפת. עכשיו שולחים את הקישור"); }).catch(function () { b.disabled = false; toast("לא הצלחנו ליצור שיתוף"); }); } }));
+      return box;
+    }
+    box.append(el("p", { class: "fine", text: "✓ השגרה משותפת. מי שפותח את הקישור רואה ומשנה הכול, אז שולחים אותו רק להורה השני (או לבייביסיטר)." }), famShare(),
+      el("div", { class: "row" }, [el("button", { class: "chip", type: "button", "aria-pressed": String(!!S.fam.note), text: "🔔 הודעה לטלפון הזה כשילד מסיים שגרה", onclick: function () { famNote(!S.fam.note); } })]),
+      el("button", { class: "btn small ghost", type: "button", text: "לצאת מהשיתוף בטלפון הזה", onclick: function () { if (!confirm("לצאת מהשיתוף? השגרה תישאר בטלפון הזה, אבל לא תתעדכן יותר.")) return; if (S.fam.note) famApi({ op: "unsub", dev: DEV }).catch(function () {}); delete S.fam; store(); home(); } }));
+    return box;
+  }
+  // opening a share link: join (this phone's routine is replaced by the shared one)
+  function joinCard() {
+    var m = /^#fam=([A-Za-z0-9]{10})\.([A-Za-z0-9]{22})$/.exec(location.hash); if (!m) return null;
+    if (S.fam && S.fam.id === m[1]) { try { history.replaceState(null, "", location.pathname); } catch (e) {} return null; }
+    var drop = function () { try { history.replaceState(null, "", location.pathname); } catch (e) {} home(); };
+    return el("section", { class: "card join" }, [el("h2", "👨‍👩‍👧 הוזמנת לשגרה משותפת"), el("p", { class: "fine", text: "בטלפון הזה תופיע אותה שגרה כמו אצל ההורה ששלח: הילדים, השלבים, ההתקדמות והכוכבים." + (S.kids.length ? " מה שיש עכשיו בטלפון הזה יוחלף בשגרה המשותפת." : "") }),
+      el("div", { class: "row" }, [el("button", { class: "btn", type: "button", text: "✓ להצטרף", onclick: function (ev) { ev.currentTarget.disabled = true; var f = { id: m[1], key: m[2], ver: 0 };
+        fetch("/api/shigra/fam", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "get", fam: f.id, key: f.key, ver: -1 }) }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+          .then(function (j) { S.fam = f; S.runs = {}; apply(j.doc, j.ver); try { history.replaceState(null, "", location.pathname); } catch (e) {} home(); toast("✓ הצטרפת. השגרה משותפת"); })
+          .catch(function () { toast("הקישור לא תקין או שהשיתוף נסגר"); drop(); }); } }), el("button", { class: "btn ghost small", type: "button", text: "לא עכשיו", onclick: drop })])]);
+  }
 
   // ---- a reminder when it is time to start (HaniaDat's reminder service) ----
   var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -428,7 +613,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   var PUSH_HUB = (function () { try { return new URLSearchParams(location.search).get("in") === "hub" && window.parent !== window; } catch (e) { return false; } })();
   if (PUSH_HUB) {
     canPush = true;
-    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
+    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true, endpoint: e.data.endpoint }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
     var HUBSUB = { endpoint: "hub", toJSON: function () { return null; } };
     getSub = function () { return Promise.resolve(HUBSUB); };
     var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
@@ -464,6 +649,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   function resync() { if (!canPush || !S.rem || !(S.rem.evening || S.rem.morning)) return; var it = items(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).catch(function () {}); }
 
   home(); resync();
+  addEventListener("hashchange", function () { if (/^#fam=/.test(location.hash)) { $("run").hidden = true; home(); scrollTo(0, 0); } });
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && !$("home").hidden) { MODE = MODE || which(); home(); } });
 })();
 </script>
