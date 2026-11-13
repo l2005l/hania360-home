@@ -9,7 +9,6 @@
 
 export const TICKER = [
   ["ליטר בנזין 95, מ־5.11", "7.85 ₪"],
-  ["לדרבי היורוליג", null, "2026-11-12T21:05"],
   ["לבלאק פריידיי", null, "2026-11-27T00:00"],
   ["לנר ראשון של חנוכה", null, "2026-12-04T16:00"],
 ];
@@ -37,11 +36,12 @@ export default [
     apps: [["🛫", "HaniaTisa", "מה המריא ונחת בנתב״ג עכשיו", "https://tisa.hania360.com/", "לטיסות"], ["🧳", "ביטוח נסיעות", "ימים חינם וביטול לפי הכרטיסים שלכם", "https://save.hania360.com/insurance/travel", "לבדיקה"]],
   },
   {
-    id: "2026-11-09-derby", img: "now-derby", for: ["b:TEL", "b:HTA"], from: "2026-11-09", until: "2026-11-12", chip: "כדורסל",
-    title: "דרבי תל אביבי ביורוליג: מכבי מארחת את הפועל ביום חמישי",
-    body: "הפועל תל אביב במקום ה־6 בטבלה, ומכבי תל אביב במקום ה־17. המשחק ביום חמישי 12.11 ב־21:05.",
-    sources: [["EuroLeague", "https://www.euroleaguebasketball.net/euroleague/"]],
-    apps: [["🏀", "HaniaSport", "תוצאה חיה, טבלה ותזכורת לפני המשחק", "https://sport.hania360.com/#hoops", "לדרבי"]],
+    id: "2026-11-13-derby-result", img: "now-derby", for: ["b:TEL", "b:HTA"], from: "2026-11-13", until: "2026-11-19", chip: "כדורסל",
+    title: "מכבי תל אביב ניצחה את הפועל בדרבי היורוליג, 73:80",
+    body: "זה הניצחון השלישי של מכבי ביורוליג העונה, והוא קטע רצף של ארבעה הפסדים באירופה. להפועל זה ההפסד השלישי ברציפות.",
+    big: "73:80",
+    sources: [["ynet", "https://www.ynet.co.il/news/article/h1sxuqxcmg"], ["ONE", "https://www.one.co.il/Article/538740.html"], ["הארץ", "https://www.haaretz.co.il/sport/basketball/2026-11-12/ty-article/000001a1-d194-d15e-adb1-f3f5e3fe0000"]],
+    apps: [["🏀", "HaniaSport", "תוצאות, טבלת היורוליג והמשחק הבא", "https://sport.hania360.com/#hoops", "לטבלה"]],
   },
   {
     id: "2026-11-09-fuel", img: "now-fuel", from: "2026-11-05", until: "2026-11-30", chip: "כסף", big: "7.85 ₪",
