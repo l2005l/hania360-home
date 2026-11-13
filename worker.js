@@ -53,6 +53,7 @@ import { passUser } from "./lib/account.js";
 import ENGLISHAPP, { FILES as ENGLISH_FILES, IMAGES as ENGLISH_IMAGES } from "./english/page.js";
 import IVRITAPP, { FILES as IVRIT_FILES, IMAGES as IVRIT_IMAGES } from "./ivrit/page.js";
 import HAKTAVAAPP, { FILES as HAKTAVA_FILES, IMAGES as HAKTAVA_IMAGES } from "./haktava/page.js";
+import { haktavaApi } from "./haktava/api.js";
 import KUFSAAPP, { FILES as KUFSA_FILES, IMAGES as KUFSA_IMAGES } from "./kufsa/page.js";
 import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./shiurim/page.js";
 import { tutorApi } from "./shiurim/tutor.js";
@@ -547,7 +548,7 @@ export default {
     }
     if (url.hostname === "sport.hania360.com" || url.searchParams.get("app") === "sport" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/sport/") ? sportApi(request, ctx) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SPORTAPP, SPORT_FILES, SPORT_IMAGES, "https://sport.hania360.com/");
     if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : url.pathname === "/api/shigra/fam" ? shigraApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
-    if (url.hostname === "haktava.hania360.com" || url.searchParams.get("app") === "haktava" && /workers\.dev$/.test(url.hostname)) return smallApp(url, HAKTAVAAPP, HAKTAVA_FILES, HAKTAVA_IMAGES, "https://haktava.hania360.com/");
+    if (url.hostname === "haktava.hania360.com" || url.searchParams.get("app") === "haktava" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/haktava/") ? haktavaApi(request, env || {}) : smallApp(url, HAKTAVAAPP, HAKTAVA_FILES, HAKTAVA_IMAGES, "https://haktava.hania360.com/");
     if (url.hostname === "kufsa.hania360.com" || url.searchParams.get("app") === "kufsa" && /workers\.dev$/.test(url.hostname)) return smallApp(url, KUFSAAPP, KUFSA_FILES, KUFSA_IMAGES, "https://kufsa.hania360.com/");
     if (url.hostname === "ivrit.hania360.com" || url.searchParams.get("app") === "ivrit" && /workers\.dev$/.test(url.hostname)) return smallApp(url, IVRITAPP, IVRIT_FILES, IVRIT_IMAGES, "https://ivrit.hania360.com/");
     if (url.hostname === "english.hania360.com" || url.searchParams.get("app") === "english" && /workers\.dev$/.test(url.hostname)) return smallApp(url, ENGLISHAPP, ENGLISH_FILES, ENGLISH_IMAGES, "https://english.hania360.com/");
