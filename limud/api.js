@@ -54,7 +54,8 @@ const TABLE_ASK = "החזר JSON בדיוק במבנה הזה, בלי טקסט �
   '{"story":["4 עד 6 משפטים קצרים שמספרים לילדים מה קורה בפרשה, לפי הסדר"],' +
   '"small":["2 שאלות פשוטות לילדים בני 3 עד 6"],"big":["3 שאלות לילדים בני 7 עד 12, שתיים על מה שקרה ואחת שמחברת לחיים שלהם"],' +
   '"adult":["2 שאלות למחשבה לנוער ולמבוגרים"],"riddle":{"q":"חידה קצרה על משהו מהפרשה","a":"התשובה"},"value":"מילה או שתיים: הרעיון שאפשר לקחת לשבוע"}';
-function loose(t) { const s = String(t || ""), a = s.indexOf("{"), b = s.lastIndexOf("}"); if (a < 0 || b < a) return null; try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; } }
+// Some models hand back the JSON already parsed.
+function loose(t) { if (t && typeof t === "object") return t; const s = String(t || ""), a = s.indexOf("{"), b = s.lastIndexOf("}"); if (a < 0 || b < a) return null; try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; } }
 const strs = (a, n, len) => (Array.isArray(a) ? a : []).map((x) => strip(x).slice(0, len)).filter(Boolean).slice(0, n);
 async function table(request, env, ctx) {
   const b = await request.json().catch(() => ({}));
