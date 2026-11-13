@@ -94,7 +94,7 @@ a{color:var(--k)}
     [].concat(k == null ? [] : k).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c); });
     return e;
   }
-  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2600); }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, Math.max(2600, t.length * 70)); }
   var LS = "hanialimud-v1", S; try { S = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) { S = null; }
   S = S || {}; S.learned = S.learned || {}; if (S.ex == null) S.ex = true; S.fs = S.fs || 21; S.rem = S.rem || { on: false, at: "07:30" }; delete S.rem.sat;
   function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
@@ -287,7 +287,7 @@ a{color:var(--k)}
   // ---- the daily reminder (HaniaDat's reminder service): the next 14 days, each with what is learned that day ----
   var canPush = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
   function api(path, body) { return fetch("/api/shabbat/" + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json(); }); }
-  function getSub(create) { return navigator.serviceWorker.ready.then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
+  function getSub(create) { return Promise.race([navigator.serviceWorker.getRegistration().then(function (r) { return r ? null : navigator.serviceWorker.register("/sw.js"); }).then(function () { return navigator.serviceWorker.ready; }), new Promise(function (res, rej) { setTimeout(function () { rej(new Error("timeout sw")); }, 10000); })]).then(function (reg) { return reg.pushManager.getSubscription().then(function (s) { if (s || !create) return s; return api("key").then(function (j) { var k = j.key, raw = atob(k.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((k.length + 3) % 4)), arr = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr }); }); }); }); }
   // No reminder from candle lighting to the end of Shabbat (or a holiday), by the times of the chosen town.
   // A reminder that falls inside is moved to a quarter of an hour after Shabbat ends, when that is the same evening;
   // otherwise that day has none.
@@ -311,6 +311,23 @@ a{color:var(--k)}
     }
     return 0;
   }
+  // Inside "היהדות שלי" the page is in a frame, where a phone does not let it ask for notifications:
+  // the hub page asks instead, and keeps the reminders on its own address (the same as HaniaShigra).
+  var PUSH_HUB = (function () { try { return window.parent !== window; } catch (e) { return true; } })();
+  if (PUSH_HUB) {
+    canPush = true;
+    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true }); else rej(new Error(e.data.error || "hub")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
+    getSub = function () { return Promise.resolve({ endpoint: "hub", toJSON: function () { return null; } }); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+  }
+  // what went wrong, in words a parent can act on
+  function why(e) {
+    var m = String(e && (e.name + " " + e.message) || "");
+    if (/perm|denied|NotAllowed/i.test(m) || (window.Notification && Notification.permission === "denied")) return "ההתראות חסומות לאתר הזה. בכרום: ⋮ ← הגדרות ← הגדרות אתרים ← התראות, ומאפשרים את limud.hania360.com. אחר כך לוחצים שוב.";
+    if (/unsupported/i.test(m)) return /iPhone|iPad/.test(navigator.userAgent) ? "באייפון: קודם מוסיפים את האתר למסך הבית (שיתוף ← הוספה למסך הבית), ומשם מפעילים." : "הדפדפן הזה לא תומך בהתראות. בכרום זה עובד.";
+    if (/timeout/i.test(m)) return "הטלפון לא ענה. נסו שוב בעוד רגע.";
+    return "לא הצלחנו להפעיל תזכורת (" + (m.trim().slice(0, 40) || "שגיאה") + "). נסו לרענן את הדף ולנסות שוב.";
+  }
   function items() {
     var p = S.rem.at.split(":"), now = Date.now(), days = [];
     for (var i = 0; i < 15; i++) {
@@ -327,7 +344,7 @@ a{color:var(--k)}
   function sync(on) {
     if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t" }); });
     return items().then(function (it) { return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaLimud · לימוד יומי", items: it }); }); })
-      .then(function (j) { if (!j || !j.ok) throw new Error("sub"); S.rem.sync = ymd(new Date()); save(); });
+      .then(function (j) { if (!j || !j.ok) throw new Error("sub " + (j && j.error || "")); S.rem.sync = ymd(new Date()); save(); });
   }
   function remCard() {
     var c = $("rem"), at = el("input", { type: "time", value: S.rem.at, "aria-label": "שעת התזכורת" });
@@ -337,9 +354,9 @@ a{color:var(--k)}
     on.onclick = function () {
       if (!canPush) { toast("בטלפון הזה אין התראות מהאתר. באייפון: מוסיפים את האתר למסך הבית."); return; }
       var want = !S.rem.on; on.disabled = true;
-      (want ? Notification.requestPermission().then(function (p) { if (p !== "granted") throw new Error("perm"); return sync(true); }) : sync(false))
+      (want ? (PUSH_HUB ? Promise.resolve("granted") : Notification.requestPermission()).then(function (p) { if (p !== "granted") throw new Error("perm"); return sync(true); }) : sync(false))
         .then(function () { S.rem.on = want; save(); remCard(); toast(want ? "🔔 נזכיר כל יום ב־" + S.rem.at : "התזכורת כבויה"); })
-        .catch(function () { on.disabled = false; toast("לא הצלחנו להפעיל תזכורת"); });
+        .catch(function (e) { on.disabled = false; toast(why(e)); });
     };
     at.onchange = function () { S.rem.at = at.value || "07:30"; save(); if (S.rem.on) sync(true).catch(function () {}); };
     c.replaceChildren(el("h2", "🔔 לימוד כל יום"), el("p", { class: "fine", text: "התראה בשעה שבוחרים, עם הדף וההלכה של אותו יום. מכניסת שבת ועד צאת השבת (וכך גם בחג) אין התראות. אם השעה נופלת בשבת, ההתראה מגיעה רבע שעה אחרי צאת השבת, לפי זמני העיר." }),
