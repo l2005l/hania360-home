@@ -1,9 +1,12 @@
 # Builds shigra/page.js from the files in shigra/ (python3 shigra/build.py). HaniaShigra, served at shigra.hania360.com.
-# Reminders use HaniaDat's reminder service (/api/shabbat/, kind "t").
+# Reminders use HaniaDat's reminder service (/api/shabbat/, kind "t"); the family copy is shigra/family.js; the towns (weather) are lib/cities.js.
 import json, base64
 r = lambda p: open('shigra/' + p, encoding='utf8').read()
 b64 = lambda p: base64.b64encode(open('shigra/' + p, 'rb').read()).decode()
-body = r('shigra.html')
+import re as _re
+cities = _re.search(r'CITIES = (\[.*\]);', open('lib/cities.js', encoding='utf8').read()).group(1)
+body = r('shigra.html').replace('/*CITIES*/[["ירושלים", 31.778, 35.235, 40]]', cities)
+assert '/*CITIES*/' not in body
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaShigra: שגרת ערב ובוקר לילדים בלי ויכוחים. כל שלב בתורו עם תמונה גדולה ושעון, כוכבים ופרס שבועי, תזכורת להורים ואור לילה. בחינם.">'
         '<link rel="canonical" href="https://shigra.hania360.com/"><meta name="theme-color" content="#7A5CFA">'

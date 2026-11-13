@@ -80,11 +80,20 @@ export class ShabbatHub {
     if (p === "/api/shabbat/key") return json({ key: (await this.vapid()).pub });
     if (req.method !== "POST") return json({ error: "method" }, 405);
     const b = await req.json().catch(() => null);
+    // From another Durable Object only (HaniaShigra's family: "a child finished the routine"): one message now.
+    // The public routes pass on the request as it came, so its host is never "internal".
+    if (url.hostname === "internal" && p === "/internal/send") {
+      if (!b || !okEndpoint(b.endpoint)) return json({ error: "endpoint" }, 400);
+      const k = "f:" + (await idOf(b.endpoint));
+      await this.ctx.storage.put(k, { endpoint: b.endpoint, msg: { title: clean(b.title, 70), body: clean(b.body, 90), url: "/", at: Date.now() } });
+      if (!(await this.wake(b.endpoint))) await this.ctx.storage.delete(k);
+      return json({ ok: true });
+    }
     if (p === "/api/shabbat/msg") {
       if (!b || typeof b.endpoint !== "string") return json({});
       // Candle lighting and the daily zman reminders share a phone; the most recent message wins.
-      const id = await idOf(b.endpoint), a = await this.ctx.storage.get("s:" + id), z = await this.ctx.storage.get("z:" + id), h = await this.ctx.storage.get("h:" + id), t = await this.ctx.storage.get("t:" + id), c = await this.ctx.storage.get("c:" + id), v = await this.ctx.storage.get("v:" + id);
-      const m = [a && a.msg, z && z.msg, h && h.msg, t && t.msg, c && c.msg, v && v.msg].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
+      const id = await idOf(b.endpoint), a = await this.ctx.storage.get("s:" + id), z = await this.ctx.storage.get("z:" + id), h = await this.ctx.storage.get("h:" + id), t = await this.ctx.storage.get("t:" + id), c = await this.ctx.storage.get("c:" + id), v = await this.ctx.storage.get("v:" + id), f = await this.ctx.storage.get("f:" + id);
+      const m = [a && a.msg, z && z.msg, h && h.msg, t && t.msg, c && c.msg, v && v.msg, f && f.msg].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
       return json(m || {});
     }
     if (p === "/api/shabbat/unsub") {

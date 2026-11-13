@@ -19,6 +19,7 @@ import HZAPP, { FILES as HZ_FILES, IMAGES as HZ_IMAGES } from "./hazmana/page.js
 import { EventRoom, hazmanaApi } from "./hazmana/room.js";
 import SIPURAPP, { FILES as SIPUR_FILES, IMAGES as SIPUR_IMAGES } from "./sipur/page.js";
 import { StoryLimits, storyApi } from "./sipur/story.js";
+import { ShigraFamily, shigraApi } from "./shigra/family.js";
 import KITAAPP, { FILES as KITA_FILES, IMAGES as KITA_IMAGES } from "./kita/page.js";
 import { sheetApi } from "./kita/sheet.js";
 import KIBUDAPP, { FILES as KIBUD_FILES, IMAGES as KIBUD_IMAGES } from "./kibud/page.js";
@@ -54,7 +55,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
@@ -542,7 +543,7 @@ export default {
       return smallApp(url, REGAPAGE, REGA_FILES, REGA_IMAGES, "https://regatov.hania360.com/");
     }
     if (url.hostname === "sport.hania360.com" || url.searchParams.get("app") === "sport" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/sport/") ? sportApi(request, ctx) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SPORTAPP, SPORT_FILES, SPORT_IMAGES, "https://sport.hania360.com/");
-    if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
+    if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : url.pathname === "/api/shigra/fam" ? shigraApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
     if (url.hostname === "ivrit.hania360.com" || url.searchParams.get("app") === "ivrit" && /workers\.dev$/.test(url.hostname)) return smallApp(url, IVRITAPP, IVRIT_FILES, IVRIT_IMAGES, "https://ivrit.hania360.com/");
     if (url.hostname === "english.hania360.com" || url.searchParams.get("app") === "english" && /workers\.dev$/.test(url.hostname)) return smallApp(url, ENGLISHAPP, ENGLISH_FILES, ENGLISH_IMAGES, "https://english.hania360.com/");
     if (url.hostname === "shiurim.hania360.com" || url.searchParams.get("app") === "shiurim" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shiurim/") ? tutorApi(request, env || {}, url) : smallApp(url, SHIURIMAPP, SHIURIM_FILES, SHIURIM_IMAGES, "https://shiurim.hania360.com/");
