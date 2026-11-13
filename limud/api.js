@@ -49,7 +49,7 @@ const ASK = {
 // The model reads the opening of the portion (Sefaria's Hebrew text) and the portion's name; the answer is JSON.
 // POST /api/limud/table {ref, name}; the same for everyone, so cached for ten days.
 const TABLE_SYS = "אתה מכין חומר קצר לשולחן שבת של משפחה דתית־מסורתית בישראל, על פרשת השבוע. כותבים בעברית פשוטה, חמה ומדויקת, בלי מדרשים מומצאים ובלי ציטוטים שאינך בטוח בהם. " +
-  "נשענים על הטקסט שניתן (תחילת הפרשה) ועל מה שידוע בבירור על הפרשה. לא פוסקים הלכה. עונים ב־JSON בלבד.";
+  "כותבים רק דברים שכתובים בפסוקים שניתנו, לפי הסדר שלהם, בלי להוסיף אירועים, מקומות או פרטים שלא כתובים בהם. כל שאלה צריכה תשובה ברורה מתוך הפרשה. לא פוסקים הלכה. עונים ב־JSON בלבד.";
 const TABLE_ASK = "החזר JSON בדיוק במבנה הזה, בלי טקסט נוסף:\n" +
   '{"story":["4 עד 6 משפטים קצרים שמספרים לילדים מה קורה בפרשה, לפי הסדר"],' +
   '"small":["2 שאלות פשוטות לילדים בני 3 עד 6"],"big":["3 שאלות לילדים בני 7 עד 12, שתיים על מה שקרה ואחת שמחברת לחיים שלהם"],' +
@@ -60,10 +60,11 @@ async function table(request, env, ctx) {
   const b = await request.json().catch(() => ({}));
   const ref = String(b.ref || "").slice(0, 80), name = strip(b.name).slice(0, 30);
   if (!/^[A-Za-z][A-Za-z_ ,'.0-9:-]{1,79}$/.test(ref) || !name) return json({ error: "bad" }, 400);
-  const key = new Request("https://limud.hania360.com/ai-cache/v1/table/" + encodeURIComponent(ref));
+  const key = new Request("https://limud.hania360.com/ai-cache/v2/table/" + encodeURIComponent(ref));
   const hit = await caches.default.match(key); if (hit) return hit;
-  const text = (await sefaria(ref.replace(/ /g, "_"), "hebrew")).slice(0, 7000);
-  const messages = [{ role: "system", content: TABLE_SYS }, { role: "user", content: "פרשת " + name + " (" + ref + ").\nתחילת הפרשה:\n" + text + "\n\n" + TABLE_ASK }];
+  // the whole portion, without niqqud and cantillation marks (so it fits)
+  const text = (await sefaria(ref.replace(/ /g, "_"), "hebrew")).replace(/[\u0591-\u05C7]/g, "").replace(/\{[פס]\}/g, "").replace(/\s+/g, " ").slice(0, 16000);
+  const messages = [{ role: "system", content: TABLE_SYS }, { role: "user", content: "פרשת " + name + " (" + ref + ").\nהפרשה כולה:\n" + text + "\n\n" + TABLE_ASK }];
   let o = null;
   for (const m of [AI_MODEL, AI_FALLBACK]) { if (o) break; try { o = loose(out(await env.AI.run(m, { messages, max_tokens: 1400 }))); } catch {} }
   if (!o) return json({ error: "busy" }, 503);
