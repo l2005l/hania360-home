@@ -1,0 +1,182 @@
+<title>HaniaHaktava · הכתבה</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<style>
+/* Dictation for school: a parent types the week's words (Hebrew or English) once; the phone reads them one by one
+   while the child writes on paper (or types them on the phone), then they check together. Mistakes go to a short
+   practice round. Everything stays on this phone; inside HaniaKids each child sees his own lists and earns stars. */
+:root{--bg:#F2F7FF;--surface:#fff;--ink:#14213D;--muted:#5B6787;--line:#DCE6F5;--main:#2E7BFF;--main2:#1B5FD6;--ok:#14B37D;--bad:#FF5D5D;--sun:#FFC83D;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1726;--surface:#18233A;--ink:#EAF1FF;--muted:#9FB0CF;--line:#2A3956}}
+:root[data-theme="dark"]{--bg:#0F1726;--surface:#18233A;--ink:#EAF1FF;--muted:#9FB0CF;--line:#2A3956}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;color:var(--ink);background:radial-gradient(70% 34% at 100% 0%,color-mix(in srgb,var(--main) 16%,transparent),transparent 70%),var(--bg);background-attachment:fixed;padding:12px max(16px,env(safe-area-inset-left,0px)) 60px}
+.wrap{max-width:640px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}.logo{font-weight:900;font-size:22px;color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}.logo b{color:var(--main)}.logo img{width:30px;height:30px;border-radius:9px}
+body.inhub header{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:10px;box-shadow:0 14px 30px -24px rgba(20,33,61,.5)}
+h1{margin:0;font-size:clamp(26px,7vw,34px);line-height:1.15}h2{margin:0;font-size:19px}
+.lead{margin:0;color:var(--muted)}.fine{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{appearance:none;border:0;border-radius:16px;padding:13px 18px;font:inherit;font-weight:800;cursor:pointer;background:var(--main);color:#fff;box-shadow:0 4px 0 var(--main2);display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--main2)}
+.btn.ghost{background:var(--surface);color:var(--main);border:1.5px solid var(--line);box-shadow:none}
+.btn.small{padding:8px 13px;font-size:14px;border-radius:12px}
+.btn.big{font-size:20px;padding:16px;width:100%}
+.btn.ok{background:var(--ok);box-shadow:0 4px 0 #0E8F63}
+.chip{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{border-color:var(--main);background:color-mix(in srgb,var(--main) 12%,var(--surface));color:var(--main)}
+.list{display:flex;gap:12px;align-items:center;text-align:start;width:100%;appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:18px;padding:14px;cursor:pointer;font:inherit;color:inherit}
+.list .e{font-size:30px}.list b{display:block;font-size:17px}
+input[type=text],textarea{width:100%;font:inherit;font-size:18px;border:1.5px solid var(--line);border-radius:14px;padding:11px 12px;background:var(--surface);color:var(--ink)}
+textarea{min-height:190px;line-height:1.7}
+.say{width:120px;height:120px;border-radius:50%;font-size:52px;margin:0 auto;display:grid;place-items:center;appearance:none;border:0;cursor:pointer;background:radial-gradient(circle at 35% 30%,#6FA4FF,var(--main));color:#fff;box-shadow:0 14px 30px -12px var(--main)}
+.say.on{animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(1.06)}}
+@media (prefers-reduced-motion:reduce){.say.on{animation:none}}
+.num{font-size:15px;font-weight:800;color:var(--muted);text-align:center}
+.peek{font-size:clamp(34px,10vw,52px);font-weight:900;text-align:center;min-height:1.3em;letter-spacing:.02em}
+.peek.hide{color:transparent;text-shadow:0 0 18px color-mix(in srgb,var(--ink) 50%,transparent);user-select:none}
+.chk{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;border-bottom:1px dashed var(--line);padding:6px 0}
+.chk .w{font-size:24px;font-weight:800}.chk .n{color:var(--muted);font-weight:700;min-width:1.6em}
+.chk button{appearance:none;border:2px solid var(--line);background:var(--surface);border-radius:12px;font-size:20px;width:46px;height:42px;cursor:pointer}
+.chk button[aria-pressed="true"].y{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--surface))}
+.chk button[aria-pressed="true"].x{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,var(--surface))}
+.big2{font-size:56px;text-align:center}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:50;max-width:90vw}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+</style>
+<div class="wrap">
+  <header><a class="logo" href="https://kids.hania360.com/"><img src="/icons/icon-192.png" alt=""><span>Hania<b>Haktava</b></span></a></header>
+  <main id="app" style="display:grid;gap:14px"></main>
+</div>
+<script>
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  function el(t, a, k) {
+    var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; }
+    for (var x in a || {}) { if (x === "text") e.textContent = a[x]; else if (x.slice(0, 2) === "on") e.addEventListener(x.slice(2), a[x]); else if (a[x] != null && a[x] !== false) e.setAttribute(x, a[x]); }
+    [].concat(k == null ? [] : k).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, Math.max(2400, t.length * 60)); }
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20) }; } catch (e) { return null; } })();
+  if (HUB) document.body.classList.add("inhub");
+  function hubStars(n, src) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: src }, "*"); } catch (e) {} }
+  var KEY = "haniahaktava-v1", S; try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.lists = S.lists || []; S.res = S.res || {}; S.rep = S.rep || 2; if (S.mode !== "type") S.mode = "paper";
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  var app = $("app"), show = function () { app.replaceChildren.apply(app, [].slice.call(arguments).filter(Boolean)); scrollTo(0, 0); };
+  var plain = function (w) { return String(w).replace(/[֑-ׇ]/g, "").replace(/[״"׳'.,!?;:()\-]/g, "").replace(/\s+/g, " ").trim(); };
+  var same = function (a, b, lang) { a = plain(a); b = plain(b); return lang === "en" ? a.toLowerCase() === b.toLowerCase() : a === b; };
+  function mine() { return S.lists.filter(function (l) { return !HUB || !HUB.kid || !l.kid || l.kid === HUB.kid; }); }
+
+  // ---- the phone's voice (Hebrew or English) ----
+  var VOICES = []; function loadV() { try { VOICES = speechSynthesis.getVoices(); } catch (e) {} } loadV(); try { speechSynthesis.onvoiceschanged = loadV; } catch (e) {}
+  function say(t, lang, slow, then) {
+    try { speechSynthesis.cancel(); } catch (e) {}
+    if (!("speechSynthesis" in window)) { toast("הטלפון לא יודע להקריא. אפשר להקריא בקול 😊"); return; }
+    var re = lang === "en" ? /^en[-_]US/i : /^(he|iw)/i, v = VOICES.filter(function (x) { return re.test(x.lang); })[0] || (lang === "en" ? VOICES.filter(function (x) { return /^en/i.test(x.lang); })[0] : null);
+    var u = new SpeechSynthesisUtterance(t); u.lang = lang === "en" ? "en-US" : "he-IL"; if (v) u.voice = v; u.rate = slow ? 0.55 : 0.8; if (then) u.onend = then; speechSynthesis.speak(u);
+  }
+
+  // ---- home: the lists ----
+  function home() {
+    var L = mine();
+    show(el("section", { class: "card" }, [el("h1", "✍️ הכתבה" + (HUB && HUB.kid ? " של " + HUB.kid : "")),
+        el("p", { class: "lead", text: "מקלידים פעם אחת את המילים מהמחברת. הטלפון מקריא אותן אחת־אחת, הילד כותב על דף, ובסוף בודקים יחד. בלי ״תכתיב לי שוב״." })]),
+      L.length ? el("section", { style: "display:grid;gap:10px" }, L.map(function (l) {
+        var r = S.res[l.id];
+        return el("button", { class: "list", type: "button", onclick: function () { listView(l); } }, [el("span", { class: "e", text: l.lang === "en" ? "🔤" : "✍️" }),
+          el("span", { style: "flex:1" }, [el("b", l.name), el("span", { class: "fine", text: l.words.length + " מילים" + (l.lang === "en" ? " · אנגלית" : "") + (r ? " · בפעם האחרונה " + r.ok + "/" + r.n : "") })]), el("span", { text: "‹" })]);
+      })) : null,
+      el("button", { class: "btn big", type: "button", text: "➕ רשימה חדשה", onclick: function () { edit(null); } }),
+      el("p", { class: "fine", text: "הכול נשמר בטלפון הזה בלבד." }));
+  }
+
+  // ---- making or changing a list ----
+  function edit(l) {
+    var nm = el("input", { type: "text", maxlength: "40", placeholder: "למשל: מילים לשבוע, יחידה 4", value: l ? l.name : "הכתבה " + new Date().toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }), "aria-label": "שם הרשימה" });
+    var lang = l ? l.lang : "he", langRow = el("div", { class: "row" });
+    var drawLang = function () { langRow.replaceChildren(el("span", { class: "fine", text: "שפה:" }), el("button", { class: "chip", type: "button", "aria-pressed": String(lang === "he"), text: "עברית", onclick: function () { lang = "he"; drawLang(); } }), el("button", { class: "chip", type: "button", "aria-pressed": String(lang === "en"), text: "English", onclick: function () { lang = "en"; drawLang(); } })); };
+    drawLang();
+    var ta = el("textarea", { "aria-label": "המילים, מילה בכל שורה", placeholder: "מילה בכל שורה, למשל:\nשׁוּלְחָן\nכַּדּוּר\nחַלּוֹן" }); ta.value = l ? l.words.join("\n") : "";
+    show(el("section", { class: "card" }, [el("h2", l ? "✏️ עריכת רשימה" : "➕ רשימה חדשה"), nm, langRow, ta,
+      el("p", { class: "fine", text: "מילה (או משפט קצר) בכל שורה, עד 40. בעברית אפשר להוסיף ניקוד, כדי שההקראה תהיה מדויקת. בבדיקה הניקוד לא נחשב." }),
+      el("div", { class: "row" }, [el("button", { class: "btn", type: "button", text: "💾 לשמור", onclick: function () {
+        var words = ta.value.split(/[\n,،]+/).map(function (w) { return w.replace(/\s+/g, " ").trim().slice(0, 40); }).filter(Boolean).slice(0, 40);
+        if (!words.length) { ta.focus(); toast("צריך לפחות מילה אחת"); return; }
+        if (!l) { l = { id: Date.now().toString(36), at: Date.now() }; S.lists.unshift(l); }
+        l.name = nm.value.trim().slice(0, 40) || "הכתבה"; l.lang = lang; l.words = words; if (HUB && HUB.kid) l.kid = HUB.kid; save(); listView(l); } }),
+        el("button", { class: "btn ghost", type: "button", text: "ביטול", onclick: function () { l ? listView(l) : home(); } }),
+        l ? el("button", { class: "btn ghost small", type: "button", style: "margin-inline-start:auto", text: "🗑️ למחוק", onclick: function () { if (!confirm("למחוק את הרשימה?")) return; S.lists = S.lists.filter(function (x) { return x !== l; }); delete S.res[l.id]; save(); home(); } }) : null])]));
+  }
+
+  // ---- one list: how to practise ----
+  function listView(l) {
+    var opt = function (on, t, fn) { return el("button", { class: "chip", type: "button", "aria-pressed": String(on), text: t, onclick: fn }); };
+    var r = S.res[l.id];
+    show(el("section", { class: "card" }, [el("div", { class: "row" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: home }), el("h2", { style: "flex:1", text: l.name }), el("button", { class: "btn ghost small", type: "button", text: "✏️ עריכה", onclick: function () { edit(l); } })]),
+        el("p", { class: "fine", text: l.words.length + " מילים" + (r ? " · בפעם האחרונה: " + r.ok + " מתוך " + r.n + " נכונות" : "") }),
+        el("div", { class: "row" }, [el("span", { class: "fine", text: "כותבים:" }), opt(S.mode === "paper", "📝 על דף", function () { S.mode = "paper"; save(); listView(l); }), opt(S.mode === "type", "⌨️ בטלפון", function () { S.mode = "type"; save(); listView(l); })]),
+        el("div", { class: "row" }, [el("span", { class: "fine", text: "סדר:" }), opt(!S.mix, "לפי הרשימה", function () { S.mix = false; save(); listView(l); }), opt(!!S.mix, "🔀 מעורבב", function () { S.mix = true; save(); listView(l); })]),
+        el("div", { class: "row" }, [el("span", { class: "fine", text: "כל מילה נשמעת:" }), opt(S.rep === 1, "פעם אחת", function () { S.rep = 1; save(); listView(l); }), opt(S.rep === 2, "פעמיים", function () { S.rep = 2; save(); listView(l); })]),
+        el("button", { class: "btn big", type: "button", text: "▶ מתחילים הכתבה", onclick: function () { run(l, S.mix ? shuffle(l.words.slice()) : l.words.slice()); } }),
+        r && r.bad && r.bad.length ? el("button", { class: "btn ghost", type: "button", text: "🔁 רק המילים שהיו קשות (" + r.bad.length + ")", onclick: function () { run(l, r.bad.slice()); } }) : null]),
+      el("details", { class: "card" }, [el("summary", { style: "font-weight:800;cursor:pointer", text: "👀 המילים (להורה)" }), el("ol", { style: "margin:0;padding-inline-start:22px;font-size:18px" }, l.words.map(function (w) { return el("li", w); }))]));
+  }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.random() * (i + 1) | 0, t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  // ---- the dictation ----
+  function run(l, words) {
+    var i = 0, typed = [];
+    var draw = function () {
+      var w = words[i], sb = el("button", { class: "say", type: "button", "aria-label": "לשמוע שוב", text: "🔊" }), peek = el("div", { class: "peek hide", "aria-hidden": "true", text: plain(w) });
+      var speak = function (slow) { sb.classList.add("on"); var n = 0; (function one() { say(w, l.lang, slow, function () { if (++n < S.rep && !slow) setTimeout(one, 1600); else sb.classList.remove("on"); }); })(); };
+      sb.onclick = function () { speak(false); };
+      var inp = S.mode === "type" ? el("input", { type: "text", autocomplete: "off", autocapitalize: "off", spellcheck: "false", dir: l.lang === "en" ? "ltr" : "rtl", placeholder: "כותבים כאן...", "aria-label": "כותבים את המילה", style: "text-align:center;font-size:26px;font-weight:800" }) : null;
+      if (inp) { inp.value = typed[i] || ""; inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); go(1); } }); }
+      var go = function (d) { if (inp) typed[i] = inp.value; try { speechSynthesis.cancel(); } catch (e) {} if (i + d >= words.length) return check(l, words, typed); i = Math.max(0, i + d); draw(); };
+      show(el("section", { class: "card", style: "text-align:center" }, [
+        el("div", { class: "row" }, [el("button", { class: "btn ghost small", type: "button", text: "✕ לעצור", onclick: function () { try { speechSynthesis.cancel(); } catch (e) {} listView(l); } }), el("span", { class: "num", style: "flex:1", text: "מילה " + (i + 1) + " מתוך " + words.length })]),
+        el("div", { style: "height:10px;border-radius:99px;background:var(--line);overflow:hidden" }, [el("div", { style: "height:100%;width:" + Math.round(100 * i / words.length) + "%;background:var(--main)" })]),
+        sb, el("div", { class: "row", style: "justify-content:center" }, [el("button", { class: "chip", type: "button", text: "🐢 לאט", onclick: function () { speak(true); } }),
+          S.mode === "paper" ? el("button", { class: "chip", type: "button", text: "👀 להציץ (להורה)", onclick: function () { peek.classList.toggle("hide"); } }) : null]),
+        S.mode === "paper" ? peek : inp,
+        el("p", { class: "fine", text: S.mode === "paper" ? "כותבים על הדף, ולוחצים ״הבאה״ כשמוכנים." : "כותבים, ולוחצים ״הבאה״ (או Enter)." }),
+        el("div", { class: "row", style: "justify-content:center" }, [i ? el("button", { class: "btn ghost", type: "button", text: "→ הקודמת", onclick: function () { go(-1); } }) : null,
+          el("button", { class: "btn", type: "button", style: "min-width:150px", text: i + 1 < words.length ? "הבאה ←" : "✓ סיימתי, לבדיקה", onclick: function () { go(1); } })])]));
+      setTimeout(function () { speak(false); if (inp) inp.focus(); }, 350);
+    };
+    draw();
+  }
+
+  // ---- checking together ----
+  function check(l, words, typed) {
+    var auto = S.mode === "type", mark = words.map(function (w, i) { return auto ? same(typed[i] || "", w, l.lang) : null; });
+    var rows = el("div"), done = el("button", { class: "btn big ok", type: "button" });
+    var draw = function () {
+      rows.replaceChildren.apply(rows, words.map(function (w, i) {
+        var y = el("button", { class: "y", type: "button", "aria-pressed": String(mark[i] === true), "aria-label": "נכון", text: "✓" }), x = el("button", { class: "x", type: "button", "aria-pressed": String(mark[i] === false), "aria-label": "טעות", text: "✗" });
+        y.onclick = function () { mark[i] = true; draw(); }; x.onclick = function () { mark[i] = false; draw(); };
+        return el("div", { class: "chk" }, [el("span", { class: "n", text: (i + 1) + "." }), el("span", null, [el("span", { class: "w", dir: l.lang === "en" ? "ltr" : "rtl", text: plain(w) }), auto && !mark[i] ? el("div", { class: "fine", text: "נכתב: " + (typed[i] || "—") }) : null]), y, x]);
+      }));
+      var left = mark.filter(function (m) { return m === null; }).length;
+      done.textContent = left ? "מסמנים ✓ או ✗ (עוד " + left + ")" : "🎉 סיימנו!"; done.disabled = !!left;
+    };
+    done.onclick = function () {
+      var ok = mark.filter(Boolean).length, bad = words.filter(function (w, i) { return !mark[i]; }), pct = Math.round(100 * ok / words.length), stars = Math.max(1, Math.round(pct / 20));
+      S.res[l.id] = { at: Date.now(), n: words.length, ok: ok, bad: bad }; save(); hubStars(stars, "הכתבה");
+      show(el("section", { class: "card", style: "text-align:center" }, [el("div", { class: "big2", text: pct === 100 ? "🏆" : pct >= 70 ? "⭐" : "💪" }),
+        el("h1", ok + " מתוך " + words.length + (pct === 100 ? ", מושלם!" : pct >= 70 ? ", כל הכבוד!" : ", ממשיכים להתאמן!")),
+        HUB ? el("p", { class: "lead", text: "⭐ " + stars + " כוכבים לארנק" }) : null,
+        bad.length ? el("div", { class: "card", style: "text-align:start" }, [el("b", "✏️ מתרגלים את המילים שהיו קשות:"), el("p", { style: "margin:0;font-size:20px;font-weight:800", text: bad.map(plain).join(" · ") }),
+          el("p", { class: "fine", text: "טיפ: כותבים כל מילה 3 פעמים, ואז עוד הכתבה קצרה רק שלהן." }), el("button", { class: "btn", type: "button", text: "🔁 הכתבה רק שלהן", onclick: function () { run(l, bad.slice()); } })]) : null,
+        el("button", { class: "btn ghost", type: "button", text: "→ לרשימה", onclick: function () { listView(l); } })]));
+    };
+    draw();
+    show(el("section", { class: "card" }, [el("h2", "✅ בודקים יחד"), el("p", { class: "fine", text: auto ? "בדקנו לבד. אפשר לתקן סימון אם צריך." : "משווים את מה שכתוב בדף לרשימה, ומסמנים ✓ או ✗ ליד כל מילה." }), rows, done]));
+  }
+
+  home();
+})();
+</script>

@@ -1,0 +1,186 @@
+<title>HaniaKufsa · קופסת אוכל</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<style>
+/* The school lunchbox for the week: for each child and school day, something filling, a fruit or vegetable, a snack
+   and a drink. One tap fills a varied week (what the child likes first, never what he won't eat, nut-free by default,
+   never meat with dairy in the same box); the week becomes a shopping list. Everything stays on this phone. */
+:root{--bg:#F3FBF5;--surface:#fff;--ink:#16301F;--muted:#5D7666;--line:#D7EEDD;--main:#1FA45A;--main2:#147A41;--warn:#E07A00;--sun:#FFC83D;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A14;--surface:#16261D;--ink:#E9FBEF;--muted:#9DC2AA;--line:#264233}}
+:root[data-theme="dark"]{--bg:#0F1A14;--surface:#16261D;--ink:#E9FBEF;--muted:#9DC2AA;--line:#264233}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;color:var(--ink);background:radial-gradient(70% 34% at 100% 0%,color-mix(in srgb,var(--sun) 22%,transparent),transparent 70%),var(--bg);background-attachment:fixed;padding:12px max(16px,env(safe-area-inset-left,0px)) 60px}
+.wrap{max-width:720px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px}.logo{font-weight:900;font-size:22px;color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}.logo b{color:var(--main)}.logo img{width:30px;height:30px;border-radius:9px}
+body.inhub header{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:10px;box-shadow:0 14px 30px -24px rgba(22,48,31,.5)}
+h1{margin:0;font-size:clamp(24px,7vw,32px);line-height:1.15}h2{margin:0;font-size:19px}
+.lead{margin:0;color:var(--muted)}.fine{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{appearance:none;border:0;border-radius:16px;padding:12px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--main);color:#fff;box-shadow:0 4px 0 var(--main2);display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--main2)}
+.btn.ghost{background:var(--surface);color:var(--main);border:1.5px solid var(--line);box-shadow:none}
+.btn.small{padding:7px 12px;font-size:14px;border-radius:12px}
+.chip{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{border-color:var(--main);background:color-mix(in srgb,var(--main) 13%,var(--surface));color:var(--main)}
+.chip.no{opacity:.45;text-decoration:line-through}
+.kids{display:flex;gap:8px;flex-wrap:wrap}
+.today{background:linear-gradient(135deg,color-mix(in srgb,var(--sun) 30%,var(--surface)),var(--surface));border:1.5px solid color-mix(in srgb,var(--sun) 60%,var(--line))}
+.today .box{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.today .box div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px;text-align:center;font-weight:700;font-size:14px}
+.today .box div span{display:block;font-size:26px}
+.day{display:grid;gap:6px;border-bottom:1px dashed var(--line);padding:10px 0}.day:last-child{border:0}
+.day .h{display:flex;gap:8px;align-items:center;font-weight:800}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.slot{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:7px 4px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink);min-height:62px;display:grid;place-items:center;text-align:center;line-height:1.25}
+.slot:empty:before,.slot.e{color:var(--muted);font-weight:500}
+.warn{color:var(--warn);font-size:13px;font-weight:700}
+.sheet{position:fixed;inset:auto 0 0 0;z-index:40;background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--line);box-shadow:0 -20px 50px rgba(0,0,0,.25);padding:16px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px));max-height:78vh;overflow:auto;display:grid;gap:10px}
+.dim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:39}
+input[type=text]{font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--surface);color:var(--ink);min-width:0}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:60;max-width:90vw}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+@media print{header,.btn,.chip,.kids,.noprint{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
+</style>
+<div class="wrap">
+  <header><a class="logo" href="https://kids.hania360.com/"><img src="/icons/icon-192.png" alt=""><span>Hania<b>Kufsa</b></span></a></header>
+  <main id="app" style="display:grid;gap:14px"></main>
+</div>
+<script>
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  function el(t, a, k) {
+    var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; }
+    for (var x in a || {}) { if (x === "text") e.textContent = a[x]; else if (x.slice(0, 2) === "on") e.addEventListener(x.slice(2), a[x]); else if (a[x] != null && a[x] !== false) e.setAttribute(x, a[x]); }
+    [].concat(k == null ? [] : k).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function toast(t) { var x = el("div", { class: "toast", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, Math.max(2400, t.length * 60)); }
+  var HUB = (function () { try { var q = new URLSearchParams(location.search); if (q.get("in") !== "hub" || window.parent === window) return null; return { kid: (q.get("kid") || "").slice(0, 20), av: q.get("av") || "" }; } catch (e) { return null; } })();
+  if (HUB) document.body.classList.add("inhub");
+
+  // ---- the food: [name, emoji, flags]  d = dairy, m = meat, n = nuts or peanuts ----
+  var FOOD = {
+    main: [["כריך גבינה לבנה", "🥪", "d"], ["כריך גבינה צהובה", "🧀", "d"], ["כריך חביתה", "🍳", ""], ["כריך טונה", "🐟", ""], ["כריך חומוס", "🫘", ""], ["כריך קוטג׳ ומלפפון", "🥒", "d"],
+      ["פיתה עם לבנה וזעתר", "🫓", "d"], ["טורטייה עם גבינה", "🌯", "d"], ["כריך ביצה קשה", "🥚", ""], ["כריך ריבה", "🍓", ""], ["כריך ממרח שוקולד", "🍫", "n"], ["כריך חמאת בוטנים", "🥜", "n"],
+      ["לחמנייה עם פסטרמה", "🥖", "m"], ["פיתה עם שניצל", "🍗", "m"], ["פסטה קרה", "🍝", ""], ["בורקס גבינה", "🥐", "d"], ["פנקייק", "🥞", "d"], ["קציצות ירק", "🥦", ""]],
+    fruit: [["תפוח", "🍎", ""], ["בננה", "🍌", ""], ["ענבים", "🍇", ""], ["מלפפון", "🥒", ""], ["גזר", "🥕", ""], ["עגבניות שרי", "🍅", ""], ["קלמנטינה", "🍊", ""], ["אגס", "🍐", ""],
+      ["פלפל אדום", "🫑", ""], ["מלון", "🍈", ""], ["תותים", "🍓", ""], ["אפרסק", "🍑", ""]],
+    snack: [["בייגלה", "🥨", ""], ["קרקרים", "🍘", ""], ["פריכיות אורז", "🍙", ""], ["תמרים", "🌴", ""], ["יוגורט", "🥛", "d"], ["חטיף גרנולה", "🍫", "n"], ["פופקורן", "🍿", ""],
+      ["צימוקים", "🍇", ""], ["ביסקוויטים", "🍪", ""], ["עוגיית שיבולת שועל", "🍪", ""], ["במבה", "🥜", "n"], ["אגוזים", "🌰", "n"], ["חטיף פירות", "🍬", ""]],
+    drink: [["מים", "💧", ""], ["שוקו", "🥛", "d"], ["מים עם לימון", "🍋", ""], ["מיץ טבעי", "🧃", ""]]
+  };
+  var SLOTS = [["main", "🥪", "עיקרי"], ["fruit", "🍎", "פרי/ירק"], ["snack", "🥨", "נשנוש"], ["drink", "💧", "שתייה"]];
+  var DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי"];
+  function find(slot, name) { return FOOD[slot].filter(function (f) { return f[0] === name; })[0] || (S.own[slot] || []).map(function (n) { return [n, SLOTS.filter(function (x) { return x[0] === slot; })[0][1], ""]; }).filter(function (f) { return f[0] === name; })[0]; }
+  function all(slot) { return FOOD[slot].concat((S.own[slot] || []).map(function (n) { return [n, SLOTS.filter(function (x) { return x[0] === slot; })[0][1], ""]; })); }
+
+  var KEY = "haniakufsa-v1", S; try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { S = null; }
+  S = S || {}; S.kids = S.kids || []; S.week = S.week || {}; S.own = S.own || {}; if (S.nut == null) S.nut = true; if (S.fri == null) S.fri = false;
+  if (HUB && HUB.kid && !S.kids.some(function (k) { return k.name === HUB.kid; })) S.kids.push({ id: Date.now().toString(36), name: HUB.kid, av: HUB.av || "🧒", like: {}, no: {} });
+  if (!S.kids.length) S.kids.push({ id: "k1", name: "הילד/ה", av: "🧒", like: {}, no: {} });
+  var CUR = (HUB && S.kids.filter(function (k) { return k.name === HUB.kid; })[0]) || S.kids[0];
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function ymd(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  // the school week shown: this week, or next week from Friday on (Friday afternoon, when there is school on Friday)
+  var OFF = 0;
+  function weekDays() { var d = new Date(); d.setHours(12, 0, 0, 0); var wd = d.getDay(); if (wd === 6 || (wd === 5 && (!S.fri || new Date().getHours() >= 14))) d.setDate(d.getDate() + 7); d.setDate(d.getDate() - d.getDay() + OFF * 7); var out = []; for (var i = 0; i < (S.fri ? 6 : 5); i++) { out.push(new Date(d)); d.setDate(d.getDate() + 1); } return out; }
+  function boxOf(k, d) { var w = S.week[ymd(d)] = S.week[ymd(d)] || {}; return w[k.id] = w[k.id] || {}; }
+  function flags(box) { var f = ""; SLOTS.forEach(function (s) { var x = box[s[0]] && find(s[0], box[s[0]]); if (x) f += x[2]; }); return f; }
+  function ok(k, slot, f, box) {
+    if (k.no[f[0]]) return false; if (S.nut && f[2].indexOf("n") >= 0) return false;
+    var other = ""; SLOTS.forEach(function (s) { if (s[0] !== slot && box[s[0]]) { var x = find(s[0], box[s[0]]); if (x) other += x[2]; } });
+    if (f[2].indexOf("m") >= 0 && other.indexOf("d") >= 0) return false; if (f[2].indexOf("d") >= 0 && other.indexOf("m") >= 0) return false;
+    return true;
+  }
+  // fill the empty places of a week: liked things first, not the same main twice in a week if it can be helped
+  function fill(k, force) {
+    var used = { main: {}, fruit: {}, snack: {} };
+    weekDays().forEach(function (d) {
+      var box = boxOf(k, d); if (force) Object.keys(box).forEach(function (x) { delete box[x]; });
+      SLOTS.forEach(function (s) {
+        if (box[s[0]]) return;
+        if (s[0] === "drink") { box.drink = "מים"; return; }
+        var c = all(s[0]).filter(function (f) { return ok(k, s[0], f, box); }), fresh = c.filter(function (f) { return !used[s[0]][f[0]]; }); if (fresh.length) c = fresh;
+        var liked = c.filter(function (f) { return k.like[f[0]]; }); if (liked.length && Math.random() < 0.7) c = liked;
+        var p = c[Math.random() * c.length | 0]; if (p) { box[s[0]] = p[0]; used[s[0]][p[0]] = 1; }
+      });
+    });
+    save();
+  }
+
+  var app = $("app");
+  function home() {
+    var k = CUR, days = weekDays(), td = ymd(new Date()), todayBox = (S.week[td] || {})[k.id];
+    var kids = HUB ? null : el("div", { class: "kids noprint" }, S.kids.map(function (x) { return el("button", { class: "chip", type: "button", "aria-pressed": String(x === k), text: x.av + " " + x.name, onclick: function () { CUR = x; home(); } }); })
+      .concat([el("button", { class: "chip", type: "button", text: "➕ ילד", onclick: addKid })]));
+    var today = todayBox && Object.keys(todayBox).length ? el("section", { class: "card today" }, [el("h2", "📦 היום בקופסה של " + k.name),
+      el("div", { class: "box" }, SLOTS.map(function (s) { var f = todayBox[s[0]] && find(s[0], todayBox[s[0]]); return el("div", null, [el("span", { text: f ? f[1] : s[1] }), f ? f[0] : "—"]); }))]) : null;
+    var week = el("section", { class: "card" }, [el("div", { class: "row" }, [el("h2", { style: "flex:1", text: "🗓️ השבוע של " + k.name }),
+      el("button", { class: "btn ghost small noprint", type: "button", "aria-label": "שבוע קודם", text: "→", onclick: function () { OFF--; home(); } }), OFF ? el("button", { class: "btn ghost small noprint", type: "button", text: "השבוע", onclick: function () { OFF = 0; home(); } }) : null,
+      el("button", { class: "btn ghost small noprint", type: "button", "aria-label": "שבוע הבא", text: "←", onclick: function () { OFF++; home(); } })])].concat(days.map(function (d, i) {
+      var box = boxOf(k, d), f = flags(box);
+      return el("div", { class: "day" }, [el("div", { class: "h" }, [el("span", "יום " + DAYS[d.getDay()]), el("span", { class: "fine", text: d.toLocaleDateString("he-IL", { day: "numeric", month: "numeric" }) }), ymd(d) === td ? el("span", { class: "chip", style: "padding:1px 8px;font-size:12px", text: "היום" }) : null]),
+        el("div", { class: "slots" }, SLOTS.map(function (s) { var x = box[s[0]] && find(s[0], box[s[0]]); return el("button", { class: "slot" + (x ? "" : " e"), type: "button", "aria-label": s[2] + " ביום " + DAYS[d.getDay()], onclick: function () { pick(k, d, s); } }, x ? [el("span", { style: "font-size:22px;display:block", text: x[1] }), x[0]] : [s[1] + " " + s[2]]); })),
+        f.indexOf("m") >= 0 && f.indexOf("d") >= 0 ? el("div", { class: "warn", text: "⚠️ בשרי וחלבי באותה קופסה" }) : null]);
+    })).concat([el("div", { class: "row noprint" }, [el("button", { class: "btn", type: "button", text: "✨ למלא את המקומות הריקים", onclick: function () { fill(k); home(); toast("✨ מילאנו. אפשר ללחוץ על כל משבצת ולהחליף"); } }),
+      el("button", { class: "btn ghost small", type: "button", text: "🔀 שבוע חדש לגמרי", onclick: function () { if (confirm("למלא מחדש את כל השבוע של " + k.name + "?")) { fill(k, true); home(); } } })])]));
+    app.replaceChildren.apply(app, [el("section", { class: "card" }, [el("h1", "🥪 קופסת האוכל"), el("p", { class: "lead", text: "מה שמים בקופסה לבית הספר או לגן, לכל יום בשבוע. לוחצים ״למלא״, מחליפים מה שרוצים, ומקבלים רשימת קניות." })]),
+      kids, today, week, shopCard(), settings()].filter(Boolean));
+  }
+  function addKid() { var n = prompt("השם של הילד/ה:"); if (!n || !n.trim()) return; var k = { id: Date.now().toString(36), name: n.trim().slice(0, 20), av: ["👧", "👦", "🧒", "👶"][S.kids.length % 4], like: {}, no: {} }; S.kids.push(k); CUR = k; save(); home(); }
+
+  // ---- choosing for one slot, with what the child likes and won't eat ----
+  function pick(k, d, s) {
+    var box = boxOf(k, d), dim = el("div", { class: "dim" }), close = function () { dim.remove(); sh.remove(); home(); };
+    dim.onclick = close;
+    var list = all(s[0]).filter(function (f) { return !(S.nut && f[2].indexOf("n") >= 0); }).sort(function (a, b) { return (k.like[b[0]] ? 1 : 0) - (k.like[a[0]] ? 1 : 0); });
+    var mark = { like: false, no: false };
+    var modeRow = el("div", { class: "row" });
+    var drawMode = function () { modeRow.replaceChildren(el("span", { class: "fine", text: "לחיצה על מאכל:" }), el("button", { class: "chip", type: "button", "aria-pressed": String(!mark.like && !mark.no), text: "בוחרים", onclick: function () { mark = { like: false, no: false }; drawMode(); } }),
+      el("button", { class: "chip", type: "button", "aria-pressed": String(mark.like), text: "❤️ " + k.name + " אוהב/ת", onclick: function () { mark = { like: true, no: false }; drawMode(); } }),
+      el("button", { class: "chip", type: "button", "aria-pressed": String(mark.no), text: "🚫 לא אוכל/ת", onclick: function () { mark = { like: false, no: true }; drawMode(); } })); };
+    drawMode();
+    var chips = el("div", { class: "row" });
+    var drawChips = function () { chips.replaceChildren.apply(chips, list.map(function (f) {
+      var bad = !ok(k, s[0], f, box) && !k.no[f[0]], b = el("button", { class: "chip" + (k.no[f[0]] ? " no" : ""), type: "button", "aria-pressed": String(box[s[0]] === f[0]), text: (k.like[f[0]] ? "❤️ " : "") + f[1] + " " + f[0] + (bad ? " ⚠️" : ""), title: bad ? "בשרי וחלבי באותה קופסה" : "" });
+      b.onclick = function () { if (mark.like) { if (k.like[f[0]]) delete k.like[f[0]]; else { k.like[f[0]] = 1; delete k.no[f[0]]; } save(); drawChips(); return; } if (mark.no) { if (k.no[f[0]]) delete k.no[f[0]]; else { k.no[f[0]] = 1; delete k.like[f[0]]; } save(); drawChips(); return; }
+        if (k.no[f[0]]) { toast(k.name + " לא אוכל/ת את זה. אפשר לשנות ב־🚫"); return; } if (bad) toast("⚠️ שימו לב: בשרי וחלבי באותה קופסה"); box[s[0]] = f[0]; save(); close(); };
+      return b; })); };
+    drawChips();
+    var own = el("input", { type: "text", maxlength: "30", placeholder: "משהו אחר...", "aria-label": "להוסיף מאכל", style: "flex:1" });
+    var sh = el("div", { class: "sheet", role: "dialog", "aria-label": s[2] }, [el("div", { class: "row" }, [el("h2", { style: "flex:1", text: s[1] + " " + s[2] + " · יום " + DAYS[d.getDay()] }), el("button", { class: "btn ghost small", type: "button", text: "✕", "aria-label": "סגירה", onclick: close })]),
+      modeRow, chips,
+      el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); var v = own.value.trim().slice(0, 30); if (!v) return; S.own[s[0]] = S.own[s[0]] || []; if (S.own[s[0]].indexOf(v) < 0) S.own[s[0]].push(v); box[s[0]] = v; save(); close(); } }, [own, el("button", { class: "btn small", type: "submit", text: "➕" })]),
+      box[s[0]] ? el("button", { class: "btn ghost small", type: "button", text: "לרוקן את המשבצת", onclick: function () { delete box[s[0]]; save(); close(); } }) : null]);
+    document.body.append(dim, sh);
+  }
+
+  // ---- the shopping list for the week (all the children) ----
+  function shopCard() {
+    var c = {}, n = 0;
+    weekDays().forEach(function (d) { S.kids.forEach(function (k) { var b = (S.week[ymd(d)] || {})[k.id] || {}; SLOTS.forEach(function (s) { var v = b[s[0]]; if (v && v !== "מים") { c[v] = (c[v] || 0) + 1; n++; } }); }); });
+    if (!n) return null;
+    var items = Object.keys(c).sort(function (a, b) { return c[b] - c[a]; });
+    var text = "🛒 לקופסאות האוכל השבוע:\n" + items.map(function (x) { return "• " + x + (c[x] > 1 ? " (×" + c[x] + ")" : ""); }).join("\n");
+    return el("section", { class: "card" }, [el("h2", "🛒 רשימת קניות לשבוע"), el("p", { style: "margin:0;line-height:1.9", text: items.map(function (x) { return x + (c[x] > 1 ? " ×" + c[x] : ""); }).join(" · ") }),
+      el("div", { class: "row noprint" }, [el("a", { class: "btn small", href: "https://wa.me/?text=" + encodeURIComponent(text), target: "_blank", rel: "noopener", text: "💬 לשלוח" }),
+        el("button", { class: "btn ghost small", type: "button", text: "📋 להעתיק", onclick: function () { try { navigator.clipboard.writeText(text).then(function () { toast("הועתק. אפשר להדביק ב־HaniaCart"); }); } catch (e) { prompt("הרשימה:", text); } } }),
+        el("button", { class: "btn ghost small", type: "button", text: "🖨️ להדפיס", onclick: function () { print(); } })])]);
+  }
+  function settings() {
+    var opt = function (on, t, fn) { return el("button", { class: "chip", type: "button", "aria-pressed": String(on), text: t, onclick: fn }); };
+    var k = CUR, likes = Object.keys(k.like), nos = Object.keys(k.no);
+    return el("details", { class: "card noprint" }, [el("summary", { style: "font-weight:800;cursor:pointer", text: "⚙️ הגדרות" }),
+      el("div", { class: "row" }, [opt(S.nut, "🥜🚫 בלי אגוזים ובוטנים", function () { S.nut = !S.nut; save(); home(); }), opt(S.fri, "גם ביום שישי", function () { S.fri = !S.fri; save(); home(); })]),
+      el("p", { class: "fine", text: "בגנים ובבתי ספר רבים אסור להביא אגוזים ובוטנים, ולכן זה דלוק מראש. בשרי וחלבי לא נכנסים יחד לאותה קופסה במילוי האוטומטי." }),
+      likes.length || nos.length ? el("p", { class: "fine", text: (likes.length ? "❤️ " + k.name + " אוהב/ת: " + likes.join(", ") + ". " : "") + (nos.length ? "🚫 לא אוכל/ת: " + nos.join(", ") + "." : "") }) : el("p", { class: "fine", text: "בכל משבצת אפשר לסמן ❤️ מה הילד אוהב ו־🚫 מה הוא לא אוכל, והמילוי יתחשב בזה." }),
+      !HUB && S.kids.length > 1 ? el("button", { class: "btn ghost small", type: "button", text: "להסיר את " + k.name, onclick: function () { if (!confirm("להסיר את " + k.name + "?")) return; S.kids = S.kids.filter(function (x) { return x !== k; }); CUR = S.kids[0]; save(); home(); } }) : null,
+      !HUB ? el("button", { class: "btn ghost small", type: "button", text: "✏️ לשנות שם ל" + k.name, onclick: function () { var n = prompt("שם:", k.name); if (n && n.trim()) { k.name = n.trim().slice(0, 20); save(); home(); } } }) : null]);
+  }
+  // keep two months
+  (function () { var cut = ymd(new Date(Date.now() - 60 * 864e5)); Object.keys(S.week).forEach(function (d) { if (d < cut) delete S.week[d]; }); save(); })();
+  home();
+})();
+</script>
