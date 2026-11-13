@@ -1,7 +1,9 @@
+import { groupApi } from "./group.js";
 // HaniaLimud's server side: help with the day's learning, from Workers AI.
 // The text itself comes from Sefaria (fetched here by its ref, never from the browser), so every answer is grounded
 // in the actual daf or halacha. The answers are labelled as AI help on the page, and are not a halachic ruling.
 // POST /api/limud/ai {ref, kind: "daf"|"halacha", mode: "explain"|"quiz"|"ask", q}
+// Learning together (a group of friends, or a father and son) is limud/group.js.
 // "explain" and "quiz" answers are the same for everyone, so they are kept in the edge cache for a week.
 
 const AI_MODEL = "@cf/google/gemma-4-26b-a4b-it";
@@ -43,11 +45,43 @@ const ASK = {
     halacha: "כתוב 3 שאלות חזרה קצרות על ההלכות האלה, ואחרי כל שאלה את התשובה. פורמט: שורה שמתחילה ב־❓ לשאלה, ושורה שמתחילה ב־✅ לתשובה." },
 };
 
+// The weekly portion for the Shabbat table: a short telling for children, questions for three ages and a riddle.
+// The model reads the opening of the portion (Sefaria's Hebrew text) and the portion's name; the answer is JSON.
+// POST /api/limud/table {ref, name}; the same for everyone, so cached for ten days.
+const TABLE_SYS = "אתה מכין חומר קצר לשולחן שבת של משפחה דתית־מסורתית בישראל, על פרשת השבוע. כותבים בעברית פשוטה, חמה ומדויקת, בלי מדרשים מומצאים ובלי ציטוטים שאינך בטוח בהם. " +
+  "נשענים על הטקסט שניתן (תחילת הפרשה) ועל מה שידוע בבירור על הפרשה. לא פוסקים הלכה. עונים ב־JSON בלבד.";
+const TABLE_ASK = "החזר JSON בדיוק במבנה הזה, בלי טקסט נוסף:\n" +
+  '{"story":["4 עד 6 משפטים קצרים שמספרים לילדים מה קורה בפרשה, לפי הסדר"],' +
+  '"small":["2 שאלות פשוטות לילדים בני 3 עד 6"],"big":["3 שאלות לילדים בני 7 עד 12, שתיים על מה שקרה ואחת שמחברת לחיים שלהם"],' +
+  '"adult":["2 שאלות למחשבה לנוער ולמבוגרים"],"riddle":{"q":"חידה קצרה על משהו מהפרשה","a":"התשובה"},"value":"מילה או שתיים: הרעיון שאפשר לקחת לשבוע"}';
+function loose(t) { const s = String(t || ""), a = s.indexOf("{"), b = s.lastIndexOf("}"); if (a < 0 || b < a) return null; try { return JSON.parse(s.slice(a, b + 1)); } catch { return null; } }
+const strs = (a, n, len) => (Array.isArray(a) ? a : []).map((x) => strip(x).slice(0, len)).filter(Boolean).slice(0, n);
+async function table(request, env, ctx) {
+  const b = await request.json().catch(() => ({}));
+  const ref = String(b.ref || "").slice(0, 80), name = strip(b.name).slice(0, 30);
+  if (!/^[A-Za-z][A-Za-z_ ,'.0-9:-]{1,79}$/.test(ref) || !name) return json({ error: "bad" }, 400);
+  const key = new Request("https://limud.hania360.com/ai-cache/v1/table/" + encodeURIComponent(ref));
+  const hit = await caches.default.match(key); if (hit) return hit;
+  const text = (await sefaria(ref.replace(/ /g, "_"), "hebrew")).slice(0, 7000);
+  const messages = [{ role: "system", content: TABLE_SYS }, { role: "user", content: "פרשת " + name + " (" + ref + ").\nתחילת הפרשה:\n" + text + "\n\n" + TABLE_ASK }];
+  let o = null;
+  for (const m of [AI_MODEL, AI_FALLBACK]) { if (o) break; try { o = loose(out(await env.AI.run(m, { messages, max_tokens: 1400 }))); } catch {} }
+  if (!o) return json({ error: "busy" }, 503);
+  const r = { story: strs(o.story, 7, 220), small: strs(o.small, 3, 140), big: strs(o.big, 4, 160), adult: strs(o.adult, 3, 180),
+    riddle: o.riddle && o.riddle.q ? { q: strip(o.riddle.q).slice(0, 200), a: strip(o.riddle.a).slice(0, 160) } : null, value: strip(o.value).slice(0, 40) };
+  if (!r.story.length) return json({ error: "busy" }, 503);
+  const res = json(r, 200, "public, max-age=864000");
+  ctx && ctx.waitUntil ? ctx.waitUntil(caches.default.put(key, res.clone())) : await caches.default.put(key, res.clone());
+  return res;
+}
+
 export async function limudApi(request, env, ctx) {
   const url = new URL(request.url);
   if (request.method === "OPTIONS") return new Response(null, { headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "POST", "access-control-allow-headers": "content-type" } });
-  if (url.pathname !== "/api/limud/ai" || request.method !== "POST") return json({ error: "not found" }, 404);
+  if (url.pathname === "/api/limud/group" && request.method === "POST") return groupApi(request, env);
   if (!env.AI) return json({ error: "unavailable" }, 503);
+  if (url.pathname === "/api/limud/table" && request.method === "POST") return table(request, env, ctx);
+  if (url.pathname !== "/api/limud/ai" || request.method !== "POST") return json({ error: "not found" }, 404);
   const b = await request.json().catch(() => ({}));
   const ref = String(b.ref || "").slice(0, 80), kind = b.kind === "halacha" ? "halacha" : "daf", mode = ["explain", "quiz", "ask"].includes(b.mode) ? b.mode : "explain";
   const q = String(b.q || "").replace(/\s+/g, " ").trim().slice(0, 300);

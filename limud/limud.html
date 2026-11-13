@@ -17,7 +17,7 @@ header{display:flex;align-items:center;gap:10px}
 .logo{font-weight:900;font-size:22px;color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}.logo b{color:var(--k2)}.logo img{width:30px;height:30px;border-radius:9px}
 header .sp{margin-inline-start:auto}
 .streak{font-weight:800;font-size:14px;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:5px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:5px}
 .tabs button{appearance:none;border:0;background:none;border-radius:13px;padding:10px 4px;font:inherit;font-weight:800;cursor:pointer;color:var(--muted)}
 .tabs button[aria-selected="true"]{background:var(--k);color:#fff}
 .hero{border-radius:26px;padding:18px 18px 16px;color:#fff;background:linear-gradient(135deg,var(--k),color-mix(in srgb,var(--k) 70%,#000));box-shadow:0 22px 40px -26px var(--k);display:grid;gap:8px;position:relative;overflow:hidden}
@@ -69,6 +69,7 @@ h2{margin:0;font-size:19px}h3{margin:0;font-size:16px}
 input[type=time],select{font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-weight:700;z-index:50;max-width:90vw}
 a{color:var(--k)}
+@media print{header,.tabs,#rem,#credit,.hero .nav,.row .btn,.toast{display:none!important}body{background:#fff;padding:0}.card{box-shadow:none;break-inside:avoid}.hero{color:#000;background:none;box-shadow:none;padding:0}}
 :focus-visible{outline:3px solid var(--k2);outline-offset:2px}
 </style>
 <div class="wrap">
@@ -76,6 +77,7 @@ a{color:var(--k)}
   <div class="tabs" role="tablist">
     <button role="tab" id="t-daf" aria-selected="true">📜 דף יומי</button>
     <button role="tab" id="t-hal" aria-selected="false">⚖️ הלכה יומית</button>
+    <button role="tab" id="t-par" aria-selected="false">🕯️ פרשה</button>
     <button role="tab" id="t-how" aria-selected="false">🧭 איך לומדים</button>
   </div>
   <section class="hero" id="hero" aria-live="polite"></section>
@@ -101,14 +103,14 @@ a{color:var(--k)}
   document.documentElement.style.setProperty("--fs", S.fs + "px");
   function ymd(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   var DAY = new Date(); DAY.setHours(12, 0, 0, 0);
-  var TAB = /^#(hal|how)/.test(location.hash) ? location.hash.slice(1, 4) : "daf";
+  var TAB = /^#(hal|how|par)/.test(location.hash) ? location.hash.slice(1, 4) : "daf";
 
   // ---- Sefaria ----
   var SF = "https://www.sefaria.org/api/";
   var memo = {};
   function get(u) { if (!memo[u]) memo[u] = fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function (e) { delete memo[u]; throw e; }); return memo[u]; }
   function calendar(d) { return get(SF + "calendars?timezone=Asia/Jerusalem&diaspora=0&year=" + d.getFullYear() + "&month=" + (d.getMonth() + 1) + "&day=" + d.getDate()).then(function (j) {
-    var o = {}; (j.calendar_items || []).forEach(function (i) { if (i.title.en === "Daf Yomi") o.daf = i; if (i.title.en === "Halakhah Yomit") o.hal = i; }); return o; }); }
+    var o = {}; (j.calendar_items || []).forEach(function (i) { if (i.title.en === "Daf Yomi") o.daf = i; if (i.title.en === "Halakhah Yomit") o.hal = i; if (i.title.en === "Parashat Hashavua") o.par = i; }); return o; }); }
   function text(ref, version) { return get(SF + "v3/texts/" + encodeURIComponent(ref) + "?version=" + encodeURIComponent(version) + "&return_format=default").then(function (j) { return j.versions && j.versions[0] ? j.versions[0].text : []; }).catch(function () { return []; }); }
   // Sefaria's texts carry a little HTML (bold for the quoted words, line breaks). Only that is kept.
   var KEEP = { B: 1, STRONG: 1, I: 1, EM: 1, BR: 1, SMALL: 1, SPAN: 1 };
@@ -156,11 +158,12 @@ a{color:var(--k)}
     for (var i = 0; i < 4000; i++) { if (S.learned[ymd(d)]) n++; else if (d.getDay() !== 6) break; d.setDate(d.getDate() - 1); }
     return n; }
   function drawStreak() { var n = streak(); $("streak").textContent = n > 1 ? "🔥 " + n + " ימים ברצף" : n ? "🔥 יום ראשון ברצף" : "📚 לימוד יומי"; }
-  function doneBtn(key, label) {
+  function doneBtn(key, label, what) {
     var k = ymd(DAY), was = !!(S.learned[k] || {})[key];
     return el("button", { class: "btn done " + (was ? "ghost" : "gold"), type: "button", text: was ? "✓ " + label + " · נלמד" : "✅ למדתי את " + label, onclick: function () {
       S.learned[k] = S.learned[k] || {}; if (S.learned[k][key]) delete S.learned[k][key]; else S.learned[k][key] = 1;
-      if (!Object.keys(S.learned[k]).length) delete S.learned[k]; save(); drawStreak(); render(); if (!was) toast("כל הכבוד! 🎉"); } });
+      if (!Object.keys(S.learned[k]).length) delete S.learned[k]; save(); drawStreak(); render(); if (!was) toast("כל הכבוד! 🎉");
+      if (S.grp) grpApi({ op: "mark", date: k, kind: key, on: !was, what: what }).then(function (v) { GRP = v; }).catch(function () {}); } });
   }
 
   // ---- AI help ----
@@ -198,13 +201,13 @@ a{color:var(--k)}
   var seq = 0;
   function render() {
     var my = ++seq; drawStreak();
-    ["daf", "hal", "how"].forEach(function (t) { $("t-" + t).setAttribute("aria-selected", String(t === TAB)); });
+    ["daf", "hal", "par", "how"].forEach(function (t) { $("t-" + t).setAttribute("aria-selected", String(t === TAB)); });
     try { history.replaceState(null, "", TAB === "daf" ? location.pathname : "#" + TAB); } catch (e) {}
     var main = $("main");
     if (TAB === "how") { $("hero").replaceChildren(el("small", "לפני שמתחילים"), el("h1", "איך לומדים דף גמרא")); main.replaceChildren(how()); return; }
     main.replaceChildren(el("div", { class: "card load", text: "טוען את הלימוד של היום..." }));
-    $("hero").replaceChildren(el("small", TAB === "daf" ? "הדף היומי" : "הלכה יומית"), el("h1", "..."));
-    calendar(DAY).then(function (c) { if (my !== seq) return; if (TAB === "daf") daf(c.daf, my); else hal(c.hal, my); })
+    $("hero").replaceChildren(el("small", TAB === "daf" ? "הדף היומי" : TAB === "par" ? "פרשת השבוע" : "הלכה יומית"), el("h1", "..."));
+    calendar(DAY).then(function (c) { if (my !== seq) return; if (TAB === "daf") daf(c.daf, my); else if (TAB === "par") par(c.par, my); else hal(c.hal, my); })
       .catch(function () { if (my !== seq) return; main.replaceChildren(el("div", { class: "card load", text: "אין חיבור לספריא כרגע. נסו שוב בעוד רגע." })); });
   }
 
@@ -229,8 +232,8 @@ a{color:var(--k)}
           });
         });
         if (!card.querySelector(".seg")) card.append(el("p", { class: "load", text: "הטקסט לא נטען. נסו שוב." }));
-        card.append(doneBtn("daf", "הדף"));
-        $("main").replaceChildren(card, aiBox(ref, "daf"),
+        card.append(doneBtn("daf", "הדף", it.displayValue.he));
+        $("main").replaceChildren(siyum(it), card, together(), aiBox(ref, "daf"),
           el("p", { class: "fine" }, ["ללימוד בהרחבה: ", el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(ref + "a") + "?lang=he", target: "_blank", rel: "noopener", text: "הדף בספריא" }), " · ",
             el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(ref + "a") + "?lang=he&with=Steinsaltz", target: "_blank", rel: "noopener", text: "עם כל המפרשים" })]));
       });
@@ -256,8 +259,8 @@ a{color:var(--k)}
         else p = rich(html, "hal");
         card.append(el("div", { class: "seif" }, [el("small", row[1]), p]));
       });
-      card.append(doneBtn("hal", "ההלכה"));
-      $("main").replaceChildren(card, aiBox(ref, "halacha"),
+      card.append(doneBtn("hal", "ההלכה", it.displayValue.he.replace(/^שולחן ערוך, /, "")));
+      $("main").replaceChildren(card, together(), aiBox(ref, "halacha"),
         el("p", { class: "fine" }, ["עם המשנה ברורה ושאר המפרשים: ", el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(ref) + "?lang=he", target: "_blank", rel: "noopener", text: "בספריא" })]));
     });
   }
@@ -282,6 +285,102 @@ a{color:var(--k)}
     f.append(el("section", { class: "card" }, [el("h2", "📘 מילון מונחים"), el("p", { class: "fine", text: "המילים שחוזרות בכל דף. בדף עצמו, מתחת לכל קטע, מופיעות המילים שיש בו." }),
       el("div", { class: "glossary" }, GLOSS.map(function (g) { return el("div", null, [el("b", g[0]), el("span", { class: "fine", text: g[1] })]); }))]));
     return f;
+  }
+
+  // ---- the tractate: where the daf yomi is in it, and when it ends (one daf a day) ----
+  var LAST = { Berakhot: 64, Shabbat: 157, Eruvin: 105, Pesachim: 121, Shekalim: 22, Yoma: 88, Sukkah: 56, Beitzah: 40, "Rosh Hashanah": 35, Taanit: 31, Megillah: 32, "Moed Katan": 29, Chagigah: 27,
+    Yevamot: 122, Ketubot: 112, Nedarim: 91, Nazir: 66, Sotah: 49, Gittin: 90, Kiddushin: 82, "Bava Kamma": 119, "Bava Metzia": 119, "Bava Batra": 176, Sanhedrin: 113, Makkot: 24, Shevuot: 49,
+    "Avodah Zarah": 76, Horayot: 14, Zevachim: 120, Menachot: 110, Chullin: 142, Bekhorot: 61, Arakhin: 34, Temurah: 34, Keritot: 28, Meilah: 22, Kinnim: 25, Tamid: 33, Middot: 37, Niddah: 73 };
+  function siyum(it) {
+    var m = /^(.+?)\s+(\d+)$/.exec(String(it.ref).replace(/^Jerusalem Talmud /, "")), name = it.displayValue.he.replace(/\s+\S+$/, "");
+    if (!m || !LAST[m[1]]) return null;
+    var cur = +m[2], last = LAST[m[1]], left = last - cur, first = m[1] === "Kinnim" ? 22 : m[1] === "Tamid" ? 25 : m[1] === "Middot" ? 34 : 2;
+    var pct = Math.round(100 * (cur - first + 1) / (last - first + 1)), end = new Date(DAY.getTime() + left * 864e5);
+    var endTxt = end.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric" }) + " (" + end.toLocaleDateString("he-IL-u-ca-hebrew", { day: "numeric", month: "long" }) + ")";
+    var inv = "בעז״ה נסיים את מסכת " + name + " ב" + endTxt + ". מוזמנים לסעודת סיום! 🎉📚";
+    var bar = el("div", { style: "height:10px;border-radius:99px;background:var(--line);overflow:hidden" }, [el("div", { style: "height:100%;width:" + pct + "%;background:linear-gradient(90deg,var(--k),var(--k2))" })]);
+    if (left <= 0) return el("section", { class: "card", style: "border:2px solid var(--k2);text-align:center" }, [el("div", { style: "font-size:44px", text: "🎉📚" }), el("h2", "היום מסיימים את מסכת " + name + "!"),
+      el("p", { class: "fine", text: "אחרי הדף אומרים ״הדרן עלך מסכת " + name + " והדרך עלן״, ונהוג לעשות סעודת סיום. מחר מתחילים מסכת חדשה." }),
+      el("a", { class: "btn gold", href: "https://wa.me/?text=" + encodeURIComponent("🎉 היום סיימנו את מסכת " + name + " בדף היומי! הדרן עלך."), target: "_blank", rel: "noopener", text: "💬 לשתף את השמחה" })]);
+    return el("section", { class: "card" }, [el("div", { class: "row" }, [el("b", "📚 מסכת " + name), el("span", { class: "fine", style: "margin-inline-start:auto", text: pct + "% · עוד " + left + " דפים" })]), bar,
+      el("p", { class: "fine", text: "הסיום ב" + endTxt + "." }), left <= 10 ? el("a", { class: "btn small ghost", href: "https://wa.me/?text=" + encodeURIComponent(inv), target: "_blank", rel: "noopener", text: "💬 הזמנה לסעודת סיום" }) : null]);
+  }
+
+  // ---- learning together: a group on the same daf and halacha (limud/group.js) ----
+  var DEV = (function () { try { var d = localStorage.getItem("lm.dev"); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(16)), function (x) { return "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x % 57]; }).join(""); localStorage.setItem("lm.dev", d); } return d; } catch (e) { return "dev" + Math.random().toString(36).slice(2, 14); } })();
+  var GRP = null;
+  function grpApi(b) { return fetch("/api/limud/group", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ g: S.grp && S.grp.g, key: S.grp && S.grp.key, dev: DEV }, b)) }).then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j.error || "x"); e.status = r.status; throw e; } return j; }); }); }
+  function gStreak(days, dev) { var n = 0, d = new Date(); d.setHours(12, 0, 0, 0); if (!(days[ymd(d)] || {})[dev]) d.setDate(d.getDate() - 1); for (var i = 0; i < 400; i++) { if ((days[ymd(d)] || {})[dev]) n++; else if (d.getDay() !== 6) break; d.setDate(d.getDate() - 1); } return n; }
+  function grpLink() { return location.origin + "/#g=" + S.grp.g + "." + S.grp.key; }
+  function together() {
+    var box = el("section", { class: "card" }, [el("h2", "👥 לומדים ביחד")]);
+    if (!S.grp) {
+      var nm = el("input", { maxlength: "20", placeholder: "השם שלך (למשל: אבא)", "aria-label": "השם שלך", value: S.me || "", style: "flex:1;min-width:0;font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:9px 11px" });
+      var gn = el("input", { maxlength: "40", placeholder: "שם הקבוצה (למשל: הדף של אבא ויוסי)", "aria-label": "שם הקבוצה", style: "flex:1;min-width:0;font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:9px 11px" });
+      box.append(el("p", { class: "fine", text: "לומדים את אותו הדף עם חבר, עם הבן או עם החברותא. כל אחד מסמן ״למדתי״, רואים מי כבר למד היום, ומקבלים הודעה כשהשני סיים." }),
+        el("div", { class: "row" }, [nm]), el("div", { class: "row" }, [gn]),
+        el("button", { class: "btn small", type: "button", text: "👥 לפתוח קבוצה ולהזמין", onclick: function (ev) { var who = nm.value.trim(); if (!who) { nm.focus(); return; } var b = ev.currentTarget; b.disabled = true; S.me = who;
+          grpApi({ op: "new", who: who, name: gn.value.trim() }).then(function (j) { S.grp = { g: j.g, key: j.key }; GRP = j; var k = ymd(new Date()); Object.keys(S.learned[k] || {}).forEach(function (x) { grpApi({ op: "mark", date: k, kind: x, on: true }).catch(function () {}); }); save(); render(); toast("✓ הקבוצה מוכנה. עכשיו שולחים את ההזמנה"); })
+            .catch(function () { b.disabled = false; toast("לא הצלחנו לפתוח קבוצה"); }); } }));
+      return box;
+    }
+    var list = el("div", { style: "display:grid;gap:6px" }, [el("p", { class: "load", style: "padding:6px", text: "טוען..." })]);
+    var draw = function (v) {
+      GRP = v; var k = ymd(DAY), today = v.days[k] || {};
+      box.querySelector("h2").textContent = "👥 " + (v.name || "לומדים ביחד");
+      list.replaceChildren.apply(list, Object.keys(v.members).sort(function (a, b) { return v.members[a].t - v.members[b].t; }).map(function (d) {
+        var t = today[d] || {}, st = gStreak(v.days, d);
+        return el("div", { class: "row", style: "border-bottom:1px dashed var(--line);padding:4px 0" }, [el("b", v.members[d].name + (d === DEV ? " (אני)" : "")), el("span", { class: "sp", style: "margin-inline-start:auto" }),
+          el("span", { title: "הדף", text: t.daf ? "📜✓" : "📜·", style: t.daf ? "" : "opacity:.35" }), el("span", { title: "ההלכה", text: t.hal ? "⚖️✓" : "⚖️·", style: t.hal ? "" : "opacity:.35" }), st ? el("span", { class: "fine", text: "🔥" + st }) : null]);
+      }));
+    };
+    if (GRP) draw(GRP);
+    grpApi({ op: "state" }).then(draw).catch(function (e) { if (e.status === 403) { delete S.grp; save(); toast("הקבוצה כבר לא פעילה"); render(); } });
+    var t = "בוא/י נלמד יחד את הדף היומי וההלכה היומית 📚 כל אחד מסמן כשלמד, ורואים זה את זה:\n" + grpLink();
+    box.append(list, el("div", { class: "row" }, [el("a", { class: "btn small", href: "https://wa.me/?text=" + encodeURIComponent(t), target: "_blank", rel: "noopener", text: "💬 להזמין" }),
+      el("button", { class: "chip", type: "button", "aria-pressed": String(!!S.grp.note), text: "🔔 הודעה כשמישהו למד", onclick: function () { grpNote(!S.grp.note); } }),
+      el("button", { class: "chip", type: "button", text: "לצאת", onclick: function () { if (!confirm("לצאת מהקבוצה?")) return; grpApi({ op: "leave" }).catch(function () {}); delete S.grp; GRP = null; save(); render(); } })]));
+    return box;
+  }
+  function grpNote(on) {
+    var done = function (ep) { return grpApi({ op: on ? "sub" : "unsub", endpoint: ep }).then(function () { S.grp.note = on; save(); render(); toast(on ? "🔔 נודיע כשמישהו מהקבוצה למד" : "ההודעות כבויות"); }); };
+    if (!on) return done("").catch(function () {});
+    if (!canPush) { toast(why(new Error("unsupported"))); return; }
+    (PUSH_HUB ? hubPush("endpoint", {}).then(function (j) { if (!j.endpoint) throw new Error("hub"); return j.endpoint; })
+      : Notification.requestPermission().then(function (p) { if (p !== "granted") throw new Error("perm"); return getSub(true); }).then(function (x) { return x.endpoint; }))
+      .then(done).catch(function (e) { toast(why(e)); });
+  }
+  function joinGroup() {
+    var m = /^#g=([A-Za-z0-9]{10})\.([A-Za-z0-9]{22})$/.exec(location.hash); if (!m) return;
+    var drop = function () { try { history.replaceState(null, "", location.pathname); } catch (e) {} ov.remove(); };
+    if (S.grp && S.grp.g === m[1]) { try { history.replaceState(null, "", location.pathname); } catch (e) {} return; }
+    var nm = el("input", { maxlength: "20", placeholder: "השם שלך", "aria-label": "השם שלך", value: S.me || "", style: "font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px" });
+    var ov = el("section", { class: "card", style: "border:2px solid var(--k2)" }, [el("h2", "👥 הוזמנת ללמוד ביחד"), el("p", { class: "fine", text: "הדף היומי וההלכה היומית, יחד. כל אחד מסמן כשלמד, ורואים זה את זה." + (S.grp ? " (תצא/י מהקבוצה הקודמת.)" : "") }), nm,
+      el("div", { class: "row" }, [el("button", { class: "btn", type: "button", text: "✓ להצטרף", onclick: function () { var who = nm.value.trim(); if (!who) { nm.focus(); return; } S.me = who; var old = S.grp;
+        S.grp = { g: m[1], key: m[2] }; grpApi({ op: "join", who: who }).then(function (j) { GRP = j; if (old) fetch("/api/limud/group", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "leave", g: old.g, key: old.key, dev: DEV }) }).catch(function () {});
+          var k = ymd(new Date()); Object.keys(S.learned[k] || {}).forEach(function (x) { grpApi({ op: "mark", date: k, kind: x, on: true }).catch(function () {}); }); save(); drop(); render(); toast("✓ הצטרפת. לימוד נעים!"); })
+          .catch(function () { S.grp = old; toast("הקישור לא תקין או שהקבוצה נסגרה"); drop(); }); } }), el("button", { class: "btn ghost small", type: "button", text: "לא עכשיו", onclick: drop })])]);
+    $("main").before(ov);
+  }
+
+  // ---- the weekly portion for the Shabbat table ----
+  function par(it, my) {
+    if (!it) { $("main").replaceChildren(el("div", { class: "card load", text: "לא מצאנו את הפרשה." })); return; }
+    var name = it.displayValue.he, sat = new Date(DAY); sat.setDate(sat.getDate() + (6 - sat.getDay()));
+    hero("פרשת השבוע · לשולחן שבת", "פרשת " + name, "שבת " + sat.toLocaleDateString("he-IL-u-ca-hebrew", { day: "numeric", month: "long" }));
+    fetch("/api/limud/table", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ref: it.ref, name: name }) }).then(function (r) { return r.json(); }).then(function (o) {
+      if (my !== seq) return;
+      if (!o || !o.story) { $("main").replaceChildren(el("div", { class: "card load", text: "לא הצלחנו להכין עכשיו. נסו שוב בעוד רגע." })); return; }
+      var qs = function (t, arr) { return arr && arr.length ? el("div", null, [el("b", t), el("ol", { class: "steps", style: "margin-top:4px" }, arr.map(function (q) { return el("li", q); }))]) : null; };
+      var ans = el("p", { class: "fine", hidden: "", text: o.riddle ? "✅ " + o.riddle.a : "" });
+      var share = "🕯️ פרשת " + name + " לשולחן השבת\n\n" + o.story.join(" ") + "\n\n❓ שאלות:\n" + [].concat(o.small || [], o.big || []).map(function (q) { return "• " + q; }).join("\n") + (o.riddle ? "\n\n🧩 חידה: " + o.riddle.q : "") + "\n\nמ־HaniaLimud: " + location.origin + "/#par";
+      $("main").replaceChildren(
+        el("section", { class: "card" }, [el("h2", "📖 מה קורה בפרשה"), el("ul", { class: "steps" }, o.story.map(function (x) { return el("li", x); })), o.value ? el("p", { style: "margin:0;font-weight:800;color:var(--k2)", text: "💡 הרעיון לשבוע: " + o.value }) : null]),
+        el("section", { class: "card" }, [el("h2", "❓ שאלות לשולחן"), qs("👶 לקטנים (3–6)", o.small), qs("🧒 לגדולים (7–12)", o.big), qs("🧑 לנוער ולמבוגרים", o.adult)]),
+        o.riddle ? el("section", { class: "card" }, [el("h2", "🧩 חידה"), el("p", { style: "margin:0;font-size:18px", text: o.riddle.q }), el("button", { class: "btn small ghost", type: "button", text: "לגלות את התשובה", onclick: function (e) { ans.hidden = false; e.currentTarget.remove(); } }), ans]) : null,
+        el("div", { class: "row" }, [el("a", { class: "btn gold", href: "https://wa.me/?text=" + encodeURIComponent(share), target: "_blank", rel: "noopener", text: "💬 לשלוח למשפחה" }), el("button", { class: "btn ghost", type: "button", text: "🖨️ להדפיס לשבת", onclick: function () { print(); } })]),
+        el("p", { class: "fine" }, ["החומר נכתב בבינה מלאכותית לפי הפרשה, ויכולות להיות בו טעויות. ", el("a", { href: "https://www.sefaria.org.il/" + encodeURIComponent(it.url || it.ref) + "?lang=he", target: "_blank", rel: "noopener", text: "הפרשה המלאה בספריא" })]));
+    }).catch(function () { if (my === seq) $("main").replaceChildren(el("div", { class: "card load", text: "אין חיבור כרגע. נסו שוב בעוד רגע." })); });
   }
 
   // ---- the daily reminder (HaniaDat's reminder service): the next 14 days, each with what is learned that day ----
@@ -316,7 +415,7 @@ a{color:var(--k)}
   var PUSH_HUB = (function () { try { return window.parent !== window; } catch (e) { return true; } })();
   if (PUSH_HUB) {
     canPush = true;
-    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true }); else rej(new Error(e.data.error || "hub")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
+    var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true, endpoint: e.data.endpoint }); else rej(new Error(e.data.error || "hub")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
     getSub = function () { return Promise.resolve({ endpoint: "hub", toJSON: function () { return null; } }); };
     var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
   }
@@ -365,9 +464,10 @@ a{color:var(--k)}
   // keep the reminder list two weeks ahead
   if (S.rem.on && canPush && S.rem.sync !== ymd(new Date())) setTimeout(function () { sync(true).catch(function () {}); }, 1500);
 
-  ["daf", "hal", "how"].forEach(function (t) { $("t-" + t).onclick = function () { TAB = t; render(); scrollTo(0, 0); }; });
+  ["daf", "hal", "par", "how"].forEach(function (t) { $("t-" + t).onclick = function () { TAB = t; render(); scrollTo(0, 0); }; });
   $("credit").append("הטקסטים מ", el("a", { href: "https://www.sefaria.org.il/", target: "_blank", rel: "noopener", text: "ספריא" }),
     ": הגמרא המנוקדת וביאור הרב שטיינזלץ, מהדורת William Davidson (CC BY-NC). רש״י, תוספות והשולחן ערוך: נחלת הכלל. הלוח היומי לפי ספריא.");
-  remCard(); render();
+  remCard(); joinGroup(); render();
+  addEventListener("hashchange", function () { if (/^#g=/.test(location.hash)) { joinGroup(); scrollTo(0, 0); } });
 })();
 </script>

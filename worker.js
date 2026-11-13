@@ -43,6 +43,7 @@ import { sportApi } from "./sport/api.js";
 import CHAGPAGE, { FILES as CHAG_FILES, IMAGES as CHAG_IMAGES } from "./chag/page.js";
 import LIMUDPAGE, { FILES as LIMUD_FILES, IMAGES as LIMUD_IMAGES } from "./limud/page.js";
 import { limudApi } from "./limud/api.js";
+import { LimudGroup } from "./limud/group.js";
 import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
 import { RegaRoom, regaApi } from "./rega/room.js";
 import { LIGHT_CSS } from "./lib/light.js";
@@ -55,7 +56,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
