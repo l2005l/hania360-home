@@ -64,14 +64,16 @@ async function table(request, env, ctx) {
   const hit = await caches.default.match(key); if (hit) return hit;
   // the whole portion, without niqqud and cantillation marks; if that is too much for the model, a shorter part
   const full = (await sefaria(ref.replace(/ /g, "_"), "hebrew")).replace(/[\u0591-\u05C7]/g, "").replace(/\{[פס]\}/g, "").replace(/\s+/g, " ");
-  let o = null;
+  let o = null; const why = [];
   for (const [m, n] of [[AI_MODEL, 12000], [AI_MODEL, 7000], [AI_FALLBACK, 7000]]) {
     if (o) break;
     const messages = [{ role: "system", content: TABLE_SYS }, { role: "user", content: "פרשת " + name + " (" + ref + ").\n" + (full.length > n ? "הפרשה (חלק ממנה):\n" : "הפרשה כולה:\n") + full.slice(0, n) + "\n\n" + TABLE_ASK }];
-    try { o = loose(out(await env.AI.run(m, { messages, max_tokens: 1600 }))); } catch {}
+    let raw = "";
+    try { raw = out(await env.AI.run(m, { messages, max_tokens: 1600 })); o = loose(raw); } catch (e) { why.push(n + ": " + String(e && e.message || e).slice(0, 120)); }
     if (o && !(Array.isArray(o.story) && o.story.length)) o = null;
+    if (!o && raw) why.push(n + ": not json: " + String(raw).slice(0, 80));
   }
-  if (!o) return json({ error: "busy" }, 503);
+  if (!o) return json({ error: "busy", why }, 503);
   const r = { story: strs(o.story, 7, 220), small: strs(o.small, 3, 140), big: strs(o.big, 4, 160), adult: strs(o.adult, 3, 180),
     riddle: o.riddle && o.riddle.q ? { q: strip(o.riddle.q).slice(0, 200), a: strip(o.riddle.a).slice(0, 160) } : null, value: strip(o.value).slice(0, 40) };
   if (!r.story.length) return json({ error: "busy" }, 503);
