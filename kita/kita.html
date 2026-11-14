@@ -287,7 +287,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     var out = [form];
     if (CURSHEET) out.push(el("div", { class: "btns" }, [el("button", { class: "btn", type: "button", text: "🖨️ הדפסה / PDF", onclick: function () { window.print(); } }),
       el("button", { class: "btn", type: "button", text: "📝 קובץ Word", onclick: function () { saveDocx(CURSHEET, false); } }),
-      navigator.canShare ? el("button", { class: "btn ghost", type: "button", text: "📤 שיתוף (Word)", onclick: function () { saveDocx(CURSHEET, true); } }) : null, el("button", { class: "btn ghost", type: "button", text: "✕ סגירת הדף", onclick: function () { CURSHEET = null; render(); } })]), sheetEl(CURSHEET));
+      navigator.share ? el("button", { class: "btn ghost", type: "button", text: "📤 שיתוף (Word)", onclick: function () { saveDocx(CURSHEET, true); } }) : null, el("button", { class: "btn ghost", type: "button", text: "✕ סגירת הדף", onclick: function () { CURSHEET = null; render(); } })]), sheetEl(CURSHEET));
     var L = jget("kt.sheets", []);
     if (L.length) out.push(el("div", { class: "card" }, [el("h2", { text: "📚 דפים קודמים" }), el("div", { class: "lib" }, L.map(function (s) { return el("button", { type: "button", onclick: function () { CURSHEET = s; render(); } }, [el("span", { text: s.title }), el("small", { text: "כיתה " + s.grade + " · " + new Date(s.at).toLocaleDateString("he-IL") })]); }))]));
     return out;
@@ -354,10 +354,32 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     if (share) {
       var f = new File([blob], name, { type: blob.type });
       if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: s.title }).catch(function () {}); return; }
-      toast("השיתוף לא זמין כאן, אז הקובץ יורד");
+      // Chrome on Android shares only images, PDF and text: share a link to the file instead (kept for two weeks)
+      toast("מכינים קישור לקובץ...");
+      var rd = new FileReader();
+      rd.onload = function () {
+        fetch("/api/kita/file", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: name, data: String(rd.result).split(",")[1] }) }).then(function (r) { return r.json(); }).then(function (j) {
+          if (!j.url) throw new Error("x");
+          var text = "📄 " + (s.title || "דף עבודה") + " (קובץ Word):";
+          // a fresh tap for sharing (the first one was used up while the file went up)
+          var dim = el("div", { style: "position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:80;display:grid;place-items:end center;padding:16px" }), close = function () { dim.remove(); };
+          dim.addEventListener("click", function (e) { if (e.target === dim) close(); });
+          dim.append(el("div", { class: "card", style: "width:min(520px,100%);display:grid;gap:10px" }, [el("h2", { text: "📤 הקובץ מוכן לשליחה" }), el("p", { class: "note", text: "שולחים קישור, ומי שמקבל לוחץ עליו ומקבל את קובץ ה־Word. הקישור עובד שבועיים." }),
+            el("div", { class: "btns" }, [navigator.share ? el("button", { class: "btn", type: "button", text: "📤 לשתף", onclick: function () { navigator.share({ title: s.title, text: text, url: j.url }).then(close).catch(function () {}); } }) : null,
+              el("a", { class: "btn", href: "https://wa.me/?text=" + encodeURIComponent(text + "\n" + j.url), target: "_blank", rel: "noopener", text: "💬 וואטסאפ", onclick: close }),
+              el("button", { class: "btn ghost", type: "button", text: "📋 העתקת קישור", onclick: function () { try { navigator.clipboard.writeText(j.url).then(function () { toast("הקישור הועתק"); close(); }); } catch (e) { prompt("הקישור:", j.url); } } }),
+              el("button", { class: "btn ghost", type: "button", text: "סגירה", onclick: close })])]));
+          document.body.append(dim);
+        }).catch(function () { toast("לא הצלחנו לשתף. הקובץ יורד, ואפשר לשלוח אותו מהקבצים בטלפון"); dl(); });
+      };
+      rd.readAsDataURL(blob);
+      return;
     }
+    dl();
+    function dl() {
     var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.setAttribute("download", name); a.rel = "noopener"; document.body.append(a); a.click(); setTimeout(function () { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
     toast("📝 הקובץ ירד. אפשר לפתוח אותו ב־Word או ב־Google Docs ולשנות");
+    }
   }
 
   // ---- ⚙️ classes -----------------------------------------------------------------------------------

@@ -44,6 +44,7 @@ import CHAGPAGE, { FILES as CHAG_FILES, IMAGES as CHAG_IMAGES } from "./chag/pag
 import LIMUDPAGE, { FILES as LIMUD_FILES, IMAGES as LIMUD_IMAGES } from "./limud/page.js";
 import { limudApi } from "./limud/api.js";
 import { LimudGroup } from "./limud/group.js";
+import { KitaFile, kitaFiles } from "./kita/files.js";
 import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
 import { RegaRoom, regaApi } from "./rega/room.js";
 import { LIGHT_CSS } from "./lib/light.js";
@@ -60,7 +61,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
@@ -570,7 +571,7 @@ export default {
     if (url.hostname === "play.hania360.com" || url.searchParams.get("app") === "play" && /workers\.dev$/.test(url.hostname)) return playApp(request, env || {});
     if (url.hostname === "masach.hania360.com" || url.searchParams.get("app") === "masach" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/masach/") ? masachApi(request, env || {}, url) : url.pathname === "/tv" ? Response.redirect(url.origin + "/#tv", 302) : smallApp(url, MASACHAPP, MASACH_FILES, MASACH_IMAGES, "https://masach.hania360.com/");
     if (url.hostname === "kibud.hania360.com" || url.searchParams.get("app") === "kibud" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/kibud/") ? kibudApi(request, env || {}, url) : smallApp(url, KIBUDAPP, KIBUD_FILES, KIBUD_IMAGES, "https://kibud.hania360.com/");
-    if (url.hostname === "kita.hania360.com" || url.searchParams.get("app") === "kita" && /workers\.dev$/.test(url.hostname)) return url.pathname === "/api/kita/sheet" ? sheetApi(request, env || {}) : smallApp(url, KITAAPP, KITA_FILES, KITA_IMAGES, "https://kita.hania360.com/");
+    if (url.hostname === "kita.hania360.com" || url.searchParams.get("app") === "kita" && /workers\.dev$/.test(url.hostname)) return url.pathname === "/api/kita/sheet" ? sheetApi(request, env || {}) : url.pathname === "/api/kita/file" || url.pathname.startsWith("/f/") ? kitaFiles(request, env || {}, url) : smallApp(url, KITAAPP, KITA_FILES, KITA_IMAGES, "https://kita.hania360.com/");
     if (url.hostname === "sipur.hania360.com" || url.searchParams.get("app") === "sipur" && /workers\.dev$/.test(url.hostname)) return url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : smallApp(url, SIPURAPP, SIPUR_FILES, SIPUR_IMAGES, "https://sipur.hania360.com/");
     if (url.hostname === "hazmana.hania360.com" || url.searchParams.get("app") === "hazmana" && /workers\.dev$/.test(url.hostname)) {
       if (url.pathname.startsWith("/api/hz/")) return hazmanaApi(request, env || {}, url);
