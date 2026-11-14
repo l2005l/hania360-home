@@ -78,6 +78,16 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .sheet .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 16px;margin-top:4px;list-style:none;padding:0}
 .sheet .line{border-bottom:1px solid #999;height:28px}
 .sheet .ans{margin-top:22px;border-top:2px dashed #999;padding-top:12px}
+.sheet .goal{margin:6px 0 10px;font-weight:600}
+.sheet .ex{border:1.5px solid #C9D6F2;background:#F4F7FE;border-radius:10px;padding:10px 14px;margin:4px 0 10px}.sheet .ex ol{gap:4px;margin-top:4px}
+.sheet .band{background:#2E5AAC;color:#fff;font-weight:800;padding:4px 10px;border-radius:6px;margin:14px 0 4px;break-after:avoid}
+.sheet .sins{color:#444;margin:0 0 8px;font-size:15px}
+.sheet .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:6px 0}
+.sheet .colx{border:1px solid #CDD5E3;border-radius:8px;padding:8px 14px;break-inside:avoid}.sheet .colx small{color:#2E5AAC;font-weight:800}
+.sheet .colx .n{direction:ltr;text-align:right;font:600 22px/1.35 "Courier New",monospace}.sheet .colx .u{border-bottom:2px solid #111}
+.sheet .colx .work{height:70px;border-bottom:1px solid #999}
+.sheet .tf{color:#333;margin-top:2px}
+.sheet .self{margin-top:18px;text-align:center;background:#EEF2FF;border-radius:8px;padding:6px;font-weight:700}
 .sheet .ans h2{font-size:20px;margin:0 0 8px}
 .lib{display:grid;gap:6px}
 .lib button{appearance:none;text-align:start;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:9px 12px;font:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
@@ -286,7 +296,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     var key = el("input", { type: "checkbox", style: "width:auto" }); key.checked = W.key !== false; key.addEventListener("change", function () { W.key = key.checked; ls("kt.wform", JSON.stringify(W)); if (CURSHEET) render(); });
     var go = el("button", { class: "btn", type: "button", text: "✨ הכנת דף עבודה", onclick: function () {
       if (W.topic.trim().length < 2) { toast("כותבים נושא"); topic.focus(); return; }
-      go.disabled = true; go.textContent = "✍️ כותבים את הדף…"; var bar = loadBar("כותבים דף עבודה", 45); go.after(bar.el);
+      go.disabled = true; go.textContent = "✍️ כותבים את הדף…"; var bar = loadBar("כותבים דף עבודה עשיר", 60); go.after(bar.el);
       fetch("/api/kita/sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ device: DEV }, W)) })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "x"); return j; }); })
         .then(function (j) { bar.done(); j.at = Date.now(); CURSHEET = j; var L = jget("kt.sheets", []); L.unshift(j); ls("kt.sheets", JSON.stringify(L.slice(0, 30))); render(); setTimeout(function () { var s = document.querySelector(".sheet"); s && s.scrollIntoView({ behavior: "smooth" }); }, 50); })
@@ -306,17 +316,44 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     if (L.length) out.push(el("div", { class: "card" }, [el("h2", { text: "📚 דפים קודמים" }), el("div", { class: "lib" }, L.map(function (s) { return el("button", { type: "button", onclick: function () { CURSHEET = s; render(); } }, [el("span", { text: s.title }), el("small", { text: "כיתה " + s.grade + " · " + new Date(s.at).toLocaleDateString("he-IL") })]); }))]));
     return out;
   }
+  // A sheet in parts (v2) or, from before, one list of questions.
+  function partsOf(s) { return s.sections && s.sections.length ? s.sections : [{ name: "", ins: "", questions: s.questions || [] }]; }
+  var HEB_N = ["א", "ב", "ג", "ד", "ה", "ו", "ז", "ח"];
+  // a written exercise "47 × 6" that can be set out in columns: two whole numbers and + − ×
+  function columnOf(q) { var m = /^\s*(\d{1,5})\s*([×x*+\-−])\s*(\d{1,4})\s*(=\s*_*\s*)?$/.exec(q); return m ? [m[1], m[2] === "x" || m[2] === "*" ? "×" : m[2] === "−" ? "-" : m[2], m[3]] : null; }
+  // text with arithmetic ("46 × 3 = 138") kept left to right inside Hebrew
+  function mathy(node, t) { var M = /((?:\d+|_{3,})(?:\s*[×=+\-:÷]\s*(?:\d+|_{3,}))+)/; String(t).split(M).forEach(function (u) { if (!u) return; if (new RegExp("^" + M.source + "$").test(u)) node.append(el("span", { dir: "ltr", style: "unicode-bidi:isolate", text: u })); else node.append(document.createTextNode(u)); }); return node; }
   function sheetEl(s) {
-    var letters = ["א", "ב", "ג", "ד"];
-    var qs = el("ol", {}, s.questions.map(function (q, i) {
-      var kids = [el("div", { class: "q", dir: "auto", contenteditable: "true", spellcheck: "false", text: q.q, onblur: function (e) { q.q = e.target.textContent; } })];
-      if (q.type === "mc") kids.push(el("ul", { class: "opts" }, q.options.map(function (o, k) { return el("li", { dir: "auto", text: letters[k] + ". " + o }); })));
-      if (q.type === "open") kids.push(el("div", { class: "line" }), el("div", { class: "line" }));
-      return el("li", {}, kids);
-    }));
-    var parts = [el("div", { class: "hd" }, [el("span", { text: "שם: ____________________" }), el("span", { text: "כיתה: " + s.grade + "  ·  תאריך: ___________" })]), el("h1", { contenteditable: "true", text: s.title }), s.instructions ? el("p", { class: "ins", text: s.instructions }) : null, qs];
-    if (W.key !== false) parts.push(el("div", { class: "ans page" }, [el("h2", { text: "דף תשובות למורה · " + s.title }), el("ol", {}, s.questions.map(function (q) { return el("li", { text: q.answer || "—" }); }))]));
-    return el("article", { class: "sheet printable" }, parts);
+    var letters = ["א", "ב", "ג", "ד"], parts = partsOf(s), edit = function (q, cls) { return mathy(el("div", { class: cls || "q", dir: /[\u0590-\u05FF]/.test(q.q) || !/[A-Za-z]/.test(q.q) ? "rtl" : "ltr", contenteditable: "true", spellcheck: "false", onblur: function (e) { q.q = e.target.textContent; } }), q.q); };
+    var body = [el("div", { class: "hd" }, [el("span", { text: "שם: ____________________" }), el("span", { text: "כיתה: " + s.grade + "  ·  תאריך: ___________" })]), el("h1", { contenteditable: "true", text: s.title })];
+    if (s.goal) body.push(el("p", { class: "goal", text: "🎯 מה נתרגל היום: " + s.goal }));
+    if (!s.goal && s.instructions) body.push(el("p", { class: "ins", text: s.instructions }));
+    if (s.example && s.example.steps.length) body.push(el("div", { class: "ex" }, [mathy(el("b"), "📌 " + (s.example.title || "דוגמה פתורה")), el("ol", {}, s.example.steps.map(function (t) { return mathy(el("li", {}), t); }))]));
+    parts.forEach(function (sec, si) {
+      if (sec.name || parts.length > 1) body.push(el("div", { class: "band" }, [el("span", { text: (parts.length > 1 ? "חלק " + HEB_N[si] + "׳" + (sec.name ? ": " : "") : "") + (sec.name || "") })]));
+      if (sec.ins) body.push(el("p", { class: "sins", text: sec.ins }));
+      var cols = sec.questions.filter(function (q) { return q.type === "calc" && columnOf(q.q); });
+      if (cols.length && cols.length === sec.questions.length) {
+        body.push(el("div", { class: "cols" }, cols.map(function (q, i) { var c = columnOf(q.q); return el("div", { class: "colx" }, [el("small", { text: (i + 1) + "." }), el("div", { class: "n", text: c[0] }), el("div", { class: "n u", text: c[1] + " " + c[2] }), el("div", { class: "work" })]); })));
+        return;
+      }
+      body.push(el("ol", {}, sec.questions.map(function (q) {
+        var kids = [edit(q)];
+        if (q.type === "mc") kids.push(el("ul", { class: "opts" }, q.options.map(function (o, k) { return el("li", { dir: "auto", text: letters[k] + ". " + o }); })));
+        if (q.type === "tf") kids.push(el("div", { class: "tf", text: "◯ נכון      ◯ לא נכון" }));
+        if (q.type === "calc") { kids[0].textContent = ""; mathy(kids[0], q.q.replace(/\s*=\s*_*\s*$/, "") + " = ________"); }
+        if (q.type === "open") kids.push(el("div", { class: "line" }), el("div", { class: "line" }));
+        if (q.type === "word") kids.push(el("div", { class: "line" }), el("div", { class: "line" }), el("div", { class: "line" }));
+        return el("li", {}, kids);
+      })));
+    });
+    if (s.v === 2) body.push(el("p", { class: "self", text: "איך הלך לי?   😀 קל לי     🙂 הסתדרתי     🤔 צריך עוד תרגול" }));
+    if (W.key !== false) {
+      var key = [el("h2", { text: "דף תשובות למורה · " + s.title })];
+      parts.forEach(function (sec, si) { key.push(el("p", {}, [el("b", { text: (parts.length > 1 ? "חלק " + HEB_N[si] + "׳: " : "") }), sec.questions.map(function (q, i) { return (i + 1) + ") " + (q.answer || "—"); }).join("   ·   ")])); });
+      body.push(el("div", { class: "ans page" }, key));
+    }
+    return el("article", { class: "sheet printable" }, body);
   }
 
   // ---- the worksheet as a Word file (.docx), made here in the browser: right to left, with the teacher's changes,
@@ -338,26 +375,59 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   function docx(s) {
     var x = function (t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
     var heb = function (t) { return /[֐-׿]/.test(t) || !/[A-Za-z]/.test(t); };
-    // one paragraph: o = {size (pt), bold, center, after (pt), indent (cm), pageBreak}
-    var p = function (t, o) {
-      o = o || {}; var r = heb(t);
-      var rp = "<w:rPr><w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:cs=\"Arial\"/>" + (o.bold ? "<w:b/><w:bCs/>" : "") + "<w:sz w:val=\"" + (o.size || 13) * 2 + "\"/><w:szCs w:val=\"" + (o.size || 13) * 2 + "\"/>" + (r ? "<w:rtl/>" : "") + "</w:rPr>";
-      return "<w:p><w:pPr>" + (o.pageBreak ? "<w:pageBreakBefore/>" : "") + (r ? "<w:bidi/>" : "<w:bidi w:val=\"0\"/>") + "<w:spacing w:after=\"" + (o.after == null ? 120 : o.after * 20) + "\"/>" + (o.indent ? "<w:ind w:start=\"" + Math.round(o.indent * 567) + "\"/>" : "") + (o.center ? "<w:jc w:val=\"center\"/>" : r ? "" : "<w:jc w:val=\"left\"/>") + "</w:pPr>" +
-        (t ? "<w:r>" + rp + "<w:t xml:space=\"preserve\">" + x(t) + "</w:t></w:r>" : "") + "</w:p>";
+    // arithmetic inside Hebrew ("46 × 3 = 138") goes in runs of its own, left to right, so it is not reversed
+    var MATH = /((?:\d+|_{3,})(?:\s*[×=+\-:÷]\s*(?:\d+|_{3,}))+)/;
+    var runs = function (t, o) {
+      var rp = function (ltr) { return "<w:rPr><w:rFonts w:ascii=\"" + (o.mono ? "Courier New" : "Arial") + "\" w:hAnsi=\"" + (o.mono ? "Courier New" : "Arial") + "\" w:cs=\"Arial\"/>" + (o.bold ? "<w:b/><w:bCs/>" : "") + (o.color ? "<w:color w:val=\"" + o.color + "\"/>" : "") + "<w:sz w:val=\"" + (o.size || 13) * 2 + "\"/><w:szCs w:val=\"" + (o.size || 13) * 2 + "\"/>" + (ltr ? "" : "<w:rtl/>") + "</w:rPr>"; };
+      var r = function (u, ltr) { return "<w:r>" + rp(ltr) + "<w:t xml:space=\"preserve\">" + x(ltr ? "‪" + u + "‬" : u) + "</w:t></w:r>"; };
+      if (!o.rtl) return r(t, true);
+      return String(t).split(MATH).filter(function (u) { return u !== ""; }).map(function (u) { return r(u, new RegExp("^" + MATH.source + "$").test(u)); }).join("");
     };
-    var el0 = document.querySelector(".sheet h1"), title = el0 ? el0.textContent.trim() : s.title, L = ["א", "ב", "ג", "ד"], body = [];
+    // one paragraph: o = {size (pt), bold, color, center, after (pt), indent (cm), pageBreak, shade, line (a rule under it), ltr, mono, right}
+    var p = function (t, o) {
+      o = o || {}; var rtl = !o.ltr && heb(t); o.rtl = rtl;
+      return "<w:p><w:pPr>" + (o.keep ? "<w:keepNext/>" : "") + (o.pageBreak ? "<w:pageBreakBefore/>" : "") + (o.line ? "<w:pBdr><w:bottom w:val=\"single\" w:sz=\"" + (o.line === 2 ? 12 : 6) + "\" w:space=\"1\" w:color=\"" + (o.line === 2 ? "1F2937" : "9AA4B5") + "\"/></w:pBdr>" : "") +
+        (o.shade ? "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"" + o.shade + "\"/>" : "") + (rtl ? "<w:bidi/>" : "<w:bidi w:val=\"0\"/>") + "<w:spacing w:before=\"" + (o.before || 0) * 20 + "\" w:after=\"" + (o.after == null ? 120 : o.after * 20) + "\"/>" +
+        (o.indent ? "<w:ind w:start=\"" + Math.round(o.indent * 567) + "\"/>" : "") + (o.center ? "<w:jc w:val=\"center\"/>" : o.right ? "<w:jc w:val=\"right\"/>" : rtl ? "" : "<w:jc w:val=\"left\"/>") + "</w:pPr>" + (t ? runs(t, o) : "") + "</w:p>";
+    };
+    var cellB = "<w:tcBorders><w:top w:val=\"single\" w:sz=\"6\" w:color=\"CDD5E3\"/><w:bottom w:val=\"single\" w:sz=\"6\" w:color=\"CDD5E3\"/><w:start w:val=\"single\" w:sz=\"6\" w:color=\"CDD5E3\"/><w:end w:val=\"single\" w:sz=\"6\" w:color=\"CDD5E3\"/></w:tcBorders>";
+    // exercises set out in columns, three in a row, with room to work
+    var colTable = function (qs) {
+      var w = 3212, rows = [];
+      for (var i = 0; i < qs.length; i += 3) rows.push("<w:tr><w:trPr><w:cantSplit/></w:trPr>" + [0, 1, 2].map(function (k) {
+        var q = qs[i + k], c = q && columnOf(q.q), inner = c ? p((i + k + 1) + ".", { bold: true, color: "2E5AAC", size: 11, after: 2 }) + p(c[0], { ltr: true, mono: true, right: true, size: 15, after: 0 }) + p(c[1] + " " + c[2], { ltr: true, mono: true, right: true, size: 15, after: 0, line: 2 }) + p("", { after: 30, line: 1 }) : p("", {});
+        return "<w:tc><w:tcPr><w:tcW w:w=\"" + w + "\" w:type=\"dxa\"/>" + cellB + "<w:tcMar><w:top w:w=\"80\" w:type=\"dxa\"/><w:start w:w=\"200\" w:type=\"dxa\"/><w:end w:w=\"200\" w:type=\"dxa\"/></w:tcMar></w:tcPr>" + inner + "</w:tc>";
+      }).join("") + "</w:tr>");
+      return "<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w=\"" + w * 3 + "\" w:type=\"dxa\"/><w:tblLayout w:type=\"fixed\"/></w:tblPr><w:tblGrid><w:gridCol w:w=\"" + w + "\"/><w:gridCol w:w=\"" + w + "\"/><w:gridCol w:w=\"" + w + "\"/></w:tblGrid>" + rows.join("") + "</w:tbl>" + p("", { after: 4 });
+    };
+    var el0 = document.querySelector(".sheet h1"), title = el0 ? el0.textContent.trim() : s.title, L = ["א", "ב", "ג", "ד"], parts = partsOf(s), body = [];
     body.push(p("שם: ____________________          כיתה: " + s.grade + "          תאריך: ___________", { size: 12, after: 10 }));
-    body.push(p(title, { size: 20, bold: true, center: true, after: 6 }));
-    if (s.instructions) body.push(p(s.instructions, { size: 12, center: true, after: 14 }));
-    s.questions.forEach(function (q, i) {
-      body.push(p(heb(q.q) ? (i + 1) + ". " + q.q : q.q.replace(/^/, (i + 1) + ". "), { bold: true, after: 4 }));
-      if (q.type === "mc") q.options.forEach(function (o, k) { body.push(p(L[k] + ". " + o, { indent: 0.8, after: 2 })); });
-      if (q.type === "open") { body.push(p("_________________________________________________________", { indent: 0.5, after: 8 })); body.push(p("_________________________________________________________", { indent: 0.5, after: 2 })); }
-      body.push(p("", { after: 8 }));
+    body.push(p(title, { size: 22, bold: true, center: true, color: "1E3A8A", after: 4, line: 2 }));
+    if (s.goal) body.push(p("🎯 מה נתרגל היום: " + s.goal, { size: 12, before: 4, after: 8 }));
+    else if (s.instructions) body.push(p(s.instructions, { size: 12, center: true, after: 14 }));
+    if (s.example && s.example.steps.length) { body.push(p("📌 " + (s.example.title || "דוגמה פתורה"), { bold: true, shade: "EEF2FF", keep: true, after: 2 })); s.example.steps.forEach(function (t, i) { body.push(p((i + 1) + ". " + t, { shade: "F4F7FE", indent: 0.4, after: 2 })); }); body.push(p("", { after: 4 })); }
+    parts.forEach(function (sec, si) {
+      if (sec.name || parts.length > 1) body.push(p((parts.length > 1 ? "חלק " + HEB_N[si] + "׳" + (sec.name ? ": " : "") : "") + (sec.name || ""), { bold: true, size: 14, color: "FFFFFF", shade: "2E5AAC", before: 8, after: 4, keep: true }));
+      if (sec.ins) body.push(p(sec.ins, { size: 11, color: "4A5568", after: 6, keep: true }));
+      var cols = sec.questions.filter(function (q) { return q.type === "calc" && columnOf(q.q); });
+      if (cols.length && cols.length === sec.questions.length) { body.push(colTable(cols)); return; }
+      sec.questions.forEach(function (q, i) {
+        var qt = q.type === "calc" ? q.q.replace(/\s*=\s*_*\s*$/, "") + " = ________" : q.q;
+        body.push(p((i + 1) + ". " + qt, { bold: q.type !== "calc", after: 4, keep: q.type !== "calc" }));
+        if (q.type === "mc") q.options.forEach(function (o, k) { body.push(p(L[k] + ". " + o, { indent: 0.8, after: 2 })); });
+        if (q.type === "tf") body.push(p("◯ נכון          ◯ לא נכון", { indent: 0.8, after: 2 }));
+        var nl = q.type === "open" ? 2 : q.type === "word" ? 3 : 0;
+        for (var k = 0; k < nl; k++) body.push(p("_______________________________________________________________", { indent: 0.5, after: 10, color: "9AA4B5", ltr: true, right: true }));
+        body.push(p("", { after: 4 }));
+      });
     });
-    if (W.key !== false) { body.push(p("דף תשובות למורה · " + title, { size: 15, bold: true, pageBreak: true, after: 10 })); s.questions.forEach(function (q, i) { body.push(p((i + 1) + ". " + (q.answer || "—"), { after: 6 })); }); }
+    if (s.v === 2) body.push(p("איך הלך לי?   😀 קל לי     🙂 הסתדרתי     🤔 צריך עוד תרגול", { center: true, shade: "EEF2FF", before: 10 }));
+    if (W.key !== false) {
+      body.push(p("דף תשובות למורה · " + title, { size: 15, bold: true, color: "1E3A8A", pageBreak: true, after: 10, line: 2 }));
+      parts.forEach(function (sec, si) { body.push(p((parts.length > 1 ? "חלק " + HEB_N[si] + "׳: " : "") + sec.questions.map(function (q, i) { return (i + 1) + ") " + (q.answer || "—"); }).join("    "), { after: 6 })); });
+    }
     var doc = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\"><w:body>" + body.join("") +
-      "<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1134\" w:right=\"1134\" w:bottom=\"1134\" w:left=\"1134\" w:header=\"567\" w:footer=\"567\" w:gutter=\"0\"/><w:bidi/></w:sectPr></w:body></w:document>";
+      "<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/><w:pgMar w:top=\"1000\" w:right=\"1134\" w:bottom=\"1000\" w:left=\"1134\" w:header=\"567\" w:footer=\"567\" w:gutter=\"0\"/><w:bidi/></w:sectPr></w:body></w:document>";
     return zip([
       ["[Content_Types].xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/></Types>"],
       ["_rels/.rels", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/></Relationships>"],
