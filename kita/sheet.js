@@ -51,7 +51,17 @@ export async function sheetApi(req, env) {
     return o;
   };
   let sections = (Array.isArray(j.sections) ? j.sections : [{ name: "", ins: "", questions: j.questions }]).slice(0, 7).map((s) => ({ name: clean(s.name, 80), ins: clean(s.ins, 240), questions: (Array.isArray(s.questions) ? s.questions : []).slice(0, 12).map(one).filter((q) => q.q) })).filter((s) => s.questions.length);
-  const ex = j.example && Array.isArray(j.example.steps) && j.example.steps.length ? { title: clean(j.example.title, 120), steps: j.example.steps.slice(0, 6).map((x) => clean(x, 260)).filter(Boolean) } : null;
+  let ex = j.example && Array.isArray(j.example.steps) && j.example.steps.length ? { title: clean(j.example.title, 120), steps: j.example.steps.slice(0, 6).map((x) => clean(x, 260)).filter(Boolean) } : null;
+  // A worked example must be right. Any sum in it that is wrong: for "a × b" we write the steps ourselves, otherwise it goes.
+  if (ex && wrongEq([ex.title].concat(ex.steps).join(" ")).length) {
+    const m = /(\d{1,4})\s*[×x*]\s*(\d{1,3})/.exec(ex.title + " " + ex.steps.join(" "));
+    ex = m ? columnExample(+m[1], +m[2]) : null;
+  }
+  // answers: true/false about a sum is decided by working it out; a sum written in an answer is corrected
+  for (const sec of sections) for (const q of sec.questions) {
+    if (q.type === "tf") { const m = EQ.exec(q.q); if (m && new RegExp("^\\s*" + EQ.source + "\\s*\\.?\\s*$").test(q.q)) { const v = arith(m[1]); if (v != null) q.answer = Math.abs(v - +m[2]) < 1e-9 ? "נכון" : "לא נכון (" + m[1].trim() + " = " + v + ")"; } }
+    if (q.type !== "calc") q.answer = fixEq(q.answer);
+  }
   return json({ v: 2, title: clean(j.title, 100) || topic, goal: clean(j.goal, 220), instructions: clean(j.instructions, 300), example: ex, sections, questions: [].concat(...sections.map((s) => s.questions)), grade, subject: b.subject in SUBJECTS ? b.subject : "other", topic });
 }
 
@@ -65,4 +75,19 @@ export function arith(q) {
   const prod = () => { let v = atom(); while (e[i] === "*" || e[i] === "/") { const op = e[i++], w = atom(); if (op === "/" && w === 0) throw 0; v = op === "*" ? v * w : v / w; } return v; };
   const sum = () => { let v = prod(); while (e[i] === "+" || e[i] === "-") { const op = e[i++], w = prod(); v = op === "+" ? v + w : v - w; } return v; };
   try { const v = sum(); if (i !== e.length || !isFinite(v)) return null; return Math.round(v * 1000) / 1000; } catch { return null; }
+}
+
+// "47 × 6 = 280": an arithmetic statement and its claimed result
+const EQ = /((?:\d+(?:\.\d+)?\s*[×x*:÷+\-−]\s*)+\d+(?:\.\d+)?)\s*=\s*(\d+(?:\.\d+)?)/;
+function wrongEq(t) { const out = [], re = new RegExp(EQ.source, "g"); let m; while ((m = re.exec(String(t)))) { const v = arith(m[1]); if (v != null && Math.abs(v - +m[2]) > 1e-9) out.push(m[0]); } return out; }
+function fixEq(t) { return String(t).replace(new RegExp(EQ.source, "g"), (all, e, r) => { const v = arith(e); return v != null && Math.abs(v - +r) > 1e-9 ? e.trim() + " = " + v : all; }); }
+// the steps of a column multiplication, worked out here
+function columnExample(a, b) {
+  const steps = [], ones = b % 10, tens = Math.floor(b / 10) % 10, hund = Math.floor(b / 100);
+  if (b < 10) return { title: "דוגמה פתורה: " + a + " × " + b, steps: ["כופלים כל ספרה של " + a + " ב־" + b + ", מימין לשמאל, ומעבירים את מה שעובר לעמודה הבאה.", "התוצאה: " + a + " × " + b + " = " + a * b] };
+  steps.push("שלב 1: כופלים את " + a + " בספרת האחדות, " + ones + ": " + a + " × " + ones + " = " + a * ones);
+  steps.push("שלב 2: כופלים את " + a + " בספרת העשרות. " + tens + " עשרות הן " + tens * 10 + ", לכן כותבים 0 במקום האחדות: " + a + " × " + tens * 10 + " = " + a * tens * 10);
+  if (hund) steps.push("שלב 3: כופלים את " + a + " במאות: " + a + " × " + hund * 100 + " = " + a * hund * 100);
+  steps.push("שלב " + (hund ? 4 : 3) + ": מחברים את השורות: " + [a * ones, a * tens * 10].concat(hund ? [a * hund * 100] : []).join(" + ") + " = " + a * b);
+  return { title: "דוגמה פתורה: " + a + " × " + b, steps };
 }
