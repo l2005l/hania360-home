@@ -116,6 +116,20 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
 <script>
 (function () {
   "use strict";
+  // A progress bar for a wait of unknown length (the AI writing): it moves quickly at first and slows down,
+  // never stops short of moving, and fills to 100% when the answer comes. sec: about how long it usually takes.
+  function loadBar(label, sec) {
+    var box = document.createElement("div"), top = document.createElement("div"), lab = document.createElement("span"), pct = document.createElement("b"), track = document.createElement("div"), fill = document.createElement("i");
+    box.setAttribute("role", "progressbar"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-label", label);
+    box.style.cssText = "display:grid;gap:6px;width:100%;margin:6px 0"; top.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700";
+    track.style.cssText = "height:10px;border-radius:99px;background:rgba(127,127,127,.22);overflow:hidden";
+    fill.style.cssText = "display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--main,#7C5CFF),var(--k2,var(--sun,#FFC83D)));transition:width .25s linear";
+    lab.textContent = label; top.append(lab, pct); track.append(fill); box.append(top, track);
+    var t0 = Date.now(), set = function (p) { fill.style.width = p + "%"; pct.textContent = Math.round(p) + "%"; box.setAttribute("aria-valuenow", String(Math.round(p))); };
+    set(0); var iv = setInterval(function () { set(Math.min(98, 100 * (1 - Math.exp(-(Date.now() - t0) / 1000 / (sec * 0.4))))); }, 250);
+    return { el: box, done: function () { clearInterval(iv); set(100); setTimeout(function () { box.remove(); }, 450); }, fail: function () { clearInterval(iv); box.remove(); } };
+  }
+
   var $ = function (id) { return document.getElementById(id); };
   function el(tag, a, kids) {
     var e = document.createElement(tag);
@@ -290,11 +304,11 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     if (!k.age) k.age = 6;
     S.stv = S.stv || "sleep";
     var go = el("button", { class: "btn go", type: "button", text: "✨ סיפור חדש", onclick: function () {
-      go.disabled = true; go.textContent = "✍️ כותבים סיפור ל" + k.name + "...";
+      go.disabled = true; go.textContent = "✍️ כותבים סיפור ל" + k.name + "..."; var bar = loadBar("כותבים את הסיפור", 35); go.after(bar.el);
       fetch("/api/sipur/story", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: DEV, name: k.name, g: k.g, age: k.age, place: STP[Math.random() * STP.length | 0], friend: STF[Math.random() * STF.length | 0], value: S.stv, len: "short" }) })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.paragraphs) throw new Error(j.error || "x"); return j; }); })
-        .then(function (j) { var st = { id: Date.now().toString(36), at: Date.now(), kid: k.id, title: j.title, paragraphs: j.paragraphs }; S.stories.unshift(st); S.stories = S.stories.slice(0, 30); save(); storyOpen(k, st); })
-        .catch(function (e) { go.disabled = false; go.textContent = "✨ סיפור חדש"; toast(e.message === "device" || e.message === "day" ? "היום כבר נכתבו הרבה סיפורים. אפשר לקרוא סיפור ששמרנו 📚" : "לא הצלחנו לכתוב עכשיו. נסו שוב."); });
+        .then(function (j) { bar.done(); var st = { id: Date.now().toString(36), at: Date.now(), kid: k.id, title: j.title, paragraphs: j.paragraphs }; S.stories.unshift(st); S.stories = S.stories.slice(0, 30); save(); storyOpen(k, st); })
+        .catch(function (e) { bar.fail(); go.disabled = false; go.textContent = "✨ סיפור חדש"; toast(e.message === "device" || e.message === "day" ? "היום כבר נכתבו הרבה סיפורים. אפשר לקרוא סיפור ששמרנו 📚" : "לא הצלחנו לכתוב עכשיו. נסו שוב."); });
     } });
     box.append(el("section", { class: "card" }, [el("b", "על מה הסיפור?"), el("div", { class: "row" }, STV.map(function (v) { return el("button", { class: "chip", type: "button", "aria-pressed": String(S.stv === v[0]), text: v[1], onclick: function () { S.stv = v[0]; save(); storyOpen(k); } }); })),
       el("div", { class: "row" }, [el("span", { class: "fine", text: "גיל:" })].concat([3, 4, 5, 6, 7, 8, 9, 10].map(function (a) { return el("button", { class: "chip", type: "button", "aria-pressed": String(k.age === a), text: String(a), onclick: function () { k.age = a; save(); storyOpen(k); } }); }))),

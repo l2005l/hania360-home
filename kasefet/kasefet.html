@@ -93,6 +93,20 @@ table.t{width:100%;border-collapse:collapse;font-size:.88rem}table.t th,table.t 
 <script>
 (function () {
 "use strict";
+  // A progress bar for a wait of unknown length (the AI writing): it moves quickly at first and slows down,
+  // never stops short of moving, and fills to 100% when the answer comes. sec: about how long it usually takes.
+  function loadBar(label, sec) {
+    var box = document.createElement("div"), top = document.createElement("div"), lab = document.createElement("span"), pct = document.createElement("b"), track = document.createElement("div"), fill = document.createElement("i");
+    box.setAttribute("role", "progressbar"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-label", label);
+    box.style.cssText = "display:grid;gap:6px;width:100%;margin:6px 0"; top.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700";
+    track.style.cssText = "height:10px;border-radius:99px;background:rgba(127,127,127,.22);overflow:hidden";
+    fill.style.cssText = "display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--main,#7C5CFF),var(--k2,var(--sun,#FFC83D)));transition:width .25s linear";
+    lab.textContent = label; top.append(lab, pct); track.append(fill); box.append(top, track);
+    var t0 = Date.now(), set = function (p) { fill.style.width = p + "%"; pct.textContent = Math.round(p) + "%"; box.setAttribute("aria-valuenow", String(Math.round(p))); };
+    set(0); var iv = setInterval(function () { set(Math.min(98, 100 * (1 - Math.exp(-(Date.now() - t0) / 1000 / (sec * 0.4))))); }, 250);
+    return { el: box, done: function () { clearInterval(iv); set(100); setTimeout(function () { box.remove(); }, 450); }, fail: function () { clearInterval(iv); box.remove(); } };
+  }
+
 var $ = function (id) { return document.getElementById(id); };
 function el(t, a, k) { var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; } Object.keys(a || {}).forEach(function (n) { var v = a[n]; if (v == null || v === false) return; if (n.slice(0, 2) === "on") e.addEventListener(n.slice(2), v); else if (n === "text") e.textContent = v; else if (n === "html") e.innerHTML = v; else e.setAttribute(n, v === true ? "" : v); }); [].concat(k == null ? [] : k).forEach(function (c) { if (c == null || c === false) return; e.append(c.nodeType ? c : document.createTextNode(String(c))); }); return e; }
 function toast(t) { var x = el("div", { class: "toast", role: "status", text: t }); document.body.append(x); setTimeout(function () { x.remove(); }, 2800); }
@@ -754,7 +768,7 @@ function viewAi() {
   out.push(el("p", { class: "small muted", text: "ניתוח כתוב של כל התמונה, עם צעדים לפי סדר עדיפות ושאלות ליועץ. נשלח רק סיכום מספרי מעוגל, בלי שמות, גופים או מספרי חשבון. התשובה לא נשמרת אצלנו." }));
   var show = el("details", { class: "small" }, [el("summary", "מה בדיוק נשלח?"), el("pre", { style: "white-space:pre-wrap;font-size:.78rem;direction:ltr;text-align:left;background:#0E1628;padding:10px;border-radius:10px", text: s })]);
   var go = el("button", { class: "btn gold", text: aiText ? "↻ ניתוח מחדש" : "✨ לנתח עכשיו" });
-  go.onclick = function () { go.disabled = true; go.replaceChildren(el("span", { class: "spin" }), " מנתח… (עד חצי דקה)"); api("ai", { summary: s }).then(function (j) { aiText = j.text; render(); }).catch(function (e) { go.disabled = false; go.textContent = "✨ לנתח עכשיו"; toast(errText(e)); }); };
+  go.onclick = function () { go.disabled = true; go.replaceChildren(el("span", { class: "spin" }), " מנתח…"); var bar = loadBar("מנתחים את הנתונים", 40); go.after(bar.el); api("ai", { summary: s }).then(function (j) { bar.done(); aiText = j.text; render(); }).catch(function (e) { bar.fail(); go.disabled = false; go.textContent = "✨ לנתח עכשיו"; toast(errText(e)); }); };
   out.push(show, el("div", { style: "height:10px" }), go);
   if (aiText) out.push(el("div", { style: "height:12px" }), box);
   if (!D.assets.length || !D.income.length) out.push(el("p", { class: "note", text: "הניתוח טוב יותר כשיש נתוני כסף ותקציב. אפשר גם עם הערכות." }));
