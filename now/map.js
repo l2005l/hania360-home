@@ -31,8 +31,8 @@ const W = [
     apps: [["⚽", "HaniaSport", "ליגת העל והיורוליג: תוצאות חיות וטבלה, והקבוצה שלכם", "https://sport.hania360.com/"], ["✈️", "HaniaFlight", "סימולטור טיסה עם מטוסי חיל האוויר", "https://flight.hania360.com/?ref=home"],
       ["🎲", "מועדון הערב", "משחקי ערב שנכתבים בשבילכם", "https://play.hania360.com/"], ["❓", "HaniaQuiz", "חידון לכל הבית על המסך הגדול", "https://quiz.hania360.com/"],
       ["🎵", "HaniaMusic", "השיר שהיה מספר 1 ביום שנולדתם", "https://music.hania360.com/"], ["🎞️", "HaniaYears", "סרטון גדילה מהתמונות של הילד", "https://years.hania360.com/"]] },
-  { k: "care", e: "🫶", name: "בריאות ועזרה", c: "#14B37D", line: "כשמישהו צריך עזרה, או כשקשה לשמוע.",
-    apps: [["💗", "HaniaRegaTov", "למטופלים בבית חולים או במיטה: משחקים, שיחה, משפחה ותיאום ביקורים", "https://regatov.hania360.com/"], ["⛑️", "HaniaEzra", "עזרה ראשונה צעד אחר צעד", "https://ezra.hania360.com/"],
+  { k: "care", e: "🫶", name: "בריאות, כושר ועזרה", c: "#14B37D", line: "להיות בכושר, וכשמישהו צריך עזרה.",
+    apps: [["🏋️", "HaniaFit", "תוכנית אימון ותזונה אישית: הדגמות, טיימר, תפריט עם תחליפים ותזכורות", "https://fit.hania360.com/"], ["💗", "HaniaRegaTov", "למטופלים בבית חולים או במיטה: משחקים, שיחה, משפחה ותיאום ביקורים", "https://regatov.hania360.com/"], ["⛑️", "HaniaEzra", "עזרה ראשונה צעד אחר צעד", "https://ezra.hania360.com/"],
       ["💬", "HaniaCaption", "כתוביות חיות לשיחה, לכבדי שמיעה", "https://caption.hania360.com/"]] },
 ];
 
