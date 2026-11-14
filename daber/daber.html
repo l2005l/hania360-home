@@ -76,7 +76,7 @@ h2{margin:0;font-size:19px}.lead{margin:0;color:var(--muted)}.fine{font-size:13p
 .typebox{display:flex;gap:8px;max-width:680px;margin:8px auto 0}
 .typebox input{flex:1;font:inherit;font-family:var(--enfont);direction:ltr;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px}
 /* the summary */
-.stars{font-size:36px;letter-spacing:4px;text-align:center}
+.stars{font-size:36px;letter-spacing:4px;text-align:center;color:#F5B400}.gold{color:#F5B400}
 .wordrow{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
 .wordrow:last-child{border-bottom:0}
 .wordrow .en{font-weight:700;font-size:17px}.wordrow .x{flex:1;min-width:0;display:grid}
@@ -92,12 +92,12 @@ input.topic{font:inherit;padding:11px 13px;border-radius:14px;border:1.5px solid
 </style>
 
 <div class="wrap" id="home">
-<header><a class="logo" href="/"><img src="/icons/icon-192.png" alt="">Hania<b>Daber</b></a><a class="fine" href="https://hania360.com/" style="color:var(--muted)">Hania360 ←</a></header>
+<header><a class="logo" href="/"><img src="/icons/icon-192.png" alt=""><span dir="ltr">Hania<b>Daber</b></span></a><a class="fine" href="https://hania360.com/" style="color:var(--muted)">Hania360 ←</a></header>
 
 <section class="card hero"><h1>מדברים אנגלית.<br><em>בקול. בלי לחץ.</em></h1>
 <p class="lead">בוחרים מצב מהחיים, לוחצים על המיקרופון ומדברים. השותף עונה בקול טבעי, ממשיך את השיחה, ומתקן בעדינות בעברית כשמשהו יכול להישמע טוב יותר.</p></section>
 
-<div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="talk">🎙️ שיחה</button><button role="tab" aria-selected="false" data-tab="words">📒 המילים שלי</button><button role="tab" aria-selected="false" data-tab="me">📈 ההתקדמות</button></div>
+<div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="talk">🎙️ שיחה</button><button role="tab" aria-selected="false" data-tab="words">📒 מילים</button><button role="tab" aria-selected="false" data-tab="me">📈 התקדמות</button></div>
 
 <div id="tab-talk" class="wrap" style="padding:0">
 <section class="card"><h2>הרמה שלי</h2>
@@ -310,7 +310,7 @@ input.topic{font:inherit;padding:11px 13px;border-radius:14px;border:1.5px solid
     var entry = { d: d, sc: C.sc, topic: C.topic, n: turns, fixes: C.fixes.length, words: C.spoke || 0, mins: mins, lv: S.level };
     S.log.unshift(entry); S.log = S.log.slice(0, 200); save();
     $("chat").hidden = true; var s = $("sum"); s.hidden = false; scrollTo(0, 0);
-    s.innerHTML = '<section class="card hero"><h1>כל הכבוד! 🎉</h1><p class="lead">' + turns + ' משפטים שאמרתם באנגלית · ' + (C.spoke || 0) + ' מילים · ' + mins + ' דק׳</p></section><section class="card" id="fb"><div class="status">מכין משוב אישי…</div></section>' +
+    s.innerHTML = '<section class="card hero"><h1>כל הכבוד! 🎉</h1><p class="lead">' + (turns === 1 ? 'משפט אחד' : turns + ' משפטים') + ' שאמרתם באנגלית · ' + (C.spoke || 0) + ' מילים · ' + mins + ' דק׳</p></section><section class="card" id="fb"><div class="status">מכין משוב אישי…</div></section>' +
       (C.fixes.length ? '<section class="card"><h2>✨ המשפטים שתיקנו</h2>' + C.fixes.map(function (f) { return '<div class="wordrow"><button class="ico" data-say="' + esc(f.better) + '">🔊</button><div class="x"><span class="en">' + esc(f.better) + '</span><span class="fine">' + esc(f.why) + '</span></div></div>'; }).join("") + '</section>' : "") +
       '<div class="row"><button class="btn" id="again">🔁 שוב באותו מצב</button><button class="btn ghost" id="homeBtn">מצב אחר</button></div>';
     s.onclick = function (e) { var b = e.target.closest("[data-say]"); if (b) say(b.dataset.say); var k = e.target.closest("[data-keep]"); if (k) { keep(JSON.parse(k.dataset.keep)); k.textContent = "✓"; } };
@@ -350,7 +350,7 @@ input.topic{font:inherit;padding:11px 13px;border-radius:14px;border:1.5px solid
     var cells = [], d = new Date(); d.setDate(d.getDate() - 27);
     for (var i = 0; i < 28; i++) { var key = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2), m = S.days[key] || 0; cells.push('<i class="' + (m >= 10 ? "on2" : m ? "on" : "") + '" title="' + key + (m ? " · " + m + " דק׳" : "") + '"></i>'); d.setDate(d.getDate() + 1); }
     $("cal").innerHTML = cells.join("");
-    $("hist").innerHTML = S.log.length ? S.log.slice(0, 15).map(function (l) { var s = SC[l.sc] || SC.free; return '<div class="wordrow"><span style="font-size:24px">' + s[1] + '</span><div class="x"><b>' + esc(l.sc === "free" && l.topic ? l.topic : s[2]) + '</b><span class="fine">' + l.d.split("-").reverse().join(".") + " · " + l.n + " משפטים · " + (l.fixes ? l.fixes + " תיקונים" : "בלי תיקונים") + '</span></div>' + (l.score ? '<span>' + "★".repeat(l.score) + '</span>' : "") + '</div>'; }).join("") : '<p class="fine">כאן יופיעו השיחות שלכם.</p>';
+    $("hist").innerHTML = S.log.length ? S.log.slice(0, 15).map(function (l) { var s = SC[l.sc] || SC.free; return '<div class="wordrow"><span style="font-size:24px">' + s[1] + '</span><div class="x"><b>' + esc(l.sc === "free" && l.topic ? l.topic : s[2]) + '</b><span class="fine">' + l.d.split("-").reverse().join(".") + " · " + l.n + " משפטים · " + (l.fixes ? l.fixes + " תיקונים" : "בלי תיקונים") + '</span></div>' + (l.score ? '<span class="gold">' + "★".repeat(l.score) + '</span>' : "") + '</div>'; }).join("") : '<p class="fine">כאן יופיעו השיחות שלכם.</p>';
   }
   homeUI();
 })();
