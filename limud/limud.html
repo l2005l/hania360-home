@@ -89,6 +89,20 @@ a{color:var(--k)}
 <script>
 (function () {
   "use strict";
+  // A progress bar for a wait of unknown length (the AI writing): it moves quickly at first and slows down,
+  // never stops short of moving, and fills to 100% when the answer comes. sec: about how long it usually takes.
+  function loadBar(label, sec) {
+    var box = document.createElement("div"), top = document.createElement("div"), lab = document.createElement("span"), pct = document.createElement("b"), track = document.createElement("div"), fill = document.createElement("i");
+    box.setAttribute("role", "progressbar"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-label", label);
+    box.style.cssText = "display:grid;gap:6px;width:100%;margin:6px 0"; top.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700";
+    track.style.cssText = "height:10px;border-radius:99px;background:rgba(127,127,127,.22);overflow:hidden";
+    fill.style.cssText = "display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--main,#7C5CFF),var(--k2,var(--sun,#FFC83D)));transition:width .25s linear";
+    lab.textContent = label; top.append(lab, pct); track.append(fill); box.append(top, track);
+    var t0 = Date.now(), set = function (p) { fill.style.width = p + "%"; pct.textContent = Math.round(p) + "%"; box.setAttribute("aria-valuenow", String(Math.round(p))); };
+    set(0); var iv = setInterval(function () { set(Math.min(98, 100 * (1 - Math.exp(-(Date.now() - t0) / 1000 / (sec * 0.4))))); }, 250);
+    return { el: box, done: function () { clearInterval(iv); set(100); setTimeout(function () { box.remove(); }, 450); }, fail: function () { clearInterval(iv); box.remove(); } };
+  }
+
   var $ = function (i) { return document.getElementById(i); };
   function el(t, a, k) {
     var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; }
@@ -169,9 +183,9 @@ a{color:var(--k)}
   // ---- AI help ----
   function aiBox(ref, kind) {
     var ans = el("p", { class: "ans", "aria-live": "polite" }), q = el("input", { maxlength: "300", placeholder: kind === "daf" ? "שאלה על הדף, למשל: מה הקושיה על רב?" : "שאלה על ההלכה" }), busy = false;
-    var ask = function (mode, btn) { if (busy) return; if (mode === "ask" && q.value.trim().length < 3) { q.focus(); return; } busy = true; ans.textContent = "✨ קורא את הטקסט וכותב..."; if (btn) btn.disabled = true;
+    var ask = function (mode, btn) { if (busy) return; if (mode === "ask" && q.value.trim().length < 3) { q.focus(); return; } busy = true; ans.textContent = ""; var bar = loadBar("קוראים את הטקסט וכותבים", 30); ans.before(bar.el); if (btn) btn.disabled = true;
       fetch("/api/limud/ai", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ref: ref, kind: kind, mode: mode, q: q.value }) }).then(function (r) { return r.json(); })
-        .then(function (j) { ans.textContent = j.answer || "לא הצלחנו לענות עכשיו. נסו שוב בעוד רגע."; }).catch(function () { ans.textContent = "אין חיבור כרגע."; })
+        .then(function (j) { bar.done(); ans.textContent = j.answer || "לא הצלחנו לענות עכשיו. נסו שוב בעוד רגע."; }).catch(function () { bar.fail(); ans.textContent = "אין חיבור כרגע."; })
         .then(function () { busy = false; if (btn) btn.disabled = false; }); };
     var b1 = el("button", { class: "btn small", type: "button", text: kind === "daf" ? "✨ הסבר פשוט של הדף" : "✨ בשפה פשוטה" }), b2 = el("button", { class: "btn small ghost", type: "button", text: "❓ שאלות חזרה" });
     b1.onclick = function () { ask("explain", b1); }; b2.onclick = function () { ask("quiz", b2); };
@@ -368,8 +382,9 @@ a{color:var(--k)}
     if (!it) { $("main").replaceChildren(el("div", { class: "card load", text: "לא מצאנו את הפרשה." })); return; }
     var name = it.displayValue.he, sat = new Date(DAY); sat.setDate(sat.getDate() + (6 - sat.getDay()));
     hero("פרשת השבוע · לשולחן שבת", "פרשת " + name, "שבת " + sat.toLocaleDateString("he-IL-u-ca-hebrew", { day: "numeric", month: "long" }));
+    var tb = loadBar("מכינים את הפרשה לשולחן השבת", 45); $("main").replaceChildren(el("div", { class: "card" }, [tb.el, el("p", { class: "fine", text: "בפעם הראשונה בכל שבוע זה לוקח קצת זמן. אחר כך זה נפתח מיד." })]));
     fetch("/api/limud/table", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ref: it.ref, name: name }) }).then(function (r) { return r.json(); }).then(function (o) {
-      if (my !== seq) return;
+      tb.done(); if (my !== seq) return;
       if (!o || !o.story) { $("main").replaceChildren(el("div", { class: "card load", text: "לא הצלחנו להכין עכשיו. נסו שוב בעוד רגע." })); return; }
       var qs = function (t, arr) { return arr && arr.length ? el("div", null, [el("b", t), el("ol", { class: "steps", style: "margin-top:4px" }, arr.map(function (q) { return el("li", q); }))]) : null; };
       var ans = el("p", { class: "fine", hidden: "", text: o.riddle ? "✅ " + o.riddle.a : "" });

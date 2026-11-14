@@ -138,6 +138,20 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 <script>
 (function () {
   "use strict";
+  // A progress bar for a wait of unknown length (the AI writing): it moves quickly at first and slows down,
+  // never stops short of moving, and fills to 100% when the answer comes. sec: about how long it usually takes.
+  function loadBar(label, sec) {
+    var box = document.createElement("div"), top = document.createElement("div"), lab = document.createElement("span"), pct = document.createElement("b"), track = document.createElement("div"), fill = document.createElement("i");
+    box.setAttribute("role", "progressbar"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-label", label);
+    box.style.cssText = "display:grid;gap:6px;width:100%;margin:6px 0"; top.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700";
+    track.style.cssText = "height:10px;border-radius:99px;background:rgba(127,127,127,.22);overflow:hidden";
+    fill.style.cssText = "display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--main,#7C5CFF),var(--k2,var(--sun,#FFC83D)));transition:width .25s linear";
+    lab.textContent = label; top.append(lab, pct); track.append(fill); box.append(top, track);
+    var t0 = Date.now(), set = function (p) { fill.style.width = p + "%"; pct.textContent = Math.round(p) + "%"; box.setAttribute("aria-valuenow", String(Math.round(p))); };
+    set(0); var iv = setInterval(function () { set(Math.min(98, 100 * (1 - Math.exp(-(Date.now() - t0) / 1000 / (sec * 0.4))))); }, 250);
+    return { el: box, done: function () { clearInterval(iv); set(100); setTimeout(function () { box.remove(); }, 450); }, fail: function () { clearInterval(iv); box.remove(); } };
+  }
+
   var $ = function (id) { return document.getElementById(id); };
   function el(t, a, kids) { var e = document.createElement(t); Object.keys(a || {}).forEach(function (k) { var v = a[k]; if (v == null || v === false) return; if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), v); else if (k === "text") e.textContent = v; else if (k === "value") e.value = v; else e.setAttribute(k, v === true ? "" : v); }); (kids || []).forEach(function (c) { if (c != null && c !== false) e.append(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c); }); return e; }
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
@@ -272,11 +286,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     var key = el("input", { type: "checkbox", style: "width:auto" }); key.checked = W.key !== false; key.addEventListener("change", function () { W.key = key.checked; ls("kt.wform", JSON.stringify(W)); if (CURSHEET) render(); });
     var go = el("button", { class: "btn", type: "button", text: "✨ הכנת דף עבודה", onclick: function () {
       if (W.topic.trim().length < 2) { toast("כותבים נושא"); topic.focus(); return; }
-      go.disabled = true; go.textContent = "כותבים את הדף… עד חצי דקה";
+      go.disabled = true; go.textContent = "✍️ כותבים את הדף…"; var bar = loadBar("כותבים דף עבודה", 45); go.after(bar.el);
       fetch("/api/kita/sheet", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ device: DEV }, W)) })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "x"); return j; }); })
-        .then(function (j) { j.at = Date.now(); CURSHEET = j; var L = jget("kt.sheets", []); L.unshift(j); ls("kt.sheets", JSON.stringify(L.slice(0, 30))); render(); setTimeout(function () { var s = document.querySelector(".sheet"); s && s.scrollIntoView({ behavior: "smooth" }); }, 50); })
-        .catch(function (e) { toast(e.message === "device" ? "היום כבר הוכנו 15 דפים במכשיר הזה. מחר יש עוד" : e.message === "day" ? "הרבה דפים היום. נסו מחר" : "לא הצלחנו להכין עכשיו. נסו שוב"); go.disabled = false; go.textContent = "✨ הכנת דף עבודה"; });
+        .then(function (j) { bar.done(); j.at = Date.now(); CURSHEET = j; var L = jget("kt.sheets", []); L.unshift(j); ls("kt.sheets", JSON.stringify(L.slice(0, 30))); render(); setTimeout(function () { var s = document.querySelector(".sheet"); s && s.scrollIntoView({ behavior: "smooth" }); }, 50); })
+        .catch(function (e) { bar.fail(); toast(e.message === "device" ? "היום כבר הוכנו 15 דפים במכשיר הזה. מחר יש עוד" : e.message === "day" ? "הרבה דפים היום. נסו מחר" : "לא הצלחנו להכין עכשיו. נסו שוב"); go.disabled = false; go.textContent = "✨ הכנת דף עבודה"; });
     } });
     var form = el("div", { class: "card" }, [el("h2", { text: "📄 דף עבודה בלחיצה" }),
       el("div", { class: "row" }, [el("label", { class: "f" }, ["כיתה", sel("grade", GRADES.map(function (g) { return [g, "כיתה " + g]; }))]), el("label", { class: "f" }, ["מקצוע", sel("subject", SUBJ)]), el("label", { class: "f" }, ["רמה", sel("level", [["easy", "קלה"], ["mid", "בינונית"], ["hard", "מאתגרת"]])])]),
@@ -353,7 +367,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     var blob = docx(s), name = (s.title || "דף עבודה").replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 60) + ".docx";
     if (share) {
       var f = new File([blob], name, { type: blob.type });
-      if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: s.title }).catch(function () {}); return; }
+      // some phones say they can share the file and then refuse it (Chrome on Android with a .docx): then the link
+      if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f], title: s.title }).catch(function (e) { if (!e || e.name !== "AbortError") viaLink(); }); return; }
+      viaLink(); return;
+    }
+    function viaLink() {
       // Chrome on Android shares only images, PDF and text: share a link to the file instead (kept for two weeks)
       toast("מכינים קישור לקובץ...");
       var rd = new FileReader();
@@ -373,9 +391,8 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
         }).catch(function () { toast("לא הצלחנו לשתף. הקובץ יורד, ואפשר לשלוח אותו מהקבצים בטלפון"); dl(); });
       };
       rd.readAsDataURL(blob);
-      return;
     }
-    dl();
+    if (!share) dl();
     function dl() {
     var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.setAttribute("download", name); a.rel = "noopener"; document.body.append(a); a.click(); setTimeout(function () { a.remove(); URL.revokeObjectURL(a.href); }, 4000);
     toast("📝 הקובץ ירד. אפשר לפתוח אותו ב־Word או ב־Google Docs ולשנות");

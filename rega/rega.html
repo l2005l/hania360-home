@@ -159,6 +159,20 @@ body.night .tile .e{background:#2A241B}body.night .mem button{background:#3A3328
 <script>
 (function(){
 "use strict";
+  // A progress bar for a wait of unknown length (the AI writing): it moves quickly at first and slows down,
+  // never stops short of moving, and fills to 100% when the answer comes. sec: about how long it usually takes.
+  function loadBar(label, sec) {
+    var box = document.createElement("div"), top = document.createElement("div"), lab = document.createElement("span"), pct = document.createElement("b"), track = document.createElement("div"), fill = document.createElement("i");
+    box.setAttribute("role", "progressbar"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-label", label);
+    box.style.cssText = "display:grid;gap:6px;width:100%;margin:6px 0"; top.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700";
+    track.style.cssText = "height:10px;border-radius:99px;background:rgba(127,127,127,.22);overflow:hidden";
+    fill.style.cssText = "display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--main,#7C5CFF),var(--k2,var(--sun,#FFC83D)));transition:width .25s linear";
+    lab.textContent = label; top.append(lab, pct); track.append(fill); box.append(top, track);
+    var t0 = Date.now(), set = function (p) { fill.style.width = p + "%"; pct.textContent = Math.round(p) + "%"; box.setAttribute("aria-valuenow", String(Math.round(p))); };
+    set(0); var iv = setInterval(function () { set(Math.min(98, 100 * (1 - Math.exp(-(Date.now() - t0) / 1000 / (sec * 0.4))))); }, 250);
+    return { el: box, done: function () { clearInterval(iv); set(100); setTimeout(function () { box.remove(); }, 450); }, fail: function () { clearInterval(iv); box.remove(); } };
+  }
+
 // ---------- state (this device only) ----------
 var LS={get:function(k,d){try{var v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 var S=LS.get("rg",{});
@@ -350,10 +364,10 @@ SCREENS.story=function(){
   var TH=S.mode==="kid"?[["space","🚀 חלל ורובוט"],["sea","🐬 מתחת לים"],["zoo","🦒 גן החיות"],["magic","🐉 ממלכה קסומה"],["football","⚽ כדורגל בשכונה"]]:[["trip","🌸 טיול בגליל"],["cafe","☕ בית קפה של פעם"],["sea","🌊 ערב על חוף הים"],["market","🍅 בוקר בשוק"],["train","🚆 נסיעה ברכבת"],["music","🎸 הופעה ראשונה"],["family","🕯️ ארוחת שישי"]];
   var theme=TH[0][0],chips=el("div",{class:"chips"}),out=el("div",{class:"stack"});
   TH.forEach(function(x){chips.append(el("button",{type:"button","aria-pressed":String(theme===x[0]),text:x[1],on:{click:function(e){theme=x[0];[].forEach.call(chips.children,function(b){b.setAttribute("aria-pressed",String(b===e.currentTarget))})}}}))});
-  var btn=el("button",{class:"btn wide",type:"button",text:"✨ לכתוב לי סיפור",on:{click:function(){btn.disabled=true;btn.textContent="כותבים… (כחצי דקה)";out.textContent="";
-    api("story",{device:DEV,mode:S.mode,theme:theme,name:S.name}).then(function(j){var paras=j.paragraphs.map(function(p){return el("p",{text:p})});var card=el("div",{class:"card story"},[el("h3",{style:"margin:0 0 10px;font-size:1.35rem",text:j.title})].concat(paras));
+  var btn=el("button",{class:"btn wide",type:"button",text:"✨ לכתוב לי סיפור",on:{click:function(){btn.disabled=true;btn.textContent="✍️ כותבים…";out.textContent="";var bar=loadBar("כותבים לך סיפור",35);out.append(bar.el);
+    api("story",{device:DEV,mode:S.mode,theme:theme,name:S.name}).then(function(j){bar.done();var paras=j.paragraphs.map(function(p){return el("p",{text:p})});var card=el("div",{class:"card story"},[el("h3",{style:"margin:0 0 10px;font-size:1.35rem",text:j.title})].concat(paras));
       var read=el("button",{class:"btn ghost wide",type:"button",text:"🔊 להקריא לי",on:{click:function(){var was=S.voice;S.voice=true;var i=0;function nx(){paras.forEach(function(p){p.classList.remove("now")});if(i>=paras.length){S.voice=was;return}paras[i].classList.add("now");paras[i].scrollIntoView({behavior:"smooth",block:"center"});say(paras[i].textContent,function(){i++;nx()})}nx()}}});
-      out.append(read,card);if(S.voice)read.click()}).catch(function(e){out.append(el("div",{class:"card",text:e&&e.error==="device"?"הגעת לשישה סיפורים היום. מחר יהיו עוד 🙂":e&&e.error==="day"?"הסיפורים להיום נגמרו. מחר יהיו עוד 🙂":"לא הצלחנו לכתוב עכשיו. נסו שוב בעוד רגע."}))}).finally(function(){btn.disabled=false;btn.textContent="✨ סיפור חדש"})}}});
+      out.append(read,card);if(S.voice)read.click()}).catch(function(e){bar.fail();out.append(el("div",{class:"card",text:e&&e.error==="device"?"הגעת לשישה סיפורים היום. מחר יהיו עוד 🙂":e&&e.error==="day"?"הסיפורים להיום נגמרו. מחר יהיו עוד 🙂":"לא הצלחנו לכתוב עכשיו. נסו שוב בעוד רגע."}))}).finally(function(){btn.disabled=false;btn.textContent="✨ סיפור חדש"})}}});
   A(title("📖","סיפור בקול","בוחרים לאן לצאת, ומקבלים סיפור קצר שנכתב עכשיו. אפשר להקריא בקול."),chips,btn,out);
 };
 // ---- chat ----

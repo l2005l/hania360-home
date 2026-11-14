@@ -51,6 +51,20 @@ textarea{min-height:190px;line-height:1.7}
 <script>
 (function () {
   "use strict";
+  // A progress bar for a wait of unknown length (the AI writing): it moves quickly at first and slows down,
+  // never stops short of moving, and fills to 100% when the answer comes. sec: about how long it usually takes.
+  function loadBar(label, sec) {
+    var box = document.createElement("div"), top = document.createElement("div"), lab = document.createElement("span"), pct = document.createElement("b"), track = document.createElement("div"), fill = document.createElement("i");
+    box.setAttribute("role", "progressbar"); box.setAttribute("aria-valuemin", "0"); box.setAttribute("aria-valuemax", "100"); box.setAttribute("aria-label", label);
+    box.style.cssText = "display:grid;gap:6px;width:100%;margin:6px 0"; top.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:14px;font-weight:700";
+    track.style.cssText = "height:10px;border-radius:99px;background:rgba(127,127,127,.22);overflow:hidden";
+    fill.style.cssText = "display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--main,#7C5CFF),var(--k2,var(--sun,#FFC83D)));transition:width .25s linear";
+    lab.textContent = label; top.append(lab, pct); track.append(fill); box.append(top, track);
+    var t0 = Date.now(), set = function (p) { fill.style.width = p + "%"; pct.textContent = Math.round(p) + "%"; box.setAttribute("aria-valuenow", String(Math.round(p))); };
+    set(0); var iv = setInterval(function () { set(Math.min(98, 100 * (1 - Math.exp(-(Date.now() - t0) / 1000 / (sec * 0.4))))); }, 250);
+    return { el: box, done: function () { clearInterval(iv); set(100); setTimeout(function () { box.remove(); }, 450); }, fail: function () { clearInterval(iv); box.remove(); } };
+  }
+
   var $ = function (i) { return document.getElementById(i); };
   function el(t, a, k) {
     var e = document.createElement(t); if (typeof a === "string") { e.textContent = a; a = null; }
@@ -130,15 +144,15 @@ textarea{min-height:190px;line-height:1.7}
     var go = el("button", { class: "btn", type: "button", text: "✨ להתאים מילים" });
     go.onclick = function () {
       var t = ta.value.trim(); if (t.length < 3) { ta.focus(); return; }
-      go.disabled = true; go.textContent = "קוראים את ההודעה...";
+      go.disabled = true; go.textContent = "קוראים את ההודעה..."; var bar = loadBar("קוראים את ההודעה ומתאימים מילים", 15); go.after(bar.el);
       fetch("/api/haktava/plan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: t }) }).then(function (r) { return r.json(); }).then(function (j) {
-        if (!j || j.error) throw new Error("x");
+        if (!j || j.error) throw new Error("x"); bar.done();
         var named = (j.words || []).map(function (w) { var hit = BANK.filter(function (b) { return plain(b) === plain(w); })[0]; return hit || w; });
         var words = choose(j.letters || [], j.vowels || [], 10, named);
         if (!words.length) { toast("לא מצאנו מה למדו בהודעה. אפשר לבחור רשימה מוכנה"); go.disabled = false; go.textContent = "✨ להתאים מילים"; return; }
         var noN = words.filter(function (w) { return !/[\u05B0-\u05BC]/.test(w); });
         edit(null, { name: j.topic ? j.topic.slice(0, 40) : "מה שלמדו היום", words: words, note: (j.topic ? "📌 " + j.topic + ". " : "") + (noN.length ? "⚠️ למילים " + noN.join(", ") + " אין ניקוד אצלנו. אפשר להוסיף אותו כאן לפני ששומרים." : "בדקו את המילים ושנו מה שצריך.") });
-      }).catch(function () { go.disabled = false; go.textContent = "✨ להתאים מילים"; toast("לא הצלחנו עכשיו. נסו שוב, או בחרו רשימה מוכנה"); });
+      }).catch(function () { bar.fail(); go.disabled = false; go.textContent = "✨ להתאים מילים"; toast("לא הצלחנו עכשיו. נסו שוב, או בחרו רשימה מוכנה"); });
     };
     show(el("section", { class: "card" }, [el("div", { class: "row" }, [el("button", { class: "btn ghost small", type: "button", text: "→", "aria-label": "חזרה", onclick: home }), el("h2", "✨ מה למדו היום בכיתה?")]),
       el("p", { class: "fine", text: "מדביקים את ההודעה מהמורה (מהוואטסאפ של הכיתה, למשל). אנחנו מזהים איזו אות או תנועה למדו, ובוחרים מילים מנוקדות שמתאימות. לפני ששומרים אפשר לשנות הכול." }), ta, go]));
