@@ -42,7 +42,7 @@ ${LEVELS[lv]}
 RULES:
 - Stay in the role. Keep each reply to 1-3 sentences and usually end with a question, so the learner keeps talking.
 - Never lecture inside "reply". Corrections go only in "fix".
-- "fix": if the learner's LAST message has a real grammar or word mistake, or sounds unnatural, give: "said" (their words, short), "better" (the natural English), "why" (ONE short sentence in simple Hebrew explaining). If it was fine, "fix" is null. Ignore missing punctuation, capital letters and small speech-recognition glitches.
+- "fix": if the learner's LAST message has a real grammar or word mistake, or sounds unnatural, give: "said" (their words, short), "better" (the natural English), "why" (ONE short sentence in simple Hebrew that explains the RULE or the reason, e.g. that adjectives come before the noun; do not just repeat the correction). If it was fine, "fix" is null. Ignore missing punctuation, capital letters and small speech-recognition glitches.
 - "he": a natural Hebrew translation of your reply.
 - "words": up to 2 useful English words or phrases from YOUR reply that a learner at this level may not know, each {"en":"...","he":"..."}.
 - "done": true only when the scene has naturally reached its end (the order is complete, check-in is done, the interview ends...).
@@ -109,7 +109,7 @@ export async function daberApi(request, env) {
       if (!said.length) return json({ error: "empty" }, 400);
       const o = await ask(env, [{ role: "system", content: "You are a kind, encouraging English teacher for Hebrew speakers. Write feedback in simple Hebrew (English only for example sentences)." },
         { role: "user", content: "Level: " + LEVELS[lv] + "\nScene: " + SCENES[sc] + "\nThe learner said, in order:\n" + said.map((s, i) => i + 1 + ". " + s).join("\n") +
-          '\n\nJSON only: {"score":1-5 (how well they communicated for their level; be fair and encouraging),"good":"one or two sentences in Hebrew: what went well, specifically","work":"one or two sentences in Hebrew: the ONE most useful thing to improve","phrases":[{"en":"3 natural phrases for this scene that would help next time","he":"Hebrew"}]}' }], 700);
+          '\n\nJSON only: {"score":1-5 (how well they communicated for their level; be fair and encouraging),"good":"one or two sentences in Hebrew: what went well, specifically","work":"one or two sentences in Hebrew: the ONE most useful thing to improve, quoting what they said and the correct English (e.g. how much does it cost?)","phrases":[{"en":"3 natural phrases for this scene that would help next time","he":"Hebrew"}]}' }], 700);
       if (!o) return json({ error: "busy" }, 503);
       return json({ score: Math.max(1, Math.min(5, Math.round(+o.score || 3))), good: String(o.good || "").replace(/[<>]/g, "").slice(0, 400), work: String(o.work || "").replace(/[<>]/g, "").slice(0, 400), phrases: cleanWords(o.phrases) });
     }
