@@ -1,0 +1,357 @@
+<title>HaniaDaber · מדברים אנגלית</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&family=Inter:wght@500;600;700&display=swap">
+<style>
+/* HaniaDaber: speaking English out loud with a patient partner. Pick a real-life scene (a café in London, a hotel
+   check-in, a job interview...), talk with the microphone, hear a natural voice answer, and get a gentle Hebrew note
+   when something could sound better. The conversation and the saved words stay on this phone. */
+:root{--bg:#F5F3FF;--surface:#fff;--ink:#1B1640;--muted:#625C86;--line:#E3DEFA;--main:#6A45FF;--main2:#4E2DE0;--coral:#FF7A59;--ok:#12A877;--warn:#F59E0B;--me:#EEE9FF;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;--enfont:"Inter","Rubik",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#110E24;--surface:#1C1838;--ink:#F1EEFF;--muted:#A8A1CF;--line:#302A5A;--me:#2B2457}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{height:100%}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;color:var(--ink);background:radial-gradient(80% 40% at 100% 0%,color-mix(in srgb,var(--main) 18%,transparent),transparent 70%),radial-gradient(60% 30% at 0% 10%,color-mix(in srgb,var(--coral) 14%,transparent),transparent 70%),var(--bg);background-attachment:fixed}
+.wrap{max-width:680px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left,0px)) 40px;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.logo{font-weight:900;font-size:21px;color:inherit;text-decoration:none;display:flex;align-items:center;gap:8px}.logo b{color:var(--main)}.logo img{width:30px;height:30px;border-radius:9px}
+.en{direction:ltr;unicode-bidi:isolate;font-family:var(--enfont);text-align:left}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px;display:grid;gap:10px;box-shadow:0 16px 34px -26px rgba(40,20,120,.55)}
+h1{margin:0;font-size:clamp(28px,7.5vw,40px);line-height:1.1;letter-spacing:-.01em}h1 em{font-style:normal;background:linear-gradient(90deg,var(--main),var(--coral));-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{margin:0;font-size:19px}.lead{margin:0;color:var(--muted)}.fine{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{appearance:none;border:0;border-radius:16px;padding:13px 18px;font:inherit;font-weight:800;cursor:pointer;background:var(--main);color:#fff;box-shadow:0 4px 0 var(--main2);display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--main2)}
+.btn.ghost{background:var(--surface);color:var(--main);border:1.5px solid var(--line);box-shadow:none}
+.btn.small{padding:8px 12px;font-size:14px;border-radius:12px}.btn.wide{width:100%}
+.chip{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip[aria-pressed="true"]{border-color:var(--main);background:color-mix(in srgb,var(--main) 13%,var(--surface));color:var(--main)}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:5px}
+.tabs button{flex:1;appearance:none;border:0;background:none;font:inherit;font-weight:800;color:var(--muted);padding:9px;border-radius:12px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--main);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 6px;text-align:center}.stat b{display:block;font-size:22px;font-weight:900;color:var(--main)}.stat span{font-size:12px;color:var(--muted)}
+.scenes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:600px){.scenes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sc{appearance:none;text-align:right;font:inherit;color:inherit;cursor:pointer;background:var(--surface);border:1.5px solid var(--line);border-radius:20px;padding:14px 12px;display:grid;gap:4px;align-content:start;transition:transform .12s,border-color .12s;position:relative}
+.sc:hover{border-color:var(--main);transform:translateY(-2px)}
+.sc .e{font-size:30px;line-height:1}.sc b{font-size:16px}.sc small{color:var(--muted);font-size:13px;line-height:1.35}
+.sc .done{position:absolute;top:10px;left:10px;font-size:12px;color:var(--ok);font-weight:800}
+.hero{background:linear-gradient(135deg,var(--main),#8B5CF6 55%,var(--coral));color:#fff;border:0}
+.hero .lead{color:rgba(255,255,255,.9)}
+.hero h1 em{background:none;color:#FFE08A;-webkit-background-clip:initial;background-clip:initial}
+/* the conversation */
+#chat{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:20}
+.ctop{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:var(--surface);border-bottom:1px solid var(--line)}
+.ctop .t{flex:1;min-width:0}.ctop .t b{display:block;font-size:16px}.ctop .t small{color:var(--muted);font-size:12.5px}
+.ctop .ce{font-size:28px}
+#msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;max-width:680px;width:100%;margin:0 auto}
+.m{max-width:88%;display:grid;gap:6px}
+.m .bub{padding:12px 14px;border-radius:20px;font-size:17px;line-height:1.45}
+.m.ai{align-self:flex-end}.m.ai .bub{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px}
+.m.me{align-self:flex-start}.m.me .bub{background:var(--me);border-bottom-right-radius:6px}
+.m .tools{display:flex;gap:6px;flex-wrap:wrap;direction:rtl}
+.mini{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:4px 10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.he{font-size:15px;color:var(--muted);padding:0 6px}
+.w{display:inline-flex;gap:6px;align-items:center;background:color-mix(in srgb,var(--coral) 12%,var(--surface));border:1px dashed color-mix(in srgb,var(--coral) 55%,transparent);border-radius:12px;padding:4px 10px;font-size:13.5px;cursor:pointer}
+.w .en{font-weight:700}
+.fix{background:color-mix(in srgb,var(--warn) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:16px;padding:10px 12px;font-size:14.5px;display:grid;gap:4px}
+.fix .bad{text-decoration:line-through;color:var(--muted)}.fix .good{font-weight:700;color:var(--ok);font-size:16px}
+.fix.okay{background:color-mix(in srgb,var(--ok) 9%,var(--surface));border-color:color-mix(in srgb,var(--ok) 35%,transparent)}
+.typing{align-self:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:12px 16px;display:flex;gap:5px}
+.typing i{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:bl 1.2s infinite}.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.hints{display:grid;gap:8px;padding:0 14px 8px;max-width:680px;width:100%;margin:0 auto}
+.hint{appearance:none;text-align:left;font:inherit;background:var(--surface);border:1.5px solid var(--main);border-radius:16px;padding:10px 12px;cursor:pointer;color:var(--ink);display:grid;gap:2px}
+.hint small{direction:rtl;text-align:right;color:var(--muted);font-family:var(--font)}
+.cbar{background:var(--surface);border-top:1px solid var(--line);padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px))}
+.cbar .in{max-width:680px;margin:0 auto;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.mic{width:76px;height:76px;border-radius:50%;border:0;cursor:pointer;background:linear-gradient(135deg,var(--main),#8B5CF6);color:#fff;font-size:32px;box-shadow:0 10px 24px -8px color-mix(in srgb,var(--main) 70%,transparent);display:grid;place-items:center;flex:0 0 auto;position:relative}
+.mic.rec{background:linear-gradient(135deg,#EF4444,var(--coral));animation:pulse 1.4s infinite}
+.mic:disabled{opacity:.5;cursor:default}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}70%{box-shadow:0 0 0 18px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+@media (prefers-reduced-motion:reduce){.mic.rec{animation:none}.typing i{animation:none;opacity:.6}}
+.side{display:grid;gap:6px;justify-items:center;min-width:72px}
+.side button{appearance:none;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 10px;font:inherit;font-size:13px;font-weight:800;color:var(--ink);cursor:pointer;width:100%}
+.side button[aria-pressed="true"]{border-color:var(--main);color:var(--main)}
+.status{font-size:13px;color:var(--muted);text-align:center;min-height:20px}
+.typebox{display:flex;gap:8px;max-width:680px;margin:8px auto 0}
+.typebox input{flex:1;font:inherit;font-family:var(--enfont);direction:ltr;padding:12px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px}
+/* the summary */
+.stars{font-size:36px;letter-spacing:4px;text-align:center}
+.wordrow{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.wordrow:last-child{border-bottom:0}
+.wordrow .en{font-weight:700;font-size:17px}.wordrow .x{flex:1;min-width:0;display:grid}
+.ico{appearance:none;border:0;background:color-mix(in srgb,var(--main) 12%,transparent);color:var(--main);width:38px;height:38px;border-radius:12px;font-size:17px;cursor:pointer;flex:0 0 auto}
+.flash{min-height:170px;display:grid;place-items:center;text-align:center;font-size:26px;font-weight:800;cursor:pointer;border:2px dashed var(--line);border-radius:22px;padding:18px;background:var(--surface)}
+.flash small{display:block;font-size:14px;color:var(--muted);font-weight:500;margin-top:6px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal i{aspect-ratio:1;border-radius:8px;background:color-mix(in srgb,var(--line) 70%,transparent);display:block}
+.cal i.on{background:var(--main)}.cal i.on2{background:var(--coral)}
+.toast{position:fixed;bottom:calc(120px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#1B1640;color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;z-index:50;max-width:90vw;text-align:center}
+select{font:inherit;padding:9px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+input.topic{font:inherit;padding:11px 13px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+</style>
+
+<div class="wrap" id="home">
+<header><a class="logo" href="/"><img src="/icons/icon-192.png" alt="">Hania<b>Daber</b></a><a class="fine" href="https://hania360.com/" style="color:var(--muted)">Hania360 ←</a></header>
+
+<section class="card hero"><h1>מדברים אנגלית.<br><em>בקול. בלי לחץ.</em></h1>
+<p class="lead">בוחרים מצב מהחיים, לוחצים על המיקרופון ומדברים. השותף עונה בקול טבעי, ממשיך את השיחה, ומתקן בעדינות בעברית כשמשהו יכול להישמע טוב יותר.</p></section>
+
+<div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-tab="talk">🎙️ שיחה</button><button role="tab" aria-selected="false" data-tab="words">📒 המילים שלי</button><button role="tab" aria-selected="false" data-tab="me">📈 ההתקדמות</button></div>
+
+<div id="tab-talk" class="wrap" style="padding:0">
+<section class="card"><h2>הרמה שלי</h2>
+<div class="row" id="levels"><button class="chip" data-l="1">🌱 מתחילים</button><button class="chip" data-l="2">🌿 מסתדרים</button><button class="chip" data-l="3">🌳 מתקדמים</button></div>
+<div class="row" id="voices"><span class="fine">הקול של השותף:</span><button class="chip" data-v="luna">👩 לונה</button><button class="chip" data-v="apollo">👨 אפולו</button></div></section>
+<h2>איפה מדברים היום?</h2>
+<div class="scenes" id="scenes"></div>
+<section class="card"><h2>💬 שיחה על מה שבא לכם</h2><p class="lead">כותבים נושא בעברית או באנגלית: המשפחה, תחביב, הטיול הבא, הכדורגל.</p>
+<input class="topic" id="topic" maxlength="80" placeholder="למשל: הטיול שלנו ליוון"><button class="btn wide" id="freeGo">מתחילים לדבר</button></section>
+<p class="fine">המיקרופון פועל רק כשלוחצים עליו. ההקלטה נשלחת לתמלול ולא נשמרת. השיחות והמילים נשמרות רק בטלפון הזה.</p>
+</div>
+
+<div id="tab-words" hidden style="display:grid;gap:14px">
+<section class="card"><h2>📒 המילים שאספתי</h2><p class="lead">כל מילה שלוחצים עליה בשיחה נשמרת כאן, וגם המשפטים המתוקנים.</p>
+<button class="btn" id="flashGo">🃏 תרגול כרטיסיות</button><div id="flashBox" hidden style="display:grid;gap:10px"><div class="flash" id="flash"></div><div class="row"><button class="btn ghost small" id="fKnow">✅ ידעתי</button><button class="btn ghost small" id="fAgain">🔁 עוד פעם</button><button class="btn ghost small" id="fStop">סיום</button></div></div>
+<div id="wordList"></div></section></div>
+
+<div id="tab-me" hidden style="display:grid;gap:14px">
+<div class="stats" id="stats"></div>
+<section class="card"><h2>🔥 ימים שדיברתי</h2><p class="lead" id="streakLine"></p><div class="cal" id="cal"></div><p class="fine">כל ריבוע הוא יום. ארבעה שבועות אחרונים.</p></section>
+<section class="card"><h2>השיחות האחרונות</h2><div id="hist"></div></section></div>
+</div>
+
+<div id="chat" hidden>
+<div class="ctop"><span class="ce" id="cE"></span><div class="t"><b id="cT"></b><small id="cS"></small></div><button class="btn small ghost" id="endBtn">סיום ומשוב</button></div>
+<div id="msgs" aria-live="polite"></div>
+<div class="hints" id="hints" hidden></div>
+<div class="cbar"><div class="in">
+<div class="side"><button id="hintBtn">💡 מה להגיד?</button><button id="typeBtn" aria-pressed="false">⌨️ להקליד</button></div>
+<button class="mic" id="mic" aria-label="לדבר">🎙️</button>
+<div class="side"><button id="slowBtn" aria-pressed="false">🐢 לאט</button><button id="heBtn" aria-pressed="false">🇮🇱 תרגום</button></div>
+</div><div class="status" id="status">לוחצים על המיקרופון ומדברים באנגלית</div>
+<div class="typebox" id="typeBox" hidden><input id="typeIn" placeholder="Type in English…" autocomplete="off" autocapitalize="sentences"><button class="btn small" id="typeSend">שלח</button></div>
+</div></div>
+
+<div id="sum" hidden class="wrap"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (i) { return document.getElementById(i); };
+  var SCENES = [
+    ["cafe", "☕", "בית קפה בלונדון", "מזמינים קפה ומאפה"], ["hotel", "🏨", "צ׳ק־אין במלון", "דרכון, לילות, ארוחת בוקר"],
+    ["airport", "✈️", "בשדה התעופה", "מזוודות, מושב ושער"], ["restaurant", "🍝", "במסעדה", "תפריט, אלרגיה וחשבון"],
+    ["shop", "🛍️", "בחנות בגדים", "מידה, צבע והחלפה"], ["street", "🗺️", "הלכתי לאיבוד", "שואלים איך מגיעים"],
+    ["doctor", "🩺", "אצל רופא בחו״ל", "מסבירים מה כואב"], ["meet", "🎉", "היכרות במסיבה", "מי אתה, מאיפה, מה עושה"],
+    ["phone", "📞", "שירות לקוחות", "ההזמנה לא הגיעה"], ["work", "💻", "שיחת עבודה", "סמול טוק וישיבה בזום"],
+    ["interview", "💼", "ראיון עבודה", "ספר לי על עצמך…"]];
+  var SC = {}; SCENES.forEach(function (s) { SC[s[0]] = s; }); SC.free = ["free", "💬", "שיחה חופשית", ""];
+  var DEV = (function () { try { var d = localStorage.getItem("daber-dev"); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(16)), function (b) { return ("0" + b.toString(16)).slice(-2); }).join(""); localStorage.setItem("daber-dev", d); } return d; } catch (e) { return "anon000000000000000"; } })();
+  var S = (function () { try { return JSON.parse(localStorage.getItem("daber-v1")) || {}; } catch (e) { return {}; } })();
+  S.level = S.level || 1; S.voice = S.voice || "luna"; S.words = S.words || []; S.log = S.log || []; S.days = S.days || {};
+  function save() { try { localStorage.setItem("daber-v1", JSON.stringify(S)); } catch (e) {} }
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function toast(t) { var d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 3200); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function api(p, body) {
+    body.device = DEV;
+    return fetch("/api/daber/" + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "err"); return j; }); });
+  }
+  function why(e) { var m = e && e.message; return m === "limit" ? "הגעתם למכסת השיחה להיום. נמשיך מחר 🙂" : m === "busy" ? "השותף עסוק לרגע. לנסות שוב?" : !navigator.onLine ? "אין חיבור לאינטרנט" : "משהו השתבש. לנסות שוב?"; }
+
+  // ---- the voice: Aura from the server, the phone's own voice if that fails ----
+  var audio = new Audio(), cache = {}, enVoice = null;
+  function pickVoice() { try { var v = speechSynthesis.getVoices().filter(function (x) { return /^en[-_](US|GB)/i.test(x.lang); }); enVoice = v.filter(function (x) { return /Google|Samantha|Daniel|Natural/i.test(x.name); })[0] || v[0] || null; } catch (e) {} }
+  if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function phoneSay(t, done) {
+    if (!window.speechSynthesis) { done && done(); return; }
+    var u = new SpeechSynthesisUtterance(t); u.lang = "en-US"; if (enVoice) u.voice = enVoice; u.rate = S.slow ? 0.75 : 0.95; u.onend = u.onerror = function () { done && done(); };
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }
+  function say(t, done) {
+    stopSay();
+    var k = S.voice + "|" + t;
+    var play = function (url) { audio.src = url; audio.playbackRate = S.slow ? 0.8 : 1; audio.onended = function () { done && done(); }; audio.play().catch(function () { phoneSay(t, done); }); };
+    if (cache[k]) return play(cache[k]);
+    fetch("/api/daber/say", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ device: DEV, text: t, voice: S.voice }) })
+      .then(function (r) { if (!r.ok || !/audio/.test(r.headers.get("content-type") || "")) throw 0; return r.blob(); })
+      .then(function (b) { cache[k] = URL.createObjectURL(b); play(cache[k]); })
+      .catch(function () { phoneSay(t, done); });
+  }
+  function stopSay() { try { audio.pause(); } catch (e) {} try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {} }
+
+  // ---- home ----
+  function homeUI() {
+    [].forEach.call(document.querySelectorAll("#levels .chip"), function (b) { b.setAttribute("aria-pressed", +b.dataset.l === S.level ? "true" : "false"); });
+    [].forEach.call(document.querySelectorAll("[data-v]"), function (b) { b.setAttribute("aria-pressed", b.dataset.v === S.voice ? "true" : "false"); });
+    var did = {}; S.log.forEach(function (l) { did[l.sc] = (did[l.sc] || 0) + 1; });
+    $("scenes").innerHTML = SCENES.map(function (s) { return '<button class="sc" data-sc="' + s[0] + '"><span class="e">' + s[1] + '</span><b>' + s[2] + '</b><small>' + s[3] + '</small>' + (did[s[0]] ? '<span class="done">✓ ' + did[s[0]] + '</span>' : "") + '</button>'; }).join("");
+  }
+  $("levels").onclick = function (e) { var b = e.target.closest("[data-l]"); if (!b) return; S.level = +b.dataset.l; save(); homeUI(); };
+  $("voices").onclick = function (e) { var b = e.target.closest("[data-v]"); if (!b) return; S.voice = b.dataset.v; save(); homeUI(); say(S.voice === "luna" ? "Hi! I'm Luna. Let's talk!" : "Hey! I'm Apollo. Ready to talk?"); };
+  $("scenes").onclick = function (e) { var b = e.target.closest("[data-sc]"); if (b) start(b.dataset.sc, ""); };
+  $("freeGo").onclick = function () { start("free", $("topic").value.trim()); };
+  [].forEach.call(document.querySelectorAll(".tabs button"), function (b) {
+    b.onclick = function () {
+      [].forEach.call(document.querySelectorAll(".tabs button"), function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+      ["talk", "words", "me"].forEach(function (t) { $("tab-" + t).hidden = t !== b.dataset.tab; });
+      if (b.dataset.tab === "words") wordsUI(); if (b.dataset.tab === "me") meUI();
+    };
+  });
+
+  // ---- the conversation ----
+  var C = null, busy = false;
+  function start(sc, topic) {
+    C = { sc: sc, topic: topic, hist: [], fixes: [], t0: Date.now(), done: false };
+    var s = SC[sc]; $("cE").textContent = s[1]; $("cT").textContent = sc === "free" && topic ? topic : s[2];
+    $("cS").textContent = ["", "🌱 מתחילים", "🌿 מסתדרים", "🌳 מתקדמים"][S.level] + " · " + (S.voice === "luna" ? "לונה" : "אפולו");
+    $("msgs").innerHTML = ""; $("hints").hidden = true; $("home").hidden = true; $("sum").hidden = true; $("chat").hidden = false;
+    $("slowBtn").setAttribute("aria-pressed", S.slow ? "true" : "false"); $("heBtn").setAttribute("aria-pressed", S.he ? "true" : "false");
+    history.pushState({ chat: 1 }, "");
+    next();
+  }
+  function scroll() { var m = $("msgs"); setTimeout(function () { m.scrollTop = m.scrollHeight; }, 30); }
+  function typing(on) { var t = $("typing"); if (on && !t) { t = document.createElement("div"); t.id = "typing"; t.className = "typing"; t.innerHTML = "<i></i><i></i><i></i>"; $("msgs").appendChild(t); scroll(); } if (!on && t) t.remove(); }
+  function setBusy(b, s) { busy = b; $("mic").disabled = b; $("status").textContent = s || "לוחצים על המיקרופון ומדברים באנגלית"; }
+  function next() {
+    setBusy(true, "השותף חושב…"); typing(true);
+    api("talk", { sc: C.sc, level: S.level, topic: C.topic, hist: C.hist }).then(function (j) {
+      typing(false);
+      if (j.fix && C.hist.length) { C.fixes.push(j.fix); addFix(j.fix); }
+      else if (C.hist.length && C.hist.length % 3 === 1) addGood();
+      C.hist.push({ me: 0, t: j.reply }); addAi(j); setBusy(false);
+      if (j.done) { C.done = true; $("status").textContent = "השיחה הגיעה לסוף טבעי 👏 אפשר לסיים ולקבל משוב, או להמשיך"; $("endBtn").classList.remove("ghost"); }
+    }).catch(function (e) {
+      typing(false); setBusy(false, why(e));
+      var d = document.createElement("div"); d.className = "m ai"; d.innerHTML = '<button class="btn small">🔄 לנסות שוב</button>'; d.firstChild.onclick = function () { d.remove(); next(); }; $("msgs").appendChild(d); scroll();
+    });
+  }
+  function addAi(j) {
+    var d = document.createElement("div"); d.className = "m ai";
+    d.innerHTML = '<div class="bub en">' + esc(j.reply) + '</div><div class="he"' + (S.he ? "" : " hidden") + '>' + esc(j.he) + '</div>' +
+      '<div class="tools"><button class="mini" data-a="play">🔊 שוב</button><button class="mini" data-a="he">🇮🇱 תרגום</button>' +
+      (j.words || []).map(function (w, i) { return '<span class="w" data-w="' + i + '" title="לשמור"><span class="en">' + esc(w.en) + '</span>· ' + esc(w.he) + ' ＋</span>'; }).join("") + '</div>';
+    d.onclick = function (e) {
+      var a = e.target.closest("[data-a]"), w = e.target.closest("[data-w]");
+      if (a && a.dataset.a === "play") say(j.reply);
+      if (a && a.dataset.a === "he") { var h = d.querySelector(".he"); h.hidden = !h.hidden; }
+      if (w) { keep(j.words[+w.dataset.w]); w.style.opacity = .55; w.lastChild.textContent = " ✓"; }
+    };
+    $("msgs").appendChild(d); scroll(); say(j.reply);
+  }
+  function addMe(t) { var d = document.createElement("div"); d.className = "m me"; d.innerHTML = '<div class="bub en">' + esc(t) + '</div>'; $("msgs").appendChild(d); scroll(); }
+  function addFix(f) {
+    var d = document.createElement("div"); d.className = "m me";
+    d.innerHTML = '<div class="fix"><span>✨ אפשר להגיד את זה טבעי יותר:</span><span class="en bad">' + esc(f.said) + '</span><span class="en good">' + esc(f.better) + '</span><span>' + esc(f.why) + '</span><div class="tools"><button class="mini" data-a="p">🔊 לשמוע</button><button class="mini" data-a="k">📒 לשמור</button></div></div>';
+    d.onclick = function (e) { var a = e.target.closest("[data-a]"); if (!a) return; if (a.dataset.a === "p") say(f.better); else { keep({ en: f.better, he: f.why, fix: 1 }); a.textContent = "✓ נשמר"; } };
+    var last = $("msgs").lastElementChild; $("msgs").insertBefore(d, last && last.id === "typing" ? last : null); scroll();
+  }
+  function addGood() { var d = document.createElement("div"); d.className = "m me"; d.innerHTML = '<div class="fix okay">👍 נשמע מצוין, ממשיכים</div>'; $("msgs").appendChild(d); setTimeout(function () { d.style.transition = "opacity .6s"; d.style.opacity = 0; setTimeout(function () { d.remove(); }, 700); }, 2200); }
+  function keep(w) { if (!w || !w.en) return; if (S.words.some(function (x) { return x.en.toLowerCase() === w.en.toLowerCase(); })) return; S.words.unshift({ en: w.en, he: w.he, t: Date.now(), fix: w.fix ? 1 : 0, k: 0 }); S.words = S.words.slice(0, 400); save(); toast("נשמר במילים שלי 📒"); }
+  function send(t) {
+    t = String(t || "").trim(); if (!t) return;
+    $("hints").hidden = true; stopSay(); addMe(t); C.hist.push({ me: 1, t: t }); C.spoke = (C.spoke || 0) + t.split(/\s+/).length; next();
+  }
+
+  // the microphone: tap to talk, tap again to send (stops by itself after 45 seconds)
+  var rec = null, recT = 0, recTimer = 0;
+  function b64(blob) { return new Promise(function (res) { var r = new FileReader(); r.onload = function () { res(String(r.result).split(",")[1] || ""); }; r.readAsDataURL(blob); }); }
+  $("mic").onclick = function () {
+    if (rec) { rec.stop(); return; }
+    if (busy) return;
+    if (!navigator.mediaDevices || !window.MediaRecorder) { toast("הדפדפן הזה לא מקליט. אפשר להקליד"); openType(true); return; }
+    stopSay();
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function (st) {
+      var type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].filter(function (t) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
+      var parts = []; rec = new MediaRecorder(st, type ? { mimeType: type } : undefined); recT = Date.now();
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) parts.push(e.data); };
+      rec.onstop = function () {
+        clearInterval(recTimer); st.getTracks().forEach(function (t) { t.stop(); }); $("mic").classList.remove("rec"); $("mic").textContent = "🎙️";
+        var short = Date.now() - recT < 700; rec = null;
+        if (short) { setBusy(false, "מחזיקים קצת יותר: לוחצים, מדברים, ולוחצים שוב לשליחה"); return; }
+        setBusy(true, "שומע אותך…");
+        b64(new Blob(parts, { type: type || "audio/webm" })).then(function (a) { return api("hear", { audio: a }); }).then(function (j) {
+          setBusy(false);
+          if (!j.text) { $("status").textContent = "לא שמעתי. מדברים קרוב לטלפון ובקול רגיל 🙂"; return; }
+          send(j.text);
+        }).catch(function (e) { setBusy(false, why(e)); });
+      };
+      rec.start(); $("mic").classList.add("rec"); $("mic").textContent = "⏹";
+      recTimer = setInterval(function () { var s = Math.round((Date.now() - recT) / 1000); $("status").textContent = "🔴 מקליט " + s + " שנ׳ · לוחצים שוב כדי לשלוח"; if (s >= 45 && rec) rec.stop(); }, 250);
+    }).catch(function () { toast("צריך לאשר גישה למיקרופון. בינתיים אפשר להקליד"); openType(true); });
+  };
+  function openType(on) { $("typeBox").hidden = !on; $("typeBtn").setAttribute("aria-pressed", on ? "true" : "false"); if (on) $("typeIn").focus(); }
+  $("typeBtn").onclick = function () { openType($("typeBox").hidden); };
+  $("typeSend").onclick = function () { if (busy) return; send($("typeIn").value); $("typeIn").value = ""; };
+  $("typeIn").onkeydown = function (e) { if (e.key === "Enter") $("typeSend").onclick(); };
+  $("slowBtn").onclick = function () { S.slow = !S.slow; save(); this.setAttribute("aria-pressed", S.slow ? "true" : "false"); toast(S.slow ? "🐢 השותף ידבר לאט" : "קצב רגיל"); };
+  $("heBtn").onclick = function () { S.he = !S.he; save(); this.setAttribute("aria-pressed", S.he ? "true" : "false"); [].forEach.call(document.querySelectorAll("#msgs .he"), function (h) { h.hidden = !S.he; }); };
+  $("hintBtn").onclick = function () {
+    if (busy || !C || !C.hist.length) return;
+    var h = $("hints"); h.hidden = false; h.innerHTML = '<div class="status">מחפש רעיונות…</div>';
+    api("talk", { sc: C.sc, level: S.level, topic: C.topic, hist: C.hist, mode: "hint" }).then(function (j) {
+      h.innerHTML = '<div class="fine">אפשר ללחוץ כדי לשמוע, ואז להגיד את זה בקול במיקרופון (או בדרך שלכם):</div>' + j.hints.map(function (x, i) { return '<button class="hint" data-i="' + i + '"><span class="en">' + esc(x.en) + '</span><small>' + esc(x.he) + '</small></button>'; }).join("") + '<button class="mini" id="hintX">סגירה</button>';
+      h.onclick = function (e) { var b = e.target.closest("[data-i]"); if (b) say(j.hints[+b.dataset.i].en); if (e.target.id === "hintX") h.hidden = true; };
+    }).catch(function (e) { h.innerHTML = '<div class="status">' + why(e) + '</div>'; });
+  };
+  $("endBtn").onclick = function () { finish(); };
+  window.addEventListener("popstate", function () { if (!$("chat").hidden) { if (C && C.hist.some(function (m) { return m.me; })) finish(); else close(); } });
+  function close() { stopSay(); if (rec) try { rec.stop(); } catch (e) {} $("chat").hidden = true; $("sum").hidden = true; $("home").hidden = false; homeUI(); scrollTo(0, 0); }
+
+  // ---- the summary ----
+  function finish() {
+    stopSay(); if (rec) try { rec.stop(); } catch (e) {}
+    var turns = C.hist.filter(function (m) { return m.me; }).length;
+    if (!turns) { close(); return; }
+    var mins = Math.max(1, Math.round((Date.now() - C.t0) / 60000)), d = today();
+    S.days[d] = (S.days[d] || 0) + mins;
+    var entry = { d: d, sc: C.sc, topic: C.topic, n: turns, fixes: C.fixes.length, words: C.spoke || 0, mins: mins, lv: S.level };
+    S.log.unshift(entry); S.log = S.log.slice(0, 200); save();
+    $("chat").hidden = true; var s = $("sum"); s.hidden = false; scrollTo(0, 0);
+    s.innerHTML = '<section class="card hero"><h1>כל הכבוד! 🎉</h1><p class="lead">' + turns + ' משפטים שאמרתם באנגלית · ' + (C.spoke || 0) + ' מילים · ' + mins + ' דק׳</p></section><section class="card" id="fb"><div class="status">מכין משוב אישי…</div></section>' +
+      (C.fixes.length ? '<section class="card"><h2>✨ המשפטים שתיקנו</h2>' + C.fixes.map(function (f) { return '<div class="wordrow"><button class="ico" data-say="' + esc(f.better) + '">🔊</button><div class="x"><span class="en">' + esc(f.better) + '</span><span class="fine">' + esc(f.why) + '</span></div></div>'; }).join("") + '</section>' : "") +
+      '<div class="row"><button class="btn" id="again">🔁 שוב באותו מצב</button><button class="btn ghost" id="homeBtn">מצב אחר</button></div>';
+    s.onclick = function (e) { var b = e.target.closest("[data-say]"); if (b) say(b.dataset.say); var k = e.target.closest("[data-keep]"); if (k) { keep(JSON.parse(k.dataset.keep)); k.textContent = "✓"; } };
+    var sc = C.sc, topic = C.topic;
+    $("again").onclick = function () { start(sc, topic); }; $("homeBtn").onclick = close;
+    api("talk", { sc: C.sc, level: S.level, topic: C.topic, hist: C.hist, mode: "end" }).then(function (j) {
+      entry.score = j.score; save();
+      $("fb").innerHTML = '<div class="stars" aria-label="' + j.score + ' מתוך 5">' + "★★★★★".slice(0, j.score) + '<span style="opacity:.25">' + "★★★★★".slice(j.score) + '</span></div>' +
+        '<p><b>👍 מה היה טוב:</b> ' + esc(j.good) + '</p><p><b>🎯 על מה לעבוד:</b> ' + esc(j.work) + '</p>' +
+        (j.phrases.length ? '<h2>ביטויים שיעזרו בפעם הבאה</h2>' + j.phrases.map(function (p) { return '<div class="wordrow"><button class="ico" data-say="' + esc(p.en) + '">🔊</button><div class="x"><span class="en">' + esc(p.en) + '</span><span class="fine">' + esc(p.he) + '</span></div><button class="ico" data-keep="' + esc(JSON.stringify(p)) + '">＋</button></div>'; }).join("") : "");
+    }).catch(function () { $("fb").innerHTML = '<p class="lead">לא הצלחנו להכין משוב הפעם, אבל השיחה נשמרה בהתקדמות. 💪</p>'; });
+  }
+
+  // ---- my words ----
+  function wordsUI() {
+    var L = $("wordList");
+    if (!S.words.length) { L.innerHTML = '<p class="fine">עוד אין מילים. בשיחה לוחצים על מילה מסומנת ＋ או על "לשמור" בתיקון.</p>'; $("flashGo").hidden = true; return; }
+    $("flashGo").hidden = false;
+    L.innerHTML = S.words.map(function (w, i) { return '<div class="wordrow"><button class="ico" data-say="' + i + '">🔊</button><div class="x"><span class="en">' + esc(w.en) + '</span><span class="fine">' + (w.fix ? "✨ " : "") + esc(w.he) + (w.k >= 2 ? " · ✅ יודע" : "") + '</span></div><button class="ico" data-del="' + i + '" aria-label="למחוק">🗑️</button></div>'; }).join("");
+  }
+  $("wordList").onclick = function (e) { var a = e.target.closest("[data-say]"), d = e.target.closest("[data-del]"); if (a) say(S.words[+a.dataset.say].en); if (d) { S.words.splice(+d.dataset.del, 1); save(); wordsUI(); } };
+  var deck = [], fi = 0, shown = false;
+  function card() { if (!deck.length) { $("flash").innerHTML = "🎉 סיימתם את כל הכרטיסיות!"; return; } var w = deck[fi % deck.length]; shown = false; $("flash").innerHTML = '<div>' + esc(w.he) + '<small>איך אומרים באנגלית? לוחצים כדי לראות</small></div>'; }
+  $("flashGo").onclick = function () { deck = S.words.filter(function (w) { return (w.k || 0) < 2; }).sort(function () { return Math.random() - .5; }).slice(0, 15); if (!deck.length) deck = S.words.slice(0, 15); fi = 0; $("flashBox").hidden = false; $("flashGo").hidden = true; card(); };
+  $("flash").onclick = function () { if (!deck.length) return; var w = deck[fi % deck.length]; if (!shown) { shown = true; $("flash").innerHTML = '<div class="en">' + esc(w.en) + '<small style="direction:rtl">' + esc(w.he) + '</small></div>'; say(w.en); } };
+  $("fKnow").onclick = function () { if (!deck.length) return; var w = deck.splice(fi % deck.length, 1)[0]; w.k = (w.k || 0) + 1; save(); card(); };
+  $("fAgain").onclick = function () { fi++; card(); };
+  $("fStop").onclick = function () { $("flashBox").hidden = true; wordsUI(); };
+
+  // ---- progress ----
+  function streak() { var n = 0, d = new Date(); if (!S.days[today()]) d.setDate(d.getDate() - 1); for (;;) { var k = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); if (!S.days[k]) break; n++; d.setDate(d.getDate() - 1); } return n; }
+  function meUI() {
+    var mins = 0; for (var k in S.days) mins += S.days[k];
+    var words = S.log.reduce(function (a, l) { return a + (l.words || 0); }, 0), st = streak();
+    $("stats").innerHTML = [[st, "🔥 ימים ברצף"], [S.log.length, "שיחות"], [mins, "דקות"], [words, "מילים שאמרתי"]].map(function (x) { return '<div class="stat"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join("");
+    $("streakLine").textContent = st ? "דיברתם " + st + " ימים ברצף. ממשיכים גם היום?" : "עוד לא דיברתם היום. חמש דקות מספיקות 🙂";
+    var cells = [], d = new Date(); d.setDate(d.getDate() - 27);
+    for (var i = 0; i < 28; i++) { var key = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2), m = S.days[key] || 0; cells.push('<i class="' + (m >= 10 ? "on2" : m ? "on" : "") + '" title="' + key + (m ? " · " + m + " דק׳" : "") + '"></i>'); d.setDate(d.getDate() + 1); }
+    $("cal").innerHTML = cells.join("");
+    $("hist").innerHTML = S.log.length ? S.log.slice(0, 15).map(function (l) { var s = SC[l.sc] || SC.free; return '<div class="wordrow"><span style="font-size:24px">' + s[1] + '</span><div class="x"><b>' + esc(l.sc === "free" && l.topic ? l.topic : s[2]) + '</b><span class="fine">' + l.d.split("-").reverse().join(".") + " · " + l.n + " משפטים · " + (l.fixes ? l.fixes + " תיקונים" : "בלי תיקונים") + '</span></div>' + (l.score ? '<span>' + "★".repeat(l.score) + '</span>' : "") + '</div>'; }).join("") : '<p class="fine">כאן יופיעו השיחות שלכם.</p>';
+  }
+  homeUI();
+})();
+</script>
