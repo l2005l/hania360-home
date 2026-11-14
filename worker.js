@@ -44,6 +44,8 @@ import CHAGPAGE, { FILES as CHAG_FILES, IMAGES as CHAG_IMAGES } from "./chag/pag
 import LIMUDPAGE, { FILES as LIMUD_FILES, IMAGES as LIMUD_IMAGES } from "./limud/page.js";
 import { limudApi } from "./limud/api.js";
 import { LimudGroup } from "./limud/group.js";
+import { appMap, MAP_CSS } from "./now/map.js";
+import { liveApi, LIVE_HTML, LIVE_CSS } from "./now/live.js";
 import { KitaFile, kitaFiles } from "./kita/files.js";
 import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
 import { RegaRoom, regaApi } from "./rega/room.js";
@@ -234,6 +236,9 @@ else{a.textContent="כניסה";a.className="account in";a.setAttribute("aria-la
 a.hidden=false}).catch(function(){})})();</script></body></html>`;
 }
 
+// Today's items on "/": the first four show, the rest open with a button (after the page has put the visitor's first).
+const NOW_MORE = `<script>(function(){setTimeout(function(){var g=document.querySelector("#now .n26-grid");if(!g)return;var c=[].slice.call(g.children).filter(function(x){return x.classList.contains("n26-card")});if(c.length<=5)return;
+c.slice(4).forEach(function(x){x.style.display="none"});var b=document.createElement("button");b.type="button";b.className="n26-more";b.textContent="עוד "+(c.length-4)+" עדכונים ▾";b.onclick=function(){c.forEach(function(x){x.style.display=""});b.remove()};g.after(b)},700)})();</script><style>.n26-more{display:block;margin:10px auto 0;appearance:none;border:1.5px solid rgba(15,23,42,.12);background:#fff;border-radius:999px;padding:10px 18px;font:inherit;font-weight:800;color:#2563EB;cursor:pointer}</style>`;
 const HOME = layout("Hania360 — חשבון אחד לכל האפליקציות של המשפחה","Hania360 הוא חשבון אחד לאפליקציות של הבית: הטבות ושוברים, קניות, טיולים, ימי הולדת ומוזיקה. מתחברים פעם אחת, וכל הבוקר מגיע לדף אחד ב־Hania Today. בחינם.",`
 <header class="h26-hero"><h1>כל מה שהבית צריך.<br><span>במקום אחד. בחינם.</span></h1><p class="h26-lead">אפליקציות קטנות וחכמות למשפחה, שנפתחות ישר בדפדפן. בלי הורדה ובלי הרשמה.</p>
 <a class="h26-now" id="nowCard" href="https://cart.hania360.com/"><span class="h26-now-e" id="nowE" aria-hidden="true">🛒</span><span><small id="nowK">עכשיו</small><b id="nowT">רשימת הקניות של הבית</b></span><span aria-hidden="true">←</span></a>
@@ -627,12 +632,17 @@ export default {
     if (url.pathname === "/manifest.webmanifest") return new Response(H_MANIFEST, { headers: { "content-type": "application/manifest+json; charset=utf-8", "cache-control": "public, max-age=3600" } });
     if (url.pathname === "/sw.js") return new Response(H_SW, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
     if (url.pathname === "/now") return new Response(NOW_ADMIN,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex","referrer-policy":"no-referrer"}});
+    if (url.pathname === "/api/live") return liveApi();
     if (url.pathname === "/classic") return new Response(HOME.replace("/*THEME*/","").replace("<title>",'<meta name="robots" content="noindex, follow"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
     if ((url.pathname === "/" || url.pathname === "/index.html") && String((env||{}).HOME_CLASSIC||"") !== "1") {
       const key = String((env||{}).STATS_KEY||"").trim(), preview = !!key && (url.searchParams.get("preview")||"").trim() === key;
       let items=[], pending=new Set(); try { items = await nowItems(env || {}, Date.now(), preview); if (preview) { const ok = new Set((await nowItems(env || {})).map((i)=>i.id)); pending = new Set(items.filter((i)=>!ok.has(i.id)).map((i)=>i.id)); } } catch {}
       const sec = nowSection(items, Date.now(), pending);
-      const html = themed(sec ? HOME.replace("/*THEME*/", NOW_CSS + "/*THEME*/").replace('<section class="h26-sec" id="apps">', sec + '<section class="h26-sec" id="apps">') : HOME, env);
+      // "/" (not /classic): the live strip, today's items (the first four, the rest behind a button), and one map of every app by world
+      const a0 = HOME.indexOf('<section class="h26-sec" id="apps">'), a1 = HOME.indexOf("<script>(function(){var D=[");
+      const EXTRA = '["⚽","HaniaSport","ליגת העל והיורוליג: תוצאות חיות, טבלה והקבוצה שלכם","https://sport.hania360.com/","sport"],["💗","HaniaRegaTov","למטופלים בבית חולים או במיטה: משחקים, משפחה ותיאום ביקורים","https://regatov.hania360.com/","regatov"],["🗓️","החג הקרוב","זמנים, הכנות וברכות לחג שמגיע · בתוך היהדות שלי","https://chag.hania360.com/","chag"],["🧑‍🏫","HaniaKita למורים","דפי עבודה בלחיצה וכלי כיתה","https://kita.hania360.com/","kita"],["📋","Hania Today","מה חשוב היום מכל העולמות, בדף אחד","https://today.hania360.com/","today"],';
+      const page = a0 > 0 && a1 > a0 ? HOME.slice(0, a0) + LIVE_HTML + (sec ? sec + NOW_MORE : "") + appMap() + HOME.slice(a1).replace("<script>(function(){var D=[", "<script>(function(){var D=[" + EXTRA) : HOME;
+      const html = themed(page.replace("/*THEME*/", (sec ? NOW_CSS : "") + MAP_CSS + LIVE_CSS + "/*THEME*/"), env);
       if (preview) return new Response(html.replace("<title>",'<meta name="robots" content="noindex"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","referrer-policy":"no-referrer","x-robots-tag":"noindex"}});
       return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=60","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
     }
