@@ -86,7 +86,7 @@ function columnExample(a, b) {
   const steps = [], ones = b % 10, tens = Math.floor(b / 10) % 10, hund = Math.floor(b / 100);
   if (b < 10) return { title: "דוגמה פתורה: " + a + " × " + b, steps: ["כופלים כל ספרה של " + a + " ב־" + b + ", מימין לשמאל, ומעבירים את מה שעובר לעמודה הבאה.", "התוצאה: " + a + " × " + b + " = " + a * b] };
   steps.push("שלב 1: כופלים את " + a + " בספרת האחדות, " + ones + ": " + a + " × " + ones + " = " + a * ones);
-  steps.push("שלב 2: כופלים את " + a + " בספרת העשרות. " + tens + " עשרות הן " + tens * 10 + ", לכן כותבים 0 במקום האחדות: " + a + " × " + tens * 10 + " = " + a * tens * 10);
+  steps.push("שלב 2: כופלים את " + a + " בספרת העשרות. " + (tens === 1 ? "עשרת אחת היא 10" : tens + " עשרות הן " + tens * 10) + ", לכן כותבים 0 במקום האחדות: " + a + " × " + tens * 10 + " = " + a * tens * 10);
   if (hund) steps.push("שלב 3: כופלים את " + a + " במאות: " + a + " × " + hund * 100 + " = " + a * hund * 100);
   steps.push("שלב " + (hund ? 4 : 3) + ": מחברים את השורות: " + [a * ones, a * tens * 10].concat(hund ? [a * hund * 100] : []).join(" + ") + " = " + a * b);
   return { title: "דוגמה פתורה: " + a + " × " + b, steps };
