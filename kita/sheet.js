@@ -29,19 +29,40 @@ export async function sheetApi(req, env) {
   if (!device || topic.length < 2) return json({ error: "input" }, 400);
   const lim = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "POST", body: JSON.stringify({ device, ns: "kita:", perDevice: 15, perDay: 400 }) }).then((r) => r.json());
   if (!lim.ok) return json({ error: lim.why === "device" ? "device" : "day" }, 429);
-  const system = "את/ה מורה ישראלי/ת מנוסה שכותב/ת דפי עבודה לפי תוכנית הלימודים בישראל. " +
-    (english ? "השאלות עצמן באנגלית ברמה שמתאימה לכיתה, וההוראות בעברית. " : "כותבים בעברית תקנית, ברורה ומותאמת לגיל. ") +
-    "התוכן נכון עובדתית ומדויק. בחשבון: מספרים פשוטים ותשובות מחושבות בדיוק. " +
-    "מחזירים JSON בלבד: {\"title\":\"כותרת הדף\",\"instructions\":\"הוראה קצרה לתלמיד\",\"questions\":[{\"q\":\"השאלה\",\"type\":\"open|mc|fill\",\"options\":[\"א\",\"ב\",\"ג\",\"ד\"],\"answer\":\"התשובה הנכונה\"}]}. " +
-    "ב־mc יש בדיוק 4 אפשרויות והתשובה היא אחת מהן. ב־fill מסמנים את המקום להשלמה ב־_____. בלי טקסט נוסף.";
-  const input = "דף עבודה לכיתה " + grade + ", מקצוע: " + subject + ", נושא: " + topic + ". רמה " + level + ". " + n + " שאלות. סוג: " + type + ".";
+  // A rich sheet, built like a good teacher's: what we practise, a worked example, then parts that go up step by step
+  // (warm-up, practice, using it, find the mistake, a challenge). Arithmetic answers are worked out here, not trusted.
+  const system = "את/ה מורה ישראלי/ת מנוסה ומוערך/ת שכותב/ת דפי עבודה עשירים ומגוונים לפי תוכנית הלימודים בישראל. " +
+    (english ? "השאלות עצמן באנגלית ברמה שמתאימה לכיתה, וההוראות וכותרות החלקים בעברית. " : "כותבים בעברית תקנית, ברורה ומותאמת לגיל. ") +
+    "התוכן נכון עובדתית ומדויק. בחשבון: מספרים מתאימים לכיתה ותשובות מחושבות בדיוק; תרגיל חשבון כותבים כביטוי בלבד (למשל 47 × 6) ב־type calc. " +
+    "הדף בנוי בחלקים שעולים בהדרגה: חימום קצר, תרגול, יישום (בעיות מילוליות מחיי היום־יום של ילדים בישראל, בעיה בכל שאלה, ב־type word), \"מצאו את הטעות\" (פתרון שגוי שהתלמיד צריך לתקן), ואתגר. " +
+    "סוגי שאלות: open (פתוחה), mc (אמריקאית, בדיוק 4 אפשרויות, התשובה אחת מהן), fill (השלמה, המקום מסומן ב־_____), tf (נכון/לא נכון: טענה), calc (תרגיל חשבון), word (בעיה מילולית). " +
+    "מחזירים JSON בלבד: {\"title\":\"כותרת\",\"goal\":\"משפט: מה נתרגל היום\",\"example\":{\"title\":\"דוגמה פתורה: ...\",\"steps\":[\"שלב 1 ...\",\"שלב 2 ...\"]}," +
+    "\"sections\":[{\"name\":\"שם החלק\",\"ins\":\"הוראה קצרה לחלק\",\"questions\":[{\"q\":\"...\",\"type\":\"open|mc|fill|tf|calc|word\",\"options\":[\"...\"],\"answer\":\"התשובה המלאה\"}]}]}. בלי טקסט נוסף.";
+  const input = "דף עבודה לכיתה " + grade + ", מקצוע: " + subject + ", נושא: " + topic + ". רמה " + level + ". בערך " + n + " שאלות בסך הכול, ב־4 עד 5 חלקים. העדפת סוג שאלות: " + type + ".";
   let j = null;
-  try { j = looseJson(text(await env.AI.run(AI_MODEL, { messages: [{ role: "system", content: system }, { role: "user", content: input }], max_tokens: 3500 }))); } catch {}
-  if (!j || !Array.isArray(j.questions)) { try { j = looseJson(text(await env.AI.run(AI_FALLBACK_MODEL, { messages: [{ role: "system", content: system }, { role: "user", content: input }], response_format: { type: "json_object" }, max_tokens: 3500 }))); } catch {} }
-  if (!j || !Array.isArray(j.questions) || !j.questions.length) return json({ error: "ai" }, 502);
-  const qs = j.questions.slice(0, 20).map((q) => {
-    const t = ["open", "mc", "fill"].includes(q.type) ? q.type : Array.isArray(q.options) && q.options.length >= 2 ? "mc" : "open";
-    return { q: clean(q.q, 600), type: t, options: t === "mc" ? (q.options || []).slice(0, 4).map((o) => clean(o, 200)) : [], answer: clean(q.answer, 400) };
-  }).filter((q) => q.q);
-  return json({ title: clean(j.title, 100) || topic, instructions: clean(j.instructions, 300), questions: qs, grade, subject: b.subject in SUBJECTS ? b.subject : "other", topic });
+  const ok = (x) => x && (Array.isArray(x.sections) && x.sections.some((s) => Array.isArray(s.questions) && s.questions.length) || Array.isArray(x.questions) && x.questions.length);
+  try { j = looseJson(text(await env.AI.run(AI_MODEL, { messages: [{ role: "system", content: system }, { role: "user", content: input }], max_tokens: 5000 }))); } catch {}
+  if (!ok(j)) { try { j = looseJson(text(await env.AI.run(AI_FALLBACK_MODEL, { messages: [{ role: "system", content: system }, { role: "user", content: input }], response_format: { type: "json_object" }, max_tokens: 5000 }))); } catch {} }
+  if (!ok(j)) return json({ error: "ai" }, 502);
+  const one = (q) => {
+    const t = ["open", "mc", "fill", "tf", "calc", "word"].includes(q.type) ? q.type : Array.isArray(q.options) && q.options.length >= 2 ? "mc" : "open";
+    const o = { q: clean(q.q, 600), type: t, options: t === "mc" ? (q.options || []).slice(0, 4).map((x) => clean(x, 200)) : [], answer: clean(q.answer, 400) };
+    if (t === "calc") { const v = arith(o.q); if (v != null) o.answer = String(v); }
+    return o;
+  };
+  let sections = (Array.isArray(j.sections) ? j.sections : [{ name: "", ins: "", questions: j.questions }]).slice(0, 7).map((s) => ({ name: clean(s.name, 80), ins: clean(s.ins, 240), questions: (Array.isArray(s.questions) ? s.questions : []).slice(0, 12).map(one).filter((q) => q.q) })).filter((s) => s.questions.length);
+  const ex = j.example && Array.isArray(j.example.steps) && j.example.steps.length ? { title: clean(j.example.title, 120), steps: j.example.steps.slice(0, 6).map((x) => clean(x, 260)).filter(Boolean) } : null;
+  return json({ v: 2, title: clean(j.title, 100) || topic, goal: clean(j.goal, 220), instructions: clean(j.instructions, 300), example: ex, sections, questions: [].concat(...sections.map((s) => s.questions)), grade, subject: b.subject in SUBJECTS ? b.subject : "other", topic });
+}
+
+// The value of a plain arithmetic exercise ("47 × 6", "(12 + 8) : 4"), or null when it is anything else.
+export function arith(q) {
+  const e = String(q).replace(/=\s*_*\s*\??\s*$/, "").replace(/[×x*]/g, "*").replace(/[÷:]/g, "/").replace(/−/g, "-").replace(/\s+/g, "");
+  if (!/^[\d.+\-*/()]+$/.test(e) || !/\d[+\-*/]/.test(e) || e.length > 40) return null;
+  let i = 0;
+  const num = () => { let m = /^\d+(\.\d+)?/.exec(e.slice(i)); if (!m) throw 0; i += m[0].length; return +m[0]; };
+  const atom = () => { if (e[i] === "(") { i++; const v = sum(); if (e[i] !== ")") throw 0; i++; return v; } if (e[i] === "-") { i++; return -atom(); } return num(); };
+  const prod = () => { let v = atom(); while (e[i] === "*" || e[i] === "/") { const op = e[i++], w = atom(); if (op === "/" && w === 0) throw 0; v = op === "*" ? v * w : v / w; } return v; };
+  const sum = () => { let v = prod(); while (e[i] === "+" || e[i] === "-") { const op = e[i++], w = prod(); v = op === "+" ? v + w : v - w; } return v; };
+  try { const v = sum(); if (i !== e.length || !isFinite(v)) return null; return Math.round(v * 1000) / 1000; } catch { return null; }
 }
