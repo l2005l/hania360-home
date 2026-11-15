@@ -75,7 +75,7 @@ export const WIDGET_CITIES = CITIES.map((c) => c[0]);
 
 // The Android app's signing certificate (SHA-256), so it opens Hania360 pages full-screen (Trusted Web Activity).
 // Filled in from android/fingerprint.txt, which the build writes the first time it makes the key.
-export const APP_SHA = "";
+export const APP_SHA = "C8:DD:A5:3E:07:53:BF:35:BA:6A:44:67:FC:69:EC:98:61:5B:6A:01:AD:30:BE:EE:F6:02:69:53:2C:BC:44:83";
 export function assetLinks() {
   const fp = APP_SHA ? [APP_SHA] : [];
   return new Response(JSON.stringify([{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: "com.hania360.app", sha256_cert_fingerprints: fp } }]), { headers: { "content-type": "application/json", "cache-control": "max-age=3600" } });
