@@ -38,7 +38,7 @@ export async function liveOne(id, debug) {
 
 export async function tvApi(request, env, ctx) {
   const url = new URL(request.url);
-  const ids = (url.searchParams.get("ids") || "").split(",").filter((x) => /^UC[\w-]{22}$/.test(x)).slice(0, 40);
+  const ids = (url.searchParams.get("ids") || "").split(",").filter((x) => /^UC[\w-]{22}$/.test(x)).slice(0, 60);
   if (url.searchParams.get("debug")) return Response.json(await Promise.all(ids.slice(0, 6).map((i) => liveOne(i, true))));
   const key = new Request("https://tv.hania360.com/api/tv/live?ids=" + ids.join(","));
   const hit = await caches.default.match(key); if (hit) return hit;
