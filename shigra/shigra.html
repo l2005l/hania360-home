@@ -199,6 +199,125 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
   var audio = null;
   function chime(n) { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); var t0 = audio.currentTime; (n || [784, 988, 1318.5]).forEach(function (f, i) { var o = audio.createOscillator(), g = audio.createGain(); o.type = "sine"; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t0 + i * 0.11); g.gain.exponentialRampToValueAtTime(0.13, t0 + i * 0.11 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.11 + 0.5); o.connect(g); g.connect(audio.destination); o.start(t0 + i * 0.11); o.stop(t0 + i * 0.11 + 0.52); }); } catch (e) {} }
 
+  // ---- "what do we do this evening?": screen-free activities from now until the evening routine starts ----
+  // Each idea: [id, emoji, name, how, min age, max age, minutes, energy (1 calm, 2 middle, 3 active), kind, what you need, fine on Shabbat, messy]
+  var IDEAS = [
+    ["dance", "🕺", "מסיבת ריקודים ופסלים", "שמים מוזיקה ורוקדים. כשהמוזיקה נעצרת, כולם קופאים כמו פסלים. מי שזז, עוזר לעצור את המוזיקה בפעם הבאה.", 2, 12, 15, 3, "תנועה", "מוזיקה", 0, 0],
+    ["obst", "🏃", "מסלול מכשולים בסלון", "בונים מסלול מכריות, כיסאות ושמיכה: זוחלים מתחת לשולחן, קופצים מכרית לכרית, הולכים על חבל. מודדים זמן לכל אחד.", 3, 10, 20, 3, "תנועה", "כריות, כיסאות", 0, 0],
+    ["hide", "🙈", "מחבואים", "אחד סופר עד 20 עם עיניים סגורות, כולם מתחבאים. מי שנמצא ראשון, סופר בסיבוב הבא.", 3, 12, 15, 3, "תנועה", "", 1, 0],
+    ["anim", "🦁", "חיות בתנועה", "כל אחד בתורו מחקה חיה, בתנועה ובקול, והשאר מנחשים. אפשר גם \"חיה שמחה\" או \"חיה עייפה\".", 2, 8, 10, 3, "תנועה", "", 1, 0],
+    ["ball", "🎈", "בלון לא נוגע ברצפה", "מעיפים בלון באוויר ואסור שייגע ברצפה. סופרים כמה מכות מצליחים ברצף, ומנסים לשבור שיא.", 2, 10, 10, 3, "תנועה", "בלון", 1, 0],
+    ["light", "🚦", "רמזור", "אחד עומד עם הגב לכולם וקורא \"ירוק\" (הולכים) או \"אדום\" (קופאים). מי שמגיע אליו ראשון מנצח.", 3, 10, 10, 3, "תנועה", "", 1, 0],
+    ["simon", "🤸", "שמעון אומר", "עושים רק מה שמתחיל ב\"שמעון אומר...\". מי שמתבלבל עוזר להוביל בסיבוב הבא.", 3, 10, 10, 3, "תנועה", "", 1, 0],
+    ["socks", "🧦", "קליעה לסל עם גרביים", "מגלגלים גרביים לכדורים וקולעים לסל כביסה ממרחקים שונים. מי שקולע מתרחק צעד.", 3, 12, 10, 3, "תנועה", "גרביים, סל", 1, 0],
+    ["bowl", "🎳", "באולינג בקבוקים", "מעמידים 6 בקבוקים ריקים ומגלגלים כדור. סופרים כמה נפלו, 3 סיבובים לכל אחד.", 3, 10, 15, 3, "תנועה", "בקבוקים, כדור", 1, 0],
+    ["yoga", "🧘", "יוגה של חיות", "תנוחות בשמות של חיות: חתול (גב עגול), כלב (משולש), צפרדע (כריעה), עץ (על רגל אחת). מחזיקים ספירה של 5.", 3, 12, 15, 2, "תנועה", "", 1, 0],
+    ["walk", "🔦", "טיול ערב עם פנס", "יוצאים להקפה קצרה בשכונה. מחפשים חתולים, ירח, חלונות מוארים ועצים. כל אחד מספר מה ראה.", 4, 12, 20, 2, "בחוץ", "פנס", 0, 0],
+    ["hotcold", "🔥", "חם־קר", "מחביאים חפץ קטן, וכולם מחפשים לפי \"חם\", \"חמים\" ו\"קר\".", 3, 10, 10, 2, "משחק", "", 1, 0],
+    ["draw", "🎨", "ציור לפי מוזיקה", "שמים מוזיקה שקטה ואחר כך מהירה, וכל אחד מצייר מה המוזיקה מרגישה לו. בסוף מציגים תערוכה.", 3, 12, 20, 2, "יצירה", "דפים, צבעים", 0, 0],
+    ["rolls", "🧻", "יצירה מגלילי נייר", "מגלילי נייר טואלט עושים משקפת, בובות או רכבת. מדביקים, מקשטים, ונותנים שם.", 4, 12, 25, 2, "יצירה", "גלילים, דבק, צבעים", 0, 1],
+    ["lego", "🧱", "אתגר בנייה", "אתגר בקוביות או בלגו: גשר שמחזיק ספר, המגדל הכי גבוה, או בית לבובה. 15 דקות ומציגים.", 4, 12, 25, 2, "יצירה", "קוביות או לגו", 0, 0],
+    ["fort", "🏰", "מבצר שמיכות", "בונים מבצר משמיכות, כיסאות וכריות, ונכנסים פנימה לקרוא או לספר סיפור.", 3, 12, 30, 2, "יצירה", "שמיכות, כריות", 0, 0],
+    ["puppet", "🧦", "תיאטרון בובות מגרביים", "מציירים פנים על גרביים ישנים ומעלים הצגה קצרה מאחורי הספה.", 4, 10, 25, 2, "יצירה", "גרביים, טושים", 0, 0],
+    ["joint", "🖍️", "ציור משותף", "דף אחד גדול: כל אחד מוסיף פרט אחד בתורו, בלי לדבר, עד שיוצאת תמונה.", 4, 12, 15, 2, "יצירה", "דף גדול, צבעים", 0, 0],
+    ["colors", "🌈", "ציד צבעים", "קוראים צבע, וכל אחד רץ להביא חפץ בצבע הזה. מי שמביא ראשון בוחר את הצבע הבא.", 2, 8, 10, 3, "משחק", "", 1, 0],
+    ["puzzle", "🧩", "פאזל משפחתי", "פאזל אחד על השולחן, כולם עובדים יחד. כל אחד אחראי על צבע אחר או על המסגרת.", 3, 12, 30, 1, "משחק", "פאזל", 1, 0],
+    ["band", "🥁", "להקה ביתית", "סירים, כפות וקופסאות הופכים לתופים. מנגנים שיר שכולם מכירים, ומחליפים כלים.", 2, 8, 15, 3, "מוזיקה", "סירים, כפות", 0, 0],
+    ["letter", "✉️", "מכתב לסבא וסבתא", "כל אחד כותב או מצייר מה היה השבוע, ושולחים להם תמונה של המכתב.", 5, 12, 15, 1, "יצירה", "דף, עט", 0, 0],
+    ["cookies", "🍪", "אופים עוגיות", "עוגיות פשוטות: הילדים מערבבים, מרדדים וחותכים בצורות. ההורה אחראי על התנור.", 4, 12, 40, 2, "מטבח", "קמח, חמאה, סוכר, ביצה", 0, 1],
+    ["fruit", "🍌", "שיפודי פירות", "חותכים פירות רכים (לקטנים עם סכין פלסטיק) ומשחילים על קיסמים בדוגמה.", 3, 12, 15, 2, "מטבח", "פירות, קיסמים", 0, 1],
+    ["chef", "🥪", "שפים קטנים", "הילדים מכינים חלק מארוחת הערב: סלט, טוסטים או חביתה עם הורה לצידם.", 6, 12, 30, 2, "מטבח", "מה שיש במקרר", 0, 1],
+    ["board", "🎲", "משחק קופסה", "בוחרים משחק קופסה, והקטנים בצוות עם הורה.", 4, 12, 25, 1, "משחק", "משחק קופסה", 1, 0],
+    ["cards", "🃏", "קלפים: מלחמה או זיכרון", "לקטנים: משחק זיכרון עם קלפים הפוכים. לגדולים: מלחמה או רמי.", 3, 12, 15, 1, "משחק", "חפיסת קלפים", 1, 0],
+    ["q20", "❓", "20 שאלות", "אחד חושב על משהו, והשאר שואלים שאלות כן/לא. 20 שאלות לנחש.", 6, 12, 15, 1, "משחק", "", 1, 0],
+    ["spy", "👀", "אני רואה משהו ש...", "\"אני רואה משהו אדום/עגול/רך\" והשאר מנחשים מה זה.", 3, 8, 10, 1, "משחק", "", 1, 0],
+    ["detect", "🕵️", "בלשים", "מחביאים \"אוצר\" ונותנים רמזים בעל פה, אחד אחרי השני, עד שמוצאים.", 4, 12, 20, 2, "משחק", "", 1, 0],
+    ["shop", "🏪", "משחק חנות או מסעדה", "אחד מוכר או מלצר, השאר לקוחות. מחירים, הזמנות ותפריט מומצא.", 3, 8, 20, 2, "משחק", "", 1, 0],
+    ["chain", "📜", "סיפור שרשרת", "כל אחד ממשיך את הסיפור במשפט אחד. מתחילים ב\"פעם אחת, בבית שלנו...\"", 4, 12, 15, 1, "משחק", "", 1, 0],
+    ["rather", "🤔", "מה היית מעדיף?", "שאלות כמו \"לעוף או להיות בלתי נראה?\" וכל אחד מסביר למה.", 5, 12, 15, 1, "משחק", "", 1, 0],
+    ["boom", "💥", "בום", "סופרים בתורות, ובמקום כל מספר עם 7 (או שמתחלק ב־7) אומרים \"בום\".", 7, 12, 10, 1, "משחק", "", 1, 0],
+    ["rps", "✋", "טורניר אבן נייר ומספריים", "טורניר עם טבלה: כל אחד נגד כל אחד, הטוב משלוש.", 4, 12, 10, 1, "משחק", "", 1, 0],
+    ["volcano", "🌋", "הר געש", "שמים כף סודה לשתייה בכוס, מוסיפים חומץ עם צבע מאכל, וצופים בהתפרצות. עושים בכיור.", 4, 12, 15, 2, "מדע", "סודה, חומץ, צבע מאכל", 0, 1],
+    ["float", "🛁", "צף או שוקע?", "קערת מים וחפצים מהבית. קודם מנחשים, אחר כך בודקים.", 3, 8, 15, 2, "מדע", "קערה, חפצים", 0, 1],
+    ["bean", "🌱", "לשתול שעועית", "שעועית על צמר גפן רטוב בכוס שקופה. כל יום בודקים מה צמח.", 4, 10, 15, 1, "מדע", "שעועית, צמר גפן, כוס", 0, 0],
+    ["shadow", "🔦", "תיאטרון צלליות", "מכבים את האור, פנס על הקיר, ועושים צלליות בידיים: כלב, ציפור, ארנב.", 3, 10, 15, 1, "יצירה", "פנס", 0, 0],
+    ["laundry", "🧺", "מקפלים כביסה במירוץ", "כל אחד מקפל את הבגדים שלו לצלילי שיר. מי מסיים עד סוף השיר?", 4, 12, 15, 2, "עזרה", "כביסה", 0, 0],
+    ["table", "🍽️", "עורכים שולחן חגיגי", "הילדים עורכים את השולחן לארוחת ערב, עם מפית מקופלת וקישוט קטן.", 3, 12, 10, 2, "עזרה", "", 1, 0],
+    ["read", "📚", "קוראים יחד", "כל אחד בוחר ספר. ההורה קורא, או שהגדולים קוראים לקטנים.", 2, 12, 20, 1, "רגוע", "ספרים", 1, 0],
+    ["three", "🌙", "שלושה דברים טובים", "כל אחד מספר שלושה דברים טובים שהיו היום, ודבר אחד שמחכה לו מחר.", 3, 12, 10, 1, "רגוע", "", 1, 0],
+    ["breath", "🎈", "נשימות בלון", "נושמים לאט ומנפחים \"בלון\" בבטן, מחזיקים, ומשחררים. 5 פעמים, באור עמום.", 4, 12, 5, 1, "רגוע", "", 1, 0],
+    ["pizza", "🍕", "עיסוי פיצה", "מכינים \"פיצה\" על הגב: מרדדים את הבצק, מורחים רוטב, מפזרים גבינה. אחר כך מתחלפים.", 3, 10, 10, 1, "רגוע", "", 1, 0],
+    ["stars", "✨", "מסתכלים על השמיים", "מהחלון או מהמרפסת: מחפשים את הירח, כוכבים ומטוסים, וממציאים שמות לכוכבים.", 4, 12, 10, 1, "רגוע", "", 1, 0],
+    ["lull", "🎶", "שירי ערש יחד", "שרים בשקט שני שירים שכולם אוהבים, עם אור עמום.", 2, 8, 10, 1, "רגוע", "", 1, 0],
+    ["colorpg", "🖍️", "דפי צביעה רגועים", "דפי צביעה ומוזיקה שקטה, בלי למהר.", 3, 12, 20, 1, "רגוע", "דפי צביעה, צבעים", 0, 0],
+    ["tidy", "🧸", "הצעצועים הולכים לישון", "כל צעצוע \"הולך לישון\" במקום שלו, והקטנים אומרים לו לילה טוב.", 2, 6, 10, 1, "עזרה", "", 1, 0],
+    ["mystory", "📖", "סיפור עליי", "ההורה ממציא סיפור קצר שהגיבור שלו הוא הילד. הילד בוחר את המקום ואת החיה בסיפור.", 3, 10, 15, 1, "רגוע", "", 1, 0]];
+  var IB = {}; IDEAS.forEach(function (x) { IB[x[0]] = x; });
+  function ev() { S.erev = S.erev || { hist: {}, fav: [] }; return S.erev; }
+  function agesNow() { return S.kids.map(function (k) { return +k.age || 0; }).filter(Boolean); }
+  function fits(x, ages) { if (!ages.length) return 1; var lo = Math.min.apply(0, ages), hi = Math.max.apply(0, ages); return x[4] <= lo + 0.5 && x[5] >= hi ? 2 : x[4] <= hi && x[5] >= lo ? 1 : 0; }
+  function seeded(seed) { var s = seed % 2147483647 || 1; return function () { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }; }
+  function hashS(t) { var h = 7; for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) % 2147483647; return h; }
+  // the evening's shape: something active first, then making or playing, and calm at the end, before the routine
+  function buildPlan(mins, shab) {
+    var E = ev(), ages = agesNow(), R0 = seeded(hashS(today() + ages.join(",") + (E.n || 0)));
+    var recent = function (x) { var d = E.hist[x[0]]; return d && (Date.now() - new Date(d).getTime()) < 6 * 864e5; };
+    var pool = IDEAS.filter(function (x) { return fits(x, ages) && (!shab || x[10]) && !(E.noMess && x[11]) && !(E.noKitchen && x[8] === "מטבח"); });
+    var pick = function (want, used, left) {
+      var L = pool.filter(function (x) { return used.indexOf(x[0]) < 0 && want(x) && x[6] <= left; });
+      if (!L.length) return null;
+      L.sort(function (a, b) { var s = function (x) { return (fits(x, ages) === 2 ? 2 : 0) + (E.fav.indexOf(x[0]) >= 0 ? 1.5 : 0) - (recent(x) ? 3 : 0) + R0() * 2; }; return s(b) - s(a); });
+      return L[0];
+    };
+    var out = [], used = [], left = mins, kinds = [];
+    var calm = mins >= 25 ? pick(function (x) { return x[7] === 1 && x[8] === "רגוע"; }, used, Math.min(20, left)) : null;
+    if (calm) { left -= calm[6]; used.push(calm[0]); }
+    if (left >= 30 && !shab) { var a = pick(function (x) { return x[7] === 3; }, used, Math.min(20, left)); if (a) { out.push(a); used.push(a[0]); left -= a[6]; } }
+    for (var g = 0; g < 8 && left >= 10; g++) {
+      var x = pick(function (y) { return y[7] === 2 || (y[7] === 1 && y[8] !== "רגוע") || (shab && y[7] === 3); }, used.concat(kinds.length ? pool.filter(function (y) { return y[8] === kinds[kinds.length - 1]; }).map(function (y) { return y[0]; }) : []), left);
+      if (!x) x = pick(function () { return true; }, used, left);
+      if (!x) break; out.push(x); used.push(x[0]); kinds.push(x[8]); left -= x[6];
+    }
+    if (calm) out.push(calm);
+    return out.map(function (x) { return x[0]; });
+  }
+  function erevCard(st) {
+    var E = ev(), now = new Date(), fri = now.getDay() === 5, sat = now.getDay() === 6;
+    var from = E.start ? (function () { var p = E.start.split(":"), d = new Date(); d.setHours(+p[0], +p[1], 0, 0); return d; })() : now;
+    if (from < now) from = now;
+    var mins = Math.floor((st - from) / 6e4 / 5) * 5, shab = fri || sat;
+    if (!shab && mins < 10) return null;
+    if (E.d !== today() || !E.items || E.mins !== (shab ? -1 : mins) && !E.kept) { E.d = today(); E.items = buildPlan(shab ? 120 : mins, shab); E.mins = shab ? -1 : mins; E.done = []; E.kept = 0; store(); }
+    var t = new Date(from), noAges = S.kids.length && !agesNow().length;
+    var rows = E.items.map(function (id, i) {
+      var x = IB[id]; if (!x) return null;
+      var t0 = new Date(t); t = new Date(t.getTime() + x[6] * 6e4); var done = (E.done || []).indexOf(id) >= 0;
+      return el("div", { class: "srow", style: "align-items:flex-start;" + (done ? "opacity:.55" : "") }, [el("span", { style: "font-size:30px;line-height:1.1", text: x[1] }),
+        el("div", { style: "flex:1;min-width:0;display:grid;gap:2px" }, [el("b", { text: (shab ? "" : hm(t0) + " · ") + x[2] + " (" + x[6] + " דק׳)" }), el("span", { class: "fine", text: x[3] }), x[9] ? el("span", { class: "fine", text: "🧺 צריך: " + x[9] }) : null,
+        el("div", { style: "display:flex;gap:6px;margin-top:4px" }, [
+          el("button", { class: "btn small ghost", type: "button", title: "רעיון אחר", text: "🔄 אחר", onclick: function () { swapIdea(i, shab); } }),
+          el("button", { class: "btn small ghost", type: "button", title: done ? "בוטל" : "עשינו!", text: done ? "↩️ ביטול" : "✓ עשינו", onclick: function () { E.done = E.done || []; var j = E.done.indexOf(id); if (j >= 0) E.done.splice(j, 1); else { E.done.push(id); E.hist[id] = today(); } store(); home(); } }),
+          el("button", { class: "btn small ghost", type: "button", title: "אהבנו", text: E.fav.indexOf(id) >= 0 ? "❤️" : "🤍", onclick: function () { var j = E.fav.indexOf(id); if (j >= 0) E.fav.splice(j, 1); else E.fav.push(id); store(); home(); } })])])]);
+    });
+    var startIn = el("input", { type: "time", value: E.start || "", "aria-label": "מתי מתחילים", onchange: function () { E.start = this.value || null; E.d = null; store(); home(); } });
+    return el("section", { class: "card" }, [
+      el("h2", shab ? "🕯️ לשבת: משחקים בלי חשמל ובלי טלפון" : "🎲 מה עושים הערב? עד " + hm(st)),
+      el("p", { class: "fine", text: shab ? "רשימה לשבת אחר הצהריים, רק דברים שמתאימים לשבת. כדאי לקרוא אותה לפני כניסת השבת." : mins + " דקות בלי מסכים, ואז מתחילים את שגרת הערב. מתחילים בתנועה, ממשיכים ביצירה ובמשחק, ומסיימים ברוגע." }),
+      noAges ? el("p", { class: "fine", style: "color:var(--warn,#b45309)", text: "💡 כדי להתאים לגילאים: ב\"להורים\" ← הילדים, מוסיפים גיל לכל ילד." }) : null,
+      el("div", { class: "steps" }, rows),
+      el("div", { class: "row" }, [el("button", { class: "btn small", type: "button", text: "🎲 תוכנית אחרת", onclick: function () { E.n = (E.n || 0) + 1; E.d = null; store(); home(); } }),
+        shab ? null : el("label", { class: "fine" }, ["מתחילים ב־ ", startIn]),
+        el("label", { class: "fine" }, [el("input", { type: "checkbox", checked: E.noMess ? "" : null, onchange: function () { E.noMess = this.checked; E.d = null; store(); home(); } }), " בלי בלגן"]),
+        el("label", { class: "fine" }, [el("input", { type: "checkbox", checked: E.noKitchen ? "" : null, onchange: function () { E.noKitchen = this.checked; E.d = null; store(); home(); } }), " בלי מטבח"])])]);
+  }
+  function swapIdea(i, shab) {
+    var E = ev(), cur = IB[E.items[i]], ages = agesNow();
+    var L = IDEAS.filter(function (x) { return E.items.indexOf(x[0]) < 0 && fits(x, ages) && x[7] === cur[7] && Math.abs(x[6] - cur[6]) <= 10 && (!shab || x[10]) && !(E.noMess && x[11]) && !(E.noKitchen && x[8] === "מטבח"); });
+    if (!L.length) L = IDEAS.filter(function (x) { return E.items.indexOf(x[0]) < 0 && fits(x, ages) && (!shab || x[10]); });
+    if (!L.length) return;
+    E.items[i] = L[Math.floor(Math.random() * L.length)][0]; E.kept = 1; store(); home();
+  }
+
   // ---- home ----
   var tick = null;
   function home() {
@@ -210,6 +329,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
         return el("button", { type: "button", "aria-pressed": String(MODE === m[0]), onclick: function () { MODE = m[0]; home(); } }, [el("span", { text: m[1] }), m[2], el("small", m[3])]);
       })),
       joinCard(), el("p", { class: "clock", text: clockT }),
+      MODE === "evening" && (now < st || now.getDay() === 5 || now.getDay() === 6) ? erevCard(st) : null,
       S.kids.length ? el("section", { class: "card" }, [el("h2", "מי מתחיל?"), el("div", { class: "kids" }, S.kids.map(function (k) {
         var rn = run(k), ix = idxFor(r, k), n = ix.length || 1, d = ix.filter(function (i) { return rn.done.indexOf(i) >= 0 || rn.skip.indexOf(i) >= 0; }).length;
         return el("button", { class: "kid", type: "button", onclick: function () { start(k); } }, [el("span", { class: "av" }, [avatar(k, 58)]), el("b", k.name), el("div", { class: "mini" }, [el("i", { style: "width:" + Math.round(100 * d / n) + "%" })]), el("span", { class: "fine", text: rn.fin ? "✓ סיים/ה! ⭐ " + starsOf(k, today()) : d ? d + " מתוך " + n : "⭐ השבוע: " + weekStars(k) })]);
@@ -439,7 +559,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     d.append(inner); if (S.parOpen) d.open = true; d.addEventListener("toggle", function () { S.parOpen = d.open; save(); });
     // kids
     var nm = el("input", { maxlength: "14", placeholder: "שם", "aria-label": "שם הילד/ה", style: "flex:1;min-width:120px" });
-    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "👧 הילדים"), el("div", { class: "row" }, S.kids.map(function (k, i) { return el("span", { class: "chip", style: "display:inline-flex;gap:6px;align-items:center" }, [el("button", { class: "btn small ghost", style: "padding:0 4px;font-size:22px", type: "button", title: "להחליף דמות", text: k.av, onclick: function () { k.av = AVS[(AVS.indexOf(k.av) + 1) % AVS.length]; save(); home(); } }), k.ph ? avatar(k, 28) : null, k.name, photoBtn(k), voiceCtl(k, home, { key: "nv", off: "🎤 שם", on: "🔊 שם", max: 4, rec: "להקליט את השם של " + k.name + " בקול שלכם. הוא יישמע לפני כל שלב", has: "השם בקול שלכם (לחיצה לשמיעה)", saved: "🎤 נשמר. לפני כל שלב " + k.name + " ישמע/תשמע את השם בקול שלכם" }), el("button", { class: "btn small ghost", style: "padding:2px 6px", type: "button", "aria-label": "להסיר את " + k.name, text: "✕", onclick: function () { if (confirmDel(k)) { S.kids.splice(i, 1); save(); home(); } } })]); })),
+    inner.append(el("div", { style: "display:grid;gap:8px" }, [el("h2", "👧 הילדים"), el("div", { class: "row" }, S.kids.map(function (k, i) { return el("span", { class: "chip", style: "display:inline-flex;gap:6px;align-items:center" }, [el("button", { class: "btn small ghost", style: "padding:0 4px;font-size:22px", type: "button", title: "להחליף דמות", text: k.av, onclick: function () { k.av = AVS[(AVS.indexOf(k.av) + 1) % AVS.length]; save(); home(); } }), k.ph ? avatar(k, 28) : null, k.name, el("select", { "aria-label": "הגיל של " + k.name, title: "גיל (להתאמת רעיונות לערב)", style: "font:inherit;font-size:13px;padding:2px 4px;border-radius:8px", onchange: function () { k.age = +this.value || null; if (S.erev) S.erev.d = null; save(); home(); } }, [el("option", { value: "", text: "גיל" })].concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(function (n) { var o = el("option", { value: String(n), text: "בן/בת " + n }); if (+k.age === n) o.selected = true; return o; }))), photoBtn(k), voiceCtl(k, home, { key: "nv", off: "🎤 שם", on: "🔊 שם", max: 4, rec: "להקליט את השם של " + k.name + " בקול שלכם. הוא יישמע לפני כל שלב", has: "השם בקול שלכם (לחיצה לשמיעה)", saved: "🎤 נשמר. לפני כל שלב " + k.name + " ישמע/תשמע את השם בקול שלכם" }), el("button", { class: "btn small ghost", style: "padding:2px 6px", type: "button", "aria-label": "להסיר את " + k.name, text: "✕", onclick: function () { if (confirmDel(k)) { S.kids.splice(i, 1); save(); home(); } } })]); })),
       el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); var v = nm.value.trim(); if (!v) return; if (S.kids.length >= 6) { toast("עד 6 ילדים"); return; } S.kids.push({ id: Math.random().toString(36).slice(2, 9), name: v.slice(0, 14), av: AVS[S.kids.length % AVS.length] }); save(); home(); } }, [nm, el("button", { class: "btn small", type: "submit", style: "box-shadow:none", text: "הוספה" })])]));
     // steps of the routine shown above
     var r = R(), list = el("div", { class: "steps" });
