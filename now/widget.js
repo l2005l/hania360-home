@@ -32,7 +32,7 @@ function gem(n) {
 function hebDate(t) {
   const p = new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { day: "numeric", month: "long", year: "numeric", timeZone: TZ }).formatToParts(new Date(t));
   const g = (k) => (p.find((x) => x.type === k) || {}).value || "";
-  return gem(+g("day")) + " ב" + g("month").replace(/^ב/, "") + " " + gem(+g("year"));
+  return gem(+g("day")) + " ב" + g("month").replace(/^ב/, "");
 }
 // The holidays, by Hebrew date (month names as Intl gives them in English)
 const HOL = [["Tishri", 1, "ראש השנה"], ["Tishri", 10, "יום כיפור"], ["Tishri", 15, "סוכות"], ["Tishri", 22, "שמחת תורה"], ["Kislev", 25, "חנוכה"], ["Shevat", 15, "ט״ו בשבט"],
