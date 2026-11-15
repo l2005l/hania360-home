@@ -47,6 +47,7 @@ import { LimudGroup } from "./limud/group.js";
 import { appMap, MAP_CSS } from "./now/map.js";
 import { liveApi, LIVE_HTML, LIVE_CSS } from "./now/live.js";
 import { widgetApi, assetLinks } from "./now/widget.js";
+import { WidgetLink, widgetConnect, widgetRefresh } from "./now/wlink.js";
 import { KitaFile, kitaFiles } from "./kita/files.js";
 import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
 import { RegaRoom, regaApi } from "./rega/room.js";
@@ -69,7 +70,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile, WidgetLink };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
@@ -510,7 +511,9 @@ export default {
   async route(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === "/.well-known/assetlinks.json") return assetLinks();
-    if (url.pathname === "/api/widget") return widgetApi(url);
+    if (url.pathname === "/api/widget") return widgetApi(url, env || {});
+    if (url.pathname === "/widget/connect") return widgetConnect(request, env || {});
+    if (url.hostname === "hania360.com" && request.method === "GET" && !url.pathname.startsWith("/api/")) widgetRefresh(request, env || {}, ctx);
     if (url.hostname === "hania360.com" && url.pathname === "/app") return Response.redirect("https://github.com/l2005l/hania360-home/releases/download/android-latest/Hania360.apk", 302);
     // Static files (pictures, icons, link previews and big fixed scripts) live in Workers Static Assets, under
     // public/_a/<host>/, so the Worker itself stays small. Anything not found there goes on to the apps as before.

@@ -28,6 +28,15 @@
     <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
     <activity android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity" android:configChanges="orientation|screenSize" />
 
+    <!-- Connecting Today to the widget: hania360.com/widget/connect hands over a key -->
+    <activity android:name=".LinkActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:noHistory="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="hania360" android:host="widget" />
+      </intent-filter>
+    </activity>
     <!-- The widget, and the screen that asks for the town when it is added -->
     <activity android:name=".ConfigActivity" android:exported="true" android:label="@string/pick_city">
       <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" /></intent-filter>

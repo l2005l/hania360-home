@@ -4,6 +4,7 @@
 
 import { CITIES } from "../lib/cities.js";
 import { fxRates, newsItems } from "./live.js";
+import { widgetMe } from "./wlink.js";
 
 const DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
 const TZ = "Asia/Jerusalem";
@@ -55,10 +56,12 @@ async function weather(c) {
   return { t: Math.round(j.current.temperature_2m), d, hi: Math.round(j.daily.temperature_2m_max[0]), lo: Math.round(j.daily.temperature_2m_min[0]) };
 }
 
-export async function widgetApi(url) {
+export async function widgetApi(url, env) {
   const ci = Math.max(0, Math.min(CITIES.length - 1, parseInt(url.searchParams.get("c") || "0", 10) || 0)), c = CITIES[ci];
   const key = new Request("https://hania360.com/widget-cache/v1/" + ci), hit = await caches.default.match(key);
-  if (hit) return new Response(hit.body, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+  const t = url.searchParams.get("t") || "";
+  const withMe = async (body) => { if (!t) return body; const o2 = JSON.parse(body); o2.me = await widgetMe(env || {}, t).catch(() => null); return JSON.stringify(o2); };
+  if (hit) return new Response(await withMe(await hit.text()), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
   const now = Date.now(), today = ymd(now), wd = new Date(today + "T12:00:00Z").getUTCDay();
   // the coming Shabbat: candle lighting on Friday (sunset minus the town's minutes), its end at 8.5° below the horizon on Saturday
   const fri = addDay(today, wd === 6 ? -1 : (5 - wd + 7) % 7), sat = addDay(fri, 1);
@@ -69,7 +72,7 @@ export async function widgetApi(url) {
     shab, chag: nextHoliday(now), wx, usd: fx && fx.usd ? fx.usd.v : null, eur: fx && fx.eur ? fx.eur.v : null, news: (news || []).slice(0, 2).map((x) => x.t), at: hm(now) };
   const body = JSON.stringify(o);
   await caches.default.put(key, new Response(body, { headers: { "cache-control": "max-age=600" } }));
-  return new Response(body, { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+  return new Response(await withMe(body), { headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
 }
 export const WIDGET_CITIES = CITIES.map((c) => c[0]);
 
