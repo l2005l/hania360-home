@@ -66,6 +66,19 @@ body.touch #tbPause{left:12px}body.touch #tbCam{left:62px}body.touch #tbReset{le
 body.tilt #tL,body.tilt #tR{display:none}
 #tGas{right:14px;bottom:18px;width:96px;height:116px;font-size:16px}#tBrk{right:120px;bottom:18px;width:80px;height:80px;font-size:14px}
 #tNit{right:120px;bottom:106px;width:62px;height:40px;font-size:18px}#tHand{right:196px;bottom:18px;width:66px;height:56px;font-size:13px}
+/* phone held upright: buttons that do not overlap, a smaller map, the speed under it */
+@media (orientation:portrait){
+#touch{height:200px}
+#tL,#tR{bottom:16px;width:78px;height:92px;font-size:30px}#tL{left:10px}#tR{left:96px}
+#tGas{right:10px;bottom:16px;width:84px;height:108px}#tBrk{right:102px;bottom:16px;width:72px;height:66px}
+#tHand{right:102px;bottom:90px;width:72px;height:44px;font-size:12px}#tNit{right:10px;bottom:132px;width:84px;height:42px}
+#hMap{width:92px;height:92px}
+body.touch #hSpdBox{top:max(10px,env(safe-area-inset-top));bottom:auto;min-width:100px;padding:4px 10px}
+body.touch #hSpd{font-size:34px}
+body.touch #tbPause,body.touch #tbCam,body.touch #tbReset,body.touch #tbSiren{bottom:auto;top:calc(118px + env(safe-area-inset-top))}
+body.touch #tbPause{left:12px}body.touch #tbCam{left:60px}body.touch #tbReset{left:108px}body.touch #tbSiren{left:156px}
+}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(120% 90% at 50% 45%,transparent 60%,rgba(0,0,0,.35))}
 #conf{position:fixed;inset:0;pointer-events:none;z-index:20;overflow:hidden}#conf span{position:absolute;top:-40px;font-size:30px;animation:fall 3s linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(600deg)}}
 .credit{font-size:11px;color:var(--muted);text-align:center}
@@ -126,6 +139,7 @@ body.tilt #tL,body.tilt #tR{display:none}
 
 <div class="scr dim" id="s-loading" hidden><div class="box" style="width:min(380px,100%)"><div class="panel"><span id="ldText">טוען…</span></div></div></div>
 
+<div id="vig"></div>
 <div id="hud" hidden>
   <div class="hcard" id="hTop"><span id="hPos"></span><span id="hLap"></span><span id="hTime"></span><span id="hBest"></span></div>
   <div class="hcard" id="hMapBox"><canvas id="hMap" width="240" height="240"></canvas></div>

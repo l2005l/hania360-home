@@ -11,7 +11,7 @@ var GEN = (function () {
     var o = { glass: { color: 0x0A0F18, metalness: 0.1, roughness: 0.04, envMapIntensity: 1.6 }, black: { color: 0x15171C, metalness: 0.2, roughness: 0.6 }, trim: { color: 0x22252C, metalness: 0.5, roughness: 0.35 },
       rubber: { color: 0x141416, metalness: 0, roughness: 0.92 }, rim: { color: 0xC8CDD5, metalness: 0.95, roughness: 0.22 }, rimDark: { color: 0x2A2D33, metalness: 0.9, roughness: 0.3 }, chrome: { color: 0xE6E9EE, metalness: 1, roughness: 0.12 },
       head: { color: 0xFFFFFF, emissive: 0xFFF4D8, emissiveIntensity: 0.9, metalness: 0.2, roughness: 0.1 }, tail: { color: 0x9B0A0A, emissive: 0xFF1A1A, emissiveIntensity: 0.7, roughness: 0.2 },
-      amber: { color: 0xC66A00, emissive: 0xFF9A1A, emissiveIntensity: 0.6 }, helmet: { color: 0xF2C200, metalness: 0.3, roughness: 0.25 }, bed: { color: 0x1E2025, metalness: 0.1, roughness: 0.8 } }[k];
+      amber: { color: 0xC66A00, emissive: 0xFF9A1A, emissiveIntensity: 0.6 }, helmet: { color: 0xF2C200, metalness: 0.3, roughness: 0.25 }, bed: { color: 0x1E2025, metalness: 0.1, roughness: 0.8 }, plate: { color: 0xF2C318, metalness: 0.1, roughness: 0.4 } }[k];
     ["color", "emissive"].forEach(function (c) { if (o[c] != null) o[c] = new THREE.Color(o[c]).convertSRGBToLinear(); });
     if (k === "glass" && G.hi) { o.clearcoat = 1; o.clearcoatRoughness = 0.02; return (M[k] = new THREE.MeshPhysicalMaterial(o)); }
     return (M[k] = new THREE.MeshStandardMaterial(o));
@@ -92,7 +92,15 @@ var GEN = (function () {
     root.add(box(o.W * 0.62, 0.1, 0.05, mat("black"), 0, gc + 0.16, L / 2 + 0.09, 0.03));
     root.add(box(o.W * 0.94, 0.13, 0.1, mat("black"), 0, gc + 0.06, L / 2 + 0.02, 0.04));
     root.add(box(o.W * 0.94, 0.13, 0.1, mat("black"), 0, gc + 0.06, -L / 2 - 0.02, 0.04));
-    root.add(box(o.W * 0.3, 0.12, 0.03, mat("trim"), 0, o.deck - 0.3, -L / 2 - 0.09, 0.02));
+    root.add(box(0.52, 0.12, 0.03, mat("plate"), 0, o.deck - 0.32, -L / 2 - 0.1, 0.015));
+    root.add(box(0.52, 0.12, 0.03, mat("plate"), 0, gc + 0.3, L / 2 + 0.1, 0.015));
+    [1, -1].forEach(function (sd) {
+      root.add(box(0.06, 0.1, (fz - ar) - (rz + ar) - 0.1, mat("black"), sd * (o.W / 2 + 0.005), gc + 0.12, (fz - ar + rz + ar) / 2));
+      [fz, rz].forEach(function (z) { var li = new THREE.Mesh(new THREE.CylinderGeometry(ar - 0.08, ar - 0.08, 0.1, 20, 1, true, -Math.PI / 2, Math.PI), mat("black")); li.rotation.z = Math.PI / 2; li.rotation.x = Math.PI; li.position.set(sd * (o.W / 2 - 0.08), o.wr, z); root.add(li); });
+      root.add(box(0.02, 0.012, 0.9, mat("black"), sd * (o.W / 2 + 0.006), belt - 0.2, (o.ws + o.rg) / 2 + 0.25));
+      root.add(box(0.03, 0.03, 0.12, mat("chrome"), sd * (o.W / 2 + 0.012), belt - 0.12, (o.ws + o.rg) / 2 + 0.1));
+    });
+    if (o.exh !== 0) [1, -1].forEach(function (sd) { var ex = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.16, 12), mat("chrome")); ex.rotation.x = Math.PI / 2; ex.position.set(sd * o.W * 0.28, gc + 0.12, -L / 2 - 0.06); root.add(ex); });
     return bodyM;
   }
   // numbers for each kind of car (metres): length, width, wheels, heights along the profile
