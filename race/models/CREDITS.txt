@@ -1,0 +1,2 @@
+Car models: Car Kit by Kenney (www.kenney.nl), CC0 1.0 Universal (public domain).
+Three.js r128 and GLTFLoader: MIT License, Copyright 2010-2021 three.js authors.
