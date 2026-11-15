@@ -41,9 +41,28 @@ export function merge(srv, cli) {
   const seen = {}, st2 = [];
   for (const x of [].concat(Array.isArray(c.stories) ? c.stories : [], Array.isArray(s.stories) ? s.stories : [])) if (x && x.id && !seen[x.id]) { seen[x.id] = 1; st2.push(x); }
   out.stories = st2.sort((x, y) => (y.at || 0) - (x.at || 0)).slice(0, 30);
+  // the album of weekly prizes: every photo either side has, minus the ones deleted on either side
+  const del = {}; for (const x of [].concat(Array.isArray(c.memDel) ? c.memDel : [], Array.isArray(s.memDel) ? s.memDel : [])) if (typeof x === "string" && x.length <= 24) del[x] = 1;
+  const seenM = {}, mem = [];
+  for (const x of [].concat(Array.isArray(c.mem) ? c.mem : [], Array.isArray(s.mem) ? s.mem : [])) if (x && typeof x.id === "string" && !seenM[x.id] && !del[x.id]) { seenM[x.id] = 1; mem.push(x); }
+  out.mem = mem.sort((x, y) => (y.at || 0) - (x.at || 0)).slice(0, 200); out.memDel = Object.keys(del).slice(-300);
   // recorded voices: step key -> {id, t}; a removed one stays as {id: null, t}
   out.voices = {};
   for (const src of [s.voices, c.voices]) for (const [k, v] of Object.entries(isObj(src) ? src : {})) if (isObj(v) && (!out.voices[k] || (+v.t || 0) > (+out.voices[k].t || 0))) out.voices[k] = { id: v.id ? clean(v.id, 24) : null, t: +v.t || 0 };
+  return out;
+}
+
+// HaniaMatalot (household chores) uses the same kind of family object, named "chores:<id>", with its own fields:
+// the children, the chores and the settings change as a whole; the log (who did what, each day) entry by entry.
+const C_WHOLE = ["kids", "chores", "opts"];
+export function mergeChores(srv, cli) {
+  const s = isObj(srv) ? srv : {}, c = isObj(cli) ? cli : {}, st = isObj(s._t) ? s._t : {}, ct = isObj(c._t) ? c._t : {};
+  const out = { _t: {} };
+  for (const f of C_WHOLE) {
+    const a = +st[f] || 0, b = +ct[f] || 0;
+    if (c[f] !== undefined && (b > a || s[f] === undefined)) { out[f] = c[f]; out._t[f] = b; } else if (s[f] !== undefined) { out[f] = s[f]; out._t[f] = a; }
+  }
+  out.log = mergeDays(s.log, c.log, (x, y) => ((+(y && y.t) || 0) >= (+(x && x.t) || 0) ? y : x));
   return out;
 }
 
@@ -52,10 +71,10 @@ export class ShigraFamily {
   async fetch(req) {
     const b = await req.json().catch(() => null);
     if (!b || typeof b.op !== "string") return json({ error: "bad" }, 400);
-    const st = this.ctx.storage;
+    const st = this.ctx.storage, mg = b.kind === "chores" ? mergeChores : merge;
     if (b.op === "new") {
       if (await st.get("key")) return json({ error: "taken" }, 409);
-      const doc = merge({}, b.doc);
+      const doc = mg({}, b.doc);
       if (JSON.stringify(doc).length > MAX_DOC) return json({ error: "big" }, 413);
       await st.put({ key: await sha(String(b.key)), doc, ver: 1, subs: {} });
       return json({ ok: true, ver: 1, doc });
@@ -64,7 +83,7 @@ export class ShigraFamily {
     if (!key || key !== (await sha(String(b.key || "")))) return json({ error: "key" }, 403);
     if (b.op === "get") { const ver = (await st.get("ver")) || 1; if (+b.ver === ver) return json({ ver, same: true }); return json({ ver, doc: (await st.get("doc")) || {} }); }
     if (b.op === "put") {
-      const doc = merge((await st.get("doc")) || {}, b.doc);
+      const doc = mg((await st.get("doc")) || {}, b.doc);
       if (JSON.stringify(doc).length > MAX_DOC) return json({ error: "big" }, 413);
       const ver = ((await st.get("ver")) || 1) + 1;
       await st.put({ doc, ver });
@@ -95,11 +114,13 @@ export class ShigraFamily {
     }
     if (b.op === "voice-put") {
       const id = clean(b.id, 24), data = String(b.data || ""), mime = clean(b.mime, 40);
-      if (!/^[A-Za-z0-9]{6,24}$/.test(id) || !/^audio\//.test(mime) || data.length > MAX_VOICE || !/^[A-Za-z0-9+/=]+$/.test(data)) return json({ error: "bad" }, 400);
+      if (!/^[A-Za-z0-9]{6,24}$/.test(id) || !/^(audio\/|image\/jpeg$)/.test(mime) || data.length > MAX_VOICE || !/^[A-Za-z0-9+/=]+$/.test(data)) return json({ error: "bad" }, 400);
       await st.put("v:" + id, { mime, data, t: Date.now() });
-      // keep the 60 newest recordings
+      if (/^image\//.test(mime) && data.length > 125000) { await st.delete("v:" + id); return json({ error: "big" }, 413); }
+      // keep the 60 newest recordings and the 200 newest album photos
       const all = [...(await st.list({ prefix: "v:" })).entries()].sort((x, y) => y[1].t - x[1].t);
-      for (const [k] of all.slice(60)) await st.delete(k);
+      const aud = all.filter(([, v]) => !/^image\//.test(v.mime)), img = all.filter(([, v]) => /^image\//.test(v.mime));
+      for (const [k] of aud.slice(60).concat(img.slice(200))) await st.delete(k);
       return json({ ok: true });
     }
     if (b.op === "voice-get") { const v = await st.get("v:" + clean(b.id, 24)); return v ? json({ mime: v.mime, data: v.data }) : json({ error: "gone" }, 404); }
@@ -108,13 +129,14 @@ export class ShigraFamily {
 }
 
 // POST /api/shigra/fam {op, fam, key, ...}; "new" makes the family id and key here.
-export async function shigraApi(request, env) {
+export async function shigraApi(request, env, kind) {
   if (request.method !== "POST" || !env.SHIGRA) return json({ error: "not found" }, 404);
   const b = await request.json().catch(() => null);
   if (!b) return json({ error: "bad" }, 400);
   if (b.op === "new") { b.fam = token(10); b.key = token(22); }
   if (!/^[A-Za-z0-9]{10}$/.test(b.fam || "") || !/^[A-Za-z0-9]{22}$/.test(b.key || "")) return json({ error: "key" }, 403);
-  const r = await env.SHIGRA.get(env.SHIGRA.idFromName("fam:" + b.fam)).fetch("https://f/", { method: "POST", body: JSON.stringify(b) });
+  if (kind === "chores") { b.kind = "chores"; if (b.op === "voice-put" || b.op === "voice-get") return json({ error: "op" }, 400); } else delete b.kind;
+  const r = await env.SHIGRA.get(env.SHIGRA.idFromName((kind === "chores" ? "chores:" : "fam:") + b.fam)).fetch("https://f/", { method: "POST", body: JSON.stringify(b) });
   if (b.op !== "new" || !r.ok) return r;
   const j = await r.json();
   return json(Object.assign(j, { fam: b.fam, key: b.key }));
