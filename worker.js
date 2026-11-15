@@ -46,6 +46,7 @@ import { limudApi } from "./limud/api.js";
 import { LimudGroup } from "./limud/group.js";
 import { appMap, MAP_CSS } from "./now/map.js";
 import { liveApi, LIVE_HTML, LIVE_CSS } from "./now/live.js";
+import { widgetApi, assetLinks } from "./now/widget.js";
 import { KitaFile, kitaFiles } from "./kita/files.js";
 import REGAPAGE, { FILES as REGA_FILES, IMAGES as REGA_IMAGES } from "./rega/page.js";
 import { RegaRoom, regaApi } from "./rega/room.js";
@@ -506,6 +507,9 @@ export default {
   },
   async route(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/.well-known/assetlinks.json") return assetLinks();
+    if (url.pathname === "/api/widget") return widgetApi(url);
+    if (url.hostname === "hania360.com" && url.pathname === "/app") return Response.redirect("https://github.com/l2005l/hania360-home/releases/download/android-latest/Hania360.apk", 302);
     // Static files (pictures, icons, link previews and big fixed scripts) live in Workers Static Assets, under
     // public/_a/<host>/, so the Worker itself stays small. Anything not found there goes on to the apps as before.
     if (env && env.ASSETS && (request.method === "GET" || request.method === "HEAD") && /\.(png|jpe?g|webp|gif|svg|ico|js|css|json|woff2?|mp3|webmanifest)$/i.test(url.pathname) && !url.pathname.startsWith("/api/")) {

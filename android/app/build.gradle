@@ -1,0 +1,15 @@
+// The Hania360 Android app: Hania360 full-screen (Trusted Web Activity) and a home-screen widget.
+// Built by .github/workflows/android.yml; the release key is made there once and kept encrypted (android/release.jks.enc).
+plugins { id 'com.android.application' }
+def vc = (System.getenv("VC") ?: "1").toInteger()
+android {
+  namespace 'com.hania360.app'
+  compileSdk 34
+  defaultConfig { applicationId 'com.hania360.app'; minSdk 24; targetSdk 34; versionCode vc; versionName "1.0." + vc }
+  signingConfigs {
+    release { storeFile file(System.getenv("KS_FILE") ?: "none.jks"); storePassword System.getenv("KS_PASS"); keyAlias "hania"; keyPassword System.getenv("KS_PASS") }
+  }
+  buildTypes { release { minifyEnabled false; signingConfig System.getenv("KS_PASS") ? signingConfigs.release : signingConfigs.debug } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0' }
