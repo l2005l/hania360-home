@@ -6,7 +6,7 @@ r = lambda p: open('race/' + p, encoding='utf8').read()
 b64 = lambda p: base64.b64encode(open('race/' + p, 'rb').read()).decode()
 OUT = 'public/_a/race.hania360.com/'
 os.makedirs(OUT + 'models/Textures', exist_ok=True)
-game = '\n'.join(r('src/' + f) for f in ['data.js', 'track.js', 'car.js', 'gfx.js', 'audio.js', 'main.js'])
+game = '\n'.join(r('src/' + f) for f in ['data.js', 'track.js', 'car.js', 'gfx.js', 'cargen.js', 'audio.js', 'main.js'])
 open(OUT + 'game.js', 'w', encoding='utf8').write(game)
 for f in ['three.min.js', 'GLTFLoader.js']: shutil.copy('race/vendor/' + f, OUT + f)
 for f in os.listdir('race/models'):
