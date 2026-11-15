@@ -14,26 +14,26 @@ function fromStreams(h) {
   }
   return out;
 }
+function after(h, key) { const i = h.indexOf(key); if (i < 0) return ""; const m = h.slice(i, i + 3000).match(/"videoId":"([\w-]{11})"/); return m ? m[1] : ""; }
 function fromLive(h) {
-  const i = h.indexOf('"videoDetails":{"videoId":"');
-  if (i >= 0) { const d = h.slice(i, i + 8000); if (/"isLive":true/.test(d) || /"isLiveContent":true/.test(d) && /"isLiveNow":true/.test(h)) return h.slice(i + 27, i + 38); }
-  const c = h.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})"/);
-  if (c && /"isLive":true|"isLiveNow":true/.test(h)) return c[1];
-  return "";
+  // The channel's /live address shows the watch page of its live video when it is live ("… watching now").
+  if (!/"videoViewCountRenderer":\{[\s\S]{0,400}?"isLive":true/.test(h)) return "";
+  return after(h, '"currentVideoEndpoint"') || after(h, '"updatedMetadataEndpoint"') || after(h, '"videoDetails":{"videoId"') || "";
 }
+function titleOf(h) { const m = h.match(/"playerOverlayVideoDetailsRenderer":\{"title":\{"simpleText":"((?:[^"\\]|\\.)*)"/); try { return m ? JSON.parse('"' + m[1] + '"').slice(0, 90) : ""; } catch (e) { return ""; } }
 async function get(u) { try { const r = await fetch(u, { headers: H, cf: { cacheTtl: 120 } }); return r.ok ? await r.text() : ""; } catch (e) { return ""; } }
 
 export async function liveOne(id, debug) {
   const a = await get("https://www.youtube.com/channel/" + id + "/live");
-  let v = fromLive(a), via = "live";
+  let v = fromLive(a), via = "live", t = v ? titleOf(a) : "";
   let list = v ? [v] : [];
-  if (!v || debug) {
+  if (debug) {
     const b = await get("https://www.youtube.com/channel/" + id + "/streams");
     const s = fromStreams(b);
     if (!v && s.length) { v = s[0]; via = "streams"; list = s; }
-    if (debug) return { id, v, via, list, s, alen: a.length, blen: b.length, aLive: /"isLive":true/.test(a), aVD: a.indexOf('"videoDetails"'), vd: a.slice(a.indexOf('"videoDetails"'), a.indexOf('"videoDetails"') + 300), il: a.slice(Math.max(0, a.indexOf('"isLive":true') - 300), a.indexOf('"isLive":true') + 50), can: (a.match(/<link[^>]*canonical[^>]*>/) || [""])[0] };
+    if (debug) return { t, cve: after(a, '"currentVideoEndpoint"'), ume: after(a, '"updatedMetadataEndpoint"'), id, v, via, list, s, alen: a.length, blen: b.length, aLive: /"isLive":true/.test(a), aVD: a.indexOf('"videoDetails"') };
   }
-  return v ? { v, list } : null;
+  return v ? { v, t } : null;
 }
 
 export async function tvApi(request, env, ctx) {
