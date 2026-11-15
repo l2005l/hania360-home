@@ -66,7 +66,7 @@ export async function widgetApi(url, env) {
   // the coming Shabbat: candle lighting on Friday (sunset minus the town's minutes), its end at 8.5° below the horizon on Saturday
   const fri = addDay(today, wd === 6 ? -1 : (5 - wd + 7) % 7), sat = addDay(fri, 1);
   const lit = evening(fri, c[1], c[2], 0.833) - c[3] * 60e3, out = evening(sat, c[1], c[2], 8.5);
-  const shab = now >= lit && now < out ? { now: 1, out: hm(out) } : { now: 0, in: hm(lit), out: hm(out), day: wd === 5 ? "היום" : "ביום שישי" };
+  const shab = now >= lit && now < out ? { now: 1, out: hm(out) } : { now: 0, in: hm(lit), out: hm(out), day: wd === 5 ? "היום" : "קודש" };
   const [fx, news, wx] = await Promise.all([fxRates().catch(() => null), newsItems().catch(() => null), weather(c).catch(() => null)]);
   const o = { city: c[0], day: "יום " + DAYS[wd], heb: hebDate(now), greg: new Date(now).toLocaleDateString("he-IL", { day: "numeric", month: "long", timeZone: TZ }),
     shab, chag: nextHoliday(now), wx, usd: fx && fx.usd ? fx.usd.v : null, eur: fx && fx.eur ? fx.eur.v : null, news: (news || []).slice(0, 2).map((x) => x.t), at: hm(now) };
