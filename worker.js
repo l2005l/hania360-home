@@ -62,6 +62,7 @@ import { haktavaApi } from "./haktava/api.js";
 import DABERAPP, { FILES as DABER_FILES, IMAGES as DABER_IMAGES } from "./daber/page.js";
 import { daberApi } from "./daber/api.js";
 import MATALOTPAGE, { FILES as MATALOT_FILES, IMAGES as MATALOT_IMAGES } from "./matalot/page.js";
+import { tvApi } from "./tv/api.js";
 import TVPAGE, { FILES as TV_FILES, IMAGES as TV_IMAGES } from "./tv/page.js";
 import RACEPAGE, { FILES as RACE_FILES, IMAGES as RACE_IMAGES } from "./race/page.js";
 import FITPAGE, { FILES as FIT_FILES, IMAGES as FIT_IMAGES } from "./fit/page.js";
@@ -570,7 +571,7 @@ export default {
     if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : url.pathname === "/api/shigra/fam" ? shigraApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
     if (url.hostname === "matalot.hania360.com" || url.searchParams.get("app") === "matalot" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/matalot/fam" ? shigraApi(request, env || {}, "chores") : smallApp(url, MATALOTPAGE, MATALOT_FILES, MATALOT_IMAGES, "https://matalot.hania360.com/");
     if (url.hostname === "race.hania360.com" || url.searchParams.get("app") === "race" && /workers\.dev$/.test(url.hostname)) return smallApp(url, RACEPAGE, RACE_FILES, RACE_IMAGES, "https://race.hania360.com/");
-    if (url.hostname === "tv.hania360.com" || url.searchParams.get("app") === "tv" && /workers\.dev$/.test(url.hostname)) return smallApp(url, TVPAGE, TV_FILES, TV_IMAGES, "https://tv.hania360.com/");
+    if (url.hostname === "tv.hania360.com" || url.searchParams.get("app") === "tv" && /workers\.dev$/.test(url.hostname)) return url.pathname === "/api/tv/live" ? tvApi(request, env || {}, ctx) : smallApp(url, TVPAGE, TV_FILES, TV_IMAGES, "https://tv.hania360.com/");
     if (url.hostname === "fit.hania360.com" || url.searchParams.get("app") === "fit" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, FITPAGE, FIT_FILES, FIT_IMAGES, "https://fit.hania360.com/");
     if (url.hostname === "daber.hania360.com" || url.searchParams.get("app") === "daber" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/daber/") ? daberApi(request, env || {}) : smallApp(url, DABERAPP, DABER_FILES, DABER_IMAGES, "https://daber.hania360.com/");
     if (url.hostname === "haktava.hania360.com" || url.searchParams.get("app") === "haktava" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/haktava/") ? haktavaApi(request, env || {}) : smallApp(url, HAKTAVAAPP, HAKTAVA_FILES, HAKTAVA_IMAGES, "https://haktava.hania360.com/");
