@@ -25,7 +25,7 @@ function buildWorld(tr, th, scene) {
   for (i = 0; i < N; i++) { minX = Math.min(minX, tr.X[i]); maxX = Math.max(maxX, tr.X[i]); minZ = Math.min(minZ, tr.Z[i]); maxZ = Math.max(maxZ, tr.Z[i]); }
   var cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2, size = Math.max(maxX - minX, maxZ - minZ) + 1600;
   // ground
-  var gtex = canvasTex(256, 256, function (x, W, H) { noiseFill(x, W, H, th.ground, 2600, th.snow ? 0.05 : 0.12); x.globalAlpha = 0.25; for (var k = 0; k < 40; k++) { x.fillStyle = th.ground2; x.beginPath(); x.arc(Math.random() * W, Math.random() * H, 8 + Math.random() * 30, 0, 7); x.fill(); } }, 1);
+  var gtex = canvasTex(512, 512, function (x, W, H) { noiseFill(x, W, H, th.ground, 9000, th.snow ? 0.04 : 0.09); x.globalAlpha = 0.25; for (var k = 0; k < 40; k++) { x.fillStyle = th.ground2; x.beginPath(); x.arc(Math.random() * W, Math.random() * H, 8 + Math.random() * 30, 0, 7); x.fill(); } }, 1);
   gtex.repeat.set(size / 40, size / 40);
   var ground = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshLambertMaterial({ map: gtex }));
   ground.rotation.x = -Math.PI / 2; ground.position.set(cx, -0.05, cz); ground.receiveShadow = G.hi; scene.add(ground);
@@ -36,10 +36,13 @@ function buildWorld(tr, th, scene) {
     G.sea = sea;
   }
   // the road: asphalt with white edges and a dashed middle line
-  var rtex = canvasTex(256, 512, function (x, W, H) {
-    noiseFill(x, W, H, th.road, 5000, 0.18);
-    x.fillStyle = th.night ? "#D8D8C8" : "#F2F2EA"; x.fillRect(8, 0, 7, H); x.fillRect(W - 15, 0, 7, H);
-    x.fillStyle = th.snow ? "#E9D96C" : "#F2F2EA"; x.fillRect(W / 2 - 3, 0, 6, H * 0.45);
+  var rtex = canvasTex(512, 1024, function (x, W, H) {
+    x.fillStyle = th.road; x.fillRect(0, 0, W, H);
+    var id = x.getImageData(0, 0, W, H), d = id.data; for (var q = 0; q < d.length; q += 4) { var n = (Math.random() - 0.5) * 22; d[q] += n; d[q + 1] += n; d[q + 2] += n; } x.putImageData(id, 0, 0);
+    x.globalAlpha = 0.18; x.fillStyle = "#000"; [0.3, 0.42, 0.58, 0.7].forEach(function (f) { x.fillRect(W * f - 14, 0, 28, H); }); x.globalAlpha = 1;
+    for (var p = 0; p < 30; p++) { x.globalAlpha = 0.06; x.fillStyle = Math.random() < 0.5 ? "#000" : "#fff"; x.beginPath(); x.ellipse(Math.random() * W, Math.random() * H, 20 + Math.random() * 60, 30 + Math.random() * 90, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
+    x.fillStyle = th.night ? "#D8D8C8" : "#F4F4EE"; x.fillRect(14, 0, 12, H); x.fillRect(W - 26, 0, 12, H);
+    x.fillStyle = th.snow ? "#E9D96C" : "#F4F4EE"; x.fillRect(W / 2 - 5, 0, 10, H * 0.45);
   }, 1);
   var pos = [], uv = [], idx = [], len = tr.len, vrep = len / 14;
   for (i = 0; i <= N; i++) {
@@ -124,7 +127,8 @@ function scenery(scene, tr, th, R, B) {
       L = spots(cnt, 10, 140);
       var pine = kind === "pine", col = pine ? 0x2F5D3A : 0x3E8E3A;
       inst(new THREE.CylinderGeometry(0.35, 0.5, 3, 6), new THREE.MeshLambertMaterial({ color: 0x6B4A2E }), L, function (o, p) { var s = 0.8 + p[2] * 0.8; o.position.set(p[0], 1.5 * s, p[1]); o.scale.set(s, s, s); o.rotation.set(0, 0, 0); });
-      inst(new THREE.ConeGeometry(pine ? 2.2 : 3, pine ? 8 : 6, 7), new THREE.MeshLambertMaterial({ color: col }), L, function (o, p) { var s = 0.8 + p[2] * 0.8; o.position.set(p[0], (pine ? 6.5 : 5.5) * s, p[1]); o.scale.set(s, s, s); }, 1);
+      inst(new THREE.ConeGeometry(pine ? 2.2 : 3, pine ? 8 : 6, 8), new THREE.MeshLambertMaterial({ color: col, flatShading: true }), L, function (o, p) { var s = 0.8 + p[2] * 0.8; o.position.set(p[0], (pine ? 6.5 : 5.5) * s, p[1]); o.scale.set(s, s, s); o.rotation.set(0, p[2] * 5, 0); }, 1);
+      inst(new THREE.ConeGeometry(pine ? 1.6 : 2.2, pine ? 5 : 4, 8), new THREE.MeshLambertMaterial({ color: new THREE.Color(col).multiplyScalar(1.18), flatShading: true }), L, function (o, p) { var s = 0.8 + p[2] * 0.8; o.position.set(p[0], (pine ? 9 : 8) * s, p[1]); o.scale.set(s, s, s); o.rotation.set(0, p[2] * 3, 0); });
       if (pine && th.snow) inst(new THREE.ConeGeometry(1.3, 3, 7), new THREE.MeshLambertMaterial({ color: 0xF4F8FB }), L, function (o, p) { var s = 0.8 + p[2] * 0.8; o.position.set(p[0], 9.4 * s, p[1]); o.scale.set(s, s, s); });
     } else if (kind === "palm") {
       L = spots(cnt, 8, 70);
@@ -164,13 +168,21 @@ function scenery(scene, tr, th, R, B) {
   if (!th.night) {
     var M = [], R2 = Math.max(B.maxX - B.minX, B.maxZ - B.minZ) * 0.5 + 520;
     for (var m = 0; m < 26; m++) { var a = m / 26 * Math.PI * 2 + R() * 0.2; if (th.sea && Math.cos(a) > 0.2) continue; M.push([B.cx + Math.cos(a) * R2 * (1 + R() * 0.4), B.cz + Math.sin(a) * R2 * (1 + R() * 0.4), R()]); }
-    inst(new THREE.ConeGeometry(1, 1, 6), new THREE.MeshLambertMaterial({ color: th.snow ? 0xE9F0F6 : th.sea ? 0x9C8B76 : T_mount(th), flatShading: true }), M, function (o, p) { var s = 160 + p[2] * 200; o.position.set(p[0], s * 0.4, p[1]); o.scale.set(s * 1.4, s * 0.8 + 40, s * 1.2); o.rotation.set(0, p[2] * 4, 0); });
+    inst(new THREE.ConeGeometry(1, 1, 7, 3), new THREE.MeshLambertMaterial({ color: th.snow ? 0xE9F0F6 : th.sea ? 0x9C8B76 : T_mount(th), flatShading: true }), M, function (o, p) { var s = 160 + p[2] * 200; o.position.set(p[0], s * 0.4, p[1]); o.scale.set(s * 1.4, s * 0.8 + 40, s * 1.2); o.rotation.set(0, p[2] * 4, 0); });
+    if (!th.sea) inst(new THREE.ConeGeometry(1, 1, 7, 1), new THREE.MeshLambertMaterial({ color: 0xF4F7FA, flatShading: true }), M, function (o, p) { var s = 160 + p[2] * 200, h = s * 0.8 + 40; o.position.set(p[0], s * 0.4 + h * 0.36, p[1]); o.scale.set(s * 1.4 * 0.3, h * 0.3, s * 1.2 * 0.3); o.rotation.set(0, p[2] * 4, 0); });
+    clouds(scene, B, th);
   } else {
     var S = [], R3 = Math.max(B.maxX - B.minX, B.maxZ - B.minZ) * 0.5 + 300;
     for (var q = 0; q < 70; q++) { var a3 = q / 70 * Math.PI * 2; S.push([B.cx + Math.cos(a3) * R3 * (1 + R() * 0.3), B.cz + Math.sin(a3) * R3 * (1 + R() * 0.3), R()]); }
     var wt2 = canvasTex(64, 128, function (x, W, H) { x.fillStyle = "#121726"; x.fillRect(0, 0, W, H); for (var yy = 4; yy < H; yy += 8) for (var xx = 4; xx < W; xx += 8) { x.fillStyle = Math.random() < 0.5 ? "#FFE8A3" : "#1C2233"; x.fillRect(xx, yy, 5, 5); } }, 1);
     inst(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0x1B2133, emissive: 0xFFFFFF, emissiveMap: wt2, map: wt2 }), S, function (o, p) { var hh = 60 + p[2] * 200; o.position.set(p[0], hh / 2, p[1]); o.scale.set(30 + p[2] * 30, hh, 30); });
   }
+}
+function clouds(scene, B, th) {
+  if (th.night) return;
+  var tex = canvasTex(256, 128, function (x, W, H) { for (var i = 0; i < 14; i++) { var cx = 40 + Math.random() * 176, cy = 50 + Math.random() * 40, r = 18 + Math.random() * 30, g = x.createRadialGradient(cx, cy, 2, cx, cy, r); g.addColorStop(0, "rgba(255,255,255,.95)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, W, H); } });
+  var R0 = Math.max(B.maxX - B.minX, B.maxZ - B.minZ) * 0.5 + 900;
+  for (var i = 0; i < 16; i++) { var a = i / 16 * Math.PI * 2 + Math.random() * 0.3, s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false, opacity: th.warm ? 0.7 : 0.9, color: th.warm ? 0xFFD9B0 : 0xFFFFFF })); var k = 260 + Math.random() * 260; s.scale.set(k, k / 2, 1); s.position.set(B.cx + Math.cos(a) * R0, 160 + Math.random() * 160, B.cz + Math.sin(a) * R0); scene.add(s); }
 }
 function T_mount(th) { return th.grip < 0.99 ? 0xB06A3A : 0x6F8F6A; }
 

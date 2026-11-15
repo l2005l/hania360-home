@@ -322,7 +322,7 @@
     var mode = S.set.cam, dh = me.h - w.camH; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
     w.camH += dh * Math.min(1, dt * (mode === 2 ? 12 : 3.2));
     var fx = Math.sin(w.camH), fz = Math.cos(w.camH), sp = Math.abs(me.u);
-    var dist = mode === 1 ? 12 : 7.2 + sp * 0.025, hgt = mode === 1 ? 4.6 : 2.7 + sp * 0.006;
+    var por = innerHeight > innerWidth, dist = (mode === 1 ? 12 : 7.2 + sp * 0.025) * (por ? 1.3 : 1), hgt = (mode === 1 ? 4.6 : 2.7 + sp * 0.006) + (por ? 0.9 : 0);
     if (mode === 2) { cam.position.set(me.x + Math.sin(me.h) * 0.4, 1.75, me.z + Math.cos(me.h) * 0.4); cam.lookAt(me.x + Math.sin(me.h) * 20, 1.2, me.z + Math.cos(me.h) * 20); }
     else {
       var tx = me.x - fx * dist, tz = me.z - fz * dist; w.camP.x += (tx - w.camP.x) * Math.min(1, dt * 9); w.camP.z += (tz - w.camP.z) * Math.min(1, dt * 9); w.camP.y += (hgt - w.camP.y) * Math.min(1, dt * 5);
