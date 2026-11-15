@@ -71,7 +71,8 @@ public class Widget extends AppWidgetProvider {
     SharedPreferences p = prefs(ctx);
     int city = p.getInt("c" + id, 0);
     String js = null; boolean live = true;
-    try { js = get("https://hania360.com/api/widget?c=" + city); p.edit().putString("j" + city, js).apply(); }
+    String tok = p.getString("tok", "");
+    try { js = get("https://hania360.com/api/widget?c=" + city + (tok.isEmpty() ? "" : "&t=" + tok)); p.edit().putString("j" + city, js).apply(); }
     catch (Exception e) { js = p.getString("j" + city, null); live = false; }
 
     RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget);
@@ -99,8 +100,23 @@ public class Widget extends AppWidgetProvider {
       if (x != null) w.append(x.optString("d")).append(" ").append(x.optInt("t")).append("° (").append(x.optInt("lo")).append("°–").append(x.optInt("hi")).append("°)");
       if (!o.isNull("usd")) w.append(w.length() > 0 ? "   " : "").append("💵 ").append(String.format(Locale.US, "%.3f", o.optDouble("usd"))).append(" ₪");
       v.setTextViewText(R.id.wx, w.toString());
+      // Today: the person's own lines (tasks, agenda, vouchers, birthdays), or an invitation to connect
+      JSONObject me = o.optJSONObject("me"); int mine = 0;
+      if (me != null && me.optInt("relink") == 1) {
+        v.setViewVisibility(R.id.me, android.view.View.VISIBLE); v.setTextViewText(R.id.me, "🔗 צריך לחבר מחדש את Today · לחצו כאן");
+        v.setOnClickPendingIntent(R.id.me, open(ctx, "https://hania360.com/widget/connect", 5));
+      } else if (me != null) {
+        JSONArray L = me.optJSONArray("lines"); StringBuilder sb = new StringBuilder();
+        if (L != null) for (int i = 0; i < L.length(); i++) { if (sb.length() > 0) sb.append("\n"); sb.append(L.optString(i)); }
+        mine = L == null ? 0 : L.length();
+        v.setViewVisibility(R.id.me, android.view.View.VISIBLE); v.setTextViewText(R.id.me, mine > 0 ? sb.toString() : "📋 היום אין משימות פתוחות ✓");
+        v.setOnClickPendingIntent(R.id.me, open(ctx, "https://today.hania360.com/", 6));
+      } else if (tok.isEmpty() && !p.getBoolean("noAsk", false)) {
+        v.setViewVisibility(R.id.me, android.view.View.VISIBLE); v.setTextViewText(R.id.me, "🔗 לחבר את Today: משימות, שוברים וימי הולדת");
+        v.setOnClickPendingIntent(R.id.me, open(ctx, "https://hania360.com/widget/connect", 5));
+      } else v.setViewVisibility(R.id.me, android.view.View.GONE);
       JSONArray n = o.optJSONArray("news");
-      v.setTextViewText(R.id.news, n != null && n.length() > 0 ? "📰 " + n.optString(0) : "");
+      v.setTextViewText(R.id.news, n != null && n.length() > 0 && mine < 3 ? "📰 " + n.optString(0) : "");
       v.setTextViewText(R.id.at, (live ? "עודכן " : "לא מחובר · ") + o.optString("at"));
     } catch (Exception e) { v.setTextViewText(R.id.sub, "לא הצלחנו לקרוא את הנתונים"); }
     m.updateAppWidget(id, v);
