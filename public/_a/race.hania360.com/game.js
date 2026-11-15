@@ -799,8 +799,9 @@ function sndHit(k) {
   var cv = $("cv"), R = new THREE.WebGLRenderer({ canvas: cv, antialias: G.hi, powerPreference: "high-performance" });
   R.outputEncoding = THREE.sRGBEncoding; R.shadowMap.enabled = G.hi; R.shadowMap.type = THREE.PCFSoftShadowMap; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.0; G.R = R;
   var cam = new THREE.PerspectiveCamera(62, 1, 0.3, 3000);
-  function size() { var w = innerWidth, h = innerHeight; R.setPixelRatio(Math.min(devicePixelRatio || 1, G.hi ? 1.75 : 1.1)); R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  function size() { var w = innerWidth, h = innerHeight; R.setPixelRatio(Math.min(devicePixelRatio || 1, G.hi ? 1.5 : 1, 2600 / Math.max(w, h))); R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
   addEventListener("resize", size); size();
+  cv.addEventListener("webglcontextlost", function (e) { e.preventDefault(); setTimeout(function () { location.reload(); }, 600); });
 
   // ---------- screens ----------
   var SCR = ["menu", "garage", "track", "settings", "results", "champ", "pause", "loading"];
