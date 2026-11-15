@@ -30,6 +30,8 @@ async function news() {
   }
   return out.length ? out : null;
 }
+export const fxRates = () => cached("fx-v1", 1800, () => fx().catch(() => null));
+export const newsItems = () => cached("news-v1", 120, () => news().catch(() => null));
 export async function liveApi() {
   const [a, b] = await Promise.all([cached("fx-v1", 1800, () => fx().catch(() => null)), cached("news-v1", 120, () => news().catch(() => null))]);
   return json({ fx: a, news: b || [] }, 60);
