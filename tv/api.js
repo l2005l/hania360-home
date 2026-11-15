@@ -31,7 +31,7 @@ export async function liveOne(id, debug) {
     const b = await get("https://www.youtube.com/channel/" + id + "/streams");
     const s = fromStreams(b);
     if (!v && s.length) { v = s[0]; via = "streams"; list = s; }
-    if (debug) return { id, v, via, list, s, alen: a.length, blen: b.length, aLive: /"isLive":true/.test(a), aVD: a.indexOf('"videoDetails"') };
+    if (debug) return { id, v, via, list, s, alen: a.length, blen: b.length, aLive: /"isLive":true/.test(a), aVD: a.indexOf('"videoDetails"'), vd: a.slice(a.indexOf('"videoDetails"'), a.indexOf('"videoDetails"') + 300), il: a.slice(Math.max(0, a.indexOf('"isLive":true') - 300), a.indexOf('"isLive":true') + 50), can: (a.match(/<link[^>]*canonical[^>]*>/) || [""])[0] };
   }
   return v ? { v, list } : null;
 }
