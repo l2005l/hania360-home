@@ -1,6 +1,6 @@
 // HaniaRace offline: the page from the network when there is one; the game, three.js and the car models from the
 // cache first (they carry a version in the address, so a new version is a new address).
-const C = "haniarace-v1", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js"];
+const C = "haniarace-v2", FILES = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/install.js"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(C).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", (e) => {

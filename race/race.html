@@ -153,6 +153,14 @@ body.touch #tbPause{left:12px}body.touch #tbCam{left:60px}body.touch #tbReset{le
 </div>
 <div id="conf" hidden></div>
 <script>if(matchMedia("(pointer: coarse)").matches)document.body.classList.add("touch");try{if((JSON.parse(localStorage.getItem("race-v1"))||{}).set.ctl==="tilt")document.body.classList.add("tilt")}catch(e){}</script>
+<div class="scr dim" id="s-fail" hidden><div class="box" style="width:min(420px,100%)"><div class="panel center"><h2>😕 המשחק לא הצליח להיפתח</h2><p class="muted" id="failWhy">ייתכן שהטלפון לא תומך בגרפיקה תלת־ממדית, או שמשהו נתקע.</p><button class="btn" onclick="location.reload()">🔄 לנסות שוב</button><button class="btn dark" onclick="try{var s=JSON.parse(localStorage.getItem('race-v1')||'{}');s.set=s.set||{};s.set.gfx='low';localStorage.setItem('race-v1',JSON.stringify(s))}catch(e){}location.reload()">🔋 לנסות בגרפיקה חסכונית</button></div></div></div>
+<script>
+// if the game cannot start (no 3D on this phone, or an error while loading), say so instead of a blank screen
+(function(){var shown=0;function fail(m){if(shown)return;shown=1;var f=document.getElementById("s-fail");if(!f)return;document.getElementById("failWhy").textContent=m||document.getElementById("failWhy").textContent;["s-menu","s-loading"].forEach(function(i){var e=document.getElementById(i);if(e)e.hidden=true});f.hidden=false}
+try{var c=document.createElement("canvas");if(!(c.getContext("webgl2")||c.getContext("webgl")))fail("בטלפון הזה אין תמיכה בגרפיקה תלת־ממדית (WebGL). נסו בכרום מעודכן.")}catch(e){fail()}
+addEventListener("error",function(e){if(!window.__race)fail("שגיאה בטעינה: "+(e.message||"").slice(0,80))});
+setTimeout(function(){if(!window.__race)fail("הטעינה נתקעה. בדקו את החיבור לאינטרנט.")},20000)})();
+</script>
 <script src="/three.min.js?v=r128"></script>
 <script src="/GLTFLoader.js?v=r128"></script>
 <script src="/game.js?v=@GAMEV@"></script>
