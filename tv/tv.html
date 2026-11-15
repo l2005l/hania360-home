@@ -43,6 +43,10 @@ header{display:flex;align-items:center;gap:10px;justify-content:space-between}
 .ch .kind.in{background:color-mix(in srgb,var(--live) 22%,var(--surface2));color:#FCA5A5}
 .star{position:absolute;bottom:8px;left:8px;appearance:none;border:0;background:none;font-size:18px;cursor:pointer;opacity:.35;padding:2px}
 .star.on{opacity:1}
+.zap{display:flex;gap:8px}.zap .ib{flex:1;justify-content:center;padding:12px;font-size:16px}
+@media (min-width:900px){.screen{grid-column:1;grid-row:1}.zap{grid-column:1;grid-row:2}.now{grid-column:2;grid-row:1/span 2}}
+.ch.dim{opacity:.5}.ch .kind.off{background:transparent}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:40;background:#fff;color:#0B0F1A;font-weight:700;border-radius:14px;padding:10px 16px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:90vw;text-align:center}
 .empty{color:var(--muted);text-align:center;padding:24px;border:1px dashed var(--line);border-radius:18px}
 .fine{font-size:13px;color:var(--muted);margin:0}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:10px}
@@ -63,7 +67,8 @@ footer{text-align:center}
   </header>
 
   <section class="stage">
-    <div class="screen" id="screen"><div class="idle" id="idle"><div><b>📺 בוחרים ערוץ ומתחילים</b><p>ערוצים בשידור חי מהגופים עצמם, בלי הרשמה ובלי תשלום</p></div></div></div>
+    <div class="screen" id="screen"><div class="idle" id="idle"><div><b>📺 בוחרים ערוץ ומתחילים</b><p>ערוצים בשידור חי מהגופים עצמם, בלי הרשמה ובלי תשלום. בטאב ״עכשיו בשידור״ רק מי שמשדר ממש עכשיו.</p></div></div></div>
+    <div class="zap" id="zap" hidden><button class="ib" id="down" type="button">▼ ערוץ קודם</button><button class="ib" id="up" type="button">ערוץ הבא ▲</button></div>
     <div class="now" id="now" hidden>
       <h2 id="nowName"></h2>
       <p id="nowSub"></p>
@@ -82,9 +87,10 @@ footer{text-align:center}
     <label class="row">עיר לזמני שבת: <select id="city"></select></label>
   </section>
 
-  <footer><p class="fine">HaniaTV מציג רק שידורים רשמיים: ערוצים שמשדרים בעצמם ביוטיוב מתנגנים כאן בנגן של יוטיוב, והשאר נפתחים באתר הרשמי של הערוץ. לא מעתיקים ולא מעבירים שידורים. אם ערוץ לא משדר כרגע ביוטיוב, יופיע מסך ריק או הודעה, ואז אפשר לפתוח אותו באתר שלו.</p></footer>
+  <footer><p class="fine">HaniaTV מציג רק שידורים רשמיים: ערוצים שמשדרים בעצמם ביוטיוב מתנגנים כאן בנגן של יוטיוב, והשאר נפתחים באתר הרשמי של הערוץ. לא מעתיקים ולא מעבירים שידורים. כל כמה דקות בודקים מי משדר עכשיו: ערוץ עם ● חי מתנגן כאן, ערוץ שלא משדר מסומן כך. בספורט מופיעים רק שידורים שהליגות והגופים עצמם משדרים בחינם.</p></footer>
 </div>
 
+<div class="toast" id="toast" role="status" hidden></div>
 <div class="rest" id="rest" hidden><div><div class="c">🕯️</div><h2 id="restT">שבת שלום</h2><p id="restP"></p><button class="ib" id="restOff" type="button">לכבות את מצב שבת במכשיר הזה</button></div></div>
 
 <script>
@@ -99,12 +105,13 @@ footer{text-align:center}
   // [id, name, category, about, badge text, badge color, YouTube channel id (plays inside), the broadcaster's own live page]
   var CH = [
     ["i24he", "i24NEWS עברית", "il", "חדשות 24/7 בעברית", "i24", "#0EA5E9", "UCisowXt5wZkp2sR3rFh9lnQ", "https://www.i24news.tv/he/live"],
-    ["kan11", "כאן 11", "il", "תאגיד השידור הישראלי", "11", "#2563EB", "", "https://www.kan.org.il/live/"],
-    ["keshet12", "קשת 12", "il", "שידור חי באתר mako", "12", "#7C3AED", "", "https://www.mako.co.il/mako-vod-live-tv/VOD-6540b8dcb64fd31006.htm"],
-    ["reshet13", "רשת 13", "il", "שידור חי באתר הערוץ", "13", "#DB2777", "", "https://13tv.co.il/live/"],
-    ["c14", "ערוץ 14", "il", "שידור חי באתר הערוץ", "14", "#EA580C", "", "https://www.now14.co.il/live/"],
-    ["knesset", "ערוץ הכנסת 99", "il", "דיוני הכנסת והוועדות", "99", "#475569", "", "https://www.knesset.tv/"],
-    ["makan", "מכאן 33", "il", "הערוץ בערבית של כאן", "33", "#0D9488", "", "https://www.kan.org.il/live/"],
+    ["kan11", "כאן 11", "il", "תאגיד השידור הישראלי", "11", "#2563EB", "UCKqFqiCe1dCUxRe0_YNZ6gg", "https://www.kan.org.il/live/"],
+    ["kannews", "כאן חדשות", "il", "מהדורות ואירועים מיוחדים", "כאן", "#1D4ED8", "UC_HwfTAcjBESKZRJq6BTCpg", "https://www.kan.org.il/live/"],
+    ["keshet12", "קשת 12 · N12", "il", "שידור חי באתר mako", "12", "#7C3AED", "UCZH1ZFHSLSZEh_Ek2L-vrgA", "https://www.mako.co.il/mako-vod-live-tv/VOD-6540b8dcb64fd31006.htm"],
+    ["reshet13", "רשת 13", "il", "שידור חי באתר הערוץ", "13", "#DB2777", "UC8vRsz-RmoBznazlIULyqhQ", "https://13tv.co.il/live/"],
+    ["c14", "ערוץ 14", "il", "שידור חי באתר הערוץ", "14", "#EA580C", "UCI2UmoF6sGS4jpc0UOOpiZA", "https://www.now14.co.il/live/"],
+    ["knesset", "ערוץ הכנסת 99", "il", "דיוני הכנסת והוועדות", "99", "#475569", "UCpjNXONNE-JUz7QACB1Cgcw", "https://www.knesset.tv/"],
+    ["makan", "מכאן 33", "il", "הערוץ בערבית של כאן", "33", "#0D9488", "UCmitIAFjxiF12oa0iktC2Wg", "https://www.kan.org.il/live/"],
     ["i24en", "i24NEWS English", "world", "חדשות מישראל באנגלית", "i24", "#0284C7", "UCvHDpsWKADrDia0c99X37vg", "https://www.i24news.tv/en/live"],
     ["dw", "DW News", "world", "גרמניה · אנגלית", "DW", "#0F4C81", "UCknLrEdhRCp1aegoMqRaCZg", ""],
     ["f24", "France 24", "world", "צרפת · אנגלית", "F24", "#0EA5E9", "UCQfwfsi5VrQ8yKZ-UWmAEFg", ""],
@@ -116,42 +123,76 @@ footer{text-align:center}
     ["livenow", "LiveNOW", "world", "אירועים חיים · אנגלית", "LIVE", "#B91C1C", "UCb8m18O6r3QZV0RhHSqM_hg", ""],
     ["trt", "TRT World", "world", "טורקיה · אנגלית", "TRT", "#E11D48", "UC7fWeaHhqgM4Ry-RMpM2YYw", ""],
     ["aje", "Al Jazeera English", "world", "קטאר · אנגלית", "AJ", "#C2410C", "UCNye-wNBqNL5ZzHSJj3l8Bg", ""],
+    ["fifa", "FIFA", "sport", "כדורגל: משחקים מלאים ושידורים", "⚽", "#1E40AF", "UCpcTrCXblq78GZrTUTLWeBw", ""],
+    ["dazn", "DAZN Football", "sport", "כדורגל נשים ומשחקים חינמיים", "DZN", "#111827", "UCSZ21xyG8w_33KriMM69IxQ", ""],
+    ["uefa", "UEFA", "sport", "כדורגל אירופי", "UEFA", "#0C4A6E", "UCyGa1YEx9ST66rYrJTGIKOw", ""],
+    ["winner", "ליגת העל בכדורסל", "sport", "מנהלת הליגה", "🏀", "#EA580C", "UCNWMa_pdt1GIWH_zwbTldEQ", ""],
+    ["bcl", "Basketball Champions League", "sport", "ליגת האלופות בכדורסל", "BCL", "#7C2D12", "UCZUkv6tSC5OfX54gLgjV9aw", ""],
+    ["fiba", "FIBA", "sport", "כדורסל עולמי", "FIBA", "#B45309", "UCtInrnU3QbWqFGsdKT1GZtg", ""],
+    ["euroleague", "EuroLeague", "sport", "יורוליג", "EL", "#F97316", "UCGr3nR_XH9r6E5b09ZJAT9w", ""],
+    ["nba", "NBA", "sport", "כדורסל אמריקאי", "NBA", "#1D4ED8", "UCWJ2lWNubArHWmf3FIHbfcQ", ""],
+    ["sport5", "ספורט 5", "sport", "הערוץ ביוטיוב", "5", "#DC2626", "UCyDXSV8tcOBzReuW49tG3MA", ""],
+    ["atp", "ATP Tour", "sport", "טניס גברים", "🎾", "#1E3A8A", "UCY_5h5zaSwN7Or4kIJDYNXA", ""],
+    ["wta", "WTA", "sport", "טניס נשים", "WTA", "#7E22CE", "UCaBIVVpHjq6j3tSyxwTE-8Q", ""],
+    ["ittf", "טניס שולחן ITTF", "sport", "אליפויות בשידור חי", "🏓", "#0F766E", "UC2ySPiV4DZp58qQ4KES2o1g", ""],
+    ["volley", "Volleyball World", "sport", "כדורעף", "🏐", "#0369A1", "UCNMg6XDhRZI2QzL4pWOvP_w", ""],
+    ["athletics", "World Athletics", "sport", "אתלטיקה", "🏃", "#B91C1C", "UCQk7fWv15ChjMJLCRVmtApw", ""],
+    ["olympics", "Olympics", "sport", "הוועד האולימפי", "🏅", "#0EA5E9", "UCTl3QQTvqHFjurroKxexy2Q", ""],
+    ["motogp", "MotoGP", "sport", "מרוצי אופנועים", "🏍️", "#111827", "UC8pYaQzbBBXg9GIOHRvTmDQ", ""],
+    ["redbull", "Red Bull", "sport", "ספורט אקסטרים", "RB", "#1E293B", "UCblfuW_4rakIf2h6aqANefA", ""],
+    ["wsl", "World Surf League", "sport", "גלישה", "🏄", "#0891B2", "UChuLeaTGRcfzo0UjL-2qSbQ", ""],
+    ["sailgp", "SailGP", "sport", "שיט", "⛵", "#0E7490", "UC8Z3si9YuOzrJN-4dVpW5Jw", ""],
+    ["fide", "FIDE שחמט", "sport", "אליפויות שחמט", "♞", "#44403C", "UC9B47GnzCRFHTT1BIBWvStQ", ""],
+    ["haniasport", "HaniaSport", "sport", "תוצאות חיות וטבלה של ליגת העל", "⚽", "#E0457B", "", "https://sport.hania360.com/"],
     ["nasa", "NASA", "sci", "שיגורים, חלל ותחנת החלל", "NASA", "#1E3A8A", "UCLA_DiR1FfKNvjuUpBHmylQ", "https://plus.nasa.gov/"],
-    ["iss", "כדור הארץ מתחנת החלל", "sci", "מצלמה חיה מהחלל", "ISS", "#0F172A", "UCakgsb0w7QB0VHdnCc-OVEA", ""],
+    ["iss", "Space Videos", "sci", "חלל, ירח ותחנת החלל", "ISS", "#0F172A", "UCakgsb0w7QB0VHdnCc-OVEA", ""],
     ["nsf", "NASASpaceflight", "sci", "אתרי שיגור בשידור חי", "NSF", "#334155", "UCSUu1lih2RifWkKtDOJdsBA", ""],
     ["earthcam", "EarthCam", "cam", "מצלמות חיות מערים בעולם", "CAM", "#047857", "UC6qrG3W8SMK0jior2olka3g", "https://www.earthcam.com/"],
     ["explore", "explore.org", "cam", "מצלמות טבע: דובים, ציפורים, ים", "🐻", "#15803D", "", "https://explore.org/livecams"],
     ["lofi", "Lofi Girl", "music", "מוזיקה רגועה ללמידה ולעבודה", "♪", "#9333EA", "UCSJ4gkVC6NrvII8umztf0Ow", ""],
     ["kankids", "כאן ילדים וכאן חינוכית", "kids", "תוכניות לילדים באתר כאן", "👧", "#F59E0B", "", "https://www.kankids.org.il/"],
-    ["hop", "הופ!", "kids", "ערוץ לגיל הרך", "הופ", "#EC4899", "", "https://hop.co.il/"],
+    ["hop", "הופ!", "kids", "ערוץ לגיל הרך", "הופ", "#EC4899", "UClZXqxeY540_Epab3WDHFGw", "https://hop.co.il/"],
     ["kanradio", "רדיו כאן", "radio", "כאן ב, גימל, 88, תרבות, מורשת ועוד", "כאן", "#2563EB", "", "https://www.kan.org.il/live/"],
     ["glz", "גלי צה״ל וגלגלצ", "radio", "שידור חי באתר", "גל״צ", "#65A30D", "", "https://glz.co.il/"],
     ["103", "103FM", "radio", "שידור חי באתר", "103", "#0369A1", "", "https://103fm.maariv.co.il/"],
     ["kolbarama", "קול ברמה", "radio", "שידור חי באתר", "קול", "#7C2D12", "", "https://kolbarama.co.il/"]
   ];
-  var CATS = [["fav", "⭐ מועדפים"], ["all", "📺 הכל"], ["il", "🇮🇱 ישראל"], ["world", "🌍 חדשות מהעולם"], ["sci", "🚀 מדע וחלל"], ["cam", "🌿 טבע ומצלמות"], ["music", "🎵 מוזיקה"], ["kids", "🧸 ילדים"], ["radio", "📻 רדיו"]];
-  var tab = S.tab || (S.fav.length ? "fav" : "all"), cur = null;
+  var CATS = [["live", "🔴 עכשיו בשידור"], ["fav", "⭐ מועדפים"], ["all", "📺 הכל"], ["il", "🇮🇱 ישראל"], ["world", "🌍 חדשות מהעולם"], ["sport", "⚽ ספורט"], ["sci", "🚀 מדע וחלל"], ["cam", "🌿 טבע ומצלמות"], ["music", "🎵 מוזיקה"], ["kids", "🧸 ילדים"], ["radio", "📻 רדיו"]];
+  var tab = S.tab || (S.fav.length ? "fav" : "live"), cur = null, LIVE = {}, known = false;
   function byId(id) { return CH.filter(function (c) { return c[0] === id; })[0]; }
-  function inside(c) { return !!c[6]; }
+  function liveOf(c) { return c[6] && LIVE[c[6]] || null; }
+  function toast(t) { var x = $("toast"); x.textContent = t; x.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { x.hidden = true; }, 3500); }
 
   function drawTabs() {
     var t = $("tabs"); t.textContent = "";
     CATS.forEach(function (k) { t.appendChild(el("button", { class: "tab", role: "tab", type: "button", "aria-selected": String(k[0] === tab), text: k[1], on: { click: function () { tab = k[0]; S.tab = tab; save(); $("q").value = ""; drawTabs(); drawGrid(); } } })); });
   }
-  function drawGrid() {
-    var g = $("grid"), q = $("q").value.trim().toLowerCase(); g.textContent = "";
+  function visible() {
+    var q = $("q").value.trim().toLowerCase();
     var list = CH.filter(function (c) {
-      if (q) return (c[1] + " " + c[3]).toLowerCase().indexOf(q) >= 0;
-      return tab === "all" ? true : tab === "fav" ? S.fav.indexOf(c[0]) >= 0 : c[2] === tab;
+      if (q) return (c[1] + " " + c[3] + " " + ((liveOf(c) || {}).t || "")).toLowerCase().indexOf(q) >= 0;
+      return tab === "all" ? true : tab === "live" ? !!liveOf(c) : tab === "fav" ? S.fav.indexOf(c[0]) >= 0 : c[2] === tab;
     });
-    if (tab === "fav" && !q) list.sort(function (a, b) { return S.fav.indexOf(a[0]) - S.fav.indexOf(b[0]); });
-    if (!list.length) { g.appendChild(el("div", { class: "empty", style: "grid-column:1/-1", text: tab === "fav" && !q ? "עוד אין מועדפים. לוחצים על ☆ בכרטיס של ערוץ כדי להוסיף אותו לכאן." : "לא נמצא ערוץ כזה." })); return; }
+    var rank = function (c) { return liveOf(c) ? 0 : c[7] ? 1 : 2; };
+    list = list.map(function (c, i) { return [c, i]; }).sort(function (a, b) {
+      if (tab === "fav" && !q) return S.fav.indexOf(a[0][0]) - S.fav.indexOf(b[0][0]);
+      return rank(a[0]) - rank(b[0]) || a[1] - b[1];
+    }).map(function (x) { return x[0]; });
+    return { list: list, q: q };
+  }
+  function drawGrid() {
+    var g = $("grid"), v = visible(), list = v.list; g.textContent = "";
+    if (!list.length) {
+      g.appendChild(el("div", { class: "empty", style: "grid-column:1/-1", text: v.q ? "לא נמצא ערוץ כזה." : tab === "fav" ? "עוד אין מועדפים. לוחצים על ☆ בכרטיס של ערוץ כדי להוסיף אותו לכאן." : tab === "live" ? (known ? "כרגע אין ערוצים בשידור חי. נבדוק שוב בעוד כמה דקות." : "בודקים מי משדר עכשיו…") : "אין ערוצים כאן." }));
+      return;
+    }
     list.forEach(function (c) {
-      var fav = S.fav.indexOf(c[0]) >= 0;
-      var card = el("button", { class: "ch" + (cur === c[0] ? " on" : ""), type: "button", "aria-label": c[1] + (inside(c) ? ", מתנגן כאן" : ", נפתח באתר הרשמי"), on: { click: function () { play(c); } } }, [
+      var fav = S.fav.indexOf(c[0]) >= 0, L = liveOf(c), off = !L && !c[7];
+      var kind = L ? ["in", "● חי"] : c[7] ? ["", "↗ באתר"] : [known ? "off" : "", known ? "לא משדר עכשיו" : "…"];
+      var card = el("button", { class: "ch" + (cur === c[0] ? " on" : "") + (off && known ? " dim" : ""), type: "button", "aria-label": c[1] + ", " + kind[1], on: { click: function () { play(c); } } }, [
         el("span", { class: "badge", style: "background:" + c[5], text: c[4] }),
-        el("b", { text: c[1] }), el("small", { text: c[3] }),
-        el("span", { class: "kind" + (inside(c) ? " in" : ""), text: inside(c) ? "▶ כאן" : "↗ באתר" })
+        el("b", { text: c[1] }), el("small", { text: L && L.t ? L.t : c[3] }),
+        el("span", { class: "kind " + kind[0], text: kind[1] })
       ]);
       var st = el("span", { class: "star" + (fav ? " on" : ""), role: "button", tabindex: "0", "aria-label": fav ? "להסיר ממועדפים" : "להוסיף למועדפים", text: fav ? "⭐" : "☆" });
       function tog(e) { e.stopPropagation(); e.preventDefault(); var i = S.fav.indexOf(c[0]); if (i >= 0) S.fav.splice(i, 1); else S.fav.push(c[0]); save(); drawGrid(); }
@@ -160,24 +201,56 @@ footer{text-align:center}
     });
   }
   function ext(href, text) { return el("a", { class: "ib", href: href, target: "_blank", rel: "noopener", text: text }); }
+  function btn(text, fn) { return el("button", { class: "ib", type: "button", text: text, on: { click: fn } }); }
   function play(c, quiet) {
-    if (!inside(c)) { if (!quiet) window.open(c[7], "_blank", "noopener"); return; }
+    var L = liveOf(c);
+    if (!L) {
+      if (quiet) return;
+      if (c[7]) { window.open(c[7], "_blank", "noopener"); return; }
+      toast(known ? c[1] + " לא משדר כרגע. כשיתחיל שידור, הוא יופיע כאן עם ● חי." : "רגע, בודקים מי משדר עכשיו…");
+      return;
+    }
     cur = c[0]; S.last = c[0]; save();
     var scr = $("screen"); scr.textContent = "";
-    scr.appendChild(el("iframe", { src: "https://www.youtube-nocookie.com/embed/live_stream?channel=" + c[6] + "&autoplay=" + (quiet ? 0 : 1) + "&rel=0&modestbranding=1&playsinline=1&hl=he", title: c[1], allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: "", referrerpolicy: "strict-origin-when-cross-origin" }));
-    $("now").hidden = false;
+    scr.appendChild(el("iframe", { src: "https://www.youtube-nocookie.com/embed/" + L.v + "?autoplay=" + (quiet ? 0 : 1) + "&rel=0&modestbranding=1&playsinline=1&hl=he", title: c[1], allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: "", referrerpolicy: "strict-origin-when-cross-origin" }));
+    $("now").hidden = false; $("zap").hidden = false;
     var h = $("nowName"); h.textContent = ""; h.appendChild(el("span", { class: "livedot", text: "חי" })); h.appendChild(document.createTextNode(" " + c[1]));
-    $("nowSub").textContent = c[3];
+    $("nowSub").textContent = L.t || c[3];
     var b = $("nowBtns"); b.textContent = "";
-    b.appendChild(ext("https://www.youtube.com/channel/" + c[6] + "/live", "▶ לפתוח ביוטיוב"));
+    var link = "https://youtu.be/" + L.v;
+    b.appendChild(btn("📤 שיתוף", function () {
+      var d = { title: c[1] + " בשידור חי", text: (L.t || c[1]) + " · דרך HaniaTV", url: link };
+      if (navigator.share) navigator.share(d).catch(function () {});
+      else { try { navigator.clipboard.writeText(d.text + " " + link).then(function () { toast("הקישור הועתק"); }); } catch (e) { toast(link); } }
+    }));
+    b.appendChild(ext("https://www.youtube.com/watch?v=" + L.v, "✂️ לגזור קטע ביוטיוב"));
     if (c[7]) b.appendChild(ext(c[7], "↗ האתר הרשמי"));
-    $("nowNote").textContent = "אם מופיע ״השידור לא זמין״, הערוץ לא משדר כרגע ביוטיוב. אפשר לנסות ביוטיוב או באתר שלו.";
+    $("nowNote").textContent = "״לגזור קטע״ פותח את השידור ביוטיוב, ושם בכפתור Clip (גזירה) שומרים קטע של עד דקה ומשתפים אותו, בדרך הרשמית של יוטיוב.";
     drawGrid();
     if (!quiet && window.innerWidth < 900) scr.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  // Switching channels like a remote: only channels that are live now, in the order of the list on screen.
+  function zap(d) {
+    var pool = visible().list.filter(liveOf); if (!pool.length || pool.length === 1 && pool[0][0] === cur) pool = CH.filter(liveOf);
+    if (!pool.length) return;
+    var i = pool.map(function (c) { return c[0]; }).indexOf(cur), n = pool[((i < 0 ? (d > 0 ? -1 : 0) : i) + d + pool.length) % pool.length];
+    play(n); toast("📺 " + n[1]);
+  }
   var idle = $("idle");
-  function stop() { cur = null; var scr = $("screen"); scr.textContent = ""; scr.appendChild(idle); $("now").hidden = true; drawGrid(); }
+  function stop() { cur = null; var scr = $("screen"); scr.textContent = ""; scr.appendChild(idle); $("now").hidden = true; $("zap").hidden = true; drawGrid(); }
 
+  var IDS = CH.map(function (c) { return c[6]; }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; });
+  function refresh(first) {
+    return fetch("/api/tv/live?ids=" + IDS.join(",")).then(function (r) { return r.json(); }).then(function (j) {
+      LIVE = {}; for (var k in j.live || {}) if (j.live[k] && j.live[k].v) LIVE[k] = j.live[k];
+      known = true;
+      var c = cur && byId(cur), L = c && liveOf(c);
+      if (c && !L) { toast(c[1] + " סיים לשדר"); }
+      else if (c && L && $("screen").querySelector("iframe") && $("screen").querySelector("iframe").src.indexOf(L.v) < 0) play(c, true);
+      drawGrid();
+      if (first && $("rest").hidden && !cur && S.last && byId(S.last) && liveOf(byId(S.last))) play(byId(S.last), true);
+    }).catch(function () { known = true; drawGrid(); });
+  }
   // ===== Shabbat and holidays: from candle lighting to the end, by the chosen town =====
   var CITIES = /*CITIES*/[["ירושלים", 31.778, 35.235, 40]];
   if (!S.city) { try { var cm = document.cookie.match(/(?:^|; *)h360_i=([^;]*)/), co = cm ? JSON.parse(decodeURIComponent(cm[1])) : {}; if (co.c && CITIES.some(function (c) { return c[0] === co.c[0]; })) S.city = co.c[0]; } catch (e) {} }
@@ -218,8 +291,11 @@ footer{text-align:center}
   $("restOff").addEventListener("click", function () { S.shab = false; save(); $("shabOn").checked = false; checkRest(); });
 
   drawTabs(); drawGrid();
-  function boot() { checkRest(); if ($("rest").hidden && S.last && byId(S.last)) play(byId(S.last), true); }
+  function boot() { checkRest(); refresh(true); }
   if (window.HB) boot(); else addEventListener("load", boot);
   setInterval(checkRest, 60000);
+  setInterval(function () { if (!document.hidden) refresh(); }, 4 * 60000);
+  addEventListener("keydown", function (e) { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowUp" || e.key === "PageUp" || e.key === "ChannelUp") { e.preventDefault(); zap(1); } else if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === "ChannelDown") { e.preventDefault(); zap(-1); } });
+  $("up").addEventListener("click", function () { zap(1); }); $("down").addEventListener("click", function () { zap(-1); });
 })();
 </script>
