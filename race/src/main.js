@@ -15,7 +15,7 @@
 
   // ---------- renderer ----------
   var cv = $("cv"), R = new THREE.WebGLRenderer({ canvas: cv, antialias: G.hi, powerPreference: "high-performance" });
-  R.outputEncoding = THREE.sRGBEncoding; R.shadowMap.enabled = G.hi; R.shadowMap.type = THREE.PCFSoftShadowMap;
+  R.outputEncoding = THREE.sRGBEncoding; R.shadowMap.enabled = G.hi; R.shadowMap.type = THREE.PCFSoftShadowMap; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.0; G.R = R;
   var cam = new THREE.PerspectiveCamera(62, 1, 0.3, 3000);
   function size() { var w = innerWidth, h = innerHeight; R.setPixelRatio(Math.min(devicePixelRatio || 1, G.hi ? 1.75 : 1.1)); R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
   addEventListener("resize", size); size();
@@ -27,10 +27,10 @@
 
   // ---------- the garage (a turning car on a stand) ----------
   var GS = new THREE.Scene(), gcar = null, gi = Math.max(0, CARS.findIndex(function (c) { return c.id === S.car; }));
-  GS.background = new THREE.Color(0x0E1424);
+  GS.background = new THREE.Color(0x0E1424); GS.environment = makeEnv(null);
   GS.add(new THREE.HemisphereLight(0xBFD4FF, 0x202838, 0.9));
   var spot = new THREE.SpotLight(0xFFFFFF, 1.4, 60, 0.6, 0.5); spot.position.set(6, 12, 8); spot.castShadow = G.hi; GS.add(spot); GS.add(spot.target);
-  var disc = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.3, 48), new THREE.MeshStandardMaterial({ color: 0x1D2539, metalness: 0.4, roughness: 0.5 })); disc.position.y = -0.15; disc.receiveShadow = true; GS.add(disc);
+  var disc = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.4, 0.3, 48), new THREE.MeshStandardMaterial({ color: 0x1D2539, metalness: 0.6, roughness: 0.25 })); disc.position.y = -0.15; disc.receiveShadow = true; GS.add(disc);
   var ring = new THREE.Mesh(new THREE.TorusGeometry(5.3, 0.06, 6, 64), new THREE.MeshBasicMaterial({ color: 0xFFC53D })); ring.rotation.x = Math.PI / 2; GS.add(ring);
   var gcam = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
   function garage() {
@@ -131,7 +131,7 @@
     var ids = [me.id].concat(rivals.map(function (r) { return r.id; })).filter(function (v, i, a) { return a.indexOf(v) === i; });
     var laps = MODE === "free" ? 999 : me.top >= 150 ? T.laps : me.top >= 90 ? 2 : 1;
     Promise.all(ids.map(loadModel)).then(function () {
-      var scene = new THREE.Scene(), env = buildWorld(tr, th, scene), cars = [], views = [];
+      var scene = new THREE.Scene(), env = buildWorld(tr, th, scene), cars = [], views = []; scene.environment = makeEnv(th);
       var grid = [me].concat(rivals);
       grid.forEach(function (sp, k) {
         // the player starts at the back in a race (more fun to overtake), first in time trial

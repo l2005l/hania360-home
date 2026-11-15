@@ -174,6 +174,55 @@ function scenery(scene, tr, th, R, B) {
 }
 function T_mount(th) { return th.grip < 0.99 ? 0xB06A3A : 0x6F8F6A; }
 
+// ---------- reflections ----------
+// An environment for reflections on the cars: a sky dome in the theme's colours with a sun and a few soft lights,
+// turned into a reflection map (PMREM). The garage has its own: dark, with studio light boxes.
+function makeEnv(th) {
+  var key = th ? th.sky.join() + th.night : "studio";
+  G.envs = G.envs || {};
+  if (G.envs[key]) return G.envs[key];
+  var es = new THREE.Scene(), top = new THREE.Color(th ? th.sky[0] : "#0B0F1C"), hor = new THREE.Color(th ? th.sky[1] : "#2A3350"), gnd = new THREE.Color(th ? th.ground : "#10141F").multiplyScalar(0.55);
+  // the dome: colours per vertex (a basic material, so the reflection map stores them correctly)
+  var sg = new THREE.SphereGeometry(50, 32, 16), pa = sg.attributes.position, cols = [], tmp = new THREE.Color();
+  for (var v = 0; v < pa.count; v++) { var y = pa.getY(v) / 50; if (y > 0) tmp.copy(hor).lerp(top, Math.pow(y, 0.6)); else tmp.copy(hor).multiplyScalar(0.8).lerp(gnd, Math.min(1, -y * 4)); cols.push(tmp.r, tmp.g, tmp.b); }
+  sg.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+  var dome = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, depthWrite: false }));
+  es.add(dome);
+  var lamp = function (x, y, z, w, h, col, k) { var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: new THREE.Color(col).multiplyScalar(k), side: THREE.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); es.add(m); };
+  if (!th) { lamp(0, 30, 0, 30, 8, 0xFFFFFF, 3); lamp(30, 12, 20, 14, 10, 0xFFFFFF, 2); lamp(-30, 12, -10, 14, 10, 0xBFD4FF, 1.6); lamp(0, 8, -40, 40, 4, 0xFFC53D, 1.2); }
+  else if (th.night) { for (var i = 0; i < 14; i++) { var a = i / 14 * Math.PI * 2; lamp(Math.cos(a) * 45, 4 + (i % 3) * 5, Math.sin(a) * 45, 3, 8, i % 2 ? 0xFFE7A8 : 0x9AD1FF, 2.2); } lamp(0, 40, 0, 20, 20, 0x2B3566, 1); }
+  else { lamp(30, 35, 20, 10, 10, th.warm ? 0xFFD2A0 : 0xFFFFFF, 6); lamp(-25, 20, -30, 30, 12, 0xFFFFFF, 0.6); }
+  var pm = new THREE.PMREMGenerator(G.R), tex = pm.fromScene(es, 0.02).texture; pm.dispose();
+  return (G.envs[key] = tex);
+}
+// Car paint: from the cars' colour palette, a map saying where things are glossy paint, dark tinted glass, chrome
+// or matte rubber (red: clearcoat, green: roughness, blue: metal), and the glass made dark like real windows.
+function paintMat(src) {
+  if (G.paint) return G.paint;
+  var img = src.map && src.map.image; if (!img || !img.width) return src;
+  var w = img.width, h = img.height, c = document.createElement("canvas"); c.width = w; c.height = h;
+  var x = c.getContext("2d"); x.drawImage(img, 0, 0); var D = x.getImageData(0, 0, w, h), P = D.data;
+  var c2 = document.createElement("canvas"); c2.width = w; c2.height = h; var x2 = c2.getContext("2d"), M = x2.createImageData(w, h), Q = M.data;
+  for (var i = 0; i < P.length; i += 4) {
+    var r = P[i], g = P[i + 1], b = P[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255, sat = mx ? (mx - mn) / mx : 0;
+    var cc = 1, ro = 0.38, me = 0.12;
+    if (lum > 0.62 && b > r + 18 && sat < 0.32) { P[i] = 10 + r * 0.05; P[i + 1] = 14 + g * 0.05; P[i + 2] = 22 + b * 0.07; cc = 0.35; ro = 0.12; me = 0; }   // glass
+    else if (lum < 0.3) { cc = 0; ro = 0.82; me = 0; }                       // tyres, rubber, trim
+    else if (sat < 0.16 && lum < 0.62) { cc = 0.6; ro = 0.22; me = 0.9; }   // chrome and steel
+    else if (sat < 0.12) { cc = 1; ro = 0.35; me = 0.05; }                  // white paint
+    Q[i] = cc * 255; Q[i + 1] = ro * 255; Q[i + 2] = me * 255; Q[i + 3] = 255;
+  }
+  x.putImageData(D, 0, 0); x2.putImageData(M, 0, 0);
+  var map = new THREE.CanvasTexture(c), rm = new THREE.CanvasTexture(c2);
+  [map, rm].forEach(function (t) { t.flipY = src.map.flipY; t.minFilter = THREE.NearestMipmapLinearFilter; t.magFilter = THREE.NearestFilter; });
+  map.encoding = THREE.sRGBEncoding;
+  var o = { map: map, roughnessMap: rm, metalnessMap: rm, roughness: 1, metalness: 1, envMapIntensity: 0.85 };
+  if (G.hi) { o.clearcoat = 1; o.clearcoatMap = rm; o.clearcoatRoughness = 0.06; }
+  return (G.paint = G.hi ? new THREE.MeshPhysicalMaterial(o) : new THREE.MeshStandardMaterial(o));
+}
+var BLOB = null;
+function blobTex() { return BLOB || (BLOB = canvasTex(64, 128, function (x, W, H) { var g = x.createRadialGradient(W / 2, H / 2, 4, W / 2, H / 2, W / 2); g.addColorStop(0, "rgba(0,0,0,.6)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.save(); x.scale(1, 2); x.fillStyle = g; x.fillRect(0, 0, W, H / 2); x.restore(); })); }
+
 // ---------- cars ----------
 function loadModel(id) {
   if (G.models[id]) return G.models[id];
@@ -188,13 +237,14 @@ function carMesh(spec, src, ghost) {
   m.scale.setScalar(G.scale); body.add(m); root.add(body); m.updateMatrixWorld(true);
   var wheels = [], box = new THREE.Box3().setFromObject(m);
   m.traverse(function (o) {
-    if (o.isMesh) { o.castShadow = G.hi && !ghost; if (ghost) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } }
+    if (o.isMesh) { o.castShadow = G.hi && !ghost; if (!ghost && o.material && o.material.map) o.material = paintMat(o.material); if (ghost) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } }
     if (/^wheel/.test(o.name)) { o.rotation.order = "YXZ"; wheels.push({ o: o, y0: o.rotation.y, front: /front/.test(o.name) || o.name === "wheel-front" }); }
   });
   var top = box.max.y, front = box.max.z, back = box.min.z, half = box.max.x;
+  if (!ghost) { var bl = new THREE.Mesh(new THREE.PlaneGeometry(half * 2.5, (front - back) * 1.15), new THREE.MeshBasicMaterial({ map: blobTex(), transparent: true, depthWrite: false })); bl.rotation.x = -Math.PI / 2; bl.position.y = 0.04; bl.renderOrder = -1; root.add(bl); }
   var lights = { head: [], brake: [], siren: [] };
   [-1, 1].forEach(function (sd) {
-    var h = sprite(0xFFF6D5, 1.2); h.position.set(sd * half * 0.62, 0.75, front + 0.05); root.add(h); lights.head.push(h);
+    var h = sprite(0xFFF6D5, 0.85); h.position.set(sd * half * 0.62, 0.75, front + 0.05); root.add(h); lights.head.push(h);
     var b = sprite(0xFF2020, 0.9); b.position.set(sd * half * 0.62, 0.95, back - 0.05); root.add(b); lights.brake.push(b);
   });
   if (spec.siren) { [0xFF2030, 0x2050FF].forEach(function (col, j) { var s = sprite(col, 1.5); s.position.set((j ? -1 : 1) * 0.42, top + 0.12, 0); root.add(s); lights.siren.push(s); }); }
