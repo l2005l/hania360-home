@@ -28,7 +28,7 @@ const W = [
   { k: "out", e: "🚗", name: "יוצאים מהבית", c: "#0284C7", line: "טיסות, טיולים וחניה.",
     apps: [["🛫", "HaniaTisa", "מה ממריא ונוחת בנתב״ג, עכשיו", "https://tisa.hania360.com/"], ["🧭", "HaniaGo", "טיול משפחתי מהדלת ועד החזרה", "https://go.hania360.com/"], ["🅿️", "HaniaPark", "איפה החניתי, וטיימר חניה", "https://park.hania360.com/"]] },
   { k: "fun", e: "🎉", name: "פנאי וספורט", c: "#E0457B", line: "הקבוצה שלכם, משחקים לכל הבית ועוד.",
-    apps: [["⚽", "HaniaSport", "ליגת העל והיורוליג: תוצאות חיות וטבלה, והקבוצה שלכם", "https://sport.hania360.com/"], ["✈️", "HaniaFlight", "סימולטור טיסה עם מטוסי חיל האוויר", "https://flight.hania360.com/?ref=home"], ["🏎️", "HaniaRace", "מרוץ מכוניות בתלת־ממד: 17 רכבים, 5 מסלולים ואליפות", "https://race.hania360.com/"],
+    apps: [["📺", "HaniaTV", "ערוצי טלוויזיה ורדיו בשידור חי, רק שידורים רשמיים", "https://tv.hania360.com/"], ["⚽", "HaniaSport", "ליגת העל והיורוליג: תוצאות חיות וטבלה, והקבוצה שלכם", "https://sport.hania360.com/"], ["✈️", "HaniaFlight", "סימולטור טיסה עם מטוסי חיל האוויר", "https://flight.hania360.com/?ref=home"], ["🏎️", "HaniaRace", "מרוץ מכוניות בתלת־ממד: 17 רכבים, 5 מסלולים ואליפות", "https://race.hania360.com/"],
       ["🎲", "מועדון הערב", "משחקי ערב שנכתבים בשבילכם", "https://play.hania360.com/"], ["❓", "HaniaQuiz", "חידון לכל הבית על המסך הגדול", "https://quiz.hania360.com/"],
       ["🎵", "HaniaMusic", "השיר שהיה מספר 1 ביום שנולדתם", "https://music.hania360.com/"], ["🎞️", "HaniaYears", "סרטון גדילה מהתמונות של הילד", "https://years.hania360.com/"]] },
   { k: "care", e: "🫶", name: "בריאות, כושר ועזרה", c: "#14B37D", line: "להיות בכושר, וכשמישהו צריך עזרה.",

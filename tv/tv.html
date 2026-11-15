@@ -1,0 +1,225 @@
+<title>HaniaTV · ערוצים בשידור חי</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap">
+<script src="/hebcal.js"></script>
+<style>
+/* HaniaTV: live TV and radio in one place, only from official, legal sources. A channel that its broadcaster streams
+   live on its own YouTube channel plays inside the app (YouTube's own embedded player); any other channel opens on its
+   broadcaster's own site. Nothing is copied or re-streamed. Favorites and the last channel stay on the phone.
+   On Shabbat and holidays the screen rests until they end (by the chosen town), unless turned off in the settings. */
+:root{--bg:#0B0F1A;--surface:#141A2A;--surface2:#1C2438;--ink:#EEF2FF;--muted:#9AA6C2;--line:#263049;--main:#F43F5E;--main2:#8B5CF6;--live:#EF4444;--font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;color:var(--ink);background:var(--bg)}
+a{color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:10px max(14px,env(safe-area-inset-left,0px)) 40px;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+header{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.logo{font-weight:900;font-size:22px;text-decoration:none;display:flex;align-items:center;gap:8px}.logo img{width:32px;height:32px;border-radius:9px}
+.logo b{background:linear-gradient(90deg,var(--main),var(--main2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.ib{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+.ib:hover{border-color:var(--main2)}
+.stage{display:grid;gap:10px}
+@media (min-width:900px){.stage{grid-template-columns:minmax(0,1fr) 300px;align-items:start}}
+.screen{position:relative;aspect-ratio:16/9;background:#000;border-radius:20px;overflow:hidden;box-shadow:0 20px 50px -30px #000}
+.screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.idle{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:radial-gradient(circle at 30% 20%,#2A1F4E,#0B0F1A 70%)}
+.idle b{font-size:22px;display:block}.idle p{margin:6px 0 0;color:var(--muted)}
+.now{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px;display:grid;gap:8px}
+.now h2{margin:0;font-size:20px;display:flex;gap:8px;align-items:center}
+.now p{margin:0;color:var(--muted);font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.livedot{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:#fff;background:var(--live);border-radius:6px;padding:1px 7px}
+.livedot::before{content:"";width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 15px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{background:linear-gradient(90deg,var(--main),var(--main2));border-color:transparent;color:#fff}
+.search{font:inherit;width:100%;padding:11px 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.ch{position:relative;appearance:none;text-align:right;font:inherit;color:inherit;cursor:pointer;background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:12px;display:grid;gap:8px;text-decoration:none;min-height:120px;align-content:start}
+.ch:hover,.ch:focus-visible{border-color:var(--main2);outline:none;transform:translateY(-1px)}
+.ch.on{border-color:var(--main);box-shadow:0 0 0 2px color-mix(in srgb,var(--main) 35%,transparent)}
+.badge{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-weight:900;font-size:17px;color:#fff;letter-spacing:-.5px}
+.ch b{font-size:15.5px;line-height:1.25}.ch small{color:var(--muted);font-size:12.5px;line-height:1.3;padding-left:24px}
+.ch .kind{position:absolute;top:10px;left:10px;font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;background:var(--surface2);color:var(--muted)}
+.ch .kind.in{background:color-mix(in srgb,var(--live) 22%,var(--surface2));color:#FCA5A5}
+.star{position:absolute;bottom:8px;left:8px;appearance:none;border:0;background:none;font-size:18px;cursor:pointer;opacity:.35;padding:2px}
+.star.on{opacity:1}
+.empty{color:var(--muted);text-align:center;padding:24px;border:1px dashed var(--line);border-radius:18px}
+.fine{font-size:13px;color:var(--muted);margin:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:10px}
+.panel h3{margin:0}
+select,label.t{font:inherit}
+select{padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px}
+label.t{display:flex;gap:10px;align-items:center;font-weight:700}
+label.t input{width:22px;height:22px;accent-color:var(--main)}
+.rest{position:fixed;inset:0;z-index:50;display:grid;place-items:center;text-align:center;padding:24px;background:radial-gradient(circle at 50% 30%,#3B2A10,#0B0F1A 70%)}
+.rest .c{font-size:64px}.rest h2{margin:8px 0 4px;font-size:30px}.rest p{margin:0;color:#E5D3B3}
+.rest button{margin-top:22px;opacity:.7}
+footer{text-align:center}
+</style>
+<div class="wrap">
+  <header>
+    <a class="logo" href="/"><img src="/icons/icon-192.png" alt=""><span><b>HaniaTV</b></span></a>
+    <div class="row"><button class="ib" id="setBtn" type="button">⚙️ הגדרות</button><a class="ib" href="https://hania360.com/">🏠 Hania360</a></div>
+  </header>
+
+  <section class="stage">
+    <div class="screen" id="screen"><div class="idle" id="idle"><div><b>📺 בוחרים ערוץ ומתחילים</b><p>ערוצים בשידור חי מהגופים עצמם, בלי הרשמה ובלי תשלום</p></div></div></div>
+    <div class="now" id="now" hidden>
+      <h2 id="nowName"></h2>
+      <p id="nowSub"></p>
+      <div class="row" id="nowBtns"></div>
+      <p class="fine" id="nowNote"></p>
+    </div>
+  </section>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <input class="search" id="q" type="search" placeholder="🔎 חיפוש ערוץ" aria-label="חיפוש ערוץ">
+  <div class="grid" id="grid"></div>
+
+  <section class="panel" id="settings" hidden>
+    <h3>⚙️ הגדרות</h3>
+    <label class="t"><input type="checkbox" id="shabOn"> מנוחה בשבת ובחג: המסך נסגר מהדלקת הנרות עד צאת השבת</label>
+    <label class="row">עיר לזמני שבת: <select id="city"></select></label>
+  </section>
+
+  <footer><p class="fine">HaniaTV מציג רק שידורים רשמיים: ערוצים שמשדרים בעצמם ביוטיוב מתנגנים כאן בנגן של יוטיוב, והשאר נפתחים באתר הרשמי של הערוץ. לא מעתיקים ולא מעבירים שידורים. אם ערוץ לא משדר כרגע ביוטיוב, יופיע מסך ריק או הודעה, ואז אפשר לפתוח אותו באתר שלו.</p></footer>
+</div>
+
+<div class="rest" id="rest" hidden><div><div class="c">🕯️</div><h2 id="restT">שבת שלום</h2><p id="restP"></p><button class="ib" id="restOff" type="button">לכבות את מצב שבת במכשיר הזה</button></div></div>
+
+<script>
+(function () {
+  "use strict";
+  var S = (function () { try { return JSON.parse(localStorage.getItem("tv-v1")) || {}; } catch (e) { return {}; } })();
+  if (!S.fav) S.fav = []; if (S.shab == null) S.shab = true;
+  function save() { try { localStorage.setItem("tv-v1", JSON.stringify(S)); } catch (e) {} }
+  function $(id) { return document.getElementById(id); }
+  function el(t, a, kids) { var e = document.createElement(t); for (var k in a || {}) { if (k === "text") e.textContent = a[k]; else if (k === "on") for (var ev in a.on) e.addEventListener(ev, a.on[ev]); else e.setAttribute(k, a[k]); } (kids || []).forEach(function (c) { if (c) e.appendChild(c); }); return e; }
+
+  // [id, name, category, about, badge text, badge color, YouTube channel id (plays inside), the broadcaster's own live page]
+  var CH = [
+    ["i24he", "i24NEWS עברית", "il", "חדשות 24/7 בעברית", "i24", "#0EA5E9", "UCisowXt5wZkp2sR3rFh9lnQ", "https://www.i24news.tv/he/live"],
+    ["kan11", "כאן 11", "il", "תאגיד השידור הישראלי", "11", "#2563EB", "", "https://www.kan.org.il/live/"],
+    ["keshet12", "קשת 12", "il", "שידור חי באתר mako", "12", "#7C3AED", "", "https://www.mako.co.il/mako-vod-live-tv/VOD-6540b8dcb64fd31006.htm"],
+    ["reshet13", "רשת 13", "il", "שידור חי באתר הערוץ", "13", "#DB2777", "", "https://13tv.co.il/live/"],
+    ["c14", "ערוץ 14", "il", "שידור חי באתר הערוץ", "14", "#EA580C", "", "https://www.now14.co.il/live/"],
+    ["knesset", "ערוץ הכנסת 99", "il", "דיוני הכנסת והוועדות", "99", "#475569", "", "https://www.knesset.tv/"],
+    ["makan", "מכאן 33", "il", "הערוץ בערבית של כאן", "33", "#0D9488", "", "https://www.kan.org.il/live/"],
+    ["i24en", "i24NEWS English", "world", "חדשות מישראל באנגלית", "i24", "#0284C7", "UCvHDpsWKADrDia0c99X37vg", "https://www.i24news.tv/en/live"],
+    ["dw", "DW News", "world", "גרמניה · אנגלית", "DW", "#0F4C81", "UCknLrEdhRCp1aegoMqRaCZg", ""],
+    ["f24", "France 24", "world", "צרפת · אנגלית", "F24", "#0EA5E9", "UCQfwfsi5VrQ8yKZ-UWmAEFg", ""],
+    ["sky", "Sky News", "world", "בריטניה · אנגלית", "SKY", "#DC2626", "UCoMdktPbSTixAyNGwb-UYkQ", ""],
+    ["euronews", "Euronews", "world", "אירופה · אנגלית", "EU", "#1D4ED8", "UCSrZ3UV4jOidv8ppoVuvW9Q", ""],
+    ["abc", "ABC News Live", "world", "ארה״ב · אנגלית", "ABC", "#111827", "UCBi2mrWuNuyYy4gbM6fU18Q", ""],
+    ["nbc", "NBC News NOW", "world", "ארה״ב · אנגלית", "NBC", "#6D28D9", "UCeY0bbntWzzVIaj2z3QigXg", ""],
+    ["cbs", "CBS News", "world", "ארה״ב · אנגלית", "CBS", "#1F2937", "UC8p1vwvWtl6T73JiExfWs1g", "https://www.cbsnews.com/live/"],
+    ["livenow", "LiveNOW", "world", "אירועים חיים · אנגלית", "LIVE", "#B91C1C", "UCb8m18O6r3QZV0RhHSqM_hg", ""],
+    ["trt", "TRT World", "world", "טורקיה · אנגלית", "TRT", "#E11D48", "UC7fWeaHhqgM4Ry-RMpM2YYw", ""],
+    ["aje", "Al Jazeera English", "world", "קטאר · אנגלית", "AJ", "#C2410C", "UCNye-wNBqNL5ZzHSJj3l8Bg", ""],
+    ["nasa", "NASA", "sci", "שיגורים, חלל ותחנת החלל", "NASA", "#1E3A8A", "UCLA_DiR1FfKNvjuUpBHmylQ", "https://plus.nasa.gov/"],
+    ["iss", "כדור הארץ מתחנת החלל", "sci", "מצלמה חיה מהחלל", "ISS", "#0F172A", "UCakgsb0w7QB0VHdnCc-OVEA", ""],
+    ["nsf", "NASASpaceflight", "sci", "אתרי שיגור בשידור חי", "NSF", "#334155", "UCSUu1lih2RifWkKtDOJdsBA", ""],
+    ["earthcam", "EarthCam", "cam", "מצלמות חיות מערים בעולם", "CAM", "#047857", "UC6qrG3W8SMK0jior2olka3g", "https://www.earthcam.com/"],
+    ["explore", "explore.org", "cam", "מצלמות טבע: דובים, ציפורים, ים", "🐻", "#15803D", "", "https://explore.org/livecams"],
+    ["lofi", "Lofi Girl", "music", "מוזיקה רגועה ללמידה ולעבודה", "♪", "#9333EA", "UCSJ4gkVC6NrvII8umztf0Ow", ""],
+    ["kankids", "כאן ילדים וכאן חינוכית", "kids", "תוכניות לילדים באתר כאן", "👧", "#F59E0B", "", "https://www.kankids.org.il/"],
+    ["hop", "הופ!", "kids", "ערוץ לגיל הרך", "הופ", "#EC4899", "", "https://hop.co.il/"],
+    ["kanradio", "רדיו כאן", "radio", "כאן ב, גימל, 88, תרבות, מורשת ועוד", "כאן", "#2563EB", "", "https://www.kan.org.il/live/"],
+    ["glz", "גלי צה״ל וגלגלצ", "radio", "שידור חי באתר", "גל״צ", "#65A30D", "", "https://glz.co.il/"],
+    ["103", "103FM", "radio", "שידור חי באתר", "103", "#0369A1", "", "https://103fm.maariv.co.il/"],
+    ["kolbarama", "קול ברמה", "radio", "שידור חי באתר", "קול", "#7C2D12", "", "https://kolbarama.co.il/"]
+  ];
+  var CATS = [["fav", "⭐ מועדפים"], ["all", "📺 הכל"], ["il", "🇮🇱 ישראל"], ["world", "🌍 חדשות מהעולם"], ["sci", "🚀 מדע וחלל"], ["cam", "🌿 טבע ומצלמות"], ["music", "🎵 מוזיקה"], ["kids", "🧸 ילדים"], ["radio", "📻 רדיו"]];
+  var tab = S.tab || (S.fav.length ? "fav" : "all"), cur = null;
+  function byId(id) { return CH.filter(function (c) { return c[0] === id; })[0]; }
+  function inside(c) { return !!c[6]; }
+
+  function drawTabs() {
+    var t = $("tabs"); t.textContent = "";
+    CATS.forEach(function (k) { t.appendChild(el("button", { class: "tab", role: "tab", type: "button", "aria-selected": String(k[0] === tab), text: k[1], on: { click: function () { tab = k[0]; S.tab = tab; save(); $("q").value = ""; drawTabs(); drawGrid(); } } })); });
+  }
+  function drawGrid() {
+    var g = $("grid"), q = $("q").value.trim().toLowerCase(); g.textContent = "";
+    var list = CH.filter(function (c) {
+      if (q) return (c[1] + " " + c[3]).toLowerCase().indexOf(q) >= 0;
+      return tab === "all" ? true : tab === "fav" ? S.fav.indexOf(c[0]) >= 0 : c[2] === tab;
+    });
+    if (tab === "fav" && !q) list.sort(function (a, b) { return S.fav.indexOf(a[0]) - S.fav.indexOf(b[0]); });
+    if (!list.length) { g.appendChild(el("div", { class: "empty", style: "grid-column:1/-1", text: tab === "fav" && !q ? "עוד אין מועדפים. לוחצים על ☆ בכרטיס של ערוץ כדי להוסיף אותו לכאן." : "לא נמצא ערוץ כזה." })); return; }
+    list.forEach(function (c) {
+      var fav = S.fav.indexOf(c[0]) >= 0;
+      var card = el("button", { class: "ch" + (cur === c[0] ? " on" : ""), type: "button", "aria-label": c[1] + (inside(c) ? ", מתנגן כאן" : ", נפתח באתר הרשמי"), on: { click: function () { play(c); } } }, [
+        el("span", { class: "badge", style: "background:" + c[5], text: c[4] }),
+        el("b", { text: c[1] }), el("small", { text: c[3] }),
+        el("span", { class: "kind" + (inside(c) ? " in" : ""), text: inside(c) ? "▶ כאן" : "↗ באתר" })
+      ]);
+      var st = el("span", { class: "star" + (fav ? " on" : ""), role: "button", tabindex: "0", "aria-label": fav ? "להסיר ממועדפים" : "להוסיף למועדפים", text: fav ? "⭐" : "☆" });
+      function tog(e) { e.stopPropagation(); e.preventDefault(); var i = S.fav.indexOf(c[0]); if (i >= 0) S.fav.splice(i, 1); else S.fav.push(c[0]); save(); drawGrid(); }
+      st.addEventListener("click", tog); st.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") tog(e); });
+      card.appendChild(st); g.appendChild(card);
+    });
+  }
+  function ext(href, text) { return el("a", { class: "ib", href: href, target: "_blank", rel: "noopener", text: text }); }
+  function play(c, quiet) {
+    if (!inside(c)) { if (!quiet) window.open(c[7], "_blank", "noopener"); return; }
+    cur = c[0]; S.last = c[0]; save();
+    var scr = $("screen"); scr.textContent = "";
+    scr.appendChild(el("iframe", { src: "https://www.youtube-nocookie.com/embed/live_stream?channel=" + c[6] + "&autoplay=" + (quiet ? 0 : 1) + "&rel=0&modestbranding=1&playsinline=1&hl=he", title: c[1], allow: "autoplay; encrypted-media; picture-in-picture; fullscreen", allowfullscreen: "", referrerpolicy: "strict-origin-when-cross-origin" }));
+    $("now").hidden = false;
+    var h = $("nowName"); h.textContent = ""; h.appendChild(el("span", { class: "livedot", text: "חי" })); h.appendChild(document.createTextNode(" " + c[1]));
+    $("nowSub").textContent = c[3];
+    var b = $("nowBtns"); b.textContent = "";
+    b.appendChild(ext("https://www.youtube.com/channel/" + c[6] + "/live", "▶ לפתוח ביוטיוב"));
+    if (c[7]) b.appendChild(ext(c[7], "↗ האתר הרשמי"));
+    $("nowNote").textContent = "אם מופיע ״השידור לא זמין״, הערוץ לא משדר כרגע ביוטיוב. אפשר לנסות ביוטיוב או באתר שלו.";
+    drawGrid();
+    if (!quiet && window.innerWidth < 900) scr.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  var idle = $("idle");
+  function stop() { cur = null; var scr = $("screen"); scr.textContent = ""; scr.appendChild(idle); $("now").hidden = true; drawGrid(); }
+
+  // ===== Shabbat and holidays: from candle lighting to the end, by the chosen town =====
+  var CITIES = /*CITIES*/[["ירושלים", 31.778, 35.235, 40]];
+  if (!S.city) { try { var cm = document.cookie.match(/(?:^|; *)h360_i=([^;]*)/), co = cm ? JSON.parse(decodeURIComponent(cm[1])) : {}; if (co.c && CITIES.some(function (c) { return c[0] === co.c[0]; })) S.city = co.c[0]; } catch (e) {} }
+  function place() { var c = CITIES.filter(function (x) { return x[0] === S.city; })[0] || CITIES[0]; return { name: c[0], lat: c[1], lon: c[2], b: c[3] }; }
+  function zOn(d) { var p = place(); return new HB.Zmanim(new HB.Location(p.lat, p.lon, true, "Asia/Jerusalem", p.name, "IL"), d, false); }
+  var YT = { "7-1": 1, "7-2": 1, "7-10": 1, "7-15": 1, "7-22": 1, "1-15": 1, "1-21": 1, "3-6": 1 };
+  function holy(d) { if (d.getDay() === 6) return true; try { var h = new HB.HDate(d); return !!YT[h.getMonth() + "-" + h.getDate()]; } catch (e) { return false; } }
+  function holyEnd(t) {
+    if (!window.HB) return 0;
+    var day = new Date(t); day.setHours(12, 0, 0, 0);
+    var start = function (d) { var e = new Date(d.getTime() - 864e5); return zOn(e).shkiah().getTime() - place().b * 6e4; };
+    var end = function (d) { return zOn(d).tzeit(8.5).getTime(); };
+    for (var i = -1; i <= 1; i++) {
+      var d = new Date(day.getTime() + i * 864e5); if (!holy(d)) continue;
+      var a = d, z = d; while (holy(new Date(a.getTime() - 864e5))) a = new Date(a.getTime() - 864e5); while (holy(new Date(z.getTime() + 864e5))) z = new Date(z.getTime() + 864e5);
+      if (t >= start(a) && t < end(z)) return end(z);
+    }
+    return 0;
+  }
+  function hm(t) { var d = new Date(t); return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  function checkRest() {
+    var e = S.shab ? holyEnd(Date.now()) : 0, r = $("rest");
+    if (e) {
+      if (r.hidden) stop();
+      r.hidden = false;
+      var sat = new Date(e).getDay() === 6;
+      $("restT").textContent = sat ? "שבת שלום" : "חג שמח";
+      $("restP").textContent = "HaniaTV נח עכשיו. השידורים יחזרו ב־" + hm(e) + " (" + place().name + ")";
+    } else r.hidden = true;
+  }
+
+  $("q").addEventListener("input", drawGrid);
+  $("setBtn").addEventListener("click", function () { var p = $("settings"); p.hidden = !p.hidden; if (!p.hidden) p.scrollIntoView({ behavior: "smooth" }); });
+  $("shabOn").checked = !!S.shab;
+  $("shabOn").addEventListener("change", function () { S.shab = this.checked; save(); checkRest(); });
+  var cs = $("city"); CITIES.forEach(function (c) { var o = el("option", { value: c[0], text: c[0] }); if (c[0] === place().name) o.selected = true; cs.appendChild(o); });
+  cs.addEventListener("change", function () { S.city = cs.value; save(); checkRest(); });
+  $("restOff").addEventListener("click", function () { S.shab = false; save(); $("shabOn").checked = false; checkRest(); });
+
+  drawTabs(); drawGrid();
+  function boot() { checkRest(); if ($("rest").hidden && S.last && byId(S.last)) play(byId(S.last), true); }
+  if (window.HB) boot(); else addEventListener("load", boot);
+  setInterval(checkRest, 60000);
+})();
+</script>
