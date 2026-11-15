@@ -92,7 +92,7 @@ public class Widget extends AppWidgetProvider {
       v.setTextViewText(R.id.sub, o.optString("greg") + " · " + o.optString("city"));
       JSONObject s = o.optJSONObject("shab");
       if (s != null) v.setTextViewText(R.id.shab, s.optInt("now") == 1 ? "🕯️ שבת שלום · צאת השבת " + s.optString("out")
-          : "🕯️ שבת " + s.optString("day") + ": הדלקה " + s.optString("in") + " · צאת " + s.optString("out"));
+          : ("היום".equals(s.optString("day")) ? "🕯️ שבת היום: הדלקה " : "🕯️ זמני שבת: הדלקה ") + s.optString("in") + " · צאת " + s.optString("out"));
       JSONObject h = o.optJSONObject("chag");
       if (h != null) { int d = h.optInt("days"); v.setTextViewText(R.id.chag, d == 0 ? "🎉 היום " + h.optString("n") + "!" : "🗓️ " + h.optString("n") + (d == 1 ? " מחר" : " בעוד " + d + " ימים")); }
       StringBuilder w = new StringBuilder();
