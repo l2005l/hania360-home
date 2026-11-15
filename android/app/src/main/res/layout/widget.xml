@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/root"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+    android:background="@drawable/widget_bg" android:padding="14dp" android:layoutDirection="rtl">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+    <TextClock android:id="@+id/clock" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="HH:mm" android:format24Hour="HH:mm"
+        android:timeZone="Asia/Jerusalem" android:textColor="#FFFFFF" android:textSize="30sp" android:textStyle="bold" android:layout_marginEnd="10dp" />
+    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+      <TextView android:id="@+id/day" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:text="Hania360" android:textAlignment="viewStart" />
+      <TextView android:id="@+id/sub" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#CBD5E1" android:textSize="12sp" android:maxLines="1" android:ellipsize="end" android:text="טוען…" android:textAlignment="viewStart" />
+    </LinearLayout>
+    <TextView android:id="@+id/refresh" android:layout_width="36dp" android:layout_height="36dp" android:gravity="center" android:text="↻" android:textColor="#FFFFFF" android:textSize="20sp" android:background="@drawable/pill" />
+  </LinearLayout>
+  <TextView android:id="@+id/shab" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:textColor="#FFFFFF" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:textAlignment="viewStart" />
+  <TextView android:id="@+id/chag" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textColor="#FFFFFF" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:textAlignment="viewStart" />
+  <TextView android:id="@+id/wx" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:textColor="#FFFFFF" android:textSize="14sp" android:maxLines="1" android:ellipsize="end" android:textAlignment="viewStart" />
+  <TextView android:id="@+id/news" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="6dp" android:textColor="#E2E8F0" android:textSize="13sp" android:maxLines="3" android:ellipsize="end" android:textAlignment="viewStart" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp" android:gravity="center_vertical">
+    <TextView android:id="@+id/today" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📋 Today" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:background="@drawable/pill" android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="5dp" android:paddingBottom="5dp" android:layout_marginEnd="6dp" />
+    <TextView android:id="@+id/open" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🏠 Hania360" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" android:background="@drawable/pill" android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="5dp" android:paddingBottom="5dp" />
+    <TextView android:id="@+id/at" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textColor="#94A3B8" android:textSize="11sp" android:gravity="end" />
+  </LinearLayout>
+</LinearLayout>

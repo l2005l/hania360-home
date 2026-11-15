@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string-array name="origins" translatable="false">
+    <item>https://today.hania360.com</item><item>https://kids.hania360.com</item><item>https://bayit.hania360.com</item><item>https://yahadut.hania360.com</item>
+    <item>https://fit.hania360.com</item><item>https://daber.hania360.com</item><item>https://sport.hania360.com</item><item>https://chag.hania360.com</item>
+    <item>https://regatov.hania360.com</item><item>https://save.hania360.com</item><item>https://check.hania360.com</item><item>https://tisa.hania360.com</item>
+    <item>https://go.hania360.com</item><item>https://park.hania360.com</item><item>https://kita.hania360.com</item><item>https://ezra.hania360.com</item>
+    <item>https://caption.hania360.com</item><item>https://flight.hania360.com</item><item>https://play.hania360.com</item><item>https://quiz.hania360.com</item>
+  </string-array>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Hania360</string>
+  <string name="widget_name">Hania360 · היום</string>
+  <string name="widget_desc">שעה, תאריך עברי, זמני שבת, החג הקרוב, מזג אוויר, דולר ומבזק</string>
+  <string name="pick_city">באיזו עיר?</string>
+  <string name="asset_statements" translatable="false">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://hania360.com\"}}]</string>
+</resources>
