@@ -226,6 +226,7 @@ function blobTex() { return BLOB || (BLOB = canvasTex(64, 128, function (x, W, H
 // ---------- cars ----------
 function loadModel(id) {
   if (G.models[id]) return G.models[id];
+  if (window.GEN && CAR_BY[id]) { G.models[id] = Promise.resolve(GEN.car(CAR_BY[id])); return G.models[id]; }
   G.models[id] = new Promise(function (res, rej) { new THREE.GLTFLoader().load("/models/" + id + ".glb?v=1", function (g) { res(g.scene); }, undefined, rej); });
   return G.models[id];
 }
@@ -234,11 +235,11 @@ function glowTex() { return GLOW || (GLOW = canvasTex(64, 64, function (x) { var
 function sprite(color, size) { var s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); s.scale.set(size, size, 1); return s; }
 function carMesh(spec, src, ghost) {
   var root = new THREE.Group(), body = new THREE.Group(), m = src.clone(true);
-  m.scale.setScalar(G.scale); body.add(m); root.add(body); m.updateMatrixWorld(true);
+  var gen = !!src.userData.gen; m.scale.setScalar(gen ? 1 : G.scale); body.add(m); root.add(body); m.updateMatrixWorld(true);
   var wheels = [], box = new THREE.Box3().setFromObject(m);
   m.traverse(function (o) {
-    if (o.isMesh) { o.castShadow = G.hi && !ghost; if (!ghost && o.material && o.material.map) o.material = paintMat(o.material); if (ghost) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } }
-    if (/^wheel/.test(o.name)) { o.rotation.order = "YXZ"; wheels.push({ o: o, y0: o.rotation.y, front: /front/.test(o.name) || o.name === "wheel-front" }); }
+    if (o.isMesh) { o.castShadow = G.hi && !ghost; if (!ghost && !gen && o.material && o.material.map) o.material = paintMat(o.material); if (ghost) { o.material = o.material.clone(); o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } }
+    if (/^wheel/.test(o.name) && (!gen || o.isGroup)) { o.rotation.order = "YXZ"; wheels.push({ o: o, y0: o.rotation.y, front: /front/.test(o.name) || o.name === "wheel-front" }); }
   });
   var top = box.max.y, front = box.max.z, back = box.min.z, half = box.max.x;
   if (!ghost) { var bl = new THREE.Mesh(new THREE.PlaneGeometry(half * 2.5, (front - back) * 1.15), new THREE.MeshBasicMaterial({ map: blobTex(), transparent: true, depthWrite: false })); bl.rotation.x = -Math.PI / 2; bl.position.y = 0.04; bl.renderOrder = -1; root.add(bl); }
@@ -249,11 +250,11 @@ function carMesh(spec, src, ghost) {
   });
   if (spec.siren) { [0xFF2030, 0x2050FF].forEach(function (col, j) { var s = sprite(col, 1.5); s.position.set((j ? -1 : 1) * 0.42, top + 0.12, 0); root.add(s); lights.siren.push(s); }); }
   var flame = sprite(0x4DABF7, 1.3); flame.position.set(0.35, 0.5, back - 0.4); flame.visible = false; root.add(flame);
-  return { root: root, body: body, wheels: wheels, lights: lights, flame: flame, spin: 0, len: front - back };
+  return { root: root, body: body, wheels: wheels, lights: lights, flame: flame, spin: 0, len: front - back, wr: src.userData.wr || 0.52 };
 }
 function syncCar(V, c, dt, night, t) {
   V.root.position.set(c.x, 0, c.z); V.root.rotation.y = c.h;
-  V.spin += c.u * dt / 0.52;
+  V.spin += c.u * dt / V.wr;
   V.wheels.forEach(function (w) { w.o.rotation.x = V.spin; w.o.rotation.y = w.y0 + (w.front ? c.steer * 1.4 : 0); });
   var lat = c.u * c.r, lon = c.acc || 0;
   V.body.rotation.z += (Math.max(-0.07, Math.min(0.07, -lat * 0.006)) - V.body.rotation.z) * Math.min(1, dt * 6);
