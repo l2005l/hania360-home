@@ -432,7 +432,7 @@ a{color:var(--k)}
     canPush = true;
     var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true, endpoint: e.data.endpoint }); else rej(new Error(e.data.error || "hub")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
     getSub = function () { return Promise.resolve({ endpoint: "hub", toJSON: function () { return null; } }); };
-    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind, app: body && body.app }); return api0(path, body); };
   }
   // what went wrong, in words a parent can act on
   function why(e) {
@@ -444,20 +444,22 @@ a{color:var(--k)}
   }
   function items() {
     var p = S.rem.at.split(":"), now = Date.now(), days = [];
-    for (var i = 0; i < 15; i++) {
+    for (var i = 0; i < 62; i++) {
       var d = new Date(); d.setDate(d.getDate() + i); d.setHours(+p[0], +p[1], 0, 0);
       var t = d.getTime(), e = holyEnd(t);
       if (e) { var after = e + 15 * 6e4; if (new Date(after).toDateString() !== d.toDateString()) continue; t = after; }
       if (t > now) days.push(new Date(t));
     }
-    days = days.slice(0, 14);
-    return Promise.all(days.map(function (d) { var cd = new Date(d); return calendar(cd).then(function (c) {
+    // two months ahead, so the reminder keeps coming even when the app is not opened for a while;
+    // the first two weeks carry the day's daf and halacha by name
+    days = days.slice(0, 60);
+    return Promise.all(days.map(function (d, n) { var cd = new Date(d); if (n >= 14) return { t: d.getTime() + 10 * 6e4, label: "📚 הדף היומי וההלכה היומית מחכים" }; return calendar(cd).then(function (c) {
       var s = (c.daf ? "📜 " + c.daf.displayValue.he : "") + (c.hal ? " · ⚖️ " + c.hal.displayValue.he.replace(/^שולחן ערוך, אורח חיים /, "או״ח ") : "");
       return { t: d.getTime() + 10 * 6e4, label: (s || "📚 הלימוד היומי מחכה").slice(0, 70) }; }).catch(function () { return { t: d.getTime() + 10 * 6e4, label: "📚 הדף היומי וההלכה היומית מחכים" }; }); }));
   }
   function sync(on) {
-    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t" }); });
-    return items().then(function (it) { return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaLimud · לימוד יומי", items: it }); }); })
+    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t", app: "limud" }); });
+    return items().then(function (it) { return getSub(true).then(function (s) { return api("sub", { kind: "t", app: "limud", sub: s.toJSON(), before: 10, city: "HaniaLimud · לימוד יומי", items: it }); }); })
       .then(function (j) { if (!j || !j.ok) throw new Error("sub " + (j && j.error || "")); S.rem.sync = ymd(new Date()); save(); });
   }
   function remCard() {
@@ -476,7 +478,7 @@ a{color:var(--k)}
     c.replaceChildren(el("h2", "🔔 לימוד כל יום"), el("p", { class: "fine", text: "התראה בשעה שבוחרים, עם הדף וההלכה של אותו יום. מכניסת שבת ועד צאת השבת (וכך גם בחג) אין התראות. אם השעה נופלת בשבת, ההתראה מגיעה רבע שעה אחרי צאת השבת, לפי זמני העיר." }),
       el("div", { class: "row" }, [el("label", { class: "fine" }, ["בשעה ", at]), el("label", { class: "fine" }, ["עיר ", city])]), on);
   }
-  // keep the reminder list two weeks ahead
+  // keep the reminder list two months ahead (refreshed on every day the app is opened)
   if (S.rem.on && canPush && S.rem.sync !== ymd(new Date())) setTimeout(function () { sync(true).catch(function () {}); }, 1500);
 
   ["daf", "hal", "par", "how"].forEach(function (t) { $("t-" + t).onclick = function () { TAB = t; render(); scrollTo(0, 0); }; });

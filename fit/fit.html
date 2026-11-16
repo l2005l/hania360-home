@@ -601,8 +601,8 @@ nav.tabs button[aria-selected="true"]{color:var(--main2);background:color-mix(in
     return out;
   }
   function sync(on) {
-    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t" }); });
-    return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaFit · יום אימון", items: items() }); })
+    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t", app: "fit" }); });
+    return getSub(true).then(function (s) { return api("sub", { kind: "t", app: "fit", sub: s.toJSON(), before: 10, city: "HaniaFit · יום אימון", items: items() }); })
       .then(function (j) { if (!j || !j.ok) throw new Error("sub " + (j && j.error || "")); S.rem.sync = ymd(); save(); });
   }
   if (S.p && S.rem.on && canPush && S.rem.sync !== ymd()) setTimeout(function () { sync(true).catch(function () {}); }, 1500);

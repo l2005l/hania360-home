@@ -206,7 +206,7 @@ details.par>summary::-webkit-details-marker{display:none}
     hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true, endpoint: e.data.endpoint }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
     var HUBSUB = { endpoint: "hub", toJSON: function () { return null; } };
     getSub = function () { return Promise.resolve(HUBSUB); };
-    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind, app: body && body.app }); return api0(path, body); };
     try { window.Notification = { requestPermission: function () { return Promise.resolve("granted"); }, permission: "granted" }; } catch (e) {}
   }
   var CITIES = /*CITIES*/[["ירושלים", 31.778, 35.235, 40]];
@@ -233,8 +233,8 @@ details.par>summary::-webkit-details-marker{display:none}
     return out;
   }
   function sync(on) {
-    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t" }); });
-    return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaMatalot · מטלות", items: items() }); }).then(function (j) { if (!j || !j.ok) throw new Error("sub"); S.rem.sync = ymd(); store(); });
+    if (!on) return getSub(false).then(function (s) { if (s) return api("unsub", { endpoint: s.endpoint, kind: "t", app: "matalot" }); });
+    return getSub(true).then(function (s) { return api("sub", { kind: "t", app: "matalot", sub: s.toJSON(), before: 10, city: "HaniaMatalot · מטלות", items: items() }); }).then(function (j) { if (!j || !j.ok) throw new Error("sub"); S.rem.sync = ymd(); store(); });
   }
   if (S.rem.on && canPush && S.rem.sync !== ymd()) setTimeout(function () { sync(true).catch(function () {}); }, 1500);
   function remCard() {
