@@ -9,12 +9,27 @@
 
 export const TICKER = [
   ["ליטר בנזין 95, מ־5.11", "7.85 ₪"],
+  ["אינפלציה שנתית, אוקטובר", "1.1%"],
   ["לישראל–אוסטריה בליגת האומות", null, "2026-11-17T21:45"],
   ["לבלאק פריידיי", null, "2026-11-27T00:00"],
   ["לנר ראשון של חנוכה", null, "2026-12-04T16:00"],
 ];
 
 export default [
+  {
+    id: "2026-11-16-cpi-october", from: "2026-11-16", until: "2026-11-30", chip: "כסף", big: "‎-0.1%",
+    title: "מדד אוקטובר ירד ב־0.1%, והאינפלציה ירדה ל־1.1%",
+    body: "לפי הלמ״ס, המדד ירד ב־0.1% באוקטובר, כשהתחזיות דיברו על עלייה של עד 0.5%. ירדו: פירות טריים (2.8%־) ותחבורה (1.4%־, בעיקר טיסות לחו״ל). עלו: הלבשה והנעלה (4.1%+) וירקות טריים (3.5%+). למי שיש משכנתא או הלוואה צמודה, זו בשורה קטנה. החלטת הריבית הבאה של בנק ישראל: 23.11, הריבית היום 3.25%.",
+    sources: [["ynet", "https://www.ynet.co.il/economy/article/sqm15han4"], ["TheMarker", "https://www.themarker.com/news/macroeconomics/2026-11-15/ty-article/000001a1-dee6-d59b-a1f3-def6175a0000"], ["אמס", "https://www.emess.co.il/radio/1962630"], ["אייס (מועד הריבית)", "https://www.ice.co.il/finance/news/article/1137705"]],
+    apps: [["🛒", "HaniaCart", "רשימת הקניות והמחירים בסופר", "https://cart.hania360.com/", "לקניות"]],
+  },
+  {
+    id: "2026-11-16-avdija-34", from: "2026-11-16", until: "2026-11-20", chip: "כדורסל", big: "34",
+    title: "דני אבדיה קלע 34 נקודות, ופורטלנד ב־9 ניצחונות ו־3 הפסדים",
+    body: "בניצחון 107:120 על סקרמנטו קלע אבדיה 11 מ־13 מהשדה ו־9 מ־9 מהעונשין. במשחקי חוץ פורטלנד ב־6 ניצחונות והפסד אחד. המשחקים הבאים: פעמיים במינסוטה, בלילות שני ושלישי (שעון ארה״ב).",
+    sources: [["Times of Israel", "https://www.timesofisrael.com/liveblog_entry/deni-avdija-scores-34-points-as-trail-blazers-beat-kings-120-107/"], ["CBS Sports", "https://www.cbssports.com/nba/news/deni-avdija-scores-34-to-lead-trail-blazers-past-kings-120-107/"]],
+    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
+  },
   {
     id: "2026-11-15-israel-kosovo", from: "2026-11-15", until: "2026-11-18", chip: "כדורגל",
     title: "הנבחרת סיימה 0:0 בקוסובו. ביום שלישי: המשחק האחרון מול אוסטריה",
@@ -50,14 +65,6 @@ export default [
     body: "לפי הודעת נציגות החברה ומשרד התיירות, הקו תל אביב–דלהי חוזר ב־1.12.2026, חמש פעמים בשבוע (ראשון עד חמישי), כשש שעות טיסה. דרך דלהי אפשר להמשיך לדרום־מזרח אסיה. החזרה נדחתה כבר בעבר, אז כדאי לבדוק מול החברה לפני שמזמינים.",
     sources: [["אתר התעופה הישראלי", "https://www.ias.co.il/?p=191647"], ["ThePrint (משרד התיירות)", "https://theprint.in/economy/air-india-to-resume-direct-flights-between-delhi-tel-aviv-from-dec-1-israel-ministry-of-tourism/3055972/"], ["ביזפורטל", "https://www.bizportal.co.il/airlines/news/article/20047213"]],
     apps: [["🛫", "HaniaTisa", "מה המריא ונחת בנתב״ג עכשיו", "https://tisa.hania360.com/", "לטיסות"], ["🧳", "ביטוח נסיעות", "ימים חינם וביטול לפי הכרטיסים שלכם", "https://save.hania360.com/insurance/travel", "לבדיקה"]],
-  },
-  {
-    id: "2026-11-13-derby-result", img: "now-derby", for: ["b:TEL", "b:HTA"], from: "2026-11-13", until: "2026-11-19", chip: "כדורסל",
-    title: "מכבי תל אביב ניצחה את הפועל בדרבי היורוליג, 73:80",
-    body: "זה הניצחון השלישי של מכבי ביורוליג העונה, והוא קטע רצף של ארבעה הפסדים באירופה. להפועל זה ההפסד השלישי ברציפות.",
-    big: "73:80",
-    sources: [["ynet", "https://www.ynet.co.il/news/article/h1sxuqxcmg"], ["ONE", "https://www.one.co.il/Article/538740.html"], ["הארץ", "https://www.haaretz.co.il/sport/basketball/2026-11-12/ty-article/000001a1-d194-d15e-adb1-f3f5e3fe0000"]],
-    apps: [["🏀", "HaniaSport", "תוצאות, טבלת היורוליג והמשחק הבא", "https://sport.hania360.com/#hoops", "לטבלה"]],
   },
   {
     id: "2026-11-09-fuel", img: "now-fuel", from: "2026-11-05", until: "2026-11-30", chip: "כסף", big: "7.85 ₪",
