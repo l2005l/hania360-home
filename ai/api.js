@@ -37,6 +37,7 @@ const TOOLS = {
   add_task: { d: "הוספת משימה ל־Today", a: '{"text":"עד 80 תווים","day":"YYYY-MM-DD, לא חובה"}', write: 1 },
   add_note: { d: "פתק ליום מסוים, ואם יש שעה אפשר תזכורת לטלפון 15 דקות לפני", a: '{"text":"עד 80 תווים","day":"YYYY-MM-DD","time":"HH:MM, לא חובה","remind":true}', write: 1 },
   done_task: { d: "סימון משימה כבוצעה (id מ־my_today)", a: '{"id":"...","text":"שם המשימה"}', write: 1 },
+  add_event: { d: "אירוע ביומן של הטלפון (יומן גוגל וכו׳), גם חוזר, עם תזכורות. לכל אירוע: כותרת, תאריך, שעה, מקום", a: '{"title":"...","date":"YYYY-MM-DD","time":"HH:MM, לא חובה (בלי = כל היום)","end":"HH:MM, לא חובה","place":"לא חובה","note":"לא חובה","repeat":"weekly|monthly|, לא חובה","until":"YYYY-MM-DD, לא חובה","remind":[120,720]}', write: 1, phone: 1 },
   add_repeat: { d: "תזכורת חוזרת: weekly (wd 0=ראשון..6=שבת), monthly (md יום בחודש), yearly (md ו־mon)", a: '{"title":"...","kind":"weekly|monthly|yearly","wd":0,"md":1,"mon":1,"lead":1}', write: 1 }
 };
 
@@ -97,6 +98,7 @@ function describe(tool, a) {
   if (tool === "add_task") return "להוסיף משימה ל־Today: \"" + a.text + "\"" + day(a.day);
   if (tool === "add_note") return "להוסיף פתק: \"" + a.text + "\"" + day(a.day) + (a.time ? " בשעה " + a.time : "") + (a.remind && a.time ? ", עם תזכורת לטלפון 15 דקות לפני" : "");
   if (tool === "done_task") return "לסמן כבוצעה: \"" + (a.text || a.id) + "\"";
+  if (tool === "add_event") return "📅 ליומן: " + a.title + day(a.date) + (a.time ? " " + a.time + (a.end ? "–" + a.end : "") : " (כל היום)") + (a.place ? ", " + a.place : "") + (a.repeat === "weekly" ? ", כל שבוע" + (a.until ? " עד " + a.until.split("-").reverse().join(".") : "") : a.repeat === "monthly" ? ", כל חודש" : "");
   if (tool === "add_repeat") return "תזכורת חוזרת: \"" + a.title + "\" " + (a.kind === "weekly" ? "כל יום " + WD[+a.wd || 0] : a.kind === "monthly" ? "כל " + (a.md || 1) + " בחודש" : "כל שנה ב־" + (a.md || 1) + "." + (a.mon || 1));
   return tool;
 }
@@ -108,17 +110,28 @@ function system(now, city) {
 יש לך כלים:
 ${list}
 כללים:
-- כל תשובה שלך היא JSON אחד בלבד, בלי שום טקסט מסביב: {"tool":"שם","args":{...}} כדי להשתמש בכלי, או {"answer":"התשובה"} כדי לענות.
+- כל תשובה שלך היא JSON אחד בלבד, בלי שום טקסט מסביב: {"tool":"שם","args":{...}} כדי להשתמש בכלי, {"actions":[{"tool":"שם","args":{...}},...],"say":"משפט קצר"} לכמה פעולות יחד, או {"answer":"התשובה"} כדי לענות.
+- "יומן" = add_event (היומן בטלפון). משימה / "תזכירי לי" בלי יומן = add_task או add_note. בבקשה עם כמה אירועים: actions, אחד לכל אירוע.
 - עובדות על היום, שבת, לימוד, משימות, חדשות וספורט: רק מתוך כלי, לא מהזיכרון.
-- פעולה (add_task, add_note, done_task, add_repeat): קוראים לכלי, והמשתמש יאשר בכפתור. תאריכים מחושבים מהיום ("מחר" = היום ועוד יום).
+- פעולה (add_task, add_note, done_task, add_repeat, add_event): קוראים לכלי, והמשתמש יאשר בכפתור. תאריכים מחושבים מהיום ("מחר" = היום ועוד יום).
 - אם חסר פרט הכרחי (למשל שעה לתזכורת), שואלים ב־answer.
 - כשנותנים קישור לאפליקציה, כותבים את הכתובת המלאה.`;
 }
+function objects(s) {
+  const out = []; let depth = 0, start = -1, q = false, esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (q) { if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') q = false; continue; }
+    if (ch === '"') q = true; else if (ch === "{") { if (!depth) start = i; depth++; } else if (ch === "}" && depth) { depth--; if (!depth) { try { out.push(JSON.parse(s.slice(start, i + 1))); } catch {} } }
+  }
+  return out;
+}
 function loose(t) {
   if (t && typeof t === "object") return t;
-  const s = String(t || ""), a = s.indexOf("{"), b = s.lastIndexOf("}");
-  if (a < 0 || b <= a) return { answer: s.trim() };
-  try { return JSON.parse(s.slice(a, b + 1)); } catch { return { answer: s.replace(/[{}"]/g, "").replace(/^\s*answer\s*:\s*/, "").trim() }; }
+  const s = String(t || ""), all = objects(s);
+  if (all.length === 1) return all[0];
+  if (all.length > 1) { const acts = all.filter((o) => o.tool); if (acts.length) return { actions: acts, say: (all.find((o) => o.say || o.answer) || {}).say || "" }; return all[0]; }
+  return { answer: s.replace(/[{}"]/g, "").replace(/^\s*answer\s*:\s*/, "").trim() };
 }
 const out = (r) => r && (r.response ?? (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content));
 async function think(env, messages) {
@@ -140,10 +153,15 @@ export async function aiApi(request, env, ctx) {
   if (rest) return json({ answer: "שבת שלום 🕯️ אני נחה עכשיו, ונחזור לדבר במוצאי שבת אחרי " + rest + "." });
   const c = { env, cookie, city, ctx };
 
-  // A confirmed action: run it, no model call.
-  if (b.confirm && TOOLS[b.confirm.tool] && TOOLS[b.confirm.tool].write) {
-    try { await run(b.confirm.tool, b.confirm.args, c); return json({ answer: "✅ בוצע: " + describe(b.confirm.tool, b.confirm.args || {}).replace(/^להוסיף /, "נוסף ").replace(/^לסמן /, "סומן "), done: true }); }
-    catch (e) { return json({ answer: "לא הצלחתי: " + (String(e.message) === "signed_out" ? "צריך להתחבר ל־Hania Pass." : String(e.message).slice(0, 60)) }); }
+  // Confirmed actions: run the Today ones here (the phone-calendar ones the page itself adds), no model call.
+  if (b.confirm && Array.isArray(b.confirm.items)) {
+    const lines = [];
+    for (const it of b.confirm.items.slice(0, 12)) {
+      const T = TOOLS[it && it.tool]; if (!T || !T.write || T.phone) continue;
+      try { await run(it.tool, it.args, c); lines.push("✅ " + describe(it.tool, it.args || {}).replace(/^להוסיף /, "").replace(/^לסמן כבוצעה/, "בוצע")); }
+      catch (e) { lines.push("⚠️ לא הצלחתי: " + describe(it.tool, it.args || {}) + (String(e.message) === "signed_out" ? " (צריך להתחבר ל־Hania Pass)" : "")); }
+    }
+    return json({ answer: lines.join("\n"), done: true });
   }
 
   if (env.SIPUR) {
@@ -156,11 +174,9 @@ export async function aiApi(request, env, ctx) {
   for (let step = 0; step < STEPS; step++) {
     const o = await think(env, msgs);
     if (!o) return json({ answer: "משהו לא עבד אצלי. ננסה שוב בעוד רגע?" });
+    const acts = (Array.isArray(o.actions) ? o.actions : o.tool ? [o] : []).filter((x) => x && TOOLS[x.tool] && TOOLS[x.tool].write).slice(0, 12);
+    if (acts.length) return json({ answer: o.say || "", pending: { items: acts.map((x) => ({ tool: x.tool, args: x.args || {}, text: describe(x.tool, x.args || {}), phone: !!TOOLS[x.tool].phone })) }, used });
     if (o.tool && TOOLS[o.tool]) {
-      if (TOOLS[o.tool].write) {
-        const args = o.args || {};
-        return json({ answer: o.say || "", pending: { tool: o.tool, args, text: describe(o.tool, args) }, used });
-      }
       let res; try { res = await run(o.tool, o.args, c); } catch (e) { res = { error: String(e.message || e).slice(0, 80) }; }
       used.push(o.tool);
       msgs.push({ role: "assistant", content: JSON.stringify({ tool: o.tool, args: o.args || {} }) });

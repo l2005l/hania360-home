@@ -27,6 +27,7 @@ main{flex:1;overflow-y:auto;max-width:820px;width:100%;margin:0 auto;padding:6px
 .confirm b{font-size:15.5px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .btn{appearance:none;border:0;border-radius:12px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--ok);color:#06281C}
+a.btn{text-decoration:none;display:inline-block;text-align:center}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .hello{text-align:center;color:var(--muted);margin:auto 0;padding:20px 6px}
 .hello .big{font-size:54px}.hello h1{color:var(--ink);font-size:24px;margin:6px 0}
@@ -89,12 +90,69 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
     log.textContent = "";
     if (!S.log.length) { log.appendChild(hello()); return; }
     S.log.forEach(function (m) { log.appendChild(bubble(m)); });
+    if (S.cal && S.cal.length) log.appendChild(calendarCard(S.cal));
     if (S.pending) log.appendChild(confirmCard(S.pending));
     log.scrollTop = log.scrollHeight;
   }
+  // ---- phone calendar: a calendar file with every event (opens in the phone's calendar), and one link per event to Google Calendar ----
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function ilOffset(day, time) { // minutes Israel is ahead of UTC at that moment
+    var guess = new Date(day + "T" + (time || "12:00") + ":00Z"), p = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jerusalem", timeZoneName: "shortOffset" }).formatToParts(guess);
+    var z = (p.filter(function (x) { return x.type === "timeZoneName"; })[0] || {}).value || "GMT+2", m = /GMT([+-]\d+)(?::(\d+))?/.exec(z); return m ? +m[1] * 60 + (m[2] ? +m[2] : 0) : 120;
+  }
+  function utc(day, time) { var d = new Date(day + "T" + time + ":00Z"); d = new Date(d.getTime() - ilOffset(day, time) * 6e4); return d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()) + "T" + pad(d.getUTCHours()) + pad(d.getUTCMinutes()) + "00Z"; }
+  function plusHour(t) { var h = +t.split(":")[0] + 1; return pad(Math.min(23, h)) + ":" + t.split(":")[1]; }
+  function nextDay(day) { var d = new Date(day + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10).replace(/-/g, ""); }
+  function rrule(a) { if (a.repeat !== "weekly" && a.repeat !== "monthly") return ""; return "FREQ=" + (a.repeat === "weekly" ? "WEEKLY" : "MONTHLY") + (a.until ? ";UNTIL=" + utc(a.until, "23:59") : ""); }
+  function esc(t) { return String(t || "").replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n"); }
+  function ics(list) {
+    var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Hania360//Hania//HE", "CALSCALE:GREGORIAN"];
+    list.forEach(function (a, i) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(a.date || "")) return;
+      L.push("BEGIN:VEVENT", "UID:" + Date.now() + "-" + i + "@ai.hania360.com", "DTSTAMP:" + utc(new Date().toISOString().slice(0, 10), "12:00"), "SUMMARY:" + esc(a.title));
+      if (a.time) L.push("DTSTART:" + utc(a.date, a.time), "DTEND:" + utc(a.date, a.end || plusHour(a.time)));
+      else L.push("DTSTART;VALUE=DATE:" + a.date.replace(/-/g, ""), "DTEND;VALUE=DATE:" + nextDay(a.date));
+      if (a.place) L.push("LOCATION:" + esc(a.place));
+      if (a.note) L.push("DESCRIPTION:" + esc(a.note));
+      var r = rrule(a); if (r) L.push("RRULE:" + r);
+      (Array.isArray(a.remind) && a.remind.length ? a.remind : [a.time ? 120 : 180]).slice(0, 3).forEach(function (m) { L.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + esc(a.title), "TRIGGER:-PT" + Math.max(0, Math.round(+m || 0)) + "M", "END:VALARM"); });
+      L.push("END:VEVENT");
+    });
+    L.push("END:VCALENDAR"); return L.join("\r\n");
+  }
+  function gcal(a) {
+    var d = a.date.replace(/-/g, ""), dates = a.time ? d + "T" + a.time.replace(":", "") + "00/" + d + "T" + (a.end || plusHour(a.time)).replace(":", "") + "00" : d + "/" + nextDay(a.date);
+    var q = "action=TEMPLATE&ctz=Asia%2FJerusalem&text=" + encodeURIComponent(a.title || "") + "&dates=" + dates + (a.place ? "&location=" + encodeURIComponent(a.place) : "") + (a.note ? "&details=" + encodeURIComponent(a.note) : "");
+    var r = rrule(a); if (r) q += "&recur=" + encodeURIComponent("RRULE:" + r);
+    return "https://calendar.google.com/calendar/render?" + q;
+  }
+  function summary(list) { return list.map(function (x) { return "• " + x.text.replace(/^📅 ליומן: /, ""); }).join("\n"); }
+  function calendarCard(evs) {
+    var file = new Blob([ics(evs.map(function (x) { return x.args; }))], { type: "text/calendar;charset=utf-8" });
+    var share = summary(evs);
+    return el("div", { class: "confirm", style: "border-color:var(--ok)" }, [el("b", { text: "📅 להוספה ליומן בטלפון" }),
+      el("div", { class: "row" }, [el("a", { class: "btn", href: URL.createObjectURL(file), download: "hania-events.ics", text: "📥 כל האירועים ביחד (קובץ יומן)" })]),
+      el("div", { style: "display:grid;gap:6px" }, evs.map(function (x) { return el("a", { class: "btn ghost", href: gcal(x.args), target: "_blank", rel: "noopener", text: "יומן Google: " + x.args.title }); })),
+      el("div", { class: "row" }, [el("button", { class: "btn ghost", type: "button", text: "📤 לשלוח סיכום (למשל למנהל)", onclick: function () {
+        var t = "הלו״ז שלי:\n" + share;
+        if (navigator.share) navigator.share({ text: t }).catch(function () {}); else { try { navigator.clipboard.writeText(t); } catch (e) {} alert(t); }
+      } })])]);
+  }
   function confirmCard(p) {
-    return el("div", { class: "confirm" }, [el("b", { text: "לבצע? " + p.text }), el("div", { class: "row" }, [
-      el("button", { class: "btn", type: "button", text: "✅ כן", onclick: function () { var x = S.pending; S.pending = null; save(); call({ confirm: { tool: x.tool, args: x.args } }); } }),
+    var items = p.items || [{ tool: p.tool, args: p.args, text: p.text }], boxes = [];
+    var list = el("div", { style: "display:grid;gap:6px" }, items.map(function (it) {
+      var c = el("input", { type: "checkbox", style: "width:20px;height:20px;accent-color:#F472B6" }); c.checked = true; boxes.push(c);
+      return el("label", { style: "display:flex;gap:8px;align-items:flex-start;font-size:15px" }, [c, el("span", { text: it.text })]);
+    }));
+    return el("div", { class: "confirm" }, [el("b", { text: items.length > 1 ? "לבצע? (" + items.length + ")" : "לבצע?" }), list, el("div", { class: "row" }, [
+      el("button", { class: "btn", type: "button", text: "✅ כן", onclick: function () {
+        var chosen = items.filter(function (_, i) { return boxes[i].checked; }); if (!chosen.length) return;
+        S.pending = null;
+        var phone = chosen.filter(function (x) { return x.phone || x.tool === "add_event"; }), rest = chosen.filter(function (x) { return !(x.phone || x.tool === "add_event"); });
+        if (phone.length) { S.cal = phone; S.log.push({ role: "assistant", content: "הכנתי " + phone.length + " אירועים ליומן. לוחצים על הכפתור כדי להוסיף אותם לטלפון:", local: true }); }
+        save();
+        if (rest.length) call({ confirm: { items: rest.map(function (x) { return { tool: x.tool, args: x.args }; }) } }); else paint();
+      } }),
       el("button", { class: "btn ghost", type: "button", text: "ביטול", onclick: function () { S.pending = null; S.log.push({ role: "assistant", content: "בסדר, ביטלתי." }); save(); paint(); } })])]);
   }
   function call(extra) {
@@ -112,7 +170,7 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
   }
   function send(text) {
     text = String(text || "").trim(); if (!text || busy) return;
-    if (S.pending) { S.pending = null; }
+    if (S.pending) { S.pending = null; } S.cal = null;
     S.log.push({ role: "user", content: text }); save();
     $("t").value = ""; grow(); call();
   }
@@ -122,7 +180,7 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
   $("go").addEventListener("click", function () { send($("t").value); });
   $("t").addEventListener("input", grow);
   $("t").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send($("t").value); } });
-  $("clear").addEventListener("click", function () { if (!S.log.length || confirm("להתחיל שיחה חדשה?")) { S.log = []; S.pending = null; save(); paint(); } });
+  $("clear").addEventListener("click", function () { if (!S.log.length || confirm("להתחיל שיחה חדשה?")) { S.log = []; S.pending = null; S.cal = null; save(); paint(); } });
   var cs = $("city"); CITIES.forEach(function (c) { var o = el("option", { value: c, text: c }); if (c === (S.city || CITIES[0])) o.selected = true; cs.appendChild(o); });
   cs.addEventListener("change", function () { S.city = cs.value; save(); });
 
