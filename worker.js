@@ -529,6 +529,8 @@ export default {
       } catch {}
     }
     // Usage counts from every site, and the link-preview images and the owner's dashboard on hania360.com.
+    // Temporary: can Cloudflare reach the Ministry of Transport's open timetable (it refuses foreign addresses)? Status and size only.
+    if (url.hostname === "hania360.com" && url.pathname === "/api/gtfs-probe") { try { const r = await fetch("https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip", { headers: { range: "bytes=0-3" } }); const b = new Uint8Array(await r.arrayBuffer()); return Response.json({ status: r.status, type: r.headers.get("content-type"), range: r.headers.get("content-range"), len: r.headers.get("content-length"), zip: b[0] === 0x50 && b[1] === 0x4b, colo: request.cf && request.cf.colo }); } catch (e) { return Response.json({ error: String(e.message || e) }); } }
     if (url.pathname === "/api/stat") return statApi(request, env || {}, url, ctx);
     if (url.hostname === "hania360.com" && url.pathname.startsWith("/og/")) { const r = ogImage(url); if (r) return r; }
     if (url.hostname === "hania360.com" && url.pathname === "/stats") return statsPage(request, env || {}, url);

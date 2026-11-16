@@ -71,7 +71,7 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
   // Links in answers become clickable; everything else stays plain text.
   function rich(text) {
     var f = document.createDocumentFragment(), re = /https?:\/\/[^\s)]+/g, last = 0, m;
-    while ((m = re.exec(text))) { f.appendChild(document.createTextNode(text.slice(last, m.index))); f.appendChild(el("a", { href: m[0], target: "_blank", rel: "noopener", text: m[0].replace(/^https:\/\//, "").replace(/\/$/, "") })); last = m.index + m[0].length; }
+    while ((m = re.exec(text))) { f.appendChild(document.createTextNode(text.slice(last, m.index))); f.appendChild(el("a", { href: m[0], target: "_blank", rel: "noopener", text: /google\.com\/maps/.test(m[0]) ? "🚆 זמני הרכבת בגוגל מפות" : m[0].replace(/^https:\/\//, "").replace(/\/$/, "") })); last = m.index + m[0].length; }
     f.appendChild(document.createTextNode(text.slice(last))); return f;
   }
   function bubble(m) {
@@ -113,26 +113,31 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
       if (a.time) L.push("DTSTART:" + utc(a.date, a.time), "DTEND:" + utc(a.date, a.end || plusHour(a.time)));
       else L.push("DTSTART;VALUE=DATE:" + a.date.replace(/-/g, ""), "DTEND;VALUE=DATE:" + nextDay(a.date));
       if (a.place) L.push("LOCATION:" + esc(a.place));
-      if (a.note) L.push("DESCRIPTION:" + esc(a.note));
+      var desc = (a.note || "") + (a.trainLink ? (a.note ? "\n" : "") + "🚆 לצאת בערך " + leave(a) + " (נסיעה רגילה " + a.travel + " דק׳ ועוד מרווח). זמני הרכבת של היום: " + a.trainLink : "");
+      if (desc) L.push("DESCRIPTION:" + esc(desc));
       var r = rrule(a); if (r) L.push("RRULE:" + r);
-      (Array.isArray(a.remind) && a.remind.length ? a.remind : [a.time ? 120 : 180]).slice(0, 3).forEach(function (m) { L.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + esc(a.title), "TRIGGER:-PT" + Math.max(0, Math.round(+m || 0)) + "M", "END:VALARM"); });
+      var rem = (Array.isArray(a.remind) && a.remind.length ? a.remind : [a.time ? 120 : 180]).slice(0, 3);
+      if (a.trainLink && a.time) rem = rem.filter(function (m) { return Math.abs(m - (a.travel + 30)) > 10; }).concat([a.travel + 30]);
+      rem.forEach(function (m) { L.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + esc(a.title), "TRIGGER:-PT" + Math.max(0, Math.round(+m || 0)) + "M", "END:VALARM"); });
       L.push("END:VEVENT");
     });
     L.push("END:VCALENDAR"); return L.join("\r\n");
   }
+  function leave(a) { var p = (a.arrive || a.time || "00:00").split(":"), t = +p[0] * 60 + +p[1] - (a.travel || 90) - 20; t = (t + 1440) % 1440; return pad(Math.floor(t / 60)) + ":" + pad(t % 60); }
   function gcal(a) {
     var d = a.date.replace(/-/g, ""), dates = a.time ? d + "T" + a.time.replace(":", "") + "00/" + d + "T" + (a.end || plusHour(a.time)).replace(":", "") + "00" : d + "/" + nextDay(a.date);
-    var q = "action=TEMPLATE&ctz=Asia%2FJerusalem&text=" + encodeURIComponent(a.title || "") + "&dates=" + dates + (a.place ? "&location=" + encodeURIComponent(a.place) : "") + (a.note ? "&details=" + encodeURIComponent(a.note) : "");
+    var q = "action=TEMPLATE&ctz=Asia%2FJerusalem&text=" + encodeURIComponent(a.title || "") + "&dates=" + dates + (a.place ? "&location=" + encodeURIComponent(a.place) : "") + ((a.note || a.trainLink) ? "&details=" + encodeURIComponent((a.note || "") + (a.trainLink ? (a.note ? "\n" : "") + "🚆 לצאת בערך " + leave(a) + ". זמני הרכבת של היום: " + a.trainLink : "")) : "");
     var r = rrule(a); if (r) q += "&recur=" + encodeURIComponent("RRULE:" + r);
     return "https://calendar.google.com/calendar/render?" + q;
   }
-  function summary(list) { return list.map(function (x) { return "• " + x.text.replace(/^📅 ליומן: /, ""); }).join("\n"); }
+  function summary(list) { return list.map(function (x) { return "• " + x.text.replace(/^📅 ליומן: /, "").replace(" 🚆", " (ברכבת)"); }).join("\n"); }
   function calendarCard(evs) {
     var file = new Blob([ics(evs.map(function (x) { return x.args; }))], { type: "text/calendar;charset=utf-8" });
     var share = summary(evs);
     return el("div", { class: "confirm", style: "border-color:var(--ok)" }, [el("b", { text: "📅 להוספה ליומן בטלפון" }),
       el("div", { class: "row" }, [el("a", { class: "btn", href: URL.createObjectURL(file), download: "hania-events.ics", text: "📥 כל האירועים ביחד (קובץ יומן)" })]),
       el("div", { style: "display:grid;gap:6px" }, evs.map(function (x) { return el("a", { class: "btn ghost", href: gcal(x.args), target: "_blank", rel: "noopener", text: "יומן Google: " + x.args.title }); })),
+      evs.some(function (x) { return x.args.trainLink; }) ? el("div", { style: "display:grid;gap:6px" }, evs.filter(function (x) { return x.args.trainLink; }).map(function (x) { return el("a", { class: "btn ghost", href: x.args.trainLink, target: "_blank", rel: "noopener", text: "🚆 זמני רכבת: " + x.args.title + " (לצאת בערך " + leave(x.args) + ")" }); })) : null,
       el("div", { class: "row" }, [el("button", { class: "btn ghost", type: "button", text: "📤 לשלוח סיכום (למשל למנהל)", onclick: function () {
         var t = "הלו״ז שלי:\n" + share;
         if (navigator.share) navigator.share({ text: t }).catch(function () {}); else { try { navigator.clipboard.writeText(t); } catch (e) {} alert(t); }

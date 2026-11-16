@@ -37,7 +37,8 @@ const TOOLS = {
   add_task: { d: "הוספת משימה ל־Today", a: '{"text":"עד 80 תווים","day":"YYYY-MM-DD, לא חובה"}', write: 1 },
   add_note: { d: "פתק ליום מסוים, ואם יש שעה אפשר תזכורת לטלפון 15 דקות לפני", a: '{"text":"עד 80 תווים","day":"YYYY-MM-DD","time":"HH:MM, לא חובה","remind":true}', write: 1 },
   done_task: { d: "סימון משימה כבוצעה (id מ־my_today)", a: '{"id":"...","text":"שם המשימה"}', write: 1 },
-  add_event: { d: "אירוע ביומן של הטלפון (יומן גוגל וכו׳), גם חוזר, עם תזכורות. לכל אירוע: כותרת, תאריך, שעה, מקום", a: '{"title":"...","date":"YYYY-MM-DD","time":"HH:MM, לא חובה (בלי = כל היום)","end":"HH:MM, לא חובה","place":"לא חובה","note":"לא חובה","repeat":"weekly|monthly|, לא חובה","until":"YYYY-MM-DD, לא חובה","remind":[120,720]}', write: 1, phone: 1 },
+  add_event: { d: "אירוע ביומן של הטלפון (יומן גוגל וכו׳), גם חוזר, עם תזכורות. לכל אירוע: כותרת, תאריך, שעה, מקום", a: '{"title":"...","date":"YYYY-MM-DD","time":"HH:MM, לא חובה (בלי = כל היום)","end":"HH:MM, לא חובה","place":"לא חובה","note":"לא חובה","repeat":"weekly|monthly|, לא חובה","until":"YYYY-MM-DD, לא חובה","remind":[120,720],"train":true,"from":"מאיפה יוצאים, למשל תחנת רכבת נתיבות","arrive":"HH:MM שעת הגעה ליעד"}', write: 1, phone: 1 },
+  train: { d: "נסיעה ברכבת או בתחבורה ציבורית: מתי לצאת כדי להגיע בזמן, וקישור לזמני הרכבת האמיתיים של אותו יום", a: '{"from":"מאיפה","to":"לאן","date":"YYYY-MM-DD","arrive":"HH:MM"}' },
   add_repeat: { d: "תזכורת חוזרת: weekly (wd 0=ראשון..6=שבת), monthly (md יום בחודש), yearly (md ו־mon)", a: '{"title":"...","kind":"weekly|monthly|yearly","wd":0,"md":1,"mon":1,"lead":1}', write: 1 }
 };
 
@@ -85,11 +86,27 @@ async function run(tool, a, ctx) {
     for (const k in APPS) { const x = APPS[k], s = x[0] + " " + x[1]; const score = words.filter((w) => s.indexOf(w) >= 0).length; if (score) out.push([score - 0.5, x[0] + ": " + x[1]]); }
     return out.sort((p, q2) => q2[0] - p[0]).slice(0, 5).map((x) => x[1]);
   }
+  if (tool === "train") { const t = trainPlan(a.from || ("תחנת רכבת " + (city || "")), a.to, a.date || ymd(Date.now()), a.arrive || ""); return t; }
   if (tool === "add_task") { const j = await pass(env, cookie, "/api/daily/task-add", { text: String(a.text || "").slice(0, 80), day: a.day || "", assignee: "", shared: false }); return { ok: true, added: j.added }; }
   if (tool === "add_note") { await pass(env, cookie, "/api/notes/add", { text: String(a.text || "").slice(0, 80), day: a.day || ymd(Date.now()), time: a.time || "", remind: !!a.remind && !!a.time }); return { ok: true }; }
   if (tool === "done_task") { await pass(env, cookie, "/api/daily/task-done", { id: String(a.id || ""), done: true }); return { ok: true }; }
   if (tool === "add_repeat") { await pass(env, cookie, "/api/daily/repeat-add", { title: String(a.title || "").slice(0, 60), kind: a.kind, wd: +a.wd || 0, md: +a.md || 1, mon: +a.mon || 1, lead: a.lead == null ? 1 : +a.lead, shared: false }); return { ok: true }; }
   return { error: "אין כלי כזה" };
+}
+
+// Trains: Israel Railways' own timetable is not open to programs, so the assistant plans with a usual travel time
+// and hands over a Google Maps link already set to "arrive by" that time, where the real trains of that day show.
+const TRAVEL = [[/נתיבות/, /תל.?אביב|השלום|סבידור|ההגנה|אוניברסיטה|אטלס/, 80], [/נתיבות/, /באר.?שבע/, 25], [/נתיבות/, /נתב.?ג|נמל התעופה|בן.?גוריון|לוד|מודיעין/, 95], [/נתיבות/, /ירושלים/, 120], [/נתיבות/, /חיפה/, 150], [/נתיבות/, /אשקלון|אשדוד|שדרות/, 30]];
+export function travelMin(from, to) { for (const [a, b, m] of TRAVEL) if (a.test(from || "") && b.test(to || "") || a.test(to || "") && b.test(from || "")) return m; return 90; }
+export function trainLink(from, to, date, arrive) {
+  const [y, m, d] = String(date || "").split("-"), q = new URLSearchParams({ saddr: from || "", daddr: to || "", dirflg: "r" });
+  if (y && arrive) { const [h, mi] = arrive.split(":").map(Number); q.set("ttype", "arr"); q.set("date", m + "/" + d + "/" + y); q.set("time", ((h + 11) % 12 + 1) + ":" + String(mi).padStart(2, "0") + (h < 12 ? "am" : "pm")); }
+  return "https://www.google.com/maps?" + q.toString();
+}
+function trainPlan(from, to, date, arrive) {
+  const min = travelMin(from, to), out = { from, to, date, arrive, usual_travel_minutes: min, link: trainLink(from, to, date, arrive) };
+  if (arrive) { const [h, mi] = arrive.split(":").map(Number), t = h * 60 + mi - min - 20; out.leave_by = String(Math.floor((t + 1440) % 1440 / 60)).padStart(2, "0") + ":" + String((t + 1440) % 60).padStart(2, "0"); out.note = "זמן משוער (נסיעה רגילה ועוד 20 דקות מרווח). את הרכבת המדויקת בודקים בקישור."; }
+  return out;
 }
 
 const WD = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
@@ -98,7 +115,7 @@ function describe(tool, a) {
   if (tool === "add_task") return "להוסיף משימה ל־Today: \"" + a.text + "\"" + day(a.day);
   if (tool === "add_note") return "להוסיף פתק: \"" + a.text + "\"" + day(a.day) + (a.time ? " בשעה " + a.time : "") + (a.remind && a.time ? ", עם תזכורת לטלפון 15 דקות לפני" : "");
   if (tool === "done_task") return "לסמן כבוצעה: \"" + (a.text || a.id) + "\"";
-  if (tool === "add_event") return "📅 ליומן: " + a.title + day(a.date) + (a.time ? " " + a.time + (a.end ? "–" + a.end : "") : " (כל היום)") + (a.place ? ", " + a.place : "") + (a.repeat === "weekly" ? ", כל שבוע" + (a.until ? " עד " + a.until.split("-").reverse().join(".") : "") : a.repeat === "monthly" ? ", כל חודש" : "");
+  if (tool === "add_event") return "📅 ליומן: " + a.title + (a.train ? " 🚆" : "") + day(a.date) + (a.time ? " " + a.time + (a.end ? "–" + a.end : "") : " (כל היום)") + (a.place ? ", " + a.place : "") + (a.repeat === "weekly" ? ", כל שבוע" + (a.until ? " עד " + a.until.split("-").reverse().join(".") : "") : a.repeat === "monthly" ? ", כל חודש" : "");
   if (tool === "add_repeat") return "תזכורת חוזרת: \"" + a.title + "\" " + (a.kind === "weekly" ? "כל יום " + WD[+a.wd || 0] : a.kind === "monthly" ? "כל " + (a.md || 1) + " בחודש" : "כל שנה ב־" + (a.md || 1) + "." + (a.mon || 1));
   return tool;
 }
@@ -111,6 +128,7 @@ function system(now, city) {
 ${list}
 כללים:
 - כל תשובה שלך היא JSON אחד בלבד, בלי שום טקסט מסביב: {"tool":"שם","args":{...}} כדי להשתמש בכלי, {"actions":[{"tool":"שם","args":{...}},...],"say":"משפט קצר"} לכמה פעולות יחד, או {"answer":"התשובה"} כדי לענות.
+- נסיעה ברכבת ("ברכבת", "מתחנת..."): ב־add_event שמים train:true, from (נקודת היציאה), place (היעד) ו־arrive (מתי צריך להגיע). אם לא נאמר מאיפה, from = תחנת רכבת ב${city || "העיר שלך"}.
 - "יומן" = add_event (היומן בטלפון). משימה / "תזכירי לי" בלי יומן = add_task או add_note. בבקשה עם כמה אירועים: actions, אחד לכל אירוע.
 - עובדות על היום, שבת, לימוד, משימות, חדשות וספורט: רק מתוך כלי, לא מהזיכרון.
 - פעולה (add_task, add_note, done_task, add_repeat, add_event): קוראים לכלי, והמשתמש יאשר בכפתור. תאריכים מחושבים מהיום ("מחר" = היום ועוד יום).
@@ -175,6 +193,8 @@ export async function aiApi(request, env, ctx) {
     const o = await think(env, msgs);
     if (!o) return json({ answer: "משהו לא עבד אצלי. ננסה שוב בעוד רגע?" });
     const acts = (Array.isArray(o.actions) ? o.actions : o.tool ? [o] : []).filter((x) => x && TOOLS[x.tool] && TOOLS[x.tool].write).slice(0, 12);
+    // a train trip: the link (set to arrive on time) and the usual travel time go into the calendar event
+    acts.forEach((x) => { const g = x.args || {}; if (x.tool === "add_event" && (g.train || /רכבת/.test((g.title || "") + (g.from || "") + (g.note || "")))) { g.train = true; g.from = g.from || "תחנת רכבת " + (city || ""); g.arrive = g.arrive || g.time || ""; g.travel = travelMin(g.from, g.place || g.title); g.trainLink = trainLink(g.from, g.place || g.title, g.date, g.arrive); x.args = g; } });
     if (acts.length) return json({ answer: o.say || "", pending: { items: acts.map((x) => ({ tool: x.tool, args: x.args || {}, text: describe(x.tool, x.args || {}), phone: !!TOOLS[x.tool].phone })) }, used });
     if (o.tool && TOOLS[o.tool]) {
       let res; try { res = await run(o.tool, o.args, c); } catch (e) { res = { error: String(e.message || e).slice(0, 80) }; }
