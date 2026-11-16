@@ -63,6 +63,8 @@ import DABERAPP, { FILES as DABER_FILES, IMAGES as DABER_IMAGES } from "./daber/
 import { daberApi } from "./daber/api.js";
 import MATALOTPAGE, { FILES as MATALOT_FILES, IMAGES as MATALOT_IMAGES } from "./matalot/page.js";
 import { tvApi } from "./tv/api.js";
+import { aiApi } from "./ai/api.js";
+import AIPAGE, { FILES as AI_FILES, IMAGES as AI_IMAGES } from "./ai/page.js";
 import TVPAGE, { FILES as TV_FILES, IMAGES as TV_IMAGES } from "./tv/page.js";
 import RACEPAGE, { FILES as RACE_FILES, IMAGES as RACE_IMAGES } from "./race/page.js";
 import FITPAGE, { FILES as FIT_FILES, IMAGES as FIT_IMAGES } from "./fit/page.js";
@@ -554,6 +556,19 @@ export default {
       out.headers.set("permissions-policy", "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()");
       out.headers.set("cross-origin-opener-policy", "same-origin");
       return out;
+    }
+    // Hania, the personal AI assistant: like the vault, only the owner's account (AI_OWNER, else KASEFET_OWNER) sees it.
+    if (url.hostname === "ai.hania360.com" || url.searchParams.get("app") === "ai" && /workers\.dev$/.test(url.hostname)) {
+      if (url.pathname === "/manifest.webmanifest" || /^\/icons\//.test(url.pathname)) return smallApp(url, AIPAGE, AI_FILES, AI_IMAGES, "https://ai.hania360.com/");
+      const owners = String((env && (env.AI_OWNER || env.KASEFET_OWNER)) || "").toLowerCase().split(/[\s,]+/).filter(Boolean);
+      const who = owners.length ? await passUser(request, env || {}) : null;
+      if (!who || !owners.includes(who.email.toLowerCase())) {
+        if (who === null && owners.length && request.method === "GET" && url.pathname === "/") return Response.redirect("https://pass.hania360.com/?return=" + encodeURIComponent("https://ai.hania360.com/"), 302);
+        return new Response("Not found", { status: 404, headers: { "content-type": "text/plain", "cache-control": "no-store", "x-robots-tag": "noindex" } });
+      }
+      const res = url.pathname.startsWith("/api/ai/") ? await aiApi(request, env || {}, ctx) : smallApp(url, AIPAGE, AI_FILES, AI_IMAGES, "https://ai.hania360.com/");
+      const o = new Response(res.body, res); o.headers.set("cache-control", "no-store"); o.headers.set("x-robots-tag", "noindex"); o.headers.set("x-frame-options", "DENY"); o.headers.set("referrer-policy", "no-referrer");
+      return o;
     }
     { const hk = /^(kids|bayit|yahadut)\.hania360\.com$/.exec(url.hostname); if (hk) return url.pathname.startsWith("/api/masach/") ? masachApi(request, env || {}, url) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : hubApp(url, hk[1]); }
     if (url.pathname === "/_bridge") { const r = bridge(url.hostname.split(".")[0]); if (r) return r; }

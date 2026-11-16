@@ -8,7 +8,7 @@ import re as _re
 cities = _re.search(r'CITIES = (\[.*\]);', open('lib/cities.js', encoding='utf8').read()).group(1)
 body = r('tv.html').replace('/*CITIES*/[["ירושלים", 31.778, 35.235, 40]]', cities).replace('<script src="/hebcal.js"></script>', '<script src="/hebcal.js?v=' + hashlib.sha1(heb.encode()).hexdigest()[:8] + '"></script>')
 assert 'hebcal.js?v=' in body and '/*CITIES*/' not in body
-head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-tv=cover">'
+head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaTV: ערוצי טלוויזיה ורדיו בשידור חי במקום אחד, בחינם. רק שידורים רשמיים וחוקיים: חדשות מישראל ומהעולם, ספורט, חלל, טבע, מוזיקה, ילדים ורדיו.">'
         '<link rel="canonical" href="https://tv.hania360.com/"><meta name="theme-color" content="#0B0F1A">'
         '<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="HaniaTV">'

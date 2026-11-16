@@ -71,3 +71,4 @@ export const MAP_CSS = `
 .m26-today{display:flex;gap:12px;align-items:center;padding:14px;border-radius:20px;text-decoration:none;color:inherit;background:linear-gradient(135deg,#FFF4E5,#FFFFFF);border:1.5px solid #FAD7A0}
 .m26-today>span:first-child{font-size:28px}.m26-today b{display:block;color:#0F172A}.m26-today small{color:#64748B;font-size:13px}.m26-today>span:nth-child(2){flex:1}
 `;
+export const WORLDS = W;
