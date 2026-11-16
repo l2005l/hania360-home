@@ -61,7 +61,7 @@ export class ShabbatHub {
       r.msg = k.startsWith("c:") || k.startsWith("v:")
         ? { title: n.it.label, body: r.city, url: "/", at: now }
         : k.startsWith("t:")
-        ? { title: n.it.label, body: r.city, url: "/#tefila", at: now }
+        ? { title: n.it.label, body: r.city, url: k.split(":")[2] ? "/#" + k.split(":")[2] : "/#tefila", at: now }
         : k.startsWith("h:")
         ? { title: n.it.label + " · " + hm(n.it.t), body: when + " · " + r.city, url: "/", at: now }
         : k.startsWith("z:")
@@ -93,11 +93,12 @@ export class ShabbatHub {
       if (!b || typeof b.endpoint !== "string") return json({});
       // Candle lighting and the daily zman reminders share a phone; the most recent message wins.
       const id = await idOf(b.endpoint), a = await this.ctx.storage.get("s:" + id), z = await this.ctx.storage.get("z:" + id), h = await this.ctx.storage.get("h:" + id), t = await this.ctx.storage.get("t:" + id), c = await this.ctx.storage.get("c:" + id), v = await this.ctx.storage.get("v:" + id), f = await this.ctx.storage.get("f:" + id);
-      const m = [a && a.msg, z && z.msg, h && h.msg, t && t.msg, c && c.msg, v && v.msg, f && f.msg].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
+      const more = [...(await this.ctx.storage.list({ prefix: "t:" + id + ":" })).values()].map((x) => x && x.msg);
+      const m = [a && a.msg, z && z.msg, h && h.msg, t && t.msg, c && c.msg, v && v.msg, f && f.msg, ...more].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
       return json(m || {});
     }
     if (p === "/api/shabbat/unsub") {
-      if (b && typeof b.endpoint === "string") await this.ctx.storage.delete((["z", "h", "t", "c", "v"].includes(b.kind) ? b.kind + ":" : "s:") + (await idOf(b.endpoint)));
+      if (b && typeof b.endpoint === "string") await this.ctx.storage.delete(await slotOf(b, b.endpoint));
       await this.schedule();
       return json({ ok: true });
     }
@@ -108,7 +109,9 @@ export class ShabbatHub {
       const items = (Array.isArray(b.items) ? b.items : []).map((x) => ({ t: +x.t, label: clean(x.label, b.kind === "t" || b.kind === "c" || b.kind === "v" ? 70 : 40) })).filter((x) => x.t > now - 864e5 && x.t < now + (b.kind === "c" || b.kind === "v" ? 400 : 120) * 864e5).sort((a, c) => a.t - c.t).slice(0, b.kind === "t" ? 100 : 40);
       // HaniaCheck ("c:") reminds about car tests months ahead, so its items may reach further.
       if (!items.length) return json({ error: "items" }, 400);
-      const k = (["z", "h", "t", "c", "v"].includes(b.kind) ? b.kind + ":" : "s:") + (await idOf(endpoint)), old = (await this.ctx.storage.get(k)) || {};
+      const k = await slotOf(b, endpoint), old = (await this.ctx.storage.get(k)) || {};
+      // the same app's list from before it had its own slot: drop it, so nothing comes twice
+      if (appOf(b)) { const lk = "t:" + (await idOf(endpoint)), legacy = await this.ctx.storage.get(lk); if (legacy && legacy.city === (clean(b.city, 30) || "העיר שלך")) await this.ctx.storage.delete(lk); }
       const before = Math.min(240, Math.max(10, +b.before || 60));
       await this.ctx.storage.put(k, { endpoint, before, city: clean(b.city, 30) || "העיר שלך", items, last: old.before === before ? old.last || 0 : 0, msg: old.msg || null });
       await this.schedule();
@@ -117,6 +120,12 @@ export class ShabbatHub {
     return json({ error: "not found" }, 404);
   }
 }
+
+// Several apps keep daily reminders of kind "t" (HaniaDat's prayers, HaniaLimud, HaniaFit, HaniaShigra, HaniaMatalot).
+// Inside a hub page they share one phone address, so each app gets its own slot ("t:<id>:<app>"); before, the last app to
+// save its list replaced the others' (a missed Daf Yomi reminder). HaniaDat's prayers keep the plain "t:<id>".
+function appOf(b) { return b && b.kind === "t" && typeof b.app === "string" && /^[a-z]{2,12}$/.test(b.app) ? b.app : ""; }
+async function slotOf(b, endpoint) { const a = appOf(b); return (["z", "h", "t", "c", "v"].includes(b.kind) ? b.kind + ":" : "s:") + (await idOf(endpoint)) + (a ? ":" + a : ""); }
 
 export function shabbatApi(req, env) {
   if (!env.SHABBAT) return Response.json({ error: "not configured" }, { status: 503 });

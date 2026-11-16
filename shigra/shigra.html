@@ -804,7 +804,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     var hubPush = function (op, body) { return new Promise(function (res, rej) { var id = Math.random().toString(36).slice(2), t; var on = function (e) { if (e.data && e.data.hania === "push-done" && e.data.id === id) { removeEventListener("message", on); clearTimeout(t); if (e.data.ok) res({ ok: true, endpoint: e.data.endpoint }); else rej(new Error(e.data.error || "x")); } }; addEventListener("message", on); window.parent.postMessage({ hania: "push", id: id, op: op, body: body }, "*"); t = setTimeout(function () { removeEventListener("message", on); rej(new Error("timeout")); }, 90000); }); };
     var HUBSUB = { endpoint: "hub", toJSON: function () { return null; } };
     getSub = function () { return Promise.resolve(HUBSUB); };
-    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind }); return api0(path, body); };
+    var api0 = api; api = function (path, body) { if (path === "sub") { var b = Object.assign({}, body); delete b.sub; return hubPush("sub", b); } if (path === "unsub") return hubPush("unsub", { kind: body && body.kind, app: body && body.app }); return api0(path, body); };
     try { window.Notification = { requestPermission: function () { return Promise.resolve("granted"); }, permission: "granted" }; } catch (e) {}
   }
   function items() {
@@ -828,13 +828,13 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     var next = Object.assign({}, S.rem); next[m] = on;
     var old = S.rem; S.rem = next; var it = items(); S.rem = old;
     var done = function () { S.rem = next; save(); home(); toast(on ? "🔔 נזכיר כשמגיע הזמן" : "התזכורת כבויה"); };
-    if (!it.length) return getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint, kind: "t" }); done(); }).catch(done);
+    if (!it.length) return getSub(false).then(function (s) { if (s) api("unsub", { endpoint: s.endpoint, kind: "t", app: "shigra" }); done(); }).catch(done);
     Notification.requestPermission().then(function (p) {
       if (p !== "granted") { toast("בלי אישור להתראות אי אפשר להזכיר"); return; }
-      return getSub(true).then(function (s) { return api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).then(function (j) { if (!j.ok) throw 0; done(); });
+      return getSub(true).then(function (s) { return api("sub", { kind: "t", app: "shigra", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).then(function (j) { if (!j.ok) throw 0; done(); });
     }).catch(function () { toast("לא הצלחנו להפעיל תזכורת"); });
   }
-  function resync() { if (!canPush || !S.rem || !(S.rem.evening || S.rem.morning)) return; var it = items(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "t", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).catch(function () {}); }
+  function resync() { if (!canPush || !S.rem || !(S.rem.evening || S.rem.morning)) return; var it = items(); if (!it.length) return; getSub(false).then(function (s) { if (s) api("sub", { kind: "t", app: "shigra", sub: s.toJSON(), before: 10, city: "HaniaShigra", items: it }); }).catch(function () {}); }
 
   home(); resync();
   addEventListener("hashchange", function () { if (/^#fam=/.test(location.hash)) { $("run").hidden = true; home(); scrollTo(0, 0); } });
