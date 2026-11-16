@@ -1,4 +1,4 @@
-# Every morning: the Israel Railways timetable for the next 10 days, for Hania (the AI assistant), from the Ministry of
+# Every morning: the Israel Railways timetable for the next 30 days, for Hania (the AI assistant), from the Ministry of
 # Transport's open GTFS (taken through hania360.com, since the Ministry refuses foreign addresses), kept on the
 # "rail-data" branch as rail.json. Nothing here deploys the site.
 name: rail
