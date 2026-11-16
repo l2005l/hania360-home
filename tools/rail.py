@@ -1,5 +1,5 @@
 # Daily rail timetable for Hania (the AI assistant): from the Ministry of Transport's open GTFS (all public transport),
-# keep only Israel Railways, for the next 10 days, in one small JSON:
+# keep only Israel Railways, for the next 30 days, in one small JSON:
 #   {"at": "...", "stations": {"id": "name"}, "days": {"YYYY-MM-DD": [trip index, ...]}, "trips": [[[station id, minutes], ...], ...]}
 # minutes = minutes after midnight of the service day (may pass 1440 after midnight). Run by .github/workflows/rail.yml.
 import csv, io, json, sys, zipfile, datetime
@@ -22,7 +22,7 @@ for r in rows("stop_times.txt"):
     stops_used.add(r["stop_id"])
 names = {r["stop_id"]: r["stop_name"] for r in rows("stops.txt") if r["stop_id"] in stops_used}
 today = datetime.date.today()
-days = [today + datetime.timedelta(days=i) for i in range(10)]
+days = [today + datetime.timedelta(days=i) for i in range(30)]
 wk = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 active = {d: set() for d in days}
 services = set(trips.values())

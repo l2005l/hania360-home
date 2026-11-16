@@ -113,20 +113,22 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
       if (a.time) L.push("DTSTART:" + utc(a.date, a.time), "DTEND:" + utc(a.date, a.end || plusHour(a.time)));
       else L.push("DTSTART;VALUE=DATE:" + a.date.replace(/-/g, ""), "DTEND;VALUE=DATE:" + nextDay(a.date));
       if (a.place) L.push("LOCATION:" + esc(a.place));
-      var desc = (a.note || "") + (a.trainLink ? (a.note ? "\n" : "") + "🚆 לצאת בערך " + leave(a) + " (נסיעה רגילה " + a.travel + " דק׳ ועוד מרווח). זמני הרכבת של היום: " + a.trainLink : "");
+      var desc = (a.note || "") + (a.trainLink ? (a.note ? "\n" : "") + trainLine(a) + " זמני הרכבת של היום: " + a.trainLink : "");
       if (desc) L.push("DESCRIPTION:" + esc(desc));
       var r = rrule(a); if (r) L.push("RRULE:" + r);
       var rem = (Array.isArray(a.remind) && a.remind.length ? a.remind : [a.time ? 120 : 180]).slice(0, 3);
-      if (a.trainLink && a.time) rem = rem.filter(function (m) { return Math.abs(m - (a.travel + 30)) > 10; }).concat([a.travel + 30]);
+      if (a.trainLink && a.time) { var lead = a.dep ? mins(a.time) - mins(a.dep) + 30 : a.travel + 30; rem = rem.filter(function (m) { return Math.abs(m - lead) > 10; }).concat([lead]); }
       rem.forEach(function (m) { L.push("BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + esc(a.title), "TRIGGER:-PT" + Math.max(0, Math.round(+m || 0)) + "M", "END:VALARM"); });
       L.push("END:VEVENT");
     });
     L.push("END:VCALENDAR"); return L.join("\r\n");
   }
+  function mins(t) { var p = String(t || "0:0").split(":"); return +p[0] * 60 + +p[1]; }
+  function trainLine(a) { return a.dep ? "🚆 רכבת " + a.dep + " מ" + a.fromSt + ", מגיעה ל" + a.toSt + " ב־" + a.arr + ". תזכורת חצי שעה לפני הרכבת." : "🚆 לצאת בערך " + leave(a) + " (נסיעה רגילה " + a.travel + " דק׳ ועוד מרווח)."; }
   function leave(a) { var p = (a.arrive || a.time || "00:00").split(":"), t = +p[0] * 60 + +p[1] - (a.travel || 90) - 20; t = (t + 1440) % 1440; return pad(Math.floor(t / 60)) + ":" + pad(t % 60); }
   function gcal(a) {
     var d = a.date.replace(/-/g, ""), dates = a.time ? d + "T" + a.time.replace(":", "") + "00/" + d + "T" + (a.end || plusHour(a.time)).replace(":", "") + "00" : d + "/" + nextDay(a.date);
-    var q = "action=TEMPLATE&ctz=Asia%2FJerusalem&text=" + encodeURIComponent(a.title || "") + "&dates=" + dates + (a.place ? "&location=" + encodeURIComponent(a.place) : "") + ((a.note || a.trainLink) ? "&details=" + encodeURIComponent((a.note || "") + (a.trainLink ? (a.note ? "\n" : "") + "🚆 לצאת בערך " + leave(a) + ". זמני הרכבת של היום: " + a.trainLink : "")) : "");
+    var q = "action=TEMPLATE&ctz=Asia%2FJerusalem&text=" + encodeURIComponent(a.title || "") + "&dates=" + dates + (a.place ? "&location=" + encodeURIComponent(a.place) : "") + ((a.note || a.trainLink) ? "&details=" + encodeURIComponent((a.note || "") + (a.trainLink ? (a.note ? "\n" : "") + trainLine(a) + " זמני הרכבת של היום: " + a.trainLink : "")) : "");
     var r = rrule(a); if (r) q += "&recur=" + encodeURIComponent("RRULE:" + r);
     return "https://calendar.google.com/calendar/render?" + q;
   }
@@ -137,7 +139,7 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
     return el("div", { class: "confirm", style: "border-color:var(--ok)" }, [el("b", { text: "📅 להוספה ליומן בטלפון" }),
       el("div", { class: "row" }, [el("a", { class: "btn", href: URL.createObjectURL(file), download: "hania-events.ics", text: "📥 כל האירועים ביחד (קובץ יומן)" })]),
       el("div", { style: "display:grid;gap:6px" }, evs.map(function (x) { return el("a", { class: "btn ghost", href: gcal(x.args), target: "_blank", rel: "noopener", text: "יומן Google: " + x.args.title }); })),
-      evs.some(function (x) { return x.args.trainLink; }) ? el("div", { style: "display:grid;gap:6px" }, evs.filter(function (x) { return x.args.trainLink; }).map(function (x) { return el("a", { class: "btn ghost", href: x.args.trainLink, target: "_blank", rel: "noopener", text: "🚆 זמני רכבת: " + x.args.title + " (לצאת בערך " + leave(x.args) + ")" }); })) : null,
+      evs.some(function (x) { return x.args.trainLink; }) ? el("div", { style: "display:grid;gap:6px" }, evs.filter(function (x) { return x.args.trainLink; }).map(function (x) { return el("a", { class: "btn ghost", href: x.args.trainLink, target: "_blank", rel: "noopener", text: "🚆 " + (x.args.dep ? "רכבת " + x.args.dep + " → " + x.args.arr : "זמני רכבת, לצאת בערך " + leave(x.args)) + " · " + x.args.title }); })) : null,
       el("div", { class: "row" }, [el("button", { class: "btn ghost", type: "button", text: "📤 לשלוח סיכום (למשל למנהל)", onclick: function () {
         var t = "הלו״ז שלי:\n" + share;
         if (navigator.share) navigator.share({ text: t }).catch(function () {}); else { try { navigator.clipboard.writeText(t); } catch (e) {} alert(t); }

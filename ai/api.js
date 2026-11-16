@@ -86,7 +86,12 @@ async function run(tool, a, ctx) {
     for (const k in APPS) { const x = APPS[k], s = x[0] + " " + x[1]; const score = words.filter((w) => s.indexOf(w) >= 0).length; if (score) out.push([score - 0.5, x[0] + ": " + x[1]]); }
     return out.sort((p, q2) => q2[0] - p[0]).slice(0, 5).map((x) => x[1]);
   }
-  if (tool === "train") { const t = trainPlan(a.from || ("תחנת רכבת " + (city || "")), a.to, a.date || ymd(Date.now()), a.arrive || ""); return t; }
+  if (tool === "train") {
+    const from = a.from || ("תחנת רכבת " + (city || "")), date = a.date || ymd(Date.now()), t = await trains(from, a.to, date, a.arrive || "");
+    const link = trainLink(from, a.to, date, a.arrive || "");
+    if (t.error || t.none) return Object.assign(trainPlan(from, a.to, date, a.arrive || ""), { timetable: t.error ? "לא נמצאה תחנה או תאריך בלוח הרכבות" : "אין רכבת ישירה, אולי צריך החלפה" });
+    return Object.assign(t, { link, note: "מלוח הזמנים הרשמי (משרד התחבורה). עיכובים של היום רואים בקישור." });
+  }
   if (tool === "add_task") { const j = await pass(env, cookie, "/api/daily/task-add", { text: String(a.text || "").slice(0, 80), day: a.day || "", assignee: "", shared: false }); return { ok: true, added: j.added }; }
   if (tool === "add_note") { await pass(env, cookie, "/api/notes/add", { text: String(a.text || "").slice(0, 80), day: a.day || ymd(Date.now()), time: a.time || "", remind: !!a.remind && !!a.time }); return { ok: true }; }
   if (tool === "done_task") { await pass(env, cookie, "/api/daily/task-done", { id: String(a.id || ""), done: true }); return { ok: true }; }
@@ -103,6 +108,41 @@ export function trainLink(from, to, date, arrive) {
   if (y && arrive) { const [h, mi] = arrive.split(":").map(Number); q.set("ttype", "arr"); q.set("date", m + "/" + d + "/" + y); q.set("time", ((h + 11) % 12 + 1) + ":" + String(mi).padStart(2, "0") + (h < 12 ? "am" : "pm")); }
   return "https://www.google.com/maps?" + q.toString();
 }
+// The real Israel Railways timetable (Ministry of Transport open data, refreshed every morning by .github/workflows/rail.yml).
+const RAIL_URL = "https://raw.githubusercontent.com/l2005l/hania360-home/rail-data/rail.json";
+let RAIL = null, RAIL_AT = 0;
+async function rail() {
+  if (RAIL && Date.now() - RAIL_AT < 3600e3) return RAIL;
+  try { const r = await fetch(RAIL_URL, { cf: { cacheTtl: 3600, cacheEverything: true } }); if (r.ok) { RAIL = await r.json(); RAIL_AT = Date.now(); } } catch {}
+  return RAIL;
+}
+const ALIAS = [[/השלום|עזריאלי|אטלס|קריית הממשלה|הקריה/, "השלום"], [/סבידור|מרכז ת|תל.?אביב מרכז|ארלוזורוב/, "תל אביב מרכז"], [/אוניברסיט|אקספו|גני התערוכה/, "תל אביב האוניברסיטה"], [/ההגנה/, "תל אביב ההגנה"],
+  [/נתב|נמל התעופה|בן.?גוריון|שדה התעופה/, "נתב"], [/ירושלים|נבון/, "ירושלים/יצחק נבון"], [/^תל.?אביב$|תל.?אביב/, "השלום"], [/חיפה/, "חיפה מרכז"], [/באר.?שבע/, "באר שבע מרכז"], [/אשדוד/, "אשדוד עד הלום"], [/מודיעין/, "מודיעין מרכז"]];
+function station(R, q) {
+  if (!R || !q) return null;
+  const clean = (x) => String(x).replace(/["'״׳]/g, "").replace(/תחנת?( ה?רכבת)?/g, "").replace(/\s+/g, " ").trim();
+  const n = clean(q), list = Object.entries(R.stations).map(([id, name]) => [id, name, clean(name)]);
+  let hit = list.find((x) => x[2] === n) || list.find((x) => n.indexOf(x[2]) >= 0 && x[2].length > 2);
+  if (!hit) { const al = ALIAS.find((a) => a[0].test(n)); if (al) hit = list.find((x) => x[2].indexOf(clean(al[1])) === 0); }
+  if (!hit) hit = list.find((x) => x[2].indexOf(n) >= 0);
+  return hit ? { id: hit[0], name: hit[1] } : null;
+}
+const hhmm = (m) => String(Math.floor(m / 60) % 24).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+// Direct trains from → to on that day: those arriving by `arrive` (the last three), or, without it, the next ones.
+export async function trains(from, to, date, arrive) {
+  const R = await rail(); if (!R) return { error: "no timetable" };
+  const a = station(R, from), b = station(R, to);
+  if (!a || !b) return { error: "station", from: a && a.name, to: b && b.name };
+  const ids = R.days[date]; if (!ids) return { error: "date", from: a.name, to: b.name };
+  const list = [];
+  for (const i of ids) { const t = R.trips[i]; let x = -1, y = -1; t.forEach((s, k) => { if (s[0] === a.id && x < 0) x = k; if (s[0] === b.id) y = k; }); if (x >= 0 && y > x) list.push([t[x][1], t[y][1]]); }
+  list.sort((p, q) => p[0] - q[0]);
+  const lim = arrive ? +arrive.split(":")[0] * 60 + +arrive.split(":")[1] : null;
+  const nowM = date === ymd(Date.now()) ? +new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ }).split(":").reduce((h, m) => h * 60 + +m) : 0;
+  const pick = lim != null ? list.filter((x) => x[1] <= lim).slice(-3) : list.filter((x) => x[0] >= nowM).slice(0, 4);
+  return { from: a.name, to: b.name, date, arrive_by: arrive || "", direct_trains: pick.map((x) => ({ leaves: hhmm(x[0]), arrives: hhmm(x[1]) })), none: !pick.length, updated: R.at };
+}
+
 function trainPlan(from, to, date, arrive) {
   const min = travelMin(from, to), out = { from, to, date, arrive, usual_travel_minutes: min, link: trainLink(from, to, date, arrive) };
   if (arrive) { const [h, mi] = arrive.split(":").map(Number), t = h * 60 + mi - min - 20; out.leave_by = String(Math.floor((t + 1440) % 1440 / 60)).padStart(2, "0") + ":" + String((t + 1440) % 60).padStart(2, "0"); out.note = "זמן משוער (נסיעה רגילה ועוד 20 דקות מרווח). את הרכבת המדויקת בודקים בקישור."; }
@@ -115,7 +155,7 @@ function describe(tool, a) {
   if (tool === "add_task") return "להוסיף משימה ל־Today: \"" + a.text + "\"" + day(a.day);
   if (tool === "add_note") return "להוסיף פתק: \"" + a.text + "\"" + day(a.day) + (a.time ? " בשעה " + a.time : "") + (a.remind && a.time ? ", עם תזכורת לטלפון 15 דקות לפני" : "");
   if (tool === "done_task") return "לסמן כבוצעה: \"" + (a.text || a.id) + "\"";
-  if (tool === "add_event") return "📅 ליומן: " + a.title + (a.train ? " 🚆" : "") + day(a.date) + (a.time ? " " + a.time + (a.end ? "–" + a.end : "") : " (כל היום)") + (a.place ? ", " + a.place : "") + (a.repeat === "weekly" ? ", כל שבוע" + (a.until ? " עד " + a.until.split("-").reverse().join(".") : "") : a.repeat === "monthly" ? ", כל חודש" : "");
+  if (tool === "add_event") return "📅 ליומן: " + a.title + (a.train ? " 🚆" + (a.dep ? " (רכבת " + a.dep + " מ" + a.fromSt + ", מגיעה " + a.arr + ")" : "") : "") + day(a.date) + (a.time ? " " + a.time + (a.end ? "–" + a.end : "") : " (כל היום)") + (a.place ? ", " + a.place : "") + (a.repeat === "weekly" ? ", כל שבוע" + (a.until ? " עד " + a.until.split("-").reverse().join(".") : "") : a.repeat === "monthly" ? ", כל חודש" : "");
   if (tool === "add_repeat") return "תזכורת חוזרת: \"" + a.title + "\" " + (a.kind === "weekly" ? "כל יום " + WD[+a.wd || 0] : a.kind === "monthly" ? "כל " + (a.md || 1) + " בחודש" : "כל שנה ב־" + (a.md || 1) + "." + (a.mon || 1));
   return tool;
 }
@@ -128,6 +168,7 @@ function system(now, city) {
 ${list}
 כללים:
 - כל תשובה שלך היא JSON אחד בלבד, בלי שום טקסט מסביב: {"tool":"שם","args":{...}} כדי להשתמש בכלי, {"actions":[{"tool":"שם","args":{...}},...],"say":"משפט קצר"} לכמה פעולות יחד, או {"answer":"התשובה"} כדי לענות.
+- "מתי הרכבת / מתי לצאת" = train (לוח הזמנים האמיתי של רכבת ישראל). כותבים בתשובה את שעות היציאה וההגעה ואת הקישור.
 - נסיעה ברכבת ("ברכבת", "מתחנת..."): ב־add_event שמים train:true, from (נקודת היציאה), place (היעד) ו־arrive (מתי צריך להגיע). אם לא נאמר מאיפה, from = תחנת רכבת ב${city || "העיר שלך"}.
 - "יומן" = add_event (היומן בטלפון). משימה / "תזכירי לי" בלי יומן = add_task או add_note. בבקשה עם כמה אירועים: actions, אחד לכל אירוע.
 - עובדות על היום, שבת, לימוד, משימות, חדשות וספורט: רק מתוך כלי, לא מהזיכרון.
@@ -194,7 +235,14 @@ export async function aiApi(request, env, ctx) {
     if (!o) return json({ answer: "משהו לא עבד אצלי. ננסה שוב בעוד רגע?" });
     const acts = (Array.isArray(o.actions) ? o.actions : o.tool ? [o] : []).filter((x) => x && TOOLS[x.tool] && TOOLS[x.tool].write).slice(0, 12);
     // a train trip: the link (set to arrive on time) and the usual travel time go into the calendar event
-    acts.forEach((x) => { const g = x.args || {}; if (x.tool === "add_event" && (g.train || /רכבת/.test((g.title || "") + (g.from || "") + (g.note || "")))) { g.train = true; g.from = g.from || "תחנת רכבת " + (city || ""); g.arrive = g.arrive || g.time || ""; g.travel = travelMin(g.from, g.place || g.title); g.trainLink = trainLink(g.from, g.place || g.title, g.date, g.arrive); x.args = g; } });
+    for (const x of acts) {
+      const g = x.args || {};
+      if (x.tool !== "add_event" || !(g.train || /רכבת/.test((g.title || "") + (g.from || "") + (g.note || "")))) continue;
+      g.train = true; g.from = g.from || "תחנת רכבת " + (city || ""); g.arrive = g.arrive || g.time || "";
+      g.travel = travelMin(g.from, g.place || g.title); g.trainLink = trainLink(g.from, g.place || g.title, g.date, g.arrive);
+      if (g.arrive && g.date) { const t = await trains(g.from, g.place || g.title, g.date, g.arrive).catch(() => null); const best = t && t.direct_trains && t.direct_trains[t.direct_trains.length - 1]; if (best) { g.dep = best.leaves; g.arr = best.arrives; g.fromSt = t.from; g.toSt = t.to; } }
+      x.args = g;
+    }
     if (acts.length) return json({ answer: o.say || "", pending: { items: acts.map((x) => ({ tool: x.tool, args: x.args || {}, text: describe(x.tool, x.args || {}), phone: !!TOOLS[x.tool].phone })) }, used });
     if (o.tool && TOOLS[o.tool]) {
       let res; try { res = await run(o.tool, o.args, c); } catch (e) { res = { error: String(e.message || e).slice(0, 80) }; }
