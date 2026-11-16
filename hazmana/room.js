@@ -43,7 +43,7 @@ export class EventRoom {
   get(k) { const r = this.rows("SELECT v FROM meta WHERE k = ?", k)[0]; return r ? JSON.parse(r.v) : null; }
   put(k, v) { this.ctx.storage.sql.exec("INSERT INTO meta (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, JSON.stringify(v)); }
   guest(r) { return { id: r.id, t: r.t, name: r.name, phone: r.phone, side: r.side, grp: r.grp, invited: r.invited, status: r.status, adults: r.adults, kids: r.kids, diet: r.diet, note: r.note, tbl: r.tbl, sent: r.sent, upd: r.upd, src: r.src }; }
-  all() { return { event: this.get("event"), guests: this.rows("SELECT * FROM guests ORDER BY rowid").map((r) => this.guest(r)), tables: this.rows("SELECT * FROM tables ORDER BY ord, rowid"), photo: !!this.get("photo") }; }
+  all() { return { event: this.get("event"), guests: this.rows("SELECT * FROM guests ORDER BY rowid").map((r) => this.guest(r)), tables: this.rows("SELECT * FROM tables ORDER BY ord, rowid"), photo: !!this.get("photo"), seat: this.get("seat") || {} }; }
   count() { return this.rows("SELECT COUNT(*) AS n FROM guests")[0].n; }
 
   addGuest(g, src) {
@@ -132,6 +132,15 @@ export class EventRoom {
       for (const r of this.rows("SELECT id, tbl FROM guests WHERE tbl <> ''")) if (!ids.has(r.tbl)) sql.exec("UPDATE guests SET tbl = '' WHERE id = ?", r.id);
       return json(Object.assign({ ok: true }, this.all()));
     }
+    // Seating preferences: per group its side and closeness, guests who sit together or apart, locked and honor tables.
+    if (p === "seat" && req.method === "POST") {
+      const x = b.seat || {}, groups = {}, gid = (v) => /^g[A-Za-z0-9]{8}$/.test(v), tid = (v) => /^t[A-Za-z0-9]{4,10}$/.test(v);
+      for (const [k, v] of Object.entries(x.groups || {}).slice(0, 200)) { const n = clean(k, 30); if (n && v) groups[n] = { side: ["a", "b", ""].includes(v.side) ? v.side : "", close: int(v.close, 1, 5, 3) }; }
+      const rules = (Array.isArray(x.rules) ? x.rules : []).filter((r) => Array.isArray(r) && gid(r[0]) && gid(r[1]) && r[0] !== r[1] && (r[2] === "near" || r[2] === "apart")).slice(0, 300).map((r) => [r[0], r[1], r[2]]);
+      const lock = (Array.isArray(x.lock) ? x.lock : []).filter(tid).slice(0, MAX_TABLES), vip = (Array.isArray(x.vip) ? x.vip : []).filter(tid).slice(0, MAX_TABLES);
+      this.put("seat", { groups, rules, lock, vip, mix: !!x.mix });
+      return json(Object.assign({ ok: true }, this.all()));
+    }
     if (p === "key") return json({ key: (await vapidKeys(this.ctx.storage)).pub });
     if (p === "sub" && req.method === "POST") { if (!okEndpoint(b.endpoint)) return json({ error: "endpoint" }, 400); sql.exec("INSERT OR REPLACE INTO subs (id, endpoint) VALUES (?, ?)", await subId(b.endpoint), b.endpoint); return json({ ok: true }); }
     return json({ error: "not found" }, 404);
@@ -165,9 +174,9 @@ export async function hazmanaApi(req, env, url) {
     for (const id of ids) { const m = await stub(id).fetch("https://e/msg", { method: "POST", body: JSON.stringify({ endpoint: b.endpoint }) }).then((r) => r.json()).catch(() => ({})); if (m && m.title) return json(m); }
     return json({});
   }
-  const m = url.pathname.match(/^\/api\/hz\/(open|me|rsvp|photo|admin|event|upload|guests|tables|key|sub)$/);
+  const m = url.pathname.match(/^\/api\/hz\/(open|me|rsvp|photo|admin|event|upload|guests|tables|seat|key|sub)$/);
   let body = null, eid = url.searchParams.get("e");
-  if (req.method === "POST") { body = await req.text(); if (body.length > 1200000) return json({ error: "size" }, 413); try { eid = JSON.parse(body).e; } catch { eid = null; } }
+  if (req.method === "POST") { body = await req.text(); if (body.length > 1600000) return json({ error: "size" }, 413); try { eid = JSON.parse(body).e; } catch { eid = null; } }
   if (!m || !okId(eid)) return json({ error: "event" }, 400);
   return stub(eid).fetch("https://e/" + m[1] + url.search, { method: req.method, body });
 }

@@ -434,8 +434,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     var waiting = A.guests.filter(function (g) { return !g.tbl && g.status !== "no"; }).sort(function (a, b) { return (b.status === "yes") - (a.status === "yes") || (a.grp || "").localeCompare(b.grp || ""); });
     var out = [el("div", { class: "card" }, [el("h3", { text: T.length ? "הוספת שולחנות" : "כמה שולחנות יש באולם?" }), el("div", { class: "row" }, [el("label", { class: "f" }, ["שולחנות", cntIn]), el("label", { class: "f" }, ["מקומות בכל שולחן", seatIn])]),
       el("div", { class: "btns" }, [el("button", { class: "btn", type: "button", text: "➕ הוספה", onclick: function () { var n = +cntIn.value || 1, base = T.length; saveTables(T.concat(Array.from({ length: n }, function (_, i) { return { name: String(base + i + 1), seats: +seatIn.value || 10 }; }))); } }),
-        T.length ? el("button", { class: "btn ghost", type: "button", text: "✨ הושבה אוטומטית לפי קבוצות", onclick: autoSeat }) : null,
+        T.length ? el("button", { class: "btn ghost", type: "button", text: "✨ הושבה חכמה", onclick: autoSeat }) : null,
         T.length ? el("button", { class: "btn ghost", type: "button", text: "⬇ ייצוא הושבה", onclick: seatingCsv }) : null])])];
+    if (plan) out.push(planCard());
+    out.push(seatSettings());
     if (T.length) {
       out.push(el("p", { class: "note", text: tSel ? "בחרו שולחן ל־" + (A.guests.filter(function (g) { return g.id === tSel; })[0] || {}).name : "לוחצים על מוזמן ואז על שולחן. לחיצה על שולחן בלי מוזמן מראה מי יושב בו." }));
       out.push(el("div", { class: "tbls" }, T.map(function (t) {
@@ -457,17 +459,136 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     }
     return out;
   }
-  function autoSeat() {
-    // Fills tables group by group, biggest groups first, keeping a group together where it fits.
-    var T = A.tables.map(function (t) { return { id: t.id, free: t.seats - seated(t.id).reduce(function (a, g) { return a + seatsOf(g); }, 0) }; });
-    var wait = A.guests.filter(function (g) { return !g.tbl && g.status !== "no"; }), byG = {};
-    wait.forEach(function (g) { (byG[g.grp || "—"] = byG[g.grp || "—"] || []).push(g); });
-    var ups = [];
-    Object.keys(byG).sort(function (a, b) { return byG[b].length - byG[a].length; }).forEach(function (k) {
-      byG[k].sort(function (a, b) { return seatsOf(b) - seatsOf(a); }).forEach(function (g) { var need = seatsOf(g), t = T.filter(function (x) { return x.free >= need; }).sort(function (a, b) { return a.free - b.free; })[0]; if (t) { t.free -= need; ups.push({ id: g.id, tbl: t.id }); } });
+  // ---- smart seating ----------------------------------------------------------------------------------
+  // What the hosts tell it: for each group its side (the groom's / the bride's, or one side for other events) and
+  // how close it is (1 close family … 5 work and others); guests who must sit together or apart; locked tables
+  // (kept exactly as they are) and honor tables (kept for the closest). Tables count from the stage: table 1 is nearest.
+  // How it seats: guests who must sit together become one unit; a family entry is never split. Groups go in order of
+  // closeness, so the closest take the tables nearest the stage. A group that fits one table gets one table (first a
+  // table already started by a group of the same side and closeness, else the nearest empty one); a bigger group
+  // spreads over tables next to each other. Small groups share a table only with the same side (unless mixing is on)
+  // and close in closeness, so no table is left with empty chairs for nothing. "Not with" is never broken.
+  var CLOSE = [[1, "משפחה קרובה"], [2, "משפחה"], [3, "חברים קרובים"], [4, "חברים"], [5, "עבודה ואחרים"]];
+  var plan = null, planAll = false, seatOpen = false;
+  function seatCfg() { var c = A.seat || {}; return { groups: c.groups || {}, rules: c.rules || [], lock: c.lock || [], vip: c.vip || [], mix: !!c.mix }; }
+  function saveSeat(c) { return api("seat", { e: ID, k: KEY, seat: c }).then(function (j) { A.seat = j.seat; A.guests = j.guests; A.tables = j.tables; paintAdmin(); }); }
+  function sides() { return A.event.kind === "wedding" ? [["a", "צד החתן"], ["b", "צד הכלה"], ["", "משותף"]] : [["a", "צד א׳"], ["b", "צד ב׳"], ["", "משותף"]]; }
+  function grpKey(g) { return g.grp || "ללא קבוצה"; }
+  function grpInfo(name, cfg) { var x = cfg.groups[name] || {}; return { side: x.side || "", close: x.close || (name === "קישור כללי" ? 5 : 3) }; }
+
+  function smartPlan(all) {
+    var cfg = seatCfg(), lock = {}, vip = {};
+    cfg.lock.forEach(function (t) { lock[t] = 1; }); cfg.vip.forEach(function (t) { vip[t] = 1; });
+    var tabs = A.tables.map(function (t, i) { return { id: t.id, name: t.name, seats: t.seats, ord: i, lock: !!lock[t.id], vip: !!vip[t.id], members: [], free: t.seats, sides: {}, closes: [] }; });
+    var byT = {}; tabs.forEach(function (t) { byT[t.id] = t; });
+    var come = A.guests.filter(function (g) { return g.status !== "no"; }), gById = {}; come.forEach(function (g) { gById[g.id] = g; });
+    function put(t, g) { var gi = grpInfo(grpKey(g), cfg); t.members.push(g.id); t.free -= seatsOf(g); t.sides[gi.side] = 1; t.closes.push(gi.close); }
+    // who stays where they are: locked tables always; everyone already seated unless re-seating all
+    var wait = [];
+    come.forEach(function (g) { var t = g.tbl && byT[g.tbl]; if (t && (t.lock || !all)) put(t, g); else wait.push(g); });
+    // "together" rules join guests into units (union-find)
+    var par = {}; function f(x) { return par[x] === x ? x : (par[x] = f(par[x])); }
+    wait.forEach(function (g) { par[g.id] = g.id; });
+    cfg.rules.forEach(function (r) { if (r[2] === "near" && par[r[0]] && par[r[1]]) par[f(r[0])] = f(r[1]); });
+    var apart = {}; cfg.rules.forEach(function (r) { if (r[2] !== "apart") return; (apart[r[0]] = apart[r[0]] || {})[r[1]] = 1; (apart[r[1]] = apart[r[1]] || {})[r[0]] = 1; });
+    var unitsBy = {}; wait.forEach(function (g) { var k = f(g.id); (unitsBy[k] = unitsBy[k] || []).push(g); });
+    var units = Object.keys(unitsBy).map(function (k) { var m = unitsBy[k], big = m.slice().sort(function (a, b) { return seatsOf(b) - seatsOf(a); })[0]; return { m: m, size: m.reduce(function (s, g) { return s + seatsOf(g); }, 0), grp: grpKey(big) }; });
+    var groups = {}; units.forEach(function (u) { (groups[u.grp] = groups[u.grp] || []).push(u); });
+    var order = Object.keys(groups).map(function (k) { var gi = grpInfo(k, cfg); return { name: k, units: groups[k].sort(function (a, b) { return b.size - a.size; }), size: groups[k].reduce(function (s, u) { return s + u.size; }, 0), side: gi.side, close: gi.close }; })
+      .sort(function (a, b) { return a.close - b.close || (a.side > b.side ? 1 : a.side < b.side ? -1 : 0) || b.size - a.size; });
+    function okFor(t, u, G) {
+      if (t.lock || t.free < u.size) return false;
+      if (t.vip && G.close > 2) return false;
+      for (var i = 0; i < u.m.length; i++) { var ap = apart[u.m[i].id]; if (ap) for (var j = 0; j < t.members.length; j++) if (ap[t.members[j]]) return false; }
+      if (!t.members.length) return true;
+      if (!cfg.mix) { var s = Object.keys(t.sides); if (s.some(function (x) { return x && G.side && x !== G.side; })) return false; }
+      var mc = Math.min.apply(null, t.closes), xc = Math.max.apply(null, t.closes);
+      return Math.abs(G.close - mc) <= 1 && Math.abs(G.close - xc) <= 1;
+    }
+    var left = [];
+    order.forEach(function (G) {
+      var open = tabs.filter(function (t) { return !t.lock; });
+      var home = null;
+      if (G.size <= Math.max.apply(null, open.map(function (t) { return t.seats; }).concat([0]))) {
+        // one table: a started table of the same kind where it fits best, else the nearest empty table that fits
+        var whole = { m: [].concat.apply([], G.units.map(function (u) { return u.m; })), size: G.size };
+        var started = open.filter(function (t) { return t.members.length && okFor(t, whole, G); }).sort(function (a, b) { return a.free - b.free || a.ord - b.ord; })[0];
+        var empty = open.filter(function (t) { return !t.members.length && okFor(t, whole, G); }).sort(function (a, b) { return a.ord - b.ord; })[0];
+        // a small group rather joins a started table of its side than sits alone at a big empty one
+        var near = !started && G.size <= (empty ? empty.seats / 2 : 99) ? open.filter(function (t) { return t.members.length && !t.vip && okFor(t, whole, { side: G.side, close: Math.min.apply(null, t.closes) }); }).sort(function (a, b) { return a.free - b.free || a.ord - b.ord; })[0] : null;
+        home = started || near || empty;
+        if (home) { G.units.forEach(function (u) { u.m.forEach(function (g) { put(home, g); }); }); return; }
+      }
+      // spread: units biggest first, each to the table this group already uses, then the next table along
+      var used = [];
+      G.units.forEach(function (u) {
+        var t = used.filter(function (x) { return okFor(x, u, G); }).sort(function (a, b) { return a.free - b.free; })[0]
+          || open.filter(function (x) { return x.members.length && used.indexOf(x) < 0 && okFor(x, u, G); }).sort(function (a, b) { return a.free - b.free || a.ord - b.ord; })[0]
+          || open.filter(function (x) { return !x.members.length && okFor(x, u, G); }).sort(function (a, b) {
+            var near = function (t) { return used.length ? Math.min.apply(null, used.map(function (y) { return Math.abs(y.ord - t.ord); })) : t.ord; };
+            return near(a) - near(b) || a.ord - b.ord; })[0];
+        if (!t && cfg.mix === false) t = open.filter(function (x) { return okFor(x, u, { side: "", close: G.close }); }).sort(function (a, b) { return a.free - b.free; })[0];
+        if (t) { u.m.forEach(function (g) { put(t, g); }); if (used.indexOf(t) < 0) used.push(t); } else left.push(u);
+      });
     });
-    if (!ups.length) { toast("אין מקום פנוי. מוסיפים שולחנות."); return; }
-    saveGuests({ update: ups }).then(function () { toast(ups.length + " הושבו. אפשר להזיז ידנית."); paintAdmin(); });
+    var moves = [];
+    tabs.forEach(function (t) { t.members.forEach(function (id) { var g = gById[id]; if (g && g.tbl !== t.id) moves.push({ id: id, tbl: t.id }); }); });
+    if (all) come.forEach(function (g) { if (g.tbl && byT[g.tbl] && !byT[g.tbl].lock && !tabs.some(function (t) { return t.members.indexOf(g.id) >= 0; })) moves.push({ id: g.id, tbl: "" }); });
+    return { tabs: tabs, moves: moves, left: [].concat.apply([], left.map(function (u) { return u.m; })), gById: gById };
+  }
+  function autoSeat() { plan = smartPlan(planAll); paintAdmin(); setTimeout(function () { var c = document.getElementById("plan"); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); }
+
+  function planCard() {
+    if (!plan) return null;
+    var P = plan, all = el("input", { type: "checkbox", style: "width:auto" }); all.checked = planAll;
+    all.addEventListener("change", function () { planAll = all.checked; plan = smartPlan(planAll); paintAdmin(); });
+    var list = P.tabs.filter(function (t) { return t.members.length; }).map(function (t) {
+      var names = t.members.map(function (id) { var g = P.gById[id]; return g ? g.name + (seatsOf(g) > 1 ? " (" + seatsOf(g) + ")" : "") : ""; });
+      var grps = Array.from(new Set(t.members.map(function (id) { var g = P.gById[id]; return g ? grpKey(g) : ""; })));
+      return el("div", { class: "tb" + (t.free < 0 ? " over" : t.free === 0 ? " full" : "") }, [el("b", { text: (t.lock ? "🔒 " : t.vip ? "⭐ " : "") + "שולחן " + t.name }), el("span", { class: "cap", text: (t.seats - t.free) + "/" + t.seats }), el("small", { style: "font-weight:700", text: grps.join(" + ") }), el("small", { text: names.join(", ") })]);
+    });
+    return el("div", { class: "card", id: "plan", style: "border:2px solid var(--accent)" }, [
+      el("h3", { text: "✨ ההושבה המוצעת" }),
+      el("p", { class: "note", text: P.moves.length ? P.moves.filter(function (m) { return m.tbl; }).length + " מוזמנים יקבלו שולחן. עוד לא נשמר כלום: בודקים ושומרים." : "אין מה לשנות: כולם כבר מושבים, או שאין מקום פנוי." }),
+      el("label", { class: "f", style: "display:flex;gap:8px;align-items:center;color:var(--ink)" }, [all, "לסדר מחדש גם את מי שכבר הושב (חוץ משולחנות נעולים 🔒)"]),
+      el("div", { class: "tbls" }, list),
+      P.left.length ? el("p", { class: "note", style: "color:var(--bad)", text: "לא נכנסו (" + P.left.length + "): " + P.left.map(function (g) { return g.name; }).join(", ") + ". מוסיפים שולחנות או מקומות, או מרפים כלל ״לא עם״." }) : null,
+      el("div", { class: "btns" }, [
+        el("button", { class: "btn", type: "button", text: "💾 שמירת ההושבה", disabled: !P.moves.length ? "" : null, onclick: function () { var m = P.moves; plan = null; saveGuests({ update: m }).then(function () { toast("ההושבה נשמרה. אפשר להזיז ידנית."); paintAdmin(); }); } }),
+        el("button", { class: "btn ghost", type: "button", text: "ביטול", onclick: function () { plan = null; paintAdmin(); } })])]);
+  }
+
+  function seatSettings() {
+    var cfg = seatCfg(), names = Array.from(new Set(A.guests.filter(function (g) { return g.status !== "no"; }).map(grpKey))).sort();
+    var rows = names.map(function (n) {
+      var gi = grpInfo(n, cfg), cnt = A.guests.filter(function (g) { return grpKey(g) === n && g.status !== "no"; }).reduce(function (s, g) { return s + seatsOf(g); }, 0);
+      var sd = el("select", { "aria-label": "צד של " + n }, sides().map(function (x) { var o = el("option", { value: x[0], text: x[1] }); if (x[0] === gi.side) o.selected = true; return o; }));
+      var cl = el("select", { "aria-label": "קרבה של " + n }, CLOSE.map(function (x) { var o = el("option", { value: String(x[0]), text: x[1] }); if (x[0] === gi.close) o.selected = true; return o; }));
+      var ch = function () { cfg.groups[n] = { side: sd.value, close: +cl.value }; saveSeat(cfg); };
+      sd.addEventListener("change", ch); cl.addEventListener("change", ch);
+      return el("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 0;border-top:1px solid var(--line)" }, [el("b", { text: n + " · " + cnt + " מקומות", style: "font-size:15px;grid-column:1/-1" }), sd, cl]);
+    });
+    var gl = A.guests.filter(function (g) { return g.status !== "no"; }).slice().sort(function (a, b) { return a.name.localeCompare(b.name, "he"); });
+    var gopt = function () { return el("select", {}, [el("option", { value: "", text: "בוחרים מוזמן" })].concat(gl.map(function (g) { return el("option", { value: g.id, text: g.name + (g.grp ? " · " + g.grp : "") }); }))); };
+    var r1 = gopt(), r2 = gopt(), rt = el("select", {}, [el("option", { value: "near", text: "🤝 לשבת ליד" }), el("option", { value: "apart", text: "🚫 לא לשבת עם" })]);
+    var nm = function (id) { var g = A.guests.filter(function (x) { return x.id === id; })[0]; return g ? g.name : "?"; };
+    var ruleList = cfg.rules.map(function (r, i) { return el("div", { class: "step" }, [el("b", { text: nm(r[0]) + (r[2] === "near" ? " 🤝 ליד " : " 🚫 לא עם ") + nm(r[1]) }), el("button", { type: "button", "aria-label": "מחיקה", text: "×", onclick: function () { cfg.rules.splice(i, 1); saveSeat(cfg); } })]); });
+    var tl = A.tables.map(function (t) {
+      var lk = cfg.lock.indexOf(t.id) >= 0, vp = cfg.vip.indexOf(t.id) >= 0;
+      var tog = function (key) { return function () { var a = cfg[key], i = a.indexOf(t.id); if (i >= 0) a.splice(i, 1); else a.push(t.id); saveSeat(cfg); }; };
+      return el("div", { class: "chips", style: "align-items:center" }, [el("b", { text: "שולחן " + t.name, style: "min-width:84px" }), el("button", { type: "button", "aria-pressed": String(lk), text: "🔒 נעול", onclick: tog("lock") }), el("button", { type: "button", "aria-pressed": String(vp), text: "⭐ כבוד", onclick: tog("vip") })]);
+    });
+    var mix = el("input", { type: "checkbox", style: "width:auto" }); mix.checked = cfg.mix;
+    mix.addEventListener("change", function () { cfg.mix = mix.checked; saveSeat(cfg); });
+    var d = el("details", { class: "card", open: seatOpen ? "" : null, ontoggle: function () { seatOpen = d.open; } }, [el("summary", { style: "cursor:pointer;font-weight:800;font-size:17px", text: "⚙️ הגדרות הושבה: צד, קרבה, ליד מי ולא ליד מי" }),
+      el("p", { class: "note", text: "לכל קבוצה בוחרים צד וקרבה. הקרובים יושבים בשולחנות הראשונים (שולחן 1 הכי קרוב לבמה), כל קבוצה נשארת יחד, ומשפחה אף פעם לא מתפצלת." }),
+      names.length ? el("div", { style: "display:grid;gap:8px" }, rows) : el("p", { class: "note", text: "עוד אין מוזמנים. נותנים לכל מוזמן ״קבוצה״ ברשימת המוזמנים." }),
+      el("label", { class: "f", style: "display:flex;gap:8px;align-items:center;color:var(--ink)" }, [mix, "מותר לערבב צדדים באותו שולחן כשנשארים מקומות"]),
+      el("h3", { text: "ליד מי ולא ליד מי" }), ruleList.length ? el("div", { style: "display:grid;gap:6px" }, ruleList) : null,
+      el("div", { style: "display:grid;gap:6px" }, [r1, rt, r2]),
+      el("button", { class: "btn ghost sm", type: "button", text: "➕ הוספת כלל", onclick: function () { if (!r1.value || !r2.value || r1.value === r2.value) { toast("בוחרים שני מוזמנים שונים"); return; } cfg.rules.push([r1.value, r2.value, rt.value]); saveSeat(cfg); } }),
+      A.tables.length ? el("h3", { text: "שולחנות" }) : null, A.tables.length ? el("p", { class: "note", text: "🔒 נעול: ההושבה לא נוגעת בו. ⭐ כבוד: רק משפחה קרובה ומשפחה." }) : null].concat(tl));
+    return d;
   }
   function download(name, rows) {
     var csvText = "﻿" + rows.map(function (r) { return r.map(function (c) { c = String(c == null ? "" : c); return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(","); }).join("\n");
