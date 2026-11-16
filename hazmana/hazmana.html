@@ -45,6 +45,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .inv.night{--t-bg:#141B33;--t-ink:#F3EBD8;--t-acc:#D7B46A;--t-soft:#2A3456}
 .inv.kids{--t-bg:#FFF9E8;--t-ink:#27324A;--t-acc:#FF6A5C;--t-soft:#FFE08A;--t-font:"Rubik",sans-serif}
 .inv.sea{--t-bg:#EFFAF9;--t-ink:#14404A;--t-acc:#1C9AA0;--t-soft:#BFE9E6}
+.inv.image{--t-bg:#FFFFFF;--t-ink:#2A2230;--t-acc:#B8893B;--t-soft:#F3EEE6}
+.inv.image .full{display:block;width:100%;height:auto}
+.inv.image .in{padding:14px 16px 16px;gap:8px}.inv.image .in::before{display:none}
 /* more looks: each one a different idea, not only other colors */
 .inv.stars{--t-bg:#0B1430;--t-ink:#F4EEDC;--t-acc:#E9C46A;--t-soft:rgba(255,255,255,.08);background:radial-gradient(1.5px 1.5px at 12% 18%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 28% 62%,#fff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 74% 12%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 86% 44%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 52% 30%,#ffe9a8 50%,transparent 51%),radial-gradient(1.5px 1.5px at 40% 86%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 90% 82%,#fff 50%,transparent 51%),radial-gradient(1px 1px at 8% 76%,#ffe9a8 50%,transparent 51%),radial-gradient(120% 70% at 50% 0%,#1F3570,#0B1430 70%)}
 .inv.stars h1{text-shadow:0 0 22px rgba(233,196,106,.45)}
@@ -148,7 +151,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   // [id, name, swatch background, swatch accent, ornament line, dark]
   var THEMES = [["gold", "קלאסי", "#FBF6EC", "#B8893B", "✦ ✦ ✦"], ["bloom", "פרחוני", "#FFF4F3", "#D9748A", "✿ ❀ ✿"], ["night", "ערב", "#141B33", "#D7B46A", "✦ ✦ ✦", 1], ["kids", "צבעוני", "#FFF9E8", "#FF6A5C", "★ ● ★"], ["sea", "ים", "#EFFAF9", "#1C9AA0", "〰 ◦ 〰"],
     ["stars", "שמי לילה", "#0B1430", "#E9C46A", "✧ ☾ ✧", 1], ["emerald", "אמרלד", "#0F3B33", "#D4AF63", "❖ ❖ ❖", 1], ["stone", "אבן ירושלמית", "#EFE6D4", "#8A6F45", "❦"], ["marble", "שיש", "#FAFAF8", "#1A1A1A", "— ◆ —"], ["olive", "זית", "#F2F1E6", "#6B7A3A", "❧ ❧"],
-    ["terra", "טרקוטה", "#F6E9DE", "#B5532E", "✺"], ["water", "צבעי מים", "#FDF8F4", "#9C7BB5", "❀ ❀ ❀"], ["minimal", "מינימלי", "#FFFFFF", "#111111", "·"], ["tallit", "טלית", "#FDFDFB", "#2B4C8C", "✡"], ["wine", "בורדו", "#3A0F1C", "#E8C27A", "❦ ❦", 1]];
+    ["terra", "טרקוטה", "#F6E9DE", "#B5532E", "✺"], ["water", "צבעי מים", "#FDF8F4", "#9C7BB5", "❀ ❀ ❀"], ["minimal", "מינימלי", "#FFFFFF", "#111111", "·"], ["tallit", "טלית", "#FDFDFB", "#2B4C8C", "✡"], ["wine", "בורדו", "#3A0F1C", "#E8C27A", "❦ ❦", 1], ["image", "🖼️ ההזמנה שלי", "#F1ECE6", "#8C8C8C", ""]];
   function themeOf(id) { return THEMES.filter(function (t) { return t[0] === id; })[0] || THEMES[0]; }
   var MSG = {
     wedding: "בשמחה רבה ובהתרגשות\nאנו מתכבדים להזמינכם לחגוג איתנו\nאת יום נישואינו",
@@ -187,7 +190,17 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   function invitation(id, ev) {
     var K = KINDS[ev.kind] || KINDS.other, maps = ev.address || ev.venue;
     var kids = [];
-    if (ev.photo) kids.push(el("img", { class: "ph", src: "/api/hz/photo?e=" + id + "&v=" + Date.now() % 1e5, alt: "" }));
+    var src = "/api/hz/photo?e=" + id + "&v=" + Date.now() % 1e5;
+    // "ההזמנה שלי": the hosts' own invitation (a photo or scan of the printed one) is the whole design, uncropped,
+    // with only the useful buttons under it. Without an uploaded picture it falls back to the classic look.
+    if (ev.theme === "image" && ev.photo) {
+      return el("article", { class: "inv image" }, [el("a", { href: src, target: "_blank", rel: "noopener", "aria-label": "לפתוח את ההזמנה בגודל מלא" }, [el("img", { class: "full", src: src, alt: "ההזמנה: " + (ev.title || "") })]),
+        el("div", { class: "in" }, [
+          el("div", { class: "go" }, [maps ? el("a", { href: "https://waze.com/ul?q=" + encodeURIComponent(maps) + "&navigate=yes", target: "_blank", rel: "noopener", text: "🚗 Waze" }) : null, maps ? el("a", { href: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(maps), target: "_blank", rel: "noopener", text: "📍 מפה" }) : null, ev.date ? el("button", { type: "button", text: "📅 ליומן", onclick: function () { ics(ev); } }) : null]),
+          ev.dress ? el("div", { class: "note", style: "color:inherit;opacity:.85", text: "קוד לבוש: " + ev.dress }) : null,
+          ev.gift ? giftEl(ev.gift) : null])]);
+    }
+    if (ev.photo) kids.push(el("img", { class: "ph", src: src, alt: "" }));
     var inner = [el("div", { class: "kind", text: K[0] + " " + K[1] }), el("h1", { text: ev.title || "האירוע שלנו" }), ev.hosts ? el("div", { class: "hosts", text: ev.hosts }) : null, el("div", { class: "orn", text: themeOf(ev.theme)[4] }),
       ev.message ? el("div", { class: "msg", text: ev.message }) : null,
       ev.date ? el("div", { class: "when" }, [el("b", { text: dateLine(ev.date) }), el("span", { text: [hebDate(ev.date), ev.time ? "קבלת פנים " + ev.time : "", ev.chuppah ? (ev.kind === "wedding" ? "חופה " : "טקס ") + ev.chuppah : ""].filter(Boolean).join(" · ") })]) : null,
@@ -196,7 +209,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
       ev.dress ? el("div", { class: "note", style: "color:inherit;opacity:.85", text: "קוד לבוש: " + ev.dress }) : null,
       ev.gift ? giftEl(ev.gift) : null];
     kids.push(el("div", { class: "in" }, inner));
-    return el("article", { class: "inv " + (ev.theme || "gold") }, kids);
+    return el("article", { class: "inv " + (ev.theme === "image" ? "gold" : ev.theme || "gold") }, kids);
   }
   function giftEl(g) {
     var url = /^https?:\/\//.test(g) ? g : "", ph = g.replace(/\D/g, "");
@@ -469,13 +482,23 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
     file.addEventListener("change", function () {
       var f = file.files[0]; if (!f) return;
       var img = new Image(); img.onload = function () {
-        var k = Math.min(1, 1400 / Math.max(img.width, img.height)), c = el("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        var data = c.toDataURL("image/jpeg", 0.82).split(",")[1];
+        // big enough that the small print of a scanned invitation stays readable, small enough for the server (≈1.1MB)
+        var data = "", side = 2000, q = 0.86;
+        for (var tries = 0; tries < 8; tries++) {
+          var k = Math.min(1, side / Math.max(img.width, img.height)), c = el("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+          var g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+          data = c.toDataURL("image/jpeg", q).split(",")[1];
+          if (data.length <= 1450000) break;
+          if (q > 0.7) q -= 0.08; else side = Math.round(side * 0.85);
+        }
         api("upload", { e: ID, k: KEY, jpeg: data }).then(function () { A.photo = true; A.event.photo = true; toast("התמונה עלתה"); paintAdmin(); }).catch(function () { toast("התמונה גדולה מדי"); });
       }; img.src = URL.createObjectURL(f);
     });
     var ev = Object.assign({}, A.event, { photo: A.photo });
-    return [el("div", { class: "btns" }, [el("button", { class: "btn ghost", type: "button", text: A.photo ? "🖼️ החלפת תמונה" : "🖼️ הוספת תמונה להזמנה", onclick: function () { file.click(); } }), A.photo ? el("button", { class: "btn ghost", type: "button", text: "הסרת התמונה", onclick: function () { api("upload", { e: ID, k: KEY, jpeg: "" }).then(function () { A.photo = false; paintAdmin(); }); } }) : null]), file,
+    var tip = A.event.theme === "image"
+      ? el("p", { class: "note", text: A.photo ? "האורחים רואים את ההזמנה שלכם כמו שהיא, ומתחתיה כפתורי ניווט, יומן ואישור הגעה. את הפרטים בטופס (שם, תאריך, מקום) כדאי למלא בכל זאת: מהם בונים את ההודעה בוואטסאפ, את היומן ואת הניווט." : "מצלמים או סורקים את ההזמנה המודפסת (או מעלים את הקובץ מהמעצב), והיא תהיה העיצוב של ההזמנה." })
+      : el("p", { class: "note", text: "יש לכם הזמנה מודפסת או מעוצבת? בוחרים בעיצוב ״🖼️ ההזמנה שלי״ ומעלים אותה, והיא תהיה ההזמנה עצמה." });
+    return [tip, el("div", { class: "btns" }, [el("button", { class: "btn ghost", type: "button", text: A.event.theme === "image" ? (A.photo ? "🖼️ החלפת ההזמנה" : "🖼️ העלאת ההזמנה המקורית") : A.photo ? "🖼️ החלפת תמונה" : "🖼️ הוספת תמונה להזמנה", onclick: function () { file.click(); } }), A.photo ? el("button", { class: "btn ghost", type: "button", text: "הסרת התמונה", onclick: function () { api("upload", { e: ID, k: KEY, jpeg: "" }).then(function () { A.photo = false; paintAdmin(); }); } }) : null]), file,
       invitation(ID, ev),
       eventForm(A.event, function (out) { return api("event", { e: ID, k: KEY, event: out }).then(function (j) { A.event = j.event; remember(ID, KEY, j.event.title); toast("נשמר"); paintAdmin(); }); }, "שמירת השינויים")];
   }
