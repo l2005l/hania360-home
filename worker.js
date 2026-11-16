@@ -529,8 +529,15 @@ export default {
       } catch {}
     }
     // Usage counts from every site, and the link-preview images and the owner's dashboard on hania360.com.
-    // Temporary: can Cloudflare reach the Ministry of Transport's open timetable (it refuses foreign addresses)? Status and size only.
-    if (url.hostname === "hania360.com" && url.pathname === "/api/gtfs-probe") { try { const r = await fetch("https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip", { headers: { range: "bytes=0-3" } }); const b = new Uint8Array(await r.arrayBuffer()); return Response.json({ status: r.status, type: r.headers.get("content-type"), range: r.headers.get("content-range"), len: r.headers.get("content-length"), zip: b[0] === 0x50 && b[1] === 0x4b, colo: request.cf && request.cf.colo }); } catch (e) { return Response.json({ error: String(e.message || e) }); } }
+    // The Ministry of Transport's open timetable (GTFS) refuses foreign addresses, so the daily rail job (GitHub, rail.yml)
+    // takes it through here. At most once every two hours for everyone, so this cannot be used to pull it again and again.
+    if (url.hostname === "hania360.com" && url.pathname === "/api/rail/gtfs") {
+      const lock = new Request("https://hania360.com/rail-gtfs-lock"), held = await caches.default.match(lock);
+      if (held) return new Response("busy", { status: 429 });
+      ctx && ctx.waitUntil && ctx.waitUntil(caches.default.put(lock, new Response("1", { headers: { "cache-control": "max-age=7200" } })));
+      const r = await fetch("https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip");
+      return new Response(r.body, { status: r.status, headers: { "content-type": "application/zip", "cache-control": "no-store" } });
+    }
     if (url.pathname === "/api/stat") return statApi(request, env || {}, url, ctx);
     if (url.hostname === "hania360.com" && url.pathname.startsWith("/og/")) { const r = ogImage(url); if (r) return r; }
     if (url.hostname === "hania360.com" && url.pathname === "/stats") return statsPage(request, env || {}, url);

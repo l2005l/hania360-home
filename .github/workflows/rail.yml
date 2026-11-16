@@ -1,0 +1,19 @@
+# Every morning: the Israel Railways timetable for the next 10 days, for Hania (the AI assistant), from the Ministry of
+# Transport's open GTFS (taken through hania360.com, since the Ministry refuses foreign addresses), kept on the
+# "rail-data" branch as rail.json. Nothing here deploys the site.
+name: rail
+on:
+  schedule: [{ cron: "40 1 * * *" }]
+  workflow_dispatch:
+permissions: { contents: write }
+jobs:
+  rail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl -sfL --retry 3 --retry-delay 30 -o /tmp/g.zip https://hania360.com/api/rail/gtfs && ls -la /tmp/g.zip && unzip -l /tmp/g.zip
+      - run: python3 tools/rail.py /tmp/g.zip /tmp/rail.json && ls -la /tmp/rail.json
+      - run: |
+          cd /tmp && rm -rf out && mkdir out && cd out && git init -q -b rail-data && cp /tmp/rail.json .
+          git -c user.name="hania-rail" -c user.email="actions@users.noreply.github.com" commit -qam rail 2>/dev/null || (git add rail.json && git -c user.name="hania-rail" -c user.email="actions@users.noreply.github.com" commit -qm "Rail timetable $(date -u +%F)")
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" rail-data
