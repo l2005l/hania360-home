@@ -10,7 +10,7 @@ const okId = (s) => typeof s === "string" && /^[A-Za-z0-9]{6,24}$/.test(s);
 const int = (v, lo, hi, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
 const phone = (s) => { let d = String(s || "").replace(/\D/g, ""); if (d.startsWith("972")) d = "0" + d.slice(3); return /^0\d{8,9}$/.test(d) ? d : ""; };
 const KINDS = ["wedding", "bar", "bat", "brit", "birthday", "henna", "other"];
-const THEMES = ["gold", "bloom", "night", "kids", "sea"];
+const THEMES = ["gold", "bloom", "night", "kids", "sea", "stars", "emerald", "stone", "marble", "olive", "terra", "water", "minimal", "tallit", "wine"];
 const STATUS = ["", "yes", "no", "maybe"];
 const MAX_GUESTS = 1500, MAX_TABLES = 200;
 const json = (o, s = 200) => Response.json(o, { status: s, headers: { "cache-control": "no-store" } });
