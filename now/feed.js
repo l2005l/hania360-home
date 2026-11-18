@@ -10,13 +10,26 @@
 export const TICKER = [
   ["ליטר בנזין 95, מ־5.11", "7.85 ₪"],
   ["אינפלציה שנתית, אוקטובר", "1.1%"],
-  ["למכבי ת״א–אולימפיאקוס ביורוליג", null, "2026-11-17T19:00"],
-  ["לישראל–אוסטריה בליגת האומות", null, "2026-11-17T21:45"],
+  ["למכבי ת״א–דובאי ביורוליג", null, "2026-11-19T19:15"],
   ["לבלאק פריידיי", null, "2026-11-27T00:00"],
   ["לנר ראשון של חנוכה", null, "2026-12-04T16:00"],
 ];
 
 export default [
+  {
+    id: "2026-11-18-maccabi-olympiacos-ot", for: ["b:TEL"], from: "2026-11-18", until: "2026-11-20", chip: "כדורסל", big: "95:97",
+    title: "מכבי תל אביב חזרה מפיגור 15, אבל הפסידה לאולימפיאקוס בהארכה",
+    body: "בלימסול, במחזור ה־12 של היורוליג, סשה וזנקוב הוביל את מכבי להארכה עם סל בסיום, ואולימפיאקוס ניצחה 95:97. מכבי עכשיו עם 3 ניצחונות ו־9 הפסדים. המשחק הבא: ביום חמישי 19.11 ב־19:15, מול דובאי.",
+    sources: [["ONE", "https://www.one.co.il/Article/539166.html"], ["הארץ", "https://www.haaretz.co.il/sport/basketball/2026-11-17/ty-article/000001a1-ead6-d3e7-a9ff-eede14970000"]],
+    apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
+  },
+  {
+    id: "2026-11-18-israel-austria", from: "2026-11-18", until: "2026-12-07", chip: "כדורגל", big: "1:1",
+    title: "הנבחרת סיימה 1:1 מול אוסטריה. במרץ: פלייאוף על ההישארות בליגה B",
+    body: "ישראל סיימה את ליגת האומות במקום האחרון בבית, בלי ניצחון. במרץ היא תשחק פלייאוף, בית וחוץ, מול בלארוס, קפריסין, איי פארו או אסטוניה: המנצחת נשארת בליגה B. ההגרלה של מוקדמות יורו 2028 ב־6.12, וישראל בסיר 3.",
+    sources: [["ONE", "https://www.one.co.il/Article/539171.html"], ["ערוץ 7", "https://www.inn.co.il/news/711054"], ["הארץ", "https://www.haaretz.co.il/sport/israel-soccer/2026-11-18/ty-article/000001a1-eb79-dc88-a1a7-fffbfd710000"]],
+    apps: [["⚽", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
+  },
   {
     id: "2026-11-17-january-prices", from: "2026-11-17", until: "2026-12-31", chip: "כסף", big: "3.05%",
     title: "מינואר: הארנונה עולה ב־3.05%, ועוד כמה חשבונות בדרך למעלה",
@@ -24,13 +37,7 @@ export default [
     sources: [["ביזפורטל", "https://www.bizportal.co.il/financialconsumerism/news/article/20048643"], ["מעריב (ארנונה)", "https://www.maariv.co.il/news/politics/article-1387641"], ["מעריב (תחבורה ציבורית)", "https://www.maariv.co.il/economy/israel/article-1388586"]],
     apps: [["🧾", "HaniaBills", "כל החשבונות של הבית במקום אחד", "https://bills.hania360.com/", "לחשבונות"]],
   },
-  {
-    id: "2026-11-17-maccabi-olympiacos", for: ["b:TEL"], from: "2026-11-17", until: "2026-11-18", chip: "כדורסל",
-    title: "הערב ב־19:00: מכבי תל אביב מארחת את אולימפיאקוס, בלימסול",
-    body: "המשחק במחזור ה־12 של היורוליג נערך באולם ספירוס קיפריאנו בלימסול שבקפריסין, שם מכבי משחקת את משחקי הבית שלה. מכבי במקום ה־17 עם 3 ניצחונות ו־8 הפסדים, אולימפיאקוס עם 8 ניצחונות ו־3 הפסדים. נוסעים למשחק? כדאי להגיע מוקדם בגלל הבדיקות בכניסה.",
-    sources: [["ynet", "https://www.ynet.co.il/sport/israelibasketball/article/rjln26uame"], ["וואלה ספורט", "https://sports.walla.co.il/item/3876495"]],
-    apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
-  },
+
   {
     id: "2026-11-16-cpi-october", from: "2026-11-16", until: "2026-11-30", chip: "כסף", big: "‎-0.1%",
     title: "מדד אוקטובר ירד ב־0.1%, והאינפלציה ירדה ל־1.1%",
@@ -45,14 +52,7 @@ export default [
     sources: [["Times of Israel", "https://www.timesofisrael.com/liveblog_entry/deni-avdija-scores-34-points-as-trail-blazers-beat-kings-120-107/"], ["CBS Sports", "https://www.cbssports.com/nba/news/deni-avdija-scores-34-to-lead-trail-blazers-past-kings-120-107/"]],
     apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
-  {
-    id: "2026-11-15-israel-kosovo", from: "2026-11-15", until: "2026-11-18", chip: "כדורגל",
-    title: "הנבחרת סיימה 0:0 בקוסובו. ביום שלישי: המשחק האחרון מול אוסטריה",
-    body: "אחרי חמישה משחקים בליגת האומות ישראל עדיין בלי ניצחון, במקום האחרון בבית עם 3 נקודות. המשחק האחרון בבית: מול אוסטריה ביום שלישי 17.11 ב־21:45, בדברצן שבהונגריה. כדי לחמוק ממשחקי הפלייאוף נגד ירידה, הנבחרת צריכה לנצח ולקוות לתוצאות שמתאימות לה.",
-    big: "0:0",
-    sources: [["ONE", "https://www.one.co.il/Article/538830.html"], ["וואלה ספורט", "https://sports.walla.co.il/item/3876216"]],
-    apps: [["⚽", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
-  },
+
   {
     id: "2026-11-15-ev-tax", from: "2026-11-15", until: "2027-01-31", chip: "רכב", big: "10.2.2027",
     title: "מס הקנייה המופחת על רכב חשמלי נשאר עד 10.2.2027",
