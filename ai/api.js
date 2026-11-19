@@ -140,7 +140,8 @@ export async function trains(from, to, date, arrive) {
   const lim = arrive ? +arrive.split(":")[0] * 60 + +arrive.split(":")[1] : null;
   const nowM = date === ymd(Date.now()) ? +new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ }).split(":").reduce((h, m) => h * 60 + +m) : 0;
   const pick = lim != null ? list.filter((x) => x[1] <= lim).slice(-3) : list.filter((x) => x[0] >= nowM).slice(0, 4);
-  return { from: a.name, to: b.name, date, arrive_by: arrive || "", direct_trains: pick.map((x) => ({ leaves: hhmm(x[0]), arrives: hhmm(x[1]) })), none: !pick.length, updated: R.at };
+  const disp = (n) => (n === "השלום" ? "תל אביב השלום" : n);
+  return { from: disp(a.name), to: disp(b.name), date, arrive_by: arrive || "", direct_trains: pick.map((x) => ({ leaves: hhmm(x[0]), arrives: hhmm(x[1]) })), none: !pick.length, updated: R.at };
 }
 
 function trainPlan(from, to, date, arrive) {
@@ -229,7 +230,10 @@ export async function aiApi(request, env, ctx) {
   }
   const hist = (Array.isArray(b.messages) ? b.messages : []).slice(-8).filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string").map((m) => ({ role: m.role, content: m.content.slice(0, 1200) }));
   if (!hist.length || hist[hist.length - 1].role !== "user") return json({ error: "empty" }, 400);
-  const msgs = [{ role: "system", content: system(Date.now(), city) }].concat(hist), used = [];
+  // what Hania knows about the owner's routine (from the morning-briefing settings): the regular train trip
+  let prof = "";
+  try { if (env.BRIEF) { const st = await env.BRIEF.get(env.BRIEF.idFromName("owner")).fetch("https://brief/get").then((r) => r.json()); if (st.commute) prof = "\nהנסיעה הקבועה של המשתמש: מ" + st.commute.from + " ל" + st.commute.to + (st.commute.arrive ? ", להגיע עד " + st.commute.arrive : "") + ". כשהוא אומר \"הרכבת שלי\" או \"לעבודה\", זו הכוונה."; } } catch {}
+  const msgs = [{ role: "system", content: system(Date.now(), city) + prof }].concat(hist), used = [];
   for (let step = 0; step < STEPS; step++) {
     const o = await think(env, msgs);
     if (!o) return json({ answer: "משהו לא עבד אצלי. ננסה שוב בעוד רגע?" });

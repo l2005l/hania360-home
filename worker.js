@@ -64,6 +64,7 @@ import { daberApi } from "./daber/api.js";
 import MATALOTPAGE, { FILES as MATALOT_FILES, IMAGES as MATALOT_IMAGES } from "./matalot/page.js";
 import { tvApi } from "./tv/api.js";
 import { aiApi } from "./ai/api.js";
+import { HaniaBrief, briefApi, passCookie } from "./ai/brief.js";
 import AIPAGE, { FILES as AI_FILES, IMAGES as AI_IMAGES } from "./ai/page.js";
 import TVPAGE, { FILES as TV_FILES, IMAGES as TV_IMAGES } from "./tv/page.js";
 import RACEPAGE, { FILES as RACE_FILES, IMAGES as RACE_IMAGES } from "./race/page.js";
@@ -74,7 +75,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile, WidgetLink };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile, WidgetLink, HaniaBrief };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
@@ -569,13 +570,18 @@ export default {
     // Hania, the personal AI assistant: like the vault, only the owner's account (AI_OWNER, else KASEFET_OWNER) sees it.
     if (url.hostname === "ai.hania360.com" || url.searchParams.get("app") === "ai" && /workers\.dev$/.test(url.hostname)) {
       if (url.pathname === "/manifest.webmanifest" || /^\/icons\//.test(url.pathname)) return smallApp(url, AIPAGE, AI_FILES, AI_IMAGES, "https://ai.hania360.com/");
+      // the morning briefing's service worker asks what to show (checked against the stored phone address, not the login)
+      if (url.pathname === "/api/ai/brief/msg" && request.method === "POST" && env && env.BRIEF) return briefApi(request, env, "msg");
       const owners = String((env && (env.AI_OWNER || env.KASEFET_OWNER)) || "").toLowerCase().split(/[\s,]+/).filter(Boolean);
       const who = owners.length ? await passUser(request, env || {}) : null;
       if (!who || !owners.includes(who.email.toLowerCase())) {
         if (who === null && owners.length && request.method === "GET" && url.pathname === "/") return Response.redirect("https://pass.hania360.com/?return=" + encodeURIComponent("https://ai.hania360.com/"), 302);
         return new Response("Not found", { status: 404, headers: { "content-type": "text/plain", "cache-control": "no-store", "x-robots-tag": "noindex" } });
       }
-      const res = url.pathname.startsWith("/api/ai/") ? await aiApi(request, env || {}, ctx) : smallApp(url, AIPAGE, AI_FILES, AI_IMAGES, "https://ai.hania360.com/");
+      const bm = /^\/api\/ai\/brief\/(key|get|set|test)$/.exec(url.pathname);
+      // keep the briefing's Hania Pass cookie fresh whenever the owner uses Hania
+      if (env && env.BRIEF && url.pathname === "/api/ai/chat") { const ck = passCookie(request.headers.get("cookie") || ""); if (ck) ctx && ctx.waitUntil && ctx.waitUntil(env.BRIEF.get(env.BRIEF.idFromName("owner")).fetch("https://brief/cookie", { method: "POST", body: JSON.stringify({ cookie: ck }) }).catch(() => {})); }
+      const res = bm && env && env.BRIEF ? await briefApi(request, env, bm[1]) : url.pathname.startsWith("/api/ai/") ? await aiApi(request, env || {}, ctx) : smallApp(url, AIPAGE, AI_FILES, AI_IMAGES, "https://ai.hania360.com/");
       const o = new Response(res.body, res); o.headers.set("cache-control", "no-store"); o.headers.set("x-robots-tag", "noindex"); o.headers.set("x-frame-options", "DENY"); o.headers.set("referrer-policy", "no-referrer");
       return o;
     }

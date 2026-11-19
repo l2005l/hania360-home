@@ -79,6 +79,8 @@ public class Widget extends AppWidgetProvider {
     v.setOnClickPendingIntent(R.id.root, open(ctx, "https://hania360.com/?src=widget", 1));
     v.setOnClickPendingIntent(R.id.open, open(ctx, "https://hania360.com/?src=widget", 1));
     v.setOnClickPendingIntent(R.id.today, open(ctx, "https://today.hania360.com/", 2));
+    Intent ask = new Intent(ctx, VoiceActivity.class); ask.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    v.setOnClickPendingIntent(R.id.ask, PendingIntent.getActivity(ctx, 7, ask, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
     v.setOnClickPendingIntent(R.id.shab, open(ctx, "https://yahadut.hania360.com/", 3));
     v.setOnClickPendingIntent(R.id.chag, open(ctx, "https://chag.hania360.com/", 4));
     Intent r = new Intent(ctx, Widget.class).setAction(REFRESH);

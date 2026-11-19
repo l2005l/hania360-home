@@ -42,12 +42,34 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
 .round.rec{background:#EF4444;animation:pulse 1.2s infinite}
 @keyframes pulse{50%{box-shadow:0 0 0 8px rgba(239,68,68,.25)}}
 .fine{font-size:12px;color:var(--muted);text-align:center;margin:6px 0 0}
+.sheet{position:fixed;inset:0;z-index:30;background:rgba(10,8,20,.6);display:grid;place-items:end center;padding:10px}
+.panel{width:min(560px,100%);max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:12px}
+.panel h2{margin:0;font-size:20px}.panel label{display:grid;gap:4px;font-weight:600;font-size:14px}
+.panel input[type=time],.panel input:not([type]){font:inherit;font-size:16px;padding:9px 10px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.panel .tg{display:flex;gap:10px;align-items:center;font-size:16px}.panel .tg input{width:22px;height:22px;accent-color:var(--accent)}
+fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;gap:10px}legend{padding:0 6px;font-weight:700}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.panel label,.panel fieldset{min-width:0}.panel input:not([type=checkbox]){width:100%;min-width:0}
+.days{display:flex;gap:6px;flex-wrap:wrap}.days button{appearance:none;font:inherit;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-weight:700;cursor:pointer}.days button[aria-pressed=true]{background:var(--me);border-color:var(--me)}
 </style>
 <header>
   <div class="logo"><img src="/icons/icon-192.png" alt=""><span>Hania<small>העוזרת האישית שלך</small></span></div>
-  <div class="hb"><select id="city" aria-label="עיר"></select><button class="ib" id="clear" type="button" title="שיחה חדשה">🧹</button></div>
+  <div class="hb"><select id="city" aria-label="עיר"></select><button class="ib" id="briefBtn" type="button" title="תדריך בוקר">🌅</button><button class="ib" id="clear" type="button" title="שיחה חדשה">🧹</button></div>
 </header>
 <main id="log" aria-live="polite"></main>
+<div class="sheet" id="brief" hidden><div class="panel">
+  <h2>🌅 תדריך בוקר</h2>
+  <p class="fine" style="text-align:start">הודעה אחת בכל בוקר: מזג אוויר, הרכבת שלך, המשימות והיומן של היום, ימי הולדת והדף היומי. ביום שישי גם זמני השבת. בשבת ובחג לא נשלח.</p>
+  <label class="tg"><input type="checkbox" id="bOn"> לשלוח לי תדריך בוקר</label>
+  <label>בשעה <input type="time" id="bTime" value="06:45"></label>
+  <fieldset><legend>🚆 הנסיעה הקבועה (לא חובה)</legend>
+    <div class="two"><label>מתחנה<input id="cFrom" placeholder="נתיבות"></label><label>לתחנה<input id="cTo" placeholder="תל אביב השלום"></label></div>
+    <label>להגיע עד <input type="time" id="cArr" value="09:00"></label>
+    <div class="days" id="cDays"></div>
+  </fieldset>
+  <div class="row"><button class="btn" id="bSave" type="button">שמירה</button><button class="btn ghost" id="bTest" type="button">לשלוח עכשיו לבדיקה</button><button class="btn ghost" id="bClose" type="button">סגירה</button></div>
+  <p class="fine" id="bStat" style="text-align:start;white-space:pre-wrap"></p>
+</div></div>
 <footer>
   <div class="bar">
     <textarea id="t" rows="1" placeholder="מה תרצה לדעת או לעשות?" aria-label="הודעה"></textarea>
@@ -204,6 +226,48 @@ textarea{flex:1;resize:none;border:0;background:transparent;color:var(--ink);fon
       try { rec.start(); } catch (x) { mic.classList.remove("rec"); rec = null; }
     });
   }
+  // ---- morning briefing settings ----
+  var DAYN = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳"], days = [0, 1, 2, 3, 4];
+  function drawDays() { var d = $("cDays"); d.textContent = ""; DAYN.forEach(function (n, i) { d.appendChild(el("button", { type: "button", "aria-pressed": String(days.indexOf(i) >= 0), text: n, onclick: function () { var k = days.indexOf(i); if (k >= 0) days.splice(k, 1); else days.push(i); drawDays(); } })); }); }
+  function stat(t) { $("bStat").textContent = t; }
+  function when(t) { if (!t) return ""; var d = new Date(t); return d.toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "numeric" }) + " ב־" + d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }); }
+  function openBrief() {
+    $("brief").hidden = false; stat("טוען…");
+    fetch("/api/ai/brief/get").then(function (r) { return r.json(); }).then(function (j) {
+      $("bOn").checked = !!j.on; $("bTime").value = j.time || "06:45";
+      var c = j.commute || {}; $("cFrom").value = c.from || ""; $("cTo").value = c.to || ""; $("cArr").value = c.arrive || "09:00"; days = c.days || [0, 1, 2, 3, 4]; drawDays();
+      stat(j.on ? (j.subscribed ? "התדריך הבא: " + when(j.next) : "צריך לאשר התראות בטלפון הזה") : "כבוי");
+    }).catch(function () { stat("לא הצלחתי לטעון"); });
+  }
+  function b64(k) { var p = "=".repeat((4 - k.length % 4) % 4), raw = atob((k + p).replace(/-/g, "+").replace(/_/g, "/")), a = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) a[i] = raw.charCodeAt(i); return a; }
+  function subscribe() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return Promise.reject(new Error("הדפדפן הזה לא תומך בהתראות"));
+    return Notification.requestPermission().then(function (p) {
+      if (p !== "granted") throw new Error("לא אושרו התראות");
+      return Promise.all([navigator.serviceWorker.register("/sw.js").then(function () { return navigator.serviceWorker.ready; }), fetch("/api/ai/brief/key").then(function (r) { return r.json(); })]);
+    }).then(function (x) {
+      var reg = x[0], key = x[1].key;
+      return reg.pushManager.getSubscription().then(function (old) { return old || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(key) }); });
+    });
+  }
+  function saveBrief(thenTest) {
+    var on = $("bOn").checked, set = { on: on, time: $("bTime").value, city: S.city || CITIES[0], commute: $("cFrom").value.trim() && $("cTo").value.trim() ? { from: $("cFrom").value.trim(), to: $("cTo").value.trim(), arrive: $("cArr").value, days: days } : null };
+    stat("שומר…");
+    return (on || thenTest ? subscribe() : Promise.resolve(null)).then(function (sub) {
+      return fetch("/api/ai/brief/set", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ set: set, sub: sub ? sub.toJSON() : null }) }).then(function (r) { return r.json(); });
+    }).then(function (j) {
+      stat(j.on ? "נשמר ✓ התדריך הבא: " + when(j.next) : "נשמר ✓ התדריך כבוי");
+      if (thenTest) return fetch("/api/ai/brief/test", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }).then(function (r) { return r.json(); }).then(function (m) { stat("נשלח ✓ אמור להופיע עכשיו בהתראות:\n" + m.title + "\n" + m.body); });
+    }).catch(function (e) { stat("לא הצלחתי: " + e.message); });
+  }
+  $("briefBtn").addEventListener("click", openBrief);
+  $("bClose").addEventListener("click", function () { $("brief").hidden = true; });
+  $("bSave").addEventListener("click", function () { saveBrief(false); });
+  $("bTest").addEventListener("click", function () { saveBrief(true); });
+  $("brief").addEventListener("click", function (e) { if (e.target === $("brief")) $("brief").hidden = true; });
+
   paint(); usage();
+  // from the widget: ?q=<what was said> asks right away; ?mic=1 starts listening
+  (function () { var u = new URL(location.href), q = u.searchParams.get("q"), mic = u.searchParams.get("mic"); if (q || mic) history.replaceState(null, "", "/"); if (q) send(q); else if (mic && $("mic") && !$("mic").hidden) $("mic").click(); })();
 })();
 </script>
