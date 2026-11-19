@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <uses-permission android:name="android.permission.INTERNET" />
+  <queries><intent><action android:name="android.speech.RecognitionService" /></intent><intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent></queries>
   <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:supportsRtl="true" android:allowBackup="true"
       android:theme="@android:style/Theme.Material.Light.NoActionBar">
     <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
@@ -38,6 +39,7 @@
       </intent-filter>
     </activity>
     <!-- The widget, and the screen that asks for the town when it is added -->
+    <activity android:name=".VoiceActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:noHistory="false" android:excludeFromRecents="true" />
     <activity android:name=".ConfigActivity" android:exported="true" android:label="@string/pick_city">
       <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" /></intent-filter>
     </activity>
