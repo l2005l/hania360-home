@@ -31,6 +31,7 @@ async function today(env, sess) {
 }
 const ilDay = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 const cut = (s, n) => { s = String(s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const minus = (hm, m) => { const t = +hm.slice(0, 2) * 60 + +hm.slice(3) - m; return t < 0 ? "00:00" : String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
 // The few lines the widget shows, most pressing first
 function lines(d) {
   const out = [], day = ilDay(), when = (n) => (n === 0 ? "היום" : n === 1 ? "מחר" : "בעוד " + n + " ימים");
@@ -38,8 +39,13 @@ function lines(d) {
   if (tasks.length) out.push("✅ " + (tasks.length === 1 ? "משימה: " + cut(tasks[0].text, 40) : tasks.length + " משימות: " + tasks.slice(0, 2).map((t) => cut(t.text, 22)).join(", ")) + (tasks.some((t) => t.late) ? " ⚠️" : ""));
   const notes = ((d.notes && d.notes.today) || []).filter((n) => !n.done);
   const cal = (d.calendar && d.calendar.today) || [];
-  const agenda = cal.map((e) => (e.allDay ? "" : e.time + " ") + cut(e.title, 26)).concat(notes.map((n) => (n.time ? n.time + " " : "") + cut(n.text, 26)));
-  if (agenda.length) out.push("📅 " + agenda.slice(0, 2).join(" · ") + (agenda.length > 2 ? " +" + (agenda.length - 2) : ""));
+  // what is still ahead today, in time order (what already passed drops off), all of it when it fits, else "ועוד N"
+  const nowHm = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" });
+  const soon = (t) => !t || t >= nowHm || t >= minus(nowHm, 20);
+  const items = cal.filter((e) => e.allDay || soon(e.time)).map((e) => [e.allDay ? "" : e.time, cut(e.title, 24)])
+    .concat(notes.filter((n) => soon(n.time)).map((n) => [n.time || "", cut(n.text, 24)]))
+    .sort((a, b) => (a[0] || "00:00").localeCompare(b[0] || "00:00")).map((x) => (x[0] ? x[0] + " " : "") + x[1]);
+  if (items.length) out.push("📅 " + items.slice(0, 4).join(" · ") + (items.length > 4 ? " · ועוד " + (items.length - 4) : ""));
   const v = ((d.save && d.save.expiring) || []).filter((x) => x.days <= 7)[0];
   if (v) out.push("🎟️ שובר " + cut(v.store, 18) + " (₪" + Math.round(v.balance) + ") פג " + when(v.days));
   const b = ((d.gil && d.gil.birthdays) || []).filter((x) => x.days <= 7)[0];
