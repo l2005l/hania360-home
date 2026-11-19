@@ -104,7 +104,7 @@ export class HaniaBrief {
       const daf = (j.calendar_items || []).find((x) => x.title && x.title.en === "Daf Yomi");
       if (daf) lines.push("📖 הדף היומי: " + (daf.displayValue && daf.displayValue.he));
     } catch {}
-    if (wd === 5 && w.shab) lines.push("🕯️ הדלקה " + w.shab.in + " · צאת השבת " + w.shab.out);
+    if (wd === 5 && w.shab) lines.push("🕯️ " + (w.shab.label || "שבת") + ": הדלקה " + w.shab.in + " · צאת " + w.shab.out);
     else if (w.chag && w.chag.days > 0 && w.chag.days <= 3) lines.push("🗓️ " + w.chag.n + " בעוד " + w.chag.days + " ימים");
     return { title, body: lines.join("\n") || "יום טוב!", url: "/" };
   }
