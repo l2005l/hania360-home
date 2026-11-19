@@ -57,7 +57,7 @@ function lines(d) {
 // Personal lines for /api/widget (null: no key; {relink}: the key no longer works and the person should reconnect)
 export async function widgetMe(env, key) {
   if (!okKey(key) || !env.WLINK) return null;
-  const ck = new Request("https://hania360.com/widget-me/" + await sha(key));
+  const ck = new Request("https://hania360.com/widget-me/v2/" + await sha(key));
   const hit = await caches.default.match(ck); if (hit) return hit.json();
   const s = await (await box(env, key)).fetch("https://w/", { method: "POST", body: JSON.stringify({ op: "get" }) }).then((r) => r.json()).catch(() => ({}));
   const d = s.sess ? await today(env, s.sess) : null;
