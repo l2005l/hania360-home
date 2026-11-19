@@ -46,11 +46,18 @@ export default [
     apps: [["🛒", "HaniaCart", "רשימת הקניות והמחירים בסופר", "https://cart.hania360.com/", "לקניות"]],
   },
   {
-    id: "2026-11-16-avdija-34", from: "2026-11-16", until: "2026-11-20", chip: "כדורסל", big: "34",
-    title: "דני אבדיה קלע 34 נקודות, ופורטלנד ב־9 ניצחונות ו־3 הפסדים",
-    body: "בניצחון 107:120 על סקרמנטו קלע אבדיה 11 מ־13 מהשדה ו־9 מ־9 מהעונשין. במשחקי חוץ פורטלנד ב־6 ניצחונות והפסד אחד. המשחקים הבאים: פעמיים במינסוטה, בלילות שני ושלישי (שעון ארה״ב).",
-    sources: [["Times of Israel", "https://www.timesofisrael.com/liveblog_entry/deni-avdija-scores-34-points-as-trail-blazers-beat-kings-120-107/"], ["CBS Sports", "https://www.cbssports.com/nba/news/deni-avdija-scores-34-to-lead-trail-blazers-past-kings-120-107/"]],
+    id: "2026-11-19-avdija-foot", from: "2026-11-19", until: "2026-11-24", chip: "כדורסל",
+    title: "דני אבדיה פספס משחק ראשון העונה, בגלל כאב בכף הרגל",
+    body: "בשני קלע אבדיה 27 נקודות (11 מ־19) ו־8 ריבאונדים, אבל פורטלנד הפסידה במינסוטה 98:106. בשלישי הוא לא שיחק בגלל כאב בכף הרגל השמאלית, ופורטלנד הפסידה שוב, 105:106, מסל בשנייה האחרונה. המשחק הבא: ביום חמישי (שעון ארה״ב) במילווקי.",
+    sources: [["CBS Minnesota", "https://www.cbsnews.com/minnesota/news/mcdaniels-scores-to-lift-timberwolves-to-win-over-trail-blazers/"], ["TSN", "https://www.tsn.ca/nba/article/trail-blazers-rule-out-avdija-vs-timberwolves-with-sore-foot-n1-50515349/"], ["NBC Sports", "https://www.nbcsports.com/fantasy/basketball/player-news/2026-11-17/deni-avdija-foot-downgraded-to-out-tuesday"]],
     apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
+  },
+  {
+    id: "2026-11-19-grocery-gap", from: "2026-11-19", until: "2026-12-03", chip: "קניות", big: "957 ₪",
+    title: "אותה עגלה, כמעט 1,000 ₪ הבדל בין הרשתות",
+    body: "בסקר שבדק 243 מוצרים בשמונה רשתות, רמי לוי שוב הזולה, עם סל של 3,127 ₪. אותו סל בטיב טעם עלה 957 ₪ יותר (30.6%). נבדקו גם אושר עד, נטו חיסכון, קרפור היפר, שופרסל דיל, ויקטורי ויוחננוף. למשפחה שקונה הרבה, השוואה לפני קנייה גדולה יכולה לחסוך.",
+    sources: [["מעריב", "https://www.maariv.co.il/economy/consumerism/article-1389791"]],
+    apps: [["🛒", "HaniaCart", "רשימת הקניות והמחירים בסופר", "https://cart.hania360.com/", "לקניות"]],
   },
 
   {
