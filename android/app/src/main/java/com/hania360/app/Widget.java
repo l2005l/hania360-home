@@ -93,8 +93,9 @@ public class Widget extends AppWidgetProvider {
       v.setTextViewText(R.id.day, o.optString("day") + " · " + o.optString("heb"));
       v.setTextViewText(R.id.sub, o.optString("greg") + " · " + o.optString("city"));
       JSONObject s = o.optJSONObject("shab");
-      if (s != null) v.setTextViewText(R.id.shab, s.optInt("now") == 1 ? "🕯️ שבת שלום · צאת השבת " + s.optString("out")
-          : ("היום".equals(s.optString("day")) ? "🕯️ שבת היום: הדלקה " : "🕯️ זמני שבת: הדלקה ") + s.optString("in") + " · צאת " + s.optString("out"));
+      String lab = s == null ? "" : s.optString("label");
+      if (s != null) v.setTextViewText(R.id.shab, s.optInt("now") == 1 ? "🕯️ " + (lab.isEmpty() ? "שבת שלום" : lab) + " · צאת השבת " + s.optString("out")
+          : "🕯️ " + (lab.isEmpty() ? ("היום".equals(s.optString("day")) ? "שבת היום" : "זמני שבת") : lab) + ": הדלקה " + s.optString("in") + " · צאת " + s.optString("out"));
       JSONObject h = o.optJSONObject("chag");
       if (h != null) { int d = h.optInt("days"); v.setTextViewText(R.id.chag, d == 0 ? "🎉 היום " + h.optString("n") + "!" : "🗓️ " + h.optString("n") + (d == 1 ? " מחר" : " בעוד " + d + " ימים")); }
       StringBuilder w = new StringBuilder();

@@ -54,7 +54,7 @@ fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;displ
 </style>
 <header>
   <div class="logo"><img src="/icons/icon-192.png" alt=""><span>Hania<small>העוזרת האישית שלך</small></span></div>
-  <div class="hb"><select id="city" aria-label="עיר"></select><button class="ib" id="briefBtn" type="button" title="תדריך בוקר">🌅</button><button class="ib" id="clear" type="button" title="שיחה חדשה">🧹</button></div>
+  <div class="hb"><select id="city" aria-label="עיר"></select><button class="ib" id="briefBtn" type="button" title="תדריך בוקר">🌅 תדריך</button><button class="ib" id="clear" type="button" title="שיחה חדשה">🧹</button></div>
 </header>
 <main id="log" aria-live="polite"></main>
 <div class="sheet" id="brief" hidden><div class="panel">
@@ -106,7 +106,8 @@ fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;displ
     var chips = ["מה יש לי היום?", "מתי נכנסת שבת?", "מה הדף היומי היום?", "תזכירי לי מחר ב־8 להתקשר לרופא", "מה המצב בליגה?", "מה משדרים עכשיו?", "איפה יש אפליקציה למטלות של הילדים?"];
     return el("div", { class: "hello" }, [el("div", { class: "big", text: "✨" }), el("h1", { text: "שלום, אני Hania" }),
       el("p", { text: "אני מכירה את כל האפליקציות שלך: Today, שבת וזמני היום, הלימוד היומי, ספורט, חדשות ו־HaniaTV. אפשר לבקש ממני גם להוסיף משימות ותזכורות, ואני תמיד אשאל לפני." }),
-      el("div", { class: "chips" }, chips.map(function (c) { return el("button", { class: "chip", type: "button", text: c, onclick: function () { send(c); } }); }))]);
+      el("div", { class: "chips" }, chips.map(function (c) { return el("button", { class: "chip", type: "button", text: c, onclick: function () { send(c); } }); })),
+      el("button", { class: "btn", type: "button", style: "margin-top:18px", text: "🌅 להגדיר את תדריך הבוקר", onclick: function () { openBrief(); } })]);
   }
   function paint() {
     log.textContent = "";
