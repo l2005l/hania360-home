@@ -204,9 +204,58 @@ async function resting(env, city) {
   try { const r = await widgetApi(new URL("https://hania360.com/api/widget?c=" + cityIndex(city)), env); const j = await r.json(); return j.shab && j.shab.now ? j.shab.out : ""; } catch { return ""; }
 }
 
+// a train trip: the link (set to arrive on time), the usual travel time and the real train go into the calendar event
+async function enrich(x, city) {
+  const g = x.args || {};
+  if (x.tool !== "add_event" || !(g.train || /רכבת/.test((g.title || "") + (g.from || "") + (g.note || "")))) return;
+  g.train = true; g.from = g.from || "תחנת רכבת " + (city || ""); g.arrive = g.arrive || g.time || "";
+  g.travel = travelMin(g.from, g.place || g.title); g.trainLink = trainLink(g.from, g.place || g.title, g.date, g.arrive);
+  if (g.arrive && g.date) { const t = await trains(g.from, g.place || g.title, g.date, g.arrive).catch(() => null); const best = t && t.direct_trains && t.direct_trains[t.direct_trains.length - 1]; if (best) { g.dep = best.leaves; g.arr = best.arrives; g.fromSt = t.from; g.toSt = t.to; } }
+  x.args = g;
+}
+const pendingOf = (acts) => ({ items: acts.map((x) => ({ tool: x.tool, args: x.args || {}, text: describe(x.tool, x.args || {}), phone: !!TOOLS[x.tool].phone })) });
+
+// ---- Claude (when the ANTHROPIC_API_KEY secret is set): any subject, the web when needed, and the same tools ----
+const CLAUDE_TOOLS = () => Object.entries(TOOLS).map(([name, v]) => ({ name, description: v.d + (v.write ? ". פעולה: המשתמש יאשר בכפתור לפני שהיא מתבצעת." : "") + " Arguments: " + v.a, input_schema: { type: "object", additionalProperties: true } }));
+function claudeSystem(now, city, prof) {
+  const d = new Date(now);
+  return `את Hania, העוזרת האישית של בעל Hania360 (שומר תורה ומצוות, גר בישראל). עונה בעברית טבעית, חמה ותמציתית, על כל נושא: ידע כללי, עצות, כתיבה, חשבון, בישול, טכנולוגיה, יהדות ועוד.
+עכשיו: יום ${WD[new Date(ymd(now) + "T12:00:00Z").getUTCDay()]}, ${ymd(now)}, השעה ${d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: TZ })} בישראל. העיר: ${city || "ירושלים"}.${prof}
+- לשאלות על מה שקורה עכשיו בעולם (חדשות, מחירים, מזג אוויר במקום אחר, תוצאות, שעות פתיחה) משתמשים ב־web_search.
+- למידע האישי ולזמני היום משתמשים בכלים של Hania360 (day, my_today, limud, sport, tv, train, find_app). עובדות על זמני שבת, הדף היומי והמשימות: רק מהכלים.
+- פעולות (add_task, add_note, done_task, add_repeat, add_event) המשתמש מאשר בכפתור, אז פשוט קוראים לכלי, גם כמה פעמים יחד. "יומן" = add_event. תאריכים מחושבים מהיום.
+- תשובה קצרה וברורה, בלי כותרות ובלי Markdown (בלי ** ובלי #). רשימה קצרה מותרת עם "• ". מקור מהאינטרנט: שם האתר בסוף.
+- בשאלות הלכה למעשה: עונים בזהירות, ומציינים שכדאי לשאול רב.`;
+}
+async function askClaude(env, sys, hist, c, city) {
+  const model = env.AI_MODEL || "claude-sonnet-5-5", used = [];
+  const tools = CLAUDE_TOOLS().concat([{ type: "web_search_20250305", name: "web_search", max_uses: 3, user_location: { type: "approximate", city: city || "Jerusalem", country: "IL", timezone: TZ } }]);
+  const messages = hist.map((m) => ({ role: m.role, content: m.content }));
+  for (let step = 0; step < 5; step++) {
+    const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model, max_tokens: 1500, system: sys, tools, messages }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((j.error && j.error.message) || "claude " + r.status);
+    const blocks = j.content || [], calls = blocks.filter((x) => x.type === "tool_use" && TOOLS[x.name]);
+    if (blocks.some((x) => x.type === "server_tool_use")) used.push("web");
+    const writes = calls.filter((x) => TOOLS[x.name].write);
+    const text = blocks.filter((x) => x.type === "text").map((x) => x.text).join("").replace(/\*\*/g, "").replace(/^#+\s*/gm, "").trim();
+    if (writes.length) { const acts = writes.map((x) => ({ tool: x.name, args: x.input || {} })); for (const x of acts) await enrich(x, city); return { answer: text, pending: pendingOf(acts), used }; }
+    if (j.stop_reason !== "tool_use" || !calls.length) {
+      if (j.stop_reason === "pause_turn") { messages.push({ role: "assistant", content: blocks }); continue; }
+      return { answer: text || "לא בטוחה שהבנתי. אפשר לנסח אחרת?", used };
+    }
+    messages.push({ role: "assistant", content: blocks });
+    const results = [];
+    for (const x of calls) { let res; try { res = await run(x.name, x.input, c); } catch (e) { res = { error: String(e.message || e).slice(0, 80) }; } used.push(x.name); results.push({ type: "tool_result", tool_use_id: x.id, content: clip(res, 6000) }); }
+    messages.push({ role: "user", content: results });
+  }
+  return { answer: "לא הספקתי לסיים. אפשר לשאול שוב בצורה פשוטה יותר?", used };
+}
+
 export async function aiApi(request, env, ctx) {
   const url = new URL(request.url);
-  if (url.pathname === "/api/ai/usage") { const r = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "GET" }); const j = await r.json(); const d = ymd(Date.now()); return json({ today: (j.days && j.days[d] && j.days[d].ai) || 0, cap: PER_DAY }); }
+  if (url.pathname === "/api/ai/usage") { const r = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "GET" }); const j = await r.json(); const d = ymd(Date.now()); return json({ today: (j.days && j.days[d] && j.days[d].ai) || 0, cap: PER_DAY, brain: env.ANTHROPIC_API_KEY ? "Claude" : "Llama" }); }
   if (url.pathname !== "/api/ai/chat" || request.method !== "POST") return json({ error: "not found" }, 404);
   const b = await request.json().catch(() => ({})), cookie = request.headers.get("cookie") || "", city = typeof b.city === "string" ? b.city.slice(0, 30) : "";
   const rest = await resting(env, city);
@@ -233,21 +282,17 @@ export async function aiApi(request, env, ctx) {
   // what Hania knows about the owner's routine (from the morning-briefing settings): the regular train trip
   let prof = "";
   try { if (env.BRIEF) { const st = await env.BRIEF.get(env.BRIEF.idFromName("owner")).fetch("https://brief/get").then((r) => r.json()); if (st.commute) prof = "\nהנסיעה הקבועה של המשתמש: מ" + st.commute.from + " ל" + st.commute.to + (st.commute.arrive ? ", להגיע עד " + st.commute.arrive : "") + ". כשהוא אומר \"הרכבת שלי\" או \"לעבודה\", זו הכוונה."; } } catch {}
+  if (env.ANTHROPIC_API_KEY) {
+    try { return json(await askClaude(env, claudeSystem(Date.now(), city, prof), hist, c, city)); }
+    catch (e) { console.log("claude", e && e.message); /* fall back to the free model below */ }
+  }
   const msgs = [{ role: "system", content: system(Date.now(), city) + prof }].concat(hist), used = [];
   for (let step = 0; step < STEPS; step++) {
     const o = await think(env, msgs);
     if (!o) return json({ answer: "משהו לא עבד אצלי. ננסה שוב בעוד רגע?" });
     const acts = (Array.isArray(o.actions) ? o.actions : o.tool ? [o] : []).filter((x) => x && TOOLS[x.tool] && TOOLS[x.tool].write).slice(0, 12);
-    // a train trip: the link (set to arrive on time) and the usual travel time go into the calendar event
-    for (const x of acts) {
-      const g = x.args || {};
-      if (x.tool !== "add_event" || !(g.train || /רכבת/.test((g.title || "") + (g.from || "") + (g.note || "")))) continue;
-      g.train = true; g.from = g.from || "תחנת רכבת " + (city || ""); g.arrive = g.arrive || g.time || "";
-      g.travel = travelMin(g.from, g.place || g.title); g.trainLink = trainLink(g.from, g.place || g.title, g.date, g.arrive);
-      if (g.arrive && g.date) { const t = await trains(g.from, g.place || g.title, g.date, g.arrive).catch(() => null); const best = t && t.direct_trains && t.direct_trains[t.direct_trains.length - 1]; if (best) { g.dep = best.leaves; g.arr = best.arrives; g.fromSt = t.from; g.toSt = t.to; } }
-      x.args = g;
-    }
-    if (acts.length) return json({ answer: o.say || "", pending: { items: acts.map((x) => ({ tool: x.tool, args: x.args || {}, text: describe(x.tool, x.args || {}), phone: !!TOOLS[x.tool].phone })) }, used });
+    for (const x of acts) await enrich(x, city);
+    if (acts.length) return json({ answer: o.say || "", pending: pendingOf(acts), used });
     if (o.tool && TOOLS[o.tool]) {
       let res; try { res = await run(o.tool, o.args, c); } catch (e) { res = { error: String(e.message || e).slice(0, 80) }; }
       used.push(o.tool);

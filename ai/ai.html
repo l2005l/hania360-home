@@ -88,7 +88,7 @@ fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;displ
   function $(id) { return document.getElementById(id); }
   function el(t, a, kids) { var e = document.createElement(t); for (var k in a || {}) { if (k === "text") e.textContent = a[k]; else if (k === "onclick") e.addEventListener("click", a[k]); else e.setAttribute(k, a[k]); } (kids || []).forEach(function (c) { if (c) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); }); return e; }
   var log = $("log"), busy = false;
-  var NAMES = { day: "זמני היום", my_today: "Today", limud: "לימוד יומי", news: "חדשות", sport: "ספורט", tv: "HaniaTV", find_app: "מפת האפליקציות" };
+  var NAMES = { web: "חיפוש באינטרנט", train: "רכבת ישראל", day: "זמני היום", my_today: "Today", limud: "לימוד יומי", news: "חדשות", sport: "ספורט", tv: "HaniaTV", find_app: "מפת האפליקציות" };
 
   // Links in answers become clickable; everything else stays plain text.
   function rich(text) {
@@ -205,7 +205,7 @@ fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;displ
     $("t").value = ""; grow(); call();
   }
   function grow() { var t = $("t"); t.style.height = "auto"; t.style.height = Math.min(140, t.scrollHeight) + "px"; }
-  function usage() { fetch("/api/ai/usage").then(function (r) { return r.json(); }).then(function (j) { $("usage").textContent = j.cap ? "היום: " + j.today + " מתוך " + j.cap + " שאלות" : ""; }).catch(function () {}); }
+  function usage() { fetch("/api/ai/usage").then(function (r) { return r.json(); }).then(function (j) { $("usage").textContent = j.cap ? "היום: " + j.today + " מתוך " + j.cap + " שאלות" + (j.brain ? " · " + j.brain : "") : ""; }).catch(function () {}); }
 
   $("go").addEventListener("click", function () { send($("t").value); });
   $("t").addEventListener("input", grow);
