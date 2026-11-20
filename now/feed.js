@@ -10,18 +10,24 @@
 export const TICKER = [
   ["ליטר בנזין 95, מ־5.11", "7.85 ₪"],
   ["אינפלציה שנתית, אוקטובר", "1.1%"],
-  ["למכבי ת״א–דובאי ביורוליג", null, "2026-11-19T19:15"],
   ["לבלאק פריידיי", null, "2026-11-27T00:00"],
   ["לנר ראשון של חנוכה", null, "2026-12-04T16:00"],
 ];
 
 export default [
   {
-    id: "2026-11-18-maccabi-olympiacos-ot", for: ["b:TEL"], from: "2026-11-18", until: "2026-11-20", chip: "כדורסל", big: "95:97",
-    title: "מכבי תל אביב חזרה מפיגור 15, אבל הפסידה לאולימפיאקוס בהארכה",
-    body: "בלימסול, במחזור ה־12 של היורוליג, סשה וזנקוב הוביל את מכבי להארכה עם סל בסיום, ואולימפיאקוס ניצחה 95:97. מכבי עכשיו עם 3 ניצחונות ו־9 הפסדים. המשחק הבא: ביום חמישי 19.11 ב־19:15, מול דובאי.",
-    sources: [["ONE", "https://www.one.co.il/Article/539166.html"], ["הארץ", "https://www.haaretz.co.il/sport/basketball/2026-11-17/ty-article/000001a1-ead6-d3e7-a9ff-eede14970000"]],
+    id: "2026-11-20-maccabi-dubai", for: ["b:TEL"], from: "2026-11-20", until: "2026-11-24", chip: "כדורסל", big: "74:80",
+    title: "מכבי תל אביב הפסידה לדובאי 80:74 בלימסול",
+    body: "במחזור ה־13 של היורוליג, ים מדר קלע 17 נקודות וקמאר בולדווין 12, אבל דובאי ניצחה. מכבי עכשיו עם 3 ניצחונות ו־10 הפסדים. ביורוליג היא ממשיכה ביום שלישי 24.11, מול באיירן מינכן, ובשבת היא משחקת מול הפועל חולון.",
+    sources: [["ערוץ הספורט", "https://playbasket.sport5.co.il/?FLNum=24&GameID=153828"], ["ערוץ הספורט (אחרי המשחק)", "https://www.sport5.co.il/articles.aspx?FolderID=405&docID=568292"]],
     apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
+  },
+  {
+    id: "2026-11-20-avdija-foot-2", from: "2026-11-20", until: "2026-11-24", chip: "כדורסל",
+    title: "דני אבדיה פספס משחק שני ברציפות, בגלל כף הרגל",
+    body: "אבדיה לא שיחק ביום חמישי במילווקי, בגלל דלקת וכאב בכף הרגל השמאלית. לפני כן הוא קלע 27 נקודות במינסוטה, והעונה הוא עם 24.2 נקודות, 6.2 ריבאונדים ו־6.1 אסיסטים בממוצע. אין עדיין מועד חזרה. ההזדמנות הבאה: בשבת (שעון ארה״ב) מול הניקס.",
+    sources: [["NBC Sports", "https://www.nbcsports.com/fantasy/basketball/player-news/2026-11-19/deni-avdija-foot-out-thursday-vs-bucks"], ["CBS Sports", "https://www.cbssports.com/fantasy/basketball/news/trail-blazers-deni-avdija-remains-sidelined-thursday/"], ["ClutchPoints", "https://clutchpoints.com/nba/portland-trail-blazers/is-deni-avdija-playing-tonight-blazers-vs-bucks-injury-report"]],
+    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
   {
     id: "2026-11-18-israel-austria", from: "2026-11-18", until: "2026-12-07", chip: "כדורגל", big: "1:1",
@@ -44,13 +50,6 @@ export default [
     body: "לפי הלמ״ס, המדד ירד ב־0.1% באוקטובר, כשהתחזיות דיברו על עלייה של עד 0.5%. ירדו: פירות טריים (2.8%־) ותחבורה (1.4%־, בעיקר טיסות לחו״ל). עלו: הלבשה והנעלה (4.1%+) וירקות טריים (3.5%+). למי שיש משכנתא או הלוואה צמודה, זו בשורה קטנה. החלטת הריבית הבאה של בנק ישראל: 23.11, הריבית היום 3.25%.",
     sources: [["ynet", "https://www.ynet.co.il/economy/article/sqm15han4"], ["TheMarker", "https://www.themarker.com/news/macroeconomics/2026-11-15/ty-article/000001a1-dee6-d59b-a1f3-def6175a0000"], ["אמס", "https://www.emess.co.il/radio/1962630"], ["אייס (מועד הריבית)", "https://www.ice.co.il/finance/news/article/1137705"]],
     apps: [["🛒", "HaniaCart", "רשימת הקניות והמחירים בסופר", "https://cart.hania360.com/", "לקניות"]],
-  },
-  {
-    id: "2026-11-19-avdija-foot", from: "2026-11-19", until: "2026-11-24", chip: "כדורסל",
-    title: "דני אבדיה פספס משחק ראשון העונה, בגלל כאב בכף הרגל",
-    body: "בשני קלע אבדיה 27 נקודות (11 מ־19) ו־8 ריבאונדים, אבל פורטלנד הפסידה במינסוטה 98:106. בשלישי הוא לא שיחק בגלל כאב בכף הרגל השמאלית, ופורטלנד הפסידה שוב, 105:106, מסל בשנייה האחרונה. המשחק הבא: ביום חמישי (שעון ארה״ב) במילווקי.",
-    sources: [["CBS Minnesota", "https://www.cbsnews.com/minnesota/news/mcdaniels-scores-to-lift-timberwolves-to-win-over-trail-blazers/"], ["TSN", "https://www.tsn.ca/nba/article/trail-blazers-rule-out-avdija-vs-timberwolves-with-sore-foot-n1-50515349/"], ["NBC Sports", "https://www.nbcsports.com/fantasy/basketball/player-news/2026-11-17/deni-avdija-foot-downgraded-to-out-tuesday"]],
-    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
   {
     id: "2026-11-19-grocery-gap", from: "2026-11-19", until: "2026-12-03", chip: "קניות", big: "957 ₪",
