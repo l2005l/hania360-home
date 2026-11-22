@@ -16,25 +16,25 @@ export const TICKER = [
 
 export default [
   {
+    id: "2026-11-22-maccabi-holon", for: ["b:TEL"], from: "2026-11-22", until: "2026-11-25", chip: "כדורסל", big: "93:58",
+    title: "מכבי תל אביב ניצחה את הפועל חולון 93:58 ביד אליהו",
+    body: "במחזור ה־7 של ליגת העל, במוצאי שבת 21.11, רומן סורקין קלע 13 נקודות וויל ריימן 12. בחולון בלט אדאמה סאנוגו, עם 27 נקודות ו־13 ריבאונדים. זה בא אחרי ההפסד לדובאי ביורוליג (80:74). המשחק הבא של מכבי: ביום שלישי 24.11, מול באיירן מינכן ביורוליג.",
+    sources: [["וואלה ספורט", "https://sports.walla.co.il/item/3877055"], ["ערוץ הספורט", "https://playbasket.sport5.co.il/?FLNum=21&GameID=155857"]],
+    apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
+  },
+  {
+    id: "2026-11-22-avdija-return", from: "2026-11-22", until: "2026-11-26", chip: "כדורסל", big: "20",
+    title: "דני אבדיה חזר עם 20 נקודות, ופורטלנד הפסידה לניקס בשלשה בבאזר",
+    body: "אחרי שני משחקים בחוץ בגלל כף הרגל, אבדיה שיחק 36 דקות במדיסון סקוור גארדן: 20 נקודות, 9 ריבאונדים ו־5 אסיסטים. פורטלנד חזרה מפיגור של 26, ואבדיה העלה אותה ל־94:96 מהקו, 3.2 שניות לסיום. אבל מיקאל ברידג׳ס קלע שלשה בבאזר, והניקס ניצחו 96:97.",
+    sources: [["ערוץ 7", "https://www.israelnationalnews.com/flashes/698139"], ["CBS Sports", "https://www.cbssports.com/fantasy/basketball/news/trail-blazers-deni-avdija-scores-20-points-with-five-dimes/"], ["ClutchPoints", "https://clutchpoints.com/nba/new-york-knicks/knicks-news-mikal-bridges-calls-game-buzzer-beater-3-blazers"]],
+    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
+  },
+  {
     id: "2026-11-21-hapoel-paris", for: ["b:HTA"], from: "2026-11-21", until: "2026-11-26", chip: "כדורסל", big: "96:97",
     title: "הפועל תל אביב הפסידה בפריז 97:96, בשניות האחרונות",
     body: "במחזור ה־13 של היורוליג, ביום חמישי 19.11, אנטוניו בלייקני קלע 28 נקודות ואלייז׳ה בראיינט 16. בשניות האחרונות היה איבוד כדור קריטי, ופריז ניצחה בנקודה. זה ההפסד הרביעי שלה בחמישה מחזורים. ביורוליג היא ממשיכה בחוץ, מול אולימפיאקוס בפיראוס.",
     sources: [["וואלה ספורט", "https://sports.walla.co.il/item/3876893"], ["ערוץ הספורט", "https://playbasket.sport5.co.il/?FLNum=24&GameID=153831"], ["Eurohoops", "https://www.eurohoops.net/en/euroleague/2038308/euroleague-roundup-anadolu-efes-cruises-past-asvel/"]],
     apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
-  },
-  {
-    id: "2026-11-20-maccabi-dubai", for: ["b:TEL"], from: "2026-11-20", until: "2026-11-24", chip: "כדורסל", big: "74:80",
-    title: "מכבי תל אביב הפסידה לדובאי 80:74 בלימסול",
-    body: "במחזור ה־13 של היורוליג, ים מדר קלע 17 נקודות וקמאר בולדווין 12, אבל דובאי ניצחה. מכבי עכשיו עם 3 ניצחונות ו־10 הפסדים. ביורוליג היא ממשיכה ביום שלישי 24.11, מול באיירן מינכן, ובשבת היא משחקת מול הפועל חולון.",
-    sources: [["ערוץ הספורט", "https://playbasket.sport5.co.il/?FLNum=24&GameID=153828"], ["ערוץ הספורט (אחרי המשחק)", "https://www.sport5.co.il/articles.aspx?FolderID=405&docID=568292"]],
-    apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
-  },
-  {
-    id: "2026-11-20-avdija-foot-2", from: "2026-11-20", until: "2026-11-24", chip: "כדורסל",
-    title: "דני אבדיה פספס משחק שני ברציפות, בגלל כף הרגל",
-    body: "אבדיה לא שיחק ביום חמישי במילווקי, בגלל דלקת וכאב בכף הרגל השמאלית. לפני כן הוא קלע 27 נקודות במינסוטה, והעונה הוא עם 24.2 נקודות, 6.2 ריבאונדים ו־6.1 אסיסטים בממוצע. אין עדיין מועד חזרה. ההזדמנות הבאה: בשבת (שעון ארה״ב) מול הניקס.",
-    sources: [["NBC Sports", "https://www.nbcsports.com/fantasy/basketball/player-news/2026-11-19/deni-avdija-foot-out-thursday-vs-bucks"], ["CBS Sports", "https://www.cbssports.com/fantasy/basketball/news/trail-blazers-deni-avdija-remains-sidelined-thursday/"], ["ClutchPoints", "https://clutchpoints.com/nba/portland-trail-blazers/is-deni-avdija-playing-tonight-blazers-vs-bucks-injury-report"]],
-    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
   {
     id: "2026-11-18-israel-austria", from: "2026-11-18", until: "2026-12-07", chip: "כדורגל", big: "1:1",
