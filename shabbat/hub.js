@@ -2,6 +2,8 @@
 // candle-lighting times the page computed for its town, and wakes the phone with an empty Web Push
 // the chosen minutes before each one. The service worker then asks /api/shabbat/msg what to show.
 
+import { passUser } from "../lib/account.js";
+
 const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const enc = new TextEncoder();
 const HOSTS = [/(^|\.)fcm\.googleapis\.com$/, /(^|\.)push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/];
@@ -56,6 +58,8 @@ export class ShabbatHub {
       const n = this.nextOf(r, now);
       if (!n) { if (r.items.every((it) => it.t < now - 864e5 * 14)) await this.ctx.storage.delete(k); continue; }
       if (n.at > now + 30000) continue;
+      // paused from the reminders center: this one passes quietly
+      if (r.pause && now < r.pause) { r.last = n.at; await this.ctx.storage.put(k, r); continue; }
       const mins = Math.max(1, Math.round((n.it.t - now) / 60000));
       const h = Math.round(mins / 60), when = mins < 55 ? "בעוד " + mins + " דקות" : h === 1 ? "בעוד שעה" : h === 2 ? "בעוד שעתיים" : "בעוד " + h + " שעות";
       r.msg = k.startsWith("c:") || k.startsWith("v:")
@@ -102,6 +106,27 @@ export class ShabbatHub {
       await this.schedule();
       return json({ ok: true });
     }
+    // The reminders center (hania360.com/reminders): every list a signed-in person set, from every app and phone.
+    // Only the worker sets x-hania-uid (from Hania Pass); a request without it sees nothing.
+    if (p === "/api/shabbat/mine" || p === "/api/shabbat/mine-op") {
+      const uid = req.headers.get("x-hania-uid");
+      if (!uid) return json({ error: "signin" }, 401);
+      const now = Date.now(), all = await this.allSubs(), mine = [...all].filter(([, r]) => r.uid === uid);
+      if (p === "/api/shabbat/mine-op") {
+        const op = b && b.op, pick = op === "pauseAll" || op === "resumeAll" ? mine : mine.filter(([k]) => k === (b && b.key));
+        for (const [k, r] of pick) {
+          if (op === "del") { await this.ctx.storage.delete(k); continue; }
+          if (op === "pause" || op === "pauseAll") r.pause = Math.min(now + 8 * 864e5, Math.max(now, +b.until || 0));
+          if (op === "resume" || op === "resumeAll") r.pause = 0;
+          if (op === "before" && ["s", "z", "h"].includes(k[0])) { r.before = Math.min(240, Math.max(10, +b.before || 60)); r.last = 0; }
+          await this.ctx.storage.put(k, r);
+        }
+        await this.schedule();
+      }
+      const list = [...(await this.allSubs())].filter(([, r]) => r.uid === uid).map(([k, r]) => ({ key: k, kind: k[0], app: r.app || (k.split(":")[2] || ""), host: r.host || "", city: r.city, before: r.before, pause: r.pause && r.pause > now ? r.pause : 0,
+        next: r.items.filter((it) => it.t > now).slice(0, 3).map((it) => ({ t: it.t, label: it.label })), count: r.items.filter((it) => it.t > now).length }));
+      return json({ list });
+    }
     if (p === "/api/shabbat/sub") {
       const endpoint = b && b.sub && b.sub.endpoint;
       if (!okEndpoint(endpoint)) return json({ error: "endpoint" }, 400);
@@ -113,7 +138,8 @@ export class ShabbatHub {
       // the same app's list from before it had its own slot: drop it, so nothing comes twice
       if (appOf(b)) { const lk = b.kind + ":" + (await idOf(endpoint)), legacy = await this.ctx.storage.get(lk); if (legacy && (b.kind === "h" ? (legacy.items || []).length && legacy.items.every((x) => /^🕎/.test(x.label || "")) : legacy.city === (clean(b.city, 30) || "העיר שלך"))) await this.ctx.storage.delete(lk); }
       const before = Math.min(240, Math.max(10, +b.before || 60));
-      await this.ctx.storage.put(k, { endpoint, before, city: clean(b.city, 30) || "העיר שלך", items, last: old.before === before ? old.last || 0 : 0, msg: old.msg || null });
+      const uid = req.headers.get("x-hania-uid") || old.uid || "", host = clean(req.headers.get("x-hania-host") || old.host || "", 40);
+      await this.ctx.storage.put(k, { endpoint, before, city: clean(b.city, 30) || "העיר שלך", items, last: old.before === before ? old.last || 0 : 0, msg: old.msg || null, uid, host, app: appOf(b) || old.app || "", pause: old.pause || 0 });
       await this.schedule();
       return json({ ok: true });
     }
@@ -127,7 +153,16 @@ export class ShabbatHub {
 function appOf(b) { return b && (b.kind === "t" || b.kind === "h") && typeof b.app === "string" && /^[a-z]{2,12}$/.test(b.app) ? b.app : ""; }
 async function slotOf(b, endpoint) { const a = appOf(b); return (["z", "h", "t", "c", "v"].includes(b.kind) ? b.kind + ":" : "s:") + (await idOf(endpoint)) + (a ? ":" + a : ""); }
 
-export function shabbatApi(req, env) {
+export async function shabbatApi(req, env) {
   if (!env.SHABBAT) return Response.json({ error: "not configured" }, { status: 503 });
+  const u = new URL(req.url), p = u.pathname;
+  if (p === "/api/shabbat/sub" || p === "/api/shabbat/mine" || p === "/api/shabbat/mine-op") {
+    // a copy of the request with who is signed in (from Hania Pass) and which site sent it; never taken from outside
+    const h = new Headers(req.headers); h.delete("x-hania-uid"); h.delete("x-hania-host");
+    const who = await passUser(req, env).catch(() => null);
+    if (who) h.set("x-hania-uid", who.id);
+    h.set("x-hania-host", u.hostname);
+    req = new Request(req.url, { method: req.method, headers: h, body: req.method === "POST" ? await req.arrayBuffer() : undefined });
+  }
   return env.SHABBAT.get(env.SHABBAT.idFromName("hub")).fetch(req);
 }
