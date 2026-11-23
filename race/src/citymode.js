@@ -65,6 +65,7 @@ function cityMode(A) {
     // night: windows lit, street lamps glowing
     var nightK = sk.night ? 1 : hr > 17.3 && hr < 18.6 ? 0.5 : 0;
     C.M.fac.forEach(function (m) { m.emissive.setRGB(nightK, nightK * 0.92, nightK * 0.8); });
+    if (C.M.shopWin) C.M.shopWin.color.set(0x33414F).lerp(new THREE.Color(0xFFE2A8), nightK); // shop windows: dark glass by day, lit at night
     if (rain) { C.M.road.color.setRGB(0.72, 0.72, 0.76); }
     if (nightK && C.lamps.length) {
       var pos = []; C.lamps.forEach(function (lp) { pos.push(lp[0] + Math.sin(lp[2]) * 1.4, 6.75, lp[1] + Math.cos(lp[2]) * 1.4); });
@@ -76,7 +77,7 @@ function cityMode(A) {
     if (rain) W.rainFx = makeRain(scene);
     // you: start on a main street near the centre
     var st = startPoint(C), me = { spec: spec, u: 0, v: 0, r: 0, steer: 0, nitro: 1, boost: 0, off: 0, slip: 0, hit: 0, spin: 0, t: 0, lat: 0, vmax: spec.top / 3.6, A0: 27.78 / spec.acc * 1.32, m: spec.m, I: spec.m * 1.6, gear: 1, rpm: 0.2, x: st.x, z: st.z, h: st.h };
-    W.me = me; W.V = carMesh(spec, model); scene.add(W.V.root); W.camH = me.h; W.camP.set(me.x - Math.sin(me.h) * 8, 4, me.z - Math.cos(me.h) * 8);
+    W.me = me; W.V = carMesh(spec, model); scene.add(W.V.root); W.camH = me.h; W.camP.set(me.x - Math.sin(me.h) * 8, C.hAt(me.x, me.z) + 4, me.z - Math.cos(me.h) * 8);
     W.live = cityLive(C, scene, { honk: function () { sndBeep(392, 0.25, 0.08); setTimeout(function () { sndBeep(392, 0.25, 0.08); }, 300); }, dodged: function () { if (W.t - (W.said.dodge || -9) > 8) { W.said.dodge = W.t; flash("😮 זהירות, הולכי רגל!", 1.6); } }, get night() { return W.night; } });
     W.fx = makeFx(scene); W.stars = makeStars(C, scene, id); W.mapC = mapCanvas(C);
     W.guide = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x4DABF7, transparent: true, opacity: 0.55, depthWrite: false, fog: false })); W.guide.renderOrder = 3; W.guide.frustumCulled = false; scene.add(W.guide);
@@ -120,6 +121,9 @@ function cityMode(A) {
     var g = C.at(me.x, me.z); me.lat = g === 1 ? 0 : 99;
     var ox = me.x, oz = me.z;
     drive(me, inp, dt, { w: 4 }, w.rain ? 0.8 : 1);
+    // the hills: going up is slower, going down faster
+    var sfx = Math.sin(me.h), sfz = Math.cos(me.h), slope = (C.hAt(me.x + sfx * 1.6, me.z + sfz * 1.6) - C.hAt(me.x - sfx * 1.6, me.z - sfz * 1.6)) / 3.2;
+    if (Math.abs(me.u) > 0.3 || inp.thr) me.u -= 9.81 * Math.max(-0.35, Math.min(0.35, slope)) * dt * 0.85;
     // buildings and water: the car stops at them and slides along walls
     var fx = Math.sin(me.h), fz = Math.cos(me.h), hit = 0;
     for (var s = -1; s <= 1; s += 2) {
@@ -157,7 +161,8 @@ function cityMode(A) {
   // ---------- drawing ----------
   M.render = function (dt) {
     var w = W, me = w.me, t = w.t;
-    syncCar(w.V, me, dt, w.night, t);
+    syncCar(w.V, me, dt, w.night, t); cityTilt(w.C, w.V, me.x, me.z, me.h);
+    var gy = w.C.hAt(me.x, me.z);
     if (Math.abs(me.u) > 5 && me.slip > 0.55) { var bx = me.x - Math.sin(me.h) * 1.3, bz = me.z - Math.cos(me.h) * 1.3; if (Math.random() < 0.6) w.fx.puff(bx, bz, "#DDDDDD", 0); w.fx.mark(bx + Math.cos(me.h) * 0.85, bz - Math.sin(me.h) * 0.85, me.h); w.fx.mark(bx - Math.cos(me.h) * 0.85, bz + Math.sin(me.h) * 0.85, me.h); }
     w.fx.step(dt); if (w.rainFx) w.rainFx(cam.position, dt);
     if (w.fire) w.fire.step(dt, t);
@@ -165,18 +170,19 @@ function cityMode(A) {
     w.camH += dh * Math.min(1, dt * (mode === 2 ? 12 : 3.2));
     var fx = Math.sin(w.camH), fz = Math.cos(w.camH), sp = Math.abs(me.u), por = innerHeight > innerWidth;
     var big = me.spec.m > 3000 ? 1.35 : 1, dist = (mode === 1 ? 14 : 7.4 + sp * 0.03) * (por ? 1.3 : 1) * big, hgt = (mode === 1 ? 6.5 : 2.9 + sp * 0.008) * big + (por ? 1 : 0);
-    if (mode === 2) { cam.position.set(me.x + Math.sin(me.h) * 0.4, 1.7 * big, me.z + Math.cos(me.h) * 0.4); cam.lookAt(me.x + Math.sin(me.h) * 20, 1.2, me.z + Math.cos(me.h) * 20); }
+    if (mode === 2) { cam.position.set(me.x + Math.sin(me.h) * 0.4, gy + 1.7 * big, me.z + Math.cos(me.h) * 0.4); cam.lookAt(me.x + Math.sin(me.h) * 20, w.C.hAt(me.x + Math.sin(me.h) * 20, me.z + Math.cos(me.h) * 20) + 1.2, me.z + Math.cos(me.h) * 20); }
     else {
       var tx = me.x - fx * dist, tz = me.z - fz * dist;
       // keep the camera out of buildings: come closer when a wall is between
       for (var k = 0; k < 6 && W.C.at(tx, tz) === 2; k++) { tx += fx * dist * 0.15; tz += fz * dist * 0.15; }
-      w.camP.x += (tx - w.camP.x) * Math.min(1, dt * 8); w.camP.z += (tz - w.camP.z) * Math.min(1, dt * 8); w.camP.y += (hgt - w.camP.y) * Math.min(1, dt * 5);
-      cam.position.copy(w.camP); cam.lookAt(me.x + fx * 4, 1.2, me.z + fz * 4);
+      var ty = Math.max(gy + hgt, w.C.hAt(tx, tz) + 1.6);
+      w.camP.x += (tx - w.camP.x) * Math.min(1, dt * 8); w.camP.z += (tz - w.camP.z) * Math.min(1, dt * 8); w.camP.y += (ty - w.camP.y) * (Math.abs(ty - w.camP.y) > 12 ? 1 : Math.min(1, dt * 5));
+      cam.position.copy(w.camP); cam.lookAt(me.x + fx * 4, gy + 1.2, me.z + fz * 4);
     }
     if (w.shake > 0) { cam.position.x += (Math.random() - 0.5) * w.shake * 0.5; cam.position.y += (Math.random() - 0.5) * w.shake * 0.4; w.shake = Math.max(0, w.shake - dt * 2.5); }
     var fov = 62 + Math.min(12, sp * 0.12) + me.boost * 7; if (Math.abs(cam.fov - fov) > 0.1) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix(); }
-    w.sun.position.set(me.x + w.sunDir.x * 0.5, w.sunDir.y, me.z + w.sunDir.z * 0.5); w.sun.target.position.set(me.x, 0, me.z);
-    if (w.head) { w.head.position.set(me.x + Math.sin(me.h) * 1.5, 1.4, me.z + Math.cos(me.h) * 1.5); w.head.target.position.set(me.x + Math.sin(me.h) * 30, 0, me.z + Math.cos(me.h) * 30); }
+    w.sun.position.set(me.x + w.sunDir.x * 0.5, gy + w.sunDir.y, me.z + w.sunDir.z * 0.5); w.sun.target.position.set(me.x, gy, me.z);
+    if (w.head) { w.head.position.set(me.x + Math.sin(me.h) * 1.5, gy + 1.4, me.z + Math.cos(me.h) * 1.5); w.head.target.position.set(me.x + Math.sin(me.h) * 30, w.C.hAt(me.x + Math.sin(me.h) * 30, me.z + Math.cos(me.h) * 30), me.z + Math.cos(me.h) * 30); }
     if (w.beam.visible) { w.beam.material.opacity = 0.25 + Math.sin(t * 4) * 0.1; w.ring.scale.setScalar(1 + Math.sin(t * 5) * 0.08); }
     var near = null, nd = 1e9; w.live.cars.forEach(function (c) { var d = Math.hypot(c.x - me.x, c.z - me.z); if (d < nd) { nd = d; near = c; } });
     sndFrame(me, near ? { u: near.v, spec: near.spec, rpm: 0.3, slip: 0, off: 0, boost: 0, thr: 0.3 } : null, nd, !!w.paused);
@@ -242,7 +248,7 @@ function cityMode(A) {
   }
   function setTarget(x, z, label) {
     var w = W; w.tgt = { x: x, z: z, label: label }; w.route = routeTo(x, z); w.routeT = w.t;
-    w.beam.position.set(x, 30, z); w.beam.visible = true; w.ring.position.set(x, 0.2, z); w.ring.visible = true; guide();
+    var by = w.C.hAt(x, z); w.beam.position.set(x, by + 30, z); w.beam.visible = true; w.ring.position.set(x, by + 0.25, z); w.ring.visible = true; guide();
   }
   function clearTarget() { var w = W; w.tgt = null; w.route = null; w.beam.visible = w.ring.visible = false; w.guide.geometry.dispose(); w.guide.geometry = new THREE.BufferGeometry(); $("cDist").hidden = true; }
   // a blue line on the road for the next stretch of the way
@@ -271,8 +277,8 @@ function cityMode(A) {
     }
     var sh = new THREE.Shape(); for (var i = 0; i < 10; i++) { var a = i / 10 * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? 0.55 : 1.3; if (i) sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
     var geo = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), mat = new THREE.MeshBasicMaterial({ color: 0xFFD43B, fog: false });
-    list.forEach(function (s) { if (s.got) return; s.m = new THREE.Mesh(geo, mat); s.m.position.set(s.x, 2, s.z); scene.add(s.m); });
-    return { list: list, step: function (dt, me, t, cb) { list.forEach(function (s, i2) { if (s.got || !s.m) return; s.m.rotation.y = t * 2; s.m.position.y = 2 + Math.sin(t * 3 + i2) * 0.3; if (Math.hypot(s.x - me.x, s.z - me.z) < 3.5) { s.got = true; W.scene.remove(s.m); cb(i2); } }); } };
+    list.forEach(function (s) { s.y = C.hAt(s.x, s.z); if (s.got) return; s.m = new THREE.Mesh(geo, mat); s.m.position.set(s.x, s.y + 2, s.z); scene.add(s.m); });
+    return { list: list, step: function (dt, me, t, cb) { list.forEach(function (s, i2) { if (s.got || !s.m) return; s.m.rotation.y = t * 2; s.m.position.y = s.y + 2 + Math.sin(t * 3 + i2) * 0.3; if (Math.hypot(s.x - me.x, s.z - me.z) < 3.5) { s.got = true; W.scene.remove(s.m); cb(i2); } }); } };
   }
   var STAR_N = 15;
   function got(i) {
@@ -330,9 +336,9 @@ function cityMode(A) {
     var me = W.me, C = W.C, m = { kind: kind, stage: 0, t0: W.t, steps: [] };
     var nm = function (p) { return p && p.name ? p.name : ""; }, st = function (p) { return p && (p.street || p.name) ? "ברחוב " + (p.street || p.name) : ""; };
     if (kind === "delivery") {
-      var pick = placeName(["c"]) || spot(me.x, me.z, 150, 500), drop = pick && spot(pick.x, pick.z, 350, 1000);
+      var pick = placeName(["c", "r", "ff", "B", "S"]) || spot(me.x, me.z, 150, 500), drop = pick && spot(pick.x, pick.z, 350, 1000);
       if (!pick || !drop) return flash("לא מצאנו כתובת, נסו שוב", 1.5);
-      m.label = "🍕 משלוח"; m.steps = [{ x: pick.x, z: pick.z, say: "📦 ההזמנה אצלך! עכשיו ל" + (drop.name ? "רחוב " + drop.name : "כתובת"), what: "לאסוף מבית קפה " + st(pick) }, { x: drop.x, z: drop.z, say: "🍕 נמסר! הלקוח מרוצה", what: "למסור " + (drop.name ? "ברחוב " + drop.name : "בכתובת") }];
+      m.label = "🍕 משלוח"; m.steps = [{ x: pick.x, z: pick.z, say: "📦 ההזמנה אצלך! עכשיו ל" + (drop.name ? "רחוב " + drop.name : "כתובת"), what: "לאסוף " + (pick.name ? "מ" + pick.name + " " : "את ההזמנה ") + st(pick) }, { x: drop.x, z: drop.z, say: "🍕 נמסר! הלקוח מרוצה", what: "למסור " + (drop.name ? "ברחוב " + drop.name : "בכתובת") }];
     } else if (kind === "taxi") {
       var a = spot(me.x, me.z, 120, 450), b = a && spot(a.x, a.z, 400, 1100);
       if (!a || !b) return flash("לא מצאנו נוסע, נסו שוב", 1.5);
@@ -343,10 +349,10 @@ function cityMode(A) {
       if (!pt || !h) return flash("נסו שוב", 1.5);
       m.label = "🚑 אמבולנס"; m.car = "ambulance"; m.steps = [{ x: pt.x, z: pt.z, say: "🩹 החולה עלה. מהר, לבית החולים!", what: "להגיע למי שצריך עזרה " + st(pt) }, { x: h.x, z: h.z, say: "🏥 הגעתם בזמן. כל הכבוד!", what: "לבית החולים" + (h.name ? " " + h.name : "") }];
     } else if (kind === "fire") {
-      var bl = null; for (var i = 0; i < 300 && !bl; i++) { var b2 = C.bld[Math.floor(Math.random() * C.bld.length)]; if (!b2) break; var cx = 0, cz = 0, n = b2.p.length / 2; for (var k = 0; k < n; k++) { cx += b2.p[2 * k]; cz += b2.p[2 * k + 1]; } cx /= n; cz /= n; var dd = Math.hypot(cx - me.x, cz - me.z); var nr = C.near(cx, cz, 30); if (dd > (i < 200 ? 300 : 120) && dd < (i < 200 ? 900 : 1600) && nr) bl = { x: nr.x, z: nr.z, bx: cx, bz: cz, h: b2.h || 10 }; }
+      var bl = null; for (var i = 0; i < 300 && !bl; i++) { var b2 = C.bld[Math.floor(Math.random() * C.bld.length)]; if (!b2) break; var cx = 0, cz = 0, n = b2.p.length / 2; for (var k = 0; k < n; k++) { cx += b2.p[2 * k]; cz += b2.p[2 * k + 1]; } cx /= n; cz /= n; var dd = Math.hypot(cx - me.x, cz - me.z); var nr = C.near(cx, cz, 30); if (dd > (i < 200 ? 300 : 120) && dd < (i < 200 ? 900 : 1600) && nr) bl = { x: nr.x, z: nr.z, bx: cx, bz: cz, top: b2.top || (C.hAt(cx, cz) + 10) }; }
       if (!bl) return flash("נסו שוב", 1.5);
       m.label = "🚒 כבאית"; m.car = "firetruck"; m.steps = [{ x: bl.x, z: bl.z, say: "", what: "שריפה " + st({ street: streetOf(bl.x, bl.z) }) + "! מהר!", fire: bl }];
-      W.fire = makeFire(W.scene, bl.bx, bl.bz, bl.h);
+      W.fire = makeFire(W.scene, bl.bx, bl.bz, bl.top);
     } else if (kind === "race") {
       var end = spot(me.x, me.z, 900, 1600), rt = end && routeTo(end.x, end.z);
       if (!rt) return flash("נסו שוב", 1.5);
@@ -411,7 +417,7 @@ function cityMode(A) {
   }
   // ---------- fire and smoke ----------
   function makeFire(scene, x, z, h) {
-    var g = new THREE.Group(), fl = [], sm = [], top = Math.max(4, h) + 0.5;
+    var g = new THREE.Group(), fl = [], sm = [], top = h + 0.5; // h: the roof's height
     for (var i = 0; i < 10; i++) { var s = sprite(i % 2 ? 0xFF7A1A : 0xFFB020, 5 + Math.random() * 4); s.position.set(x + (Math.random() - 0.5) * 8, top - 2 + Math.random() * 3, z + (Math.random() - 0.5) * 8); g.add(s); fl.push(s); }
     var smM = new THREE.SpriteMaterial({ map: glowTex(), color: 0x444444, transparent: true, opacity: 0.5, depthWrite: false });
     for (i = 0; i < 14; i++) { var p = new THREE.Sprite(smM.clone()); p.position.set(x, top + i * 3, z); p.scale.setScalar(6 + i); p.userData.y0 = i * 3; g.add(p); sm.push(p); }

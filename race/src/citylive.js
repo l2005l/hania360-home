@@ -1,6 +1,13 @@
 // The living city: traffic lights that change, cars that drive on the right along the real streets (they keep their
 // distance, stop at red lights, for people on the crossing and for you), and people who walk on the pavements, cross
 // at the zebra crossings and step aside when a car comes too close. Nobody gets hurt in this city.
+// a car on the hills: up off the ground by its height there, nose up or down and leaning with the slope
+function cityTilt(C, V, x, z, h) {
+  var r = V.root; r.rotation.order = "YXZ";
+  var fx = Math.sin(h), fz = Math.cos(h), lx = Math.cos(h), lz = -Math.sin(h);
+  var hf = C.hAt(x + fx * 1.6, z + fz * 1.6), hb = C.hAt(x - fx * 1.6, z - fz * 1.6), hl = C.hAt(x + lx, z + lz), hr = C.hAt(x - lx, z - lz);
+  r.position.y = (hf + hb + hl + hr) / 4; r.rotation.x = -Math.atan2(hf - hb, 3.2); r.rotation.z = Math.atan2(hl - hr, 2);
+}
 var LIGHT_CYCLE = 26; // s: 11 green, 2 yellow, 0 both red… for each of the two directions
 function lightState(C, v, axis, t) { // 0 green, 1 yellow, 2 red
   var ph = (t + (v * 7.31) % LIGHT_CYCLE) % LIGHT_CYCLE, a = ph < 13 ? 0 : 1, q = ph % 13;
@@ -81,7 +88,7 @@ function cityLive(C, scene, W) {
       }
       if (!c) continue;
       placeOn(c); c.u = c.v;
-      if (c.V) syncCar(c.V, c, dt, W.night, t);
+      if (c.V) { syncCar(c.V, c, dt, W.night, t); cityTilt(C, c.V, c.x, c.z, c.h); }
     }
   };
   // you and the traffic: a soft knock (you bounce, they stop for a moment)
@@ -99,43 +106,67 @@ function cityLive(C, scene, W) {
     return hit;
   };
   // ---- people ----
-  var body = new THREE.CylinderGeometry(0.22, 0.26, 1.15, 6); body.translate(0, 0.95, 0);
-  var head = new THREE.SphereGeometry(0.17, 8, 6); head.translate(0, 1.72, 0);
-  var legs = new THREE.BoxGeometry(0.3, 0.45, 0.16); legs.translate(0, 0.22, 0);
-  var NP = G.hi ? 60 : 26, mats = [new THREE.MeshLambertMaterial({ color: 0xFFFFFF }), new THREE.MeshLambertMaterial({ color: 0xE6B48A }), new THREE.MeshLambertMaterial({ color: 0x2F3A4F })];
-  var IB = new THREE.InstancedMesh(body, mats[0], NP), IH = new THREE.InstancedMesh(head, mats[1], NP), IL = new THREE.InstancedMesh(legs, mats[2], NP);
-  [IB, IH, IL].forEach(function (m) { m.frustumCulled = false; scene.add(m); });
-  var shirt = [0xE03131, 0x1971C2, 0x2F9E44, 0xF08C00, 0xFFFFFF, 0x862E9C, 0x495057, 0xF783AC, 0x0CA678], skin = [0xF1C27D, 0xE0AC69, 0xC68642, 0x8D5524, 0xFFDBAC], tmp = new THREE.Color();
-  for (var i = 0; i < NP; i++) { IB.setColorAt(i, tmp.set(shirt[i % shirt.length])); IH.setColorAt(i, tmp.set(skin[i % skin.length])); IL.setColorAt(i, tmp.set(i % 3 ? 0x2F3A4F : 0x6B5B4B)); }
+  // people: a body, a head with hair, arms and legs that swing as they walk; grown-ups and children, all kinds of
+  // clothes; some walk a dog; a few wait at the bus stops
+  var g = function (w, h, d, y) { var b = new THREE.BoxGeometry(w, h, d); b.translate(0, y, 0); return b; };
+  var torso = g(0.42, 0.62, 0.24, 1.18), head = new THREE.SphereGeometry(0.135, 10, 8); head.translate(0, 1.64, 0);
+  var hair = new THREE.SphereGeometry(0.145, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); hair.translate(0, 1.67, -0.01);
+  var long = g(0.3, 0.34, 0.08, 1.5); long.translate(0, 0, -0.12);
+  var leg = g(0.15, 0.86, 0.17, -0.43), arm = g(0.1, 0.6, 0.11, -0.3);
+  var dogB = g(0.56, 0.24, 0.22, 0.36), dogH = g(0.2, 0.2, 0.2, 0.5); dogB.rotateY(Math.PI / 2); dogH.translate(0, 0, 0.34);
+  var NP = G.hi ? 60 : 26, lam = function () { return new THREE.MeshLambertMaterial({ color: 0xFFFFFF }); };
+  var P = { torso: new THREE.InstancedMesh(torso, lam(), NP), head: new THREE.InstancedMesh(head, lam(), NP), hair: new THREE.InstancedMesh(hair, lam(), NP), long: new THREE.InstancedMesh(long, lam(), NP),
+    legL: new THREE.InstancedMesh(leg, lam(), NP), legR: new THREE.InstancedMesh(leg, lam(), NP), armL: new THREE.InstancedMesh(arm, lam(), NP), armR: new THREE.InstancedMesh(arm, lam(), NP),
+    dogB: new THREE.InstancedMesh(dogB, lam(), NP), dogH: new THREE.InstancedMesh(dogH, lam(), NP) };
+  for (var k in P) { P[k].frustumCulled = false; P[k].castShadow = false; scene.add(P[k]); }
+  var shirt = [0xE03131, 0x1971C2, 0x2F9E44, 0xF08C00, 0xFFFFFF, 0x862E9C, 0x495057, 0xF783AC, 0x0CA678, 0x212529, 0xFFD43B, 0x74C0FC], pants = [0x2F3A4F, 0x1C2A4A, 0x6B5B4B, 0x343A40, 0xCED4DA, 0x5C3D2E],
+    skin = [0xF1C27D, 0xE0AC69, 0xC68642, 0x8D5524, 0xFFDBAC, 0xD9A066], hairC = [0x1A1110, 0x3B2416, 0x6A4E2E, 0xC9A15B, 0xB5B5B5, 0x1A1110], dogC = [0xFFFFFF, 0xC69C6D, 0x3B2416, 0xE8D5B0], tmp = new THREE.Color();
+  var LOOK = [];
+  for (var i = 0; i < NP; i++) {
+    var lk = { kid: i % 5 === 0, longHair: i % 3 === 1, bald: i % 11 === 4, kippa: i % 7 === 2, dog: i % 6 === 3, sleeve: i % 2 === 0 };
+    LOOK.push(lk);
+    var sh = shirt[(i * 7) % shirt.length], sk = skin[(i * 5) % skin.length];
+    P.torso.setColorAt(i, tmp.set(sh)); P.head.setColorAt(i, tmp.set(sk)); P.hair.setColorAt(i, tmp.set(lk.kippa ? 0x1C2A4A : hairC[(i * 3) % hairC.length])); P.long.setColorAt(i, tmp.set(hairC[(i * 3) % hairC.length]));
+    P.legL.setColorAt(i, tmp.set(pants[(i * 3) % pants.length])); P.legR.setColorAt(i, tmp.set(pants[(i * 3) % pants.length]));
+    P.armL.setColorAt(i, tmp.set(lk.sleeve ? sh : sk)); P.armR.setColorAt(i, tmp.set(lk.sleeve ? sh : sk));
+    P.dogB.setColorAt(i, tmp.set(dogC[i % dogC.length])); P.dogH.setColorAt(i, tmp.set(dogC[i % dogC.length]));
+  }
   var walkable = C.roads.map(function (r, ri) { return r.t >= 2 && r.t <= 6 ? ri : -1; }).filter(function (x) { return x >= 0; });
   function newPed(me, p) {
     p = p || {};
     for (var tries = 0; tries < 20; tries++) {
+      if (C.busStops && C.busStops.length && Math.random() < 0.08) { // waiting for the bus
+        var bs = C.busStops[Math.floor(Math.random() * C.busStops.length)], db = Math.hypot(bs[0] - me.x, bs[1] - me.z); if (db < 25 || db > 170) continue;
+        p.cross = null; p.wait = { x: bs[0] + (Math.random() - 0.5) * 2.4, z: bs[1] + (Math.random() - 0.5) * 0.8, h: bs[2] + Math.PI }; p.x = p.wait.x; p.z = p.wait.z; p.sp = 0; p.dodge = 0; return p;
+      }
       if (C.zebras.length && Math.random() < 0.22) { // someone about to cross at a zebra crossing
         var zb = C.zebras[Math.floor(Math.random() * C.zebras.length)], dz0 = Math.hypot(zb.x - me.x, zb.z - me.z); if (dz0 < 30 || dz0 > 160) continue;
         var sd = Math.random() < 0.5 ? 1 : -1, rx = -zb.dz, rz = zb.dx;
         p.cross = { x0: zb.x + rx * (zb.w / 2 + 1.2) * sd, z0: zb.z + rz * (zb.w / 2 + 1.2) * sd, x1: zb.x - rx * (zb.w / 2 + 1.2) * sd, z1: zb.z - rz * (zb.w / 2 + 1.2) * sd, f: -Math.random() * 6 };
-        p.x = p.cross.x0; p.z = p.cross.z0; p.sp = 1.3; p.dodge = 0; return p;
+        p.wait = null; p.x = p.cross.x0; p.z = p.cross.z0; p.sp = 1.3; p.dodge = 0; return p;
       }
       var ri = walkable[Math.floor(Math.random() * walkable.length)], r = C.roads[ri]; if (!r || r.v.length < 2) continue;
       var k = Math.floor(Math.random() * (r.v.length - 1)), ax = VX[r.v[k]], az = VZ[r.v[k]], d = Math.hypot(ax - me.x, az - me.z);
       if (d < 25 || d > 170) continue;
-      p.cross = null; p.ri = ri; p.k = k; p.t = Math.random(); p.side = Math.random() < 0.5 ? 1 : -1; p.dir = Math.random() < 0.5 ? 1 : -1; p.sp = 1.0 + Math.random() * 0.6; p.dodge = 0; p.ph = Math.random() * 6;
+      p.cross = null; p.wait = null; p.ri = ri; p.k = k; p.t = Math.random(); p.side = Math.random() < 0.5 ? 1 : -1; p.dir = Math.random() < 0.5 ? 1 : -1; p.sp = 1.0 + Math.random() * 0.6; p.dodge = 0; p.ph = Math.random() * 6;
       return p;
     }
     return null;
   }
   L.stepPeds = function (dt, me, t) {
     while (L.peds.length < NP) { var np = newPed(me); if (!np) break; L.peds.push(np); }
-    var m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), s1 = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3();
+    var B = new THREE.Matrix4(), Q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), S1 = new THREE.Vector3(), pos = new THREE.Vector3(), A = new THREE.Matrix4(), T = new THREE.Matrix4(), Z = new THREE.Matrix4().makeScale(0, 0, 0);
     var ms = Math.hypot(me.u, me.v);
+    var limb = function (mesh, i, sx, y, ang) { T.makeTranslation(sx, y, 0); A.makeRotationX(ang); T.multiply(A); A.multiplyMatrices(B, T); mesh.setMatrixAt(i, A); };
     L.peds.forEach(function (p, i) {
-      if (Math.hypot(p.x - me.x, p.z - me.z) > 200) { newPed(me, p); }
-      var hx = 0, hz = 1;
-      if (p.cross) {
+      if (Math.hypot(p.x - me.x, p.z - me.z) > 200) p.hide = !newPed(me, p); // nowhere near to put them yet: hidden until there is
+      if (p.hide) { for (var k4 in P) P[k4].setMatrixAt(i, Z); return; }
+      var hx = 0, hz = 1, moving = true;
+      if (p.wait) { hx = Math.sin(p.wait.h); hz = Math.cos(p.wait.h); moving = false; p.onRoad = false; }
+      else if (p.cross) {
         var cr = p.cross; cr.f += dt * p.sp / Math.hypot(cr.x1 - cr.x0, cr.z1 - cr.z0);
         var f = Math.max(0, Math.min(1, cr.f)); p.x = cr.x0 + (cr.x1 - cr.x0) * f; p.z = cr.z0 + (cr.z1 - cr.z0) * f; hx = cr.x1 - cr.x0; hz = cr.z1 - cr.z0;
-        if (cr.f >= 1.15) newPed(me, p); else if (cr.f < 0) { hx = cr.x1 - cr.x0; hz = cr.z1 - cr.z0; }
+        if (cr.f >= 1.15) { p.hide = !newPed(me, p); if (p.hide || !p.cross) return; } moving = cr.f >= 0 && cr.f <= 1;
         p.onRoad = cr.f > 0 && cr.f < 1;
       } else {
         var r = C.roads[p.ri], ia = r.v[p.k], ib = r.v[p.k + 1], ax = VX[ia], az = VZ[ia], bx = VX[ib], bz = VZ[ib], len = Math.hypot(bx - ax, bz - az) || 1;
@@ -152,13 +183,19 @@ function cityLive(C, scene, W) {
       var px = p.x + (dd > 0.01 ? ddx / dd : 0) * p.dodge * 2.6, pz = p.z + (dd > 0.01 ? ddz / dd : 0) * p.dodge * 2.6;
       if (p.dodge > 0.9 && !p.said && dd < 3) { p.said = 1; W.dodged(p); }
       if (p.dodge === 0) p.said = 0;
-      var wait = p.cross && p.cross.f < 0, bob = wait ? 0 : Math.abs(Math.sin((t + (p.ph || i)) * 7)) * 0.06 + p.dodge * Math.sin(p.dodge * 3.14) * 0.5;
-      q.setFromAxisAngle(up, Math.atan2(hx, hz)); pos.set(px, bob, pz); m.compose(pos, q, s1);
-      IB.setMatrixAt(i, m); IH.setMatrixAt(i, m); IL.setMatrixAt(i, m);
+      var lk = LOOK[i], sc = lk.kid ? 0.62 : 0.94 + (i % 4) * 0.03, ph = (t * (lk.kid ? 9 : 7) + (p.ph || i)) % (Math.PI * 2), sw = moving ? Math.sin(ph) * (lk.kid ? 0.5 : 0.42) : 0;
+      var bob = moving ? Math.abs(Math.sin(ph)) * 0.04 : 0, jump = p.dodge * Math.sin(p.dodge * 3.14) * 0.5;
+      Q.setFromAxisAngle(up, Math.atan2(hx, hz)); pos.set(px, C.hAt(px, pz) + bob + jump, pz); S1.set(sc, sc, sc); B.compose(pos, Q, S1);
+      P.torso.setMatrixAt(i, B); P.head.setMatrixAt(i, B);
+      if (lk.bald && !lk.kippa) P.hair.setMatrixAt(i, Z); else { if (lk.kippa) { T.makeScale(0.75, 0.35, 0.75); T.setPosition(0, 1.12, 0); A.multiplyMatrices(B, T); P.hair.setMatrixAt(i, A); } else P.hair.setMatrixAt(i, B); }
+      P.long.setMatrixAt(i, lk.longHair && !lk.kippa ? B : Z);
+      limb(P.legL, i, 0.1, 0.88, sw); limb(P.legR, i, -0.1, 0.88, -sw);
+      limb(P.armL, i, 0.27, 1.46, -sw * 0.9); limb(P.armR, i, -0.27, 1.46, sw * 0.9);
+      if (lk.dog && moving && !p.cross) { T.makeTranslation(0.75 / sc, Math.abs(Math.sin(ph * 1.6)) * 0.05, 0.55 / sc); T.scale(S1.set(1 / sc, 1 / sc, 1 / sc)); A.multiplyMatrices(B, T); P.dogB.setMatrixAt(i, A); P.dogH.setMatrixAt(i, A); }
+      else { P.dogB.setMatrixAt(i, Z); P.dogH.setMatrixAt(i, Z); }
     });
-    for (var j = L.peds.length; j < NP; j++) { m.makeScale(0, 0, 0); IB.setMatrixAt(j, m); IH.setMatrixAt(j, m); IL.setMatrixAt(j, m); }
-    IB.instanceMatrix.needsUpdate = IH.instanceMatrix.needsUpdate = IL.instanceMatrix.needsUpdate = true;
-    if (IB.instanceColor) IB.instanceColor.needsUpdate = IH.instanceColor.needsUpdate = IL.instanceColor.needsUpdate = true;
+    for (var j = L.peds.length; j < NP; j++) for (var k2 in P) P[k2].setMatrixAt(j, Z);
+    for (var k3 in P) { P[k3].instanceMatrix.needsUpdate = true; if (P[k3].instanceColor) P[k3].instanceColor.needsUpdate = true; }
   };
   L.dispose = function () { L.cars.forEach(function (c) { if (c.V) scene.remove(c.V.root); }); L.cars = []; };
   return L;

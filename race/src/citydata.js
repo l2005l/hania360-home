@@ -1,5 +1,6 @@
 // HaniaRace's open city ("עיר פתוחה"): real Israeli streets. The maps come from OpenStreetMap (© OpenStreetMap
-// contributors, ODbL), prepared by tools/osm2city.py into race/city/<id>.json: local metres around the city centre
+// contributors, ODbL) and the heights from open terrain tiles (SRTM and others, via AWS Open Data), prepared by
+// tools/pbf2city.py, tools/osm2city.py and tools/elev.py into race/city/<id>.json: local metres around the city centre
 // (x east, z south, in decimetres), roads on a shared list of points (so junctions are known), buildings, parks,
 // sand, water, the coast, traffic lights, stop signs, crossings and places for missions.
 // This file reads a map into what the rest of the city needs: the roads as a graph (for traffic and the GPS),
@@ -22,6 +23,22 @@ function cityRead(D) {
   var vs = D.verts, nv = vs.length / 2, VX = new Float32Array(nv), VZ = new Float32Array(nv);
   for (var i = 0; i < nv; i++) { VX[i] = vs[2 * i] / 10; VZ[i] = vs[2 * i + 1] / 10; }
   C.VX = VX; C.VZ = VZ; C.nv = nv;
+  // heights (tools/elev.py): metres above the lowest point of the map, every `step` metres; the sea is at -min
+  C.hAt = function () { return 0; }; C.seaY = 0;
+  if (D.elev && D.elev.h) {
+    var el = D.elev, bin = atob(el.h), en = el.n, EH = new Float32Array(en * en);
+    for (var q = 0; q < en * en; q++) { var v16 = bin.charCodeAt(2 * q) | (bin.charCodeAt(2 * q + 1) << 8); EH[q] = (v16 << 16 >> 16) / 10; }
+    var es = el.step, eL = el.L;
+    C.EL = { n: en, step: es, L: eL, H: EH, min: el.min }; C.seaY = -el.min;
+    C.hAt = function (x, z) {
+      var fx = (x + eL) / es, fz = (z + eL) / es;
+      if (fx < 0) fx = 0; if (fz < 0) fz = 0; if (fx > en - 1.001) fx = en - 1.001; if (fz > en - 1.001) fz = en - 1.001;
+      var i = Math.floor(fx), j = Math.floor(fz), tx = fx - i, tz = fz - j, o = j * en + i;
+      // the same two triangles per square as the ground's mesh (split from (i, j+1) to (i+1, j)), so things stand on it exactly
+      if (tx + tz <= 1) return EH[o] + (EH[o + 1] - EH[o]) * tx + (EH[o + en] - EH[o]) * tz;
+      return EH[o + en + 1] + (EH[o + en] - EH[o + en + 1]) * (1 - tx) + (EH[o + 1] - EH[o + en + 1]) * (1 - tz);
+    };
+  }
   // the roads, and every piece between two points as a directed edge (one way where the street is one way)
   var roads = [], E = { a: [], b: [], road: [], len: [], dx: [], dz: [] }, OUT = []; for (i = 0; i < nv; i++) OUT.push([]);
   var deg = new Uint8Array(nv);
@@ -88,7 +105,9 @@ function cityRead(D) {
   C.bld.forEach(function (b) { poly(b.p, 2, function (g) { return g !== 1; }); });
   // points: traffic lights, stop and give-way signs, crossings, bus stops, lamps, trees
   var nd = D.nodes || {}; C.nodes = {}; for (var key in nd) C.nodes[key] = M(nd[key]);
-  C.poi = (D.poi || []).map(function (p) { return { k: p[0], name: p[1] >= 0 ? C.names[p[1]] : "", x: p[2] / 10, z: p[3] / 10 }; });
+  // places; a name that doesn't suit a family game is dropped (the sign then says only what the place is)
+  var BADNAME = /sex|erot|adult|xxx|porn|סקס|ארוט|מין |vape|smoke|טבק|סיגר|casino|קזינו|הימור|weed|קנאביס|cannabis/i;
+  C.poi = (D.poi || []).map(function (p) { var nm = p[1] >= 0 ? C.names[p[1]] : ""; if (BADNAME.test(nm)) nm = ""; return { k: p[0], name: nm, x: p[2] / 10, z: p[3] / 10, chain: !!p[4] }; });
   // a coarse index of the road pieces, to find the nearest street fast
   var B = 40, nb = Math.ceil(N / B), IDX = []; for (i = 0; i < nb * nb; i++) IDX.push(null);
   roads.forEach(function (r, ri) { for (var k = 0; k + 1 < r.v.length; k++) {
