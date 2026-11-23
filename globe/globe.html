@@ -1,0 +1,101 @@
+<title>HaniaGlobe · כדור הארץ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;700;800&display=swap">
+<style>
+/* HaniaGlobe: the whole world on one spinning globe, for children. Countries in Hebrew with flags, capitals and a
+   fact; day and night as they are right now; flights from Israel with a stamp in the passport; and two games.
+   The map is Natural Earth (public domain) through world-atlas; the globe is drawn with d3-geo. */
+:root{--ink:#F2F6FF;--muted:#A9B8DA;--glass:rgba(16,24,56,.62);--line:rgba(255,255,255,.14);--gold:#FFD15C;--sea:#2E7CF6;--mint:#3DDC97;--pink:#FF6B8B;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;--kid:"Fredoka","Rubik",sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:#030713;color:var(--ink);font-family:var(--font);direction:rtl;overscroll-behavior:none}
+button,input{font:inherit;color:inherit}
+canvas#g{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
+canvas#g:active{cursor:grabbing}
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%)}
+#top{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));inset-inline:12px;display:flex;gap:8px;align-items:center;z-index:5}
+#title{padding:8px 14px;border-radius:18px;flex:0 1 auto;margin-inline-end:auto}
+#title b{font-family:var(--kid);font-size:22px;font-weight:700;display:block;line-height:1.1}
+#title span{font-size:12.5px;color:var(--muted)}
+.ib{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:20px;cursor:pointer;flex:none}
+#score{padding:6px 12px;border-radius:14px;font-weight:800;font-size:15px}
+#dock{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));inset-inline:10px;z-index:5;display:flex;justify-content:center;gap:8px;transition:transform .4s,opacity .4s}
+#dock button{flex:1 1 0;max-width:124px;border-radius:20px;padding:9px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--kid);font-weight:600;font-size:13.5px;cursor:pointer}
+#dock button span{font-size:26px;line-height:1}
+#dock.hide{transform:translateY(130%);opacity:0;pointer-events:none}
+/* the country card */
+#card{position:fixed;inset-inline:10px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:8;max-width:520px;margin:0 auto;border-radius:26px;padding:16px 18px;transform:translateY(calc(100% + 30px));transition:transform .45s cubic-bezier(.2,.85,.2,1)}
+#card.open{transform:none}
+#card .hd{display:flex;gap:14px;align-items:center}
+#card .flag{font-size:56px;line-height:1;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+#card h2{margin:0;font-family:var(--kid);font-size:28px;line-height:1.1}
+#card .sub{color:var(--muted);font-size:14px;margin-top:2px}
+#card .x{position:absolute;top:10px;inset-inline-end:10px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.1);cursor:pointer}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.facts div{background:rgba(255,255,255,.07);border-radius:14px;padding:8px;text-align:center;font-size:12.5px;color:var(--muted)}
+.facts b{display:block;color:var(--ink);font-size:15.5px;margin-top:2px}
+.fun{background:linear-gradient(135deg,rgba(255,209,92,.18),rgba(255,107,139,.12));border:1px solid rgba(255,209,92,.3);border-radius:16px;padding:10px 12px;font-size:15.5px;line-height:1.45}
+.btn{appearance:none;border:0;border-radius:16px;padding:12px 16px;font-family:var(--kid);font-weight:700;font-size:17px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#2E7CF6,#22C3EE);color:#fff;box-shadow:0 12px 26px -12px rgba(46,124,246,.9)}
+.btn.gold{background:linear-gradient(135deg,#FFB13D,#FFD15C);color:#3A2400;box-shadow:0 12px 26px -12px rgba(255,177,61,.8)}
+.btn.ghost{background:rgba(255,255,255,.1);box-shadow:none;border:1px solid var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.row .btn{flex:1}
+/* sheets */
+#scrim{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .3s}#scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:10;max-height:84vh;overflow-y:auto;border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(22,32,74,.97),rgba(10,16,40,.98));border:1px solid var(--line);transform:translateY(calc(100% + 40px));transition:transform .42s cubic-bezier(.2,.85,.2,1)}
+.sheet.open{transform:none}
+@media (min-width:760px){.sheet{max-width:620px;margin:0 auto;border-radius:26px;bottom:16px}}
+.grab{width:46px;height:5px;border-radius:9px;background:rgba(255,255,255,.25);margin:0 auto 12px}
+.sheet h2{margin:0 0 6px;font-family:var(--kid);font-size:26px}
+.sheet .sub{color:var(--muted);margin:0 0 12px;font-size:14.5px}
+.search{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:16px;padding:12px 14px;font-size:17px;outline:none}
+.list{display:grid;gap:6px;margin-top:10px}
+.list button{display:flex;align-items:center;gap:10px;border:0;background:rgba(255,255,255,.06);border-radius:14px;padding:10px 12px;cursor:pointer;text-align:start;font-size:16px}
+.list button span{font-size:26px}
+.list button small{color:var(--muted);margin-inline-start:auto}
+.stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin-top:10px}
+.stamp{aspect-ratio:1;border-radius:50%;border:3px dashed var(--c,#FF6B8B);display:grid;place-items:center;text-align:center;padding:8px;transform:rotate(var(--r,-8deg));color:var(--c,#FF6B8B);font-weight:800;font-size:12.5px;line-height:1.2;background:rgba(255,255,255,.03)}
+.stamp span{display:block;font-size:30px}
+.conts{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.conts span{background:rgba(255,255,255,.08);border-radius:99px;padding:4px 10px;font-size:13.5px}
+/* games */
+#quiz{position:fixed;top:calc(70px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:6;padding:10px 18px;border-radius:20px;text-align:center;min-width:min(92vw,360px)}
+#quiz b{display:block;font-family:var(--kid);font-size:24px}
+#quiz .fl{font-size:44px;line-height:1.1}
+#quiz small{color:var(--muted);font-size:14px}
+#quizOpts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#quizOpts button{border:1px solid var(--line);background:rgba(255,255,255,.08);border-radius:14px;padding:10px 6px;font-weight:700;font-size:15px;cursor:pointer}
+#quizOpts button.ok{background:var(--mint);color:#04261A;border-color:var(--mint)}
+#quizOpts button.no{background:rgba(255,107,139,.35);border-color:var(--pink)}
+#big{position:fixed;inset:0;z-index:20;display:grid;place-items:center;pointer-events:none}
+#big .st{width:min(70vw,300px);aspect-ratio:1;border-radius:50%;border:8px double var(--c,#FF6B8B);display:grid;place-items:center;text-align:center;color:var(--c,#FF6B8B);font-family:var(--kid);font-weight:700;font-size:22px;background:rgba(10,16,40,.75);animation:stamp .7s cubic-bezier(.2,.9,.3,1.4) both}
+#big .st span{display:block;font-size:80px}
+@keyframes stamp{from{transform:scale(2.4) rotate(-30deg);opacity:0}to{transform:scale(1) rotate(-10deg);opacity:1}}
+#toast{position:fixed;bottom:calc(104px + env(safe-area-inset-bottom,0px));left:50%;transform:translate(-50%,10px);z-index:30;padding:10px 16px;border-radius:16px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#splash{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#030713;transition:opacity 1s;pointer-events:none}
+#splash b{font-family:var(--kid);font-size:46px;animation:pop 1s both}
+@keyframes pop{from{opacity:0;transform:scale(.9)}}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+</style>
+<canvas id="g" role="img" aria-label="כדור הארץ. גוררים כדי לסובב, נוגעים במדינה כדי לקרוא עליה"></canvas>
+<div id="top">
+  <div id="title" class="glass"><b>🌍 כדור הארץ</b><span id="sun">גוררים, מסובבים ונוגעים במדינה</span></div>
+  <span id="score" class="glass" hidden></span>
+  <button class="ib glass" id="find" type="button" aria-label="חיפוש מדינה">🔍</button>
+  <button class="ib glass" id="home" type="button" aria-label="חזרה לישראל">🏠</button>
+</div>
+<div id="quiz" class="glass" hidden></div>
+<nav id="dock">
+  <button class="glass" type="button" id="dFly"><span>✈️</span>טסים</button>
+  <button class="glass" type="button" id="dWhere"><span>🎯</span>איפה זה?</button>
+  <button class="glass" type="button" id="dFlag"><span>🏳️</span>של מי הדגל?</button>
+  <button class="glass" type="button" id="dPass"><span>🛂</span>הדרכון שלי</button>
+</nav>
+<section id="card" class="glass" aria-live="polite"></section>
+<div id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></section>
+<div id="big" aria-hidden="true"></div>
+<div id="toast" class="glass" role="status"></div>
+<div id="splash"><b>🌍</b></div>
+<script src="/globe.js?v=@GV@"></script>
