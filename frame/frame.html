@@ -1,0 +1,146 @@
+<title>HaniaFrame · מסגרת לסבא ולסבתא</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&family=Frank+Ruhl+Libre:wght@500;700;900&family=Fredoka:wght@600;700&display=swap">
+<script src="/qrcode.js" defer></script>
+<style>
+/* HaniaFrame: an old tablet on grandma's shelf becomes a photo frame that the whole family fills.
+   /#f=<id> is the family's page (add photos and greetings, see what grandma loved), /#s=<id> is the screen.
+   Photos are made small on the phone before they are sent. On Shabbat and holidays the screen keeps showing
+   what it has, without going online, and the heart button rests. */
+:root{--bg:#FBF6EF;--paper:#FFFDF9;--ink:#2B2118;--muted:#7A6A5A;--line:#EADFCF;--wood:#8A5A34;--wood2:#C08A55;--accent:#E0567A;--accent2:#F39A4B;--gold:#E9B44C;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Frank Ruhl Libre","David",serif;--kid:"Fredoka","Rubik",sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}[hidden]{display:none!important}
+html,body{margin:0}
+body{direction:rtl;font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.5;
+  background-image:radial-gradient(circle at 12% 8%,rgba(243,154,75,.12),transparent 40%),radial-gradient(circle at 90% 30%,rgba(224,86,122,.10),transparent 45%)}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:14px max(14px,env(safe-area-inset-left,0px)) 60px;display:grid;gap:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;text-decoration:none}.logo img{width:32px;height:32px;border-radius:9px}
+.logo b{color:var(--accent)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 14px 40px -26px rgba(90,50,20,.35)}
+h1{margin:0;font-family:var(--serif);font-weight:900;font-size:clamp(30px,8vw,44px);line-height:1.1}
+h2{margin:0 0 6px;font-size:19px}
+.sub{color:var(--muted);margin:4px 0 0}
+.fine{color:var(--muted);font-size:13.5px}
+.btn{appearance:none;border:0;border-radius:18px;padding:13px 18px;font-weight:700;font-size:17px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 12px 26px -14px rgba(224,86,122,.8);transition:transform .15s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.small{padding:8px 12px;font-size:14.5px;border-radius:13px}
+.btn.wide{width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big{min-height:84px;flex-direction:column;font-size:16px;border-radius:22px}
+.big span{font-size:30px;line-height:1}
+input[type=text],textarea,select,input[type=time]{width:100%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 12px;font-size:16px}
+textarea{resize:vertical;min-height:90px}
+label.f{display:grid;gap:6px;font-weight:600;font-size:14.5px}
+.tog{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.tog input{width:22px;height:22px;accent-color:var(--accent)}
+/* the little frame on the family page: a live preview of grandma's screen */
+.hero{display:grid;grid-template-columns:1fr;gap:14px;align-items:center}
+@media (min-width:640px){.hero{grid-template-columns:1.1fr 1fr}}
+.mini{position:relative;aspect-ratio:4/3;border-radius:18px;padding:12px;background:linear-gradient(145deg,#A06A3E,#6E4223 60%,#8A5A34);box-shadow:0 22px 40px -22px rgba(60,30,10,.7),inset 0 2px 0 rgba(255,255,255,.25)}
+.mini .in{position:relative;width:100%;height:100%;border-radius:8px;overflow:hidden;background:#111;box-shadow:inset 0 0 0 6px #F7F1E6}
+.mini img{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px);object-fit:cover;animation:kb 14s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1.02)}to{transform:scale(1.12) translate(-2%,1%)}}
+.mini .empty{position:absolute;inset:6px;display:grid;place-items:center;text-align:center;color:#F7F1E6;font-family:var(--serif);font-size:20px;padding:10px;background:radial-gradient(circle,#3A2A20,#111)}
+.feed{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (min-width:640px){.feed{grid-template-columns:repeat(4,1fr)}}
+.it{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;background:#EFE6D8;border:0;padding:0;cursor:pointer}
+.it img{width:100%;height:100%;object-fit:cover;display:block}
+.it .tx{position:absolute;inset:0;display:grid;place-items:center;padding:8px;color:#fff;font-weight:700;font-size:13px;text-align:center;line-height:1.3}
+.it .lk{position:absolute;bottom:6px;inset-inline-start:6px;background:rgba(255,255,255,.92);color:var(--accent);border-radius:99px;padding:1px 8px;font-size:12.5px;font-weight:800}
+.it .nw{position:absolute;top:6px;inset-inline-end:6px;background:var(--gold);color:#3A2400;border-radius:99px;padding:0 7px;font-size:11.5px;font-weight:800}
+.bg-sunset{background:linear-gradient(135deg,#FF7A59,#E0567A 55%,#8E2DE2)}.bg-sea{background:linear-gradient(135deg,#00B4DB,#0083B0 60%,#1D4E89)}
+.bg-rose{background:linear-gradient(135deg,#FFB6C1,#FF6F91 60%,#C850C0)}.bg-mint{background:linear-gradient(135deg,#7CF7D4,#1FA45A 60%,#0E6E4A)}
+.bg-night{background:linear-gradient(135deg,#3A2A8A,#1A1446 60%,#0B0820)}.bg-gold{background:linear-gradient(135deg,#FFE27A,#F39A4B 60%,#C0602A)}
+.sw{width:44px;height:44px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 3px var(--accent)}
+.prev{border-radius:20px;min-height:180px;display:grid;place-items:center;padding:20px;text-align:center;color:#fff;font-family:var(--kid);font-size:24px;line-height:1.3}
+.up{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center}
+.up img{width:72px;height:72px;object-fit:cover;border-radius:12px}
+.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}.bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+/* sheets */
+#scrim{position:fixed;inset:0;background:rgba(30,18,8,.45);z-index:40;opacity:0;pointer-events:none;transition:opacity .3s}#scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:41;max-height:90vh;overflow-y:auto;background:var(--paper);border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));
+  transform:translateY(calc(100% + 40px));transition:transform .4s cubic-bezier(.2,.85,.2,1);box-shadow:0 -20px 50px -20px rgba(60,30,10,.4)}
+.sheet.open{transform:none}
+@media (min-width:700px){.sheet{max-width:600px;margin:0 auto;border-radius:26px;bottom:16px}}
+.grab{width:44px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.lb img{width:100%;max-height:60vh;object-fit:contain;border-radius:16px;background:#111}
+#toast{position:fixed;top:14px;left:50%;transform:translate(-50%,-20px);z-index:90;background:#2B2118;color:#fff;padding:10px 16px;border-radius:14px;opacity:0;transition:.3s;pointer-events:none;max-width:90vw;text-align:center;font-weight:600}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.qr{background:#fff;border-radius:18px;padding:12px;display:grid;place-items:center;border:1px solid var(--line)}
+.qr svg{width:min(56vw,230px);height:auto}
+.steps{margin:8px 0 0;padding-inline-start:20px;color:var(--muted);font-size:14.5px}
+.steps li{margin:4px 0}
+.frames{display:grid;gap:10px}
+.fr{display:flex;align-items:center;gap:12px;text-decoration:none;padding:12px;border-radius:18px;border:1px solid var(--line);background:#fff}
+.fr b{font-family:var(--serif);font-size:20px}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.how div{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 8px;font-size:14px}
+.how span{display:block;font-size:30px}
+/* ======================= the screen on grandma's shelf ======================= */
+body.screen{background:#000;color:#fff;overflow:hidden;height:100vh}
+body.screen .wrap{display:none}
+#scr{position:fixed;inset:0;background:#000;overflow:hidden;cursor:none}
+#scr.ctl{cursor:default}
+.layer{position:absolute;inset:0;opacity:0;transition:opacity 1.8s ease}
+.layer.on{opacity:1}
+.layer .blur{position:absolute;inset:-8%;width:116%;height:116%;object-fit:cover;filter:blur(38px) brightness(.55) saturate(1.2)}
+.layer .ph{position:absolute;inset:0;width:100%;height:100%;object-fit:var(--fit,cover);animation:kbs var(--dur,14s) ease-in-out both;transform-origin:var(--ox,50%) var(--oy,50%)}
+@keyframes kbs{from{transform:scale(var(--s0,1)) translate(var(--x0,0),var(--y0,0))}to{transform:scale(var(--s1,1.1)) translate(var(--x1,0),var(--y1,0))}}
+.layer .card2{position:absolute;inset:0;display:grid;place-items:center;padding:8vmin;text-align:center}
+.layer .card2 p{margin:0;font-family:var(--kid);font-weight:700;font-size:clamp(34px,7.5vmin,88px);line-height:1.25;text-shadow:0 6px 30px rgba(0,0,0,.25);max-width:18ch;text-wrap:balance}
+.layer .card2 small{display:block;margin-top:3vmin;font-family:var(--font);font-weight:500;font-size:clamp(18px,3.2vmin,34px);opacity:.92}
+.cap{position:absolute;bottom:5vmin;inset-inline-end:5vmin;max-width:min(70vw,900px);padding:2vmin 3vmin;border-radius:3vmin;background:rgba(0,0,0,.38);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  font-size:clamp(18px,3vmin,34px);line-height:1.35;opacity:0;transform:translateY(12px);transition:opacity 1s .9s,transform 1s .9s}
+.layer.on .cap{opacity:1;transform:none}
+.cap b{font-weight:800}.cap span{opacity:.75;font-size:.8em}
+.ribbon{position:absolute;top:5vmin;inset-inline-end:5vmin;background:linear-gradient(135deg,#FFE27A,#F39A4B);color:#3A1E00;font-weight:800;font-size:clamp(16px,2.6vmin,28px);border-radius:99px;padding:1vmin 2.4vmin;box-shadow:0 10px 30px rgba(0,0,0,.35);animation:rib 1.2s cubic-bezier(.2,.9,.3,1.4) both}
+@keyframes rib{from{opacity:0;transform:translateY(-20px) scale(.8)}}
+#clock{position:absolute;top:4vmin;inset-inline-start:5vmin;text-align:start;text-shadow:0 2px 20px rgba(0,0,0,.6);z-index:5;transition:opacity .6s}
+#clock b{display:block;font-weight:300;font-size:clamp(40px,9vmin,110px);line-height:1;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+#clock span{font-size:clamp(15px,2.6vmin,30px);opacity:.9}
+#shabB{display:inline-block;margin-top:1vmin;background:rgba(255,226,122,.2);border-radius:99px;padding:.4vmin 1.6vmin;font-size:clamp(14px,2.2vmin,26px)}
+#ctl{position:absolute;bottom:5vmin;left:50%;transform:translate(-50%,30px);display:flex;gap:2vmin;z-index:8;opacity:0;pointer-events:none;transition:.4s}
+#scr.ctl #ctl{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#ctl button{width:clamp(56px,11vmin,110px);height:clamp(56px,11vmin,110px);border-radius:50%;border:0;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:clamp(24px,5vmin,48px);cursor:pointer;color:#fff}
+#ctl button.heart{background:rgba(224,86,122,.85)}
+#heart{position:absolute;left:50%;top:50%;font-size:30vmin;transform:translate(-50%,-50%) scale(0);opacity:0;z-index:9;pointer-events:none;filter:drop-shadow(0 10px 40px rgba(224,86,122,.6))}
+#heart.go{animation:heart 1.4s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes heart{0%{transform:translate(-50%,-50%) scale(0);opacity:0}25%{transform:translate(-50%,-50%) scale(1.15);opacity:1}60%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-80%) scale(.9);opacity:0}}
+#night{position:absolute;inset:0;z-index:20;background:#000;display:grid;place-items:center;text-align:center;opacity:0;pointer-events:none;transition:opacity 3s}
+#night.on{opacity:1;pointer-events:auto}
+#night b{display:block;font-weight:200;font-size:20vmin;color:#6E5A48;font-variant-numeric:tabular-nums;line-height:1}
+#night span{color:#4A3C30;font-size:3.4vmin}
+#start{position:absolute;inset:0;z-index:30;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#3A2A20,#0B0806 70%);padding:6vmin}
+#start h1{color:#F7F1E6;font-size:clamp(34px,8vmin,80px)}
+#start p{color:#C9B8A5;font-size:clamp(16px,3vmin,28px);margin:2vmin 0 4vmin}
+#start .btn{font-size:clamp(20px,4vmin,40px);padding:2.4vmin 6vmin;border-radius:4vmin}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:6vmin;background:radial-gradient(circle at 50% 35%,#4A3324,#120C08 70%)}
+.welcome h2{font-family:var(--serif);font-size:clamp(30px,7vmin,70px);margin:0 0 2vmin;color:#F7F1E6}
+.welcome p{color:#D9C8B3;font-size:clamp(16px,3vmin,30px);margin:0 0 3vmin}
+.welcome .qr{display:inline-grid;padding:2vmin}.welcome .qr svg{width:min(30vmin,280px)}
+@media (prefers-reduced-motion:reduce){.layer .ph,.mini img{animation:none}}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+</style>
+<div class="wrap" id="app">
+  <header><a class="logo" href="/" dir="ltr"><img src="/icons/icon-192.png" alt="">Hania<b>Frame</b></a><span class="fine" id="hdr"></span></header>
+  <main id="main"></main>
+</div>
+<div id="scr" hidden>
+  <div id="layers"></div>
+  <div id="clock"><b id="ckT"></b><span id="ckD"></span><div><span id="shabB" hidden>🕯️ שבת שלום</span></div></div>
+  <div id="ctl"><button type="button" class="heart" id="cLike" aria-label="אהבתי">❤️</button><button type="button" id="cPrev" aria-label="הקודמת">⏮</button><button type="button" id="cPause" aria-label="עצירה">⏸</button><button type="button" id="cNext" aria-label="הבאה">⏭</button><button type="button" id="cFull" aria-label="מסך מלא">⛶</button></div>
+  <div id="heart" aria-hidden="true">❤️</div>
+  <div id="night"><div><b id="nT"></b><span>לילה טוב 🌙</span></div></div>
+  <div id="start"><div><h1 id="stT">המסגרת שלנו</h1><p>התמונות של המשפחה, אחת אחרי השנייה</p><button class="btn" id="stGo" type="button">▶ להתחיל</button></div></div>
+</div>
+<div id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></section>
+<div id="toast" role="status"></div>
+<script>/*APP*/</script>
