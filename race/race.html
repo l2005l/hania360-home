@@ -84,15 +84,47 @@ body.touch #tbPause{left:12px}body.touch #tbCam{left:60px}body.touch #tbReset{le
 .credit{font-size:11px;color:var(--muted);text-align:center}
 .credit a{color:var(--muted)}
 #s-loading .panel{text-align:center;font-size:18px}
+/* the open city */
+.mode.city{border-color:rgba(77,171,247,.6);background:linear-gradient(135deg,rgba(77,171,247,.22),rgba(255,197,61,.12))}.mode.city b{font-size:20px}
+.new{font-size:12px;background:#FF6B6B;color:#fff;border-radius:999px;padding:1px 8px;vertical-align:3px;margin-inline-start:6px}
+#cyList,#cpList{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.trk{appearance:none;border:1.5px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);font:inherit;border-radius:16px;padding:10px 12px;text-align:right;cursor:pointer;display:grid;gap:2px}
+.trk b{font-size:16px}.trk small{color:var(--muted);font-size:12.5px}.trk.on{border-color:var(--gold);background:rgba(255,197,61,.16)}
+#csQ{font:inherit;font-size:16px;border-radius:12px;border:1.5px solid var(--line);background:rgba(255,255,255,.08);color:var(--ink);padding:10px 12px}
+#chud{position:fixed;inset:0;z-index:3;pointer-events:none}
+body.incity #hMsg{top:33%;font-size:clamp(17px,3.6vw,28px);background:rgba(8,12,26,.72);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:8px 16px;white-space:normal;max-width:min(92vw,640px);line-height:1.3}
+body.incity #hTop,body.incity #hMapBox,body.incity #hWrong,body.incity #tbSiren{display:none!important}
+#cStreet{position:absolute;top:max(10px,env(safe-area-inset-top));right:12px;background:#1B3F8C;color:#fff;border:3px solid #fff;outline:2px solid #1B3F8C;border-radius:10px;padding:4px 14px;font-weight:900;font-size:20px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#cStreet:empty{display:none}#cStreet.pop{animation:cpop .5s ease-out}@keyframes cpop{from{transform:scale(1.25)}}
+#cMap{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));right:12px;width:150px;height:150px;border-radius:50%;border:3px solid rgba(255,255,255,.85);box-shadow:0 6px 20px rgba(0,0,0,.45);background:#E9E4D8}
+#cDist{position:absolute;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 156px);right:12px;width:150px;text-align:center;font-weight:900;font-size:15px;text-shadow:0 2px 6px rgba(0,0,0,.7)}
+#cLim{position:absolute;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 8px);right:150px;width:44px;height:44px;border-radius:50%;background:#fff;border:5px solid #C8102E;color:#111;font-weight:900;font-size:15px;display:grid;place-items:center}
+#cLim.over{animation:cblink .6s infinite}@keyframes cblink{50%{background:#FFD8D8}}
+#cMis{top:calc(max(10px,env(safe-area-inset-top)) + 46px);right:12px;display:grid;gap:2px;max-width:min(330px,60vw)}#cMis b{font-size:16px}#cMis span{font-size:14px}#cMisC{font-variant-numeric:tabular-nums;color:#FFE29A;font-weight:800}#cMisC.late{color:#FF8787}
+#cbMis{top:max(10px,env(safe-area-inset-top));left:290px}#cbMap{top:max(10px,env(safe-area-inset-top));left:340px}#cbRadio{top:max(10px,env(safe-area-inset-top));left:390px}#cbHorn{top:max(10px,env(safe-area-inset-top));left:440px}
+#cbRadio.on{border-color:var(--gold);background:rgba(255,197,61,.35)}
+#cbWater{position:absolute;top:40%;left:50%;transform:translateX(-50%);background:#1971C2;color:#fff;font-weight:900;font-size:20px;border-radius:14px;padding:8px 16px}
+body.touch.incity #cMap{bottom:auto;top:calc(max(10px,env(safe-area-inset-top)) + 46px);width:118px;height:118px}
+body.touch.incity #cDist{bottom:auto;top:calc(max(10px,env(safe-area-inset-top)) + 168px);width:118px}
+body.touch.incity #cLim{bottom:auto;top:calc(max(10px,env(safe-area-inset-top)) + 120px);right:132px;width:38px;height:38px;font-size:13px;border-width:4px}
+body.touch.incity #cMis{top:calc(max(10px,env(safe-area-inset-top)) + 196px)}
+body.touch #cbMis,body.touch #cbMap,body.touch #cbRadio,body.touch #cbHorn{top:auto;bottom:calc(150px + env(safe-area-inset-bottom))}
+body.touch #cbMis{left:212px}body.touch #cbMap{left:262px}body.touch #cbRadio{left:312px}body.touch #cbHorn{left:362px}
+@media (orientation:portrait){
+body.touch #cbMis,body.touch #cbMap,body.touch #cbRadio,body.touch #cbHorn{bottom:auto;top:calc(166px + env(safe-area-inset-top))}
+body.touch #cbMis{left:12px}body.touch #cbMap{left:60px}body.touch #cbRadio{left:108px}body.touch #cbHorn{left:156px}
+#cStreet{font-size:16px;max-width:52vw}
+}
 </style>
 
 <canvas id="cv"></canvas>
 
 <div class="scr dim" id="s-menu" hidden><div class="box">
   <h1>Hania<b>Race</b></h1>
-  <p class="muted center">מרוץ מכוניות בתלת־ממד: 17 רכבים מכל הסוגים, 5 מסלולים, יריבים חכמים ואליפות</p>
+  <p class="muted center">מרוץ מכוניות בתלת־ממד: 17 רכבים מכל הסוגים, 5 מסלולים, יריבים חכמים, אליפות, ועכשיו גם 20 ערים אמיתיות</p>
   <div class="panel">
     <div class="row"><span id="mStars"></span><button class="chip" id="mCar"></button></div>
+    <button class="mode city" id="mCity"><b>🏙️ עיר פתוחה <span class="new">חדש</span></b><small>רחובות אמיתיים מ־20 ערים בישראל: תנועה, רמזורים, הולכי רגל, משימות, כוכבים נסתרים ורדיו</small></button>
     <div class="modes">
       <button class="mode" data-mode="quick"><b>🏁 מרוץ מהיר</b><small>אתה מול 5 נהגים, 3 הקפות</small></button>
       <button class="mode" data-mode="champ"><b>🏆 אליפות</b><small>5 מסלולים ברצף, טבלת נקודות</small></button>
@@ -101,7 +133,7 @@ body.touch #tbPause{left:12px}body.touch #tbCam{left:60px}body.touch #tbReset{le
     </div>
     <div class="row"><button class="btn" id="mGarage" style="flex:1">🚘 המוסך</button><button class="btn dark" id="mSettings">⚙️</button></div>
   </div>
-  <p class="credit">⌨️ חצים או WASD · רווח: בלם יד · Shift: ניטרו · C: מצלמה · R: חזרה לכביש · P: עצירה<br>דגמי הרכבים: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0) · <a href="https://hania360.com/">Hania360</a></p>
+  <p class="credit">🏙️ מפות הערים: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">תורמי OpenStreetMap</a> (ODbL)<br>⌨️ חצים או WASD · רווח: בלם יד · Shift: ניטרו · C: מצלמה · R: חזרה לכביש · P: עצירה<br>דגמי הרכבים: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0) · <a href="https://hania360.com/">Hania360</a></p>
 </div></div>
 
 <div class="scr" id="s-garage" hidden>
@@ -137,6 +169,19 @@ body.touch #tbPause{left:12px}body.touch #tbCam{left:60px}body.touch #tbReset{le
   <table><tbody id="cTable"></tbody></table><p class="muted center" id="cNote"></p>
   <button class="btn" id="cGo"></button></div></div></div>
 
+<div class="scr dim" id="s-city" hidden><div class="box">
+  <div class="row"><button class="btn dark" id="cyBack">→ חזרה</button><button class="chip" id="cyCar"></button></div>
+  <h2>🏙️ עיר פתוחה</h2><p class="muted">הרחובות, השמות והבניינים אמיתיים, מהמפה הפתוחה OpenStreetMap. בוחרים עיר ונוסעים לאן שרוצים.</p>
+  <div id="cyList"></div>
+  <div class="panel"><div class="row"><b>שעה</b><div class="chips" id="cyTime"></div></div><div class="row"><b>מזג אוויר</b><div class="chips" id="cyWx"></div></div><button class="btn" id="cyGo">🚗 לנסוע בעיר</button></div>
+  <p class="credit">נתוני המפה © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">תורמי OpenStreetMap</a>, ברישיון ODbL · ⌨️ M: מפה · J: משימות · B: רדיו · H: סירנה</p>
+</div></div>
+<div class="scr" id="cPanel" hidden style="background:rgba(5,8,20,.6)"><div class="box" style="width:min(520px,100%)"><div class="panel">
+  <div class="row"><h2>🎯 משימות</h2><button class="btn dark" id="cpClose">✖</button></div><p class="muted" id="cpStars"></p><div id="cpList"></div></div></div></div>
+<div class="scr" id="cStreets" hidden style="background:rgba(5,8,20,.6)"><div class="box" style="width:min(560px,100%)"><div class="panel">
+  <div class="row"><h2>📍 לאיזה רחוב?</h2><button class="btn dark" id="csClose">✖</button></div><input id="csQ" placeholder="חיפוש רחוב" aria-label="חיפוש רחוב" autocomplete="off"><div class="chips" id="csList" style="max-height:52vh;overflow:auto"></div></div></div></div>
+<div class="scr" id="cMapBig" hidden style="background:rgba(5,8,20,.72)"><div class="box" style="width:auto;justify-items:center">
+  <div class="row" style="width:100%"><b>🗺️ לוחצים על המפה כדי לנסוע לשם</b><button class="btn dark" id="cmClose">✖</button></div><canvas id="cBig" style="border-radius:16px;max-width:100%;touch-action:manipulation"></canvas></div></div>
 <div class="scr dim" id="s-loading" hidden><div class="box" style="width:min(380px,100%)"><div class="panel"><span id="ldText">טוען…</span></div></div></div>
 
 <div id="vig"></div>
@@ -146,6 +191,13 @@ body.touch #tbPause{left:12px}body.touch #tbCam{left:60px}body.touch #tbReset{le
   <div class="hcard" id="hSpdBox"><span id="hGear"></span><div id="hSpd">0</div><div class="unit">קמ״ש</div><div class="meter"><b id="hRpm"></b></div><div class="meter"><b id="hNitro"></b></div></div>
   <div id="hMsg" hidden></div><div id="hWrong" hidden>⚠️ נוסעים בכיוון ההפוך!</div>
   <button class="tb" id="tbPause" aria-label="עצירה">⏸</button><button class="tb" id="tbCam" aria-label="מצלמה">🎥</button><button class="tb" id="tbReset" aria-label="חזרה לכביש">🔄</button><button class="tb" id="tbSiren" aria-label="סירנה" hidden>🚨</button>
+</div>
+<div id="chud" hidden>
+  <div id="cStreet"></div>
+  <div class="hcard" id="cMis" hidden><b id="cMisT"></b><span id="cMisW"></span><span id="cMisC"></span></div>
+  <canvas id="cMap" width="260" height="260"></canvas><span id="cDist" hidden></span><span id="cLim" hidden></span>
+  <button class="tb" id="cbMis" aria-label="משימות">🎯</button><button class="tb" id="cbMap" aria-label="מפה">🗺️</button><button class="tb" id="cbRadio" aria-label="רדיו">📻</button><button class="tb" id="cbHorn" aria-label="צופר">📯</button>
+  <div id="cbWater" hidden>💦 מכבים…</div>
 </div>
 <div id="touch" hidden>
   <button id="tL" data-k="left" aria-label="שמאלה">◀</button><button id="tR" data-k="right" aria-label="ימינה">▶</button>

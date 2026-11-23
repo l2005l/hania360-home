@@ -1,12 +1,20 @@
 # Builds HaniaRace (python3 race/build.py), served at race.hania360.com:
 #   race/page.js                  the page (race.html) with its manifest, service worker and icons
-#   public/_a/race.hania360.com/  game.js (race/src/*.js joined), three.js r128 and its GLTF loader, the car models
+#   public/_a/race.hania360.com/  game.js (race/src/*.js joined), three.js r128 and its GLTF loader, the car models,
+#                                 the city maps (city/<id>.json, © OpenStreetMap contributors, ODbL)
 import json, base64, hashlib, os, shutil, subprocess
 r = lambda p: open('race/' + p, encoding='utf8').read()
 b64 = lambda p: base64.b64encode(open('race/' + p, 'rb').read()).decode()
 OUT = 'public/_a/race.hania360.com/'
 os.makedirs(OUT + 'models/Textures', exist_ok=True)
-game = '\n'.join(r('src/' + f) for f in ['data.js', 'track.js', 'car.js', 'gfx.js', 'cargen.js', 'audio.js', 'main.js'])
+# the city maps (race/city/*.json, made by tools/osm2city.py from OpenStreetMap) go next to the game, with one version
+os.makedirs(OUT + 'city', exist_ok=True)
+cityv = hashlib.sha1()
+for f in sorted(os.listdir('race/city')):
+    if f.endswith('.json'):
+        b = open('race/city/' + f, 'rb').read(); cityv.update(b); open(OUT + 'city/' + f, 'wb').write(b)
+game = '\n'.join(r('src/' + f) for f in ['data.js', 'track.js', 'car.js', 'gfx.js', 'cargen.js', 'audio.js', 'citydata.js', 'citybuild.js', 'citylive.js', 'citymode.js', 'main.js'])
+game = game.replace('@CITYV@', cityv.hexdigest()[:10])
 open(OUT + 'game.js', 'w', encoding='utf8').write(game)
 for f in ['three.min.js', 'GLTFLoader.js']: shutil.copy('race/vendor/' + f, OUT + f)
 for f in os.listdir('race/models'):
@@ -14,7 +22,7 @@ for f in os.listdir('race/models'):
 shutil.copy('race/models/Textures/colormap.png', OUT + 'models/Textures/colormap.png')
 body = r('race.html').replace('@GAMEV@', hashlib.sha1(game.encode()).hexdigest()[:10])
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">'
-        '<meta name="description" content="HaniaRace: מרוץ מכוניות בתלת־ממד בדפדפן, בחינם. 17 רכבים מכל הסוגים (פורמולה, ספורט, ג׳יפ, משאית, כבאית ואפילו טרקטור), 5 מסלולים (מעגל מרוצים, כביש החוף, מכתש רמון, תל אביב בלילה וחרמון בשלג), יריבים חכמים, אליפות ונגד השעון.">'
+        '<meta name="description" content="HaniaRace: מרוץ מכוניות בתלת־ממד בדפדפן, בחינם. 17 רכבים מכל הסוגים (פורמולה, ספורט, ג׳יפ, משאית, כבאית ואפילו טרקטור), 5 מסלולים, אליפות ונגד השעון, ועיר פתוחה: נהיגה ברחובות אמיתיים של 20 ערים בישראל עם תנועה, רמזורים, הולכי רגל, משימות ורדיו.">'
         '<link rel="canonical" href="https://race.hania360.com/"><meta name="theme-color" content="#0B1020">'
         '<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="HaniaRace"><meta name="apple-mobile-web-app-capable" content="yes">')
 i = body.index('<style>')
