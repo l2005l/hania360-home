@@ -34,6 +34,14 @@ header{display:flex;align-items:center;gap:10px}
 .time span{font-size:13px;color:var(--muted)}
 .count{font-size:15px;color:var(--wax);font-weight:600}
 .count b{color:var(--flame)}
+.prep-open{justify-self:start}
+.pbar{height:10px;border-radius:9px;background:var(--line);overflow:hidden}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ember),var(--flame));border-radius:9px;transition:width .3s}
+.prep-l{list-style:none;margin:0;padding:0;display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.prep-l button{appearance:none;width:100%;display:flex;align-items:center;gap:10px;text-align:start;border:1px solid var(--line);background:var(--card);color:var(--wax);border-radius:14px;padding:10px 12px;font:inherit;font-size:15.5px;cursor:pointer;min-height:48px}
+.prep-l button .bx{flex:none;width:24px;height:24px;border-radius:8px;border:2px solid var(--muted);display:grid;place-items:center;font-size:15px;font-weight:900;color:#1A130E}
+.prep-l button[aria-pressed="true"]{opacity:.62}.prep-l button[aria-pressed="true"] .bx{background:var(--flame);border-color:var(--flame)}.prep-l button[aria-pressed="true"] .tx{text-decoration:line-through}
+.prep-l .x{flex:none;margin-inline-start:auto;color:var(--ember);font-weight:800}
+.prep-add{display:flex;gap:8px}.prep-add input{flex:1;min-width:0;font:inherit;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--wax);padding:9px 12px}
 .chag{border-radius:14px;padding:8px 12px;background:rgba(232,116,59,.16);border:1px solid rgba(232,116,59,.4);font-weight:600;font-size:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
 .card h2{margin:0;font-family:var(--display);font-weight:700;font-size:22px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -175,6 +183,20 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
       <div class="time"><small>✨ צאת שבת</small><b id="tHavdalah">--:--</b><span id="tHavdalahDay"></span></div>
     </div>
     <div class="count" id="count"></div>
+    <button class="chip prep-open" type="button" id="prepOpen" hidden>🧺 רשימת הכנות לשבת</button>
+  </section>
+
+  <section class="card prep" id="prep" hidden>
+    <h2>🧺 מכינים שבת <small id="prepCount"></small></h2>
+    <div class="pbar" aria-hidden="true"><i id="prepBar"></i></div>
+    <ul class="prep-l" id="prepList"></ul>
+    <form class="prep-add" id="prepAdd" hidden><input id="prepNew" maxlength="40" placeholder="עוד משהו לרשימה" aria-label="עוד משהו לרשימה" autocomplete="off"><button class="chip" type="submit">הוספה</button></form>
+    <div class="chips">
+      <button class="chip" type="button" id="prepShare">📤 לשלוח לבני הבית מה נשאר</button>
+      <button class="chip" type="button" id="prepEdit">✏️ לערוך את הרשימה</button>
+      <button class="chip" type="button" id="prepReset">↺ מההתחלה</button>
+    </div>
+    <p class="fine">הסימונים מתאפסים לבד לקראת כל שבת וחג. הרשימה עצמה נשמרת בטלפון הזה.</p>
   </section>
 
   <section class="card torah" id="torah" hidden>
@@ -282,8 +304,45 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     $("weeks").replaceChildren.apply($("weeks"), list.slice(1, 9).map(function (x) {
       return el("li", null, [el("b", x.parasha || x.label[0] || "שבת"), el("span", { class: "t" }, [hm(x.candles), el("i", "הדלקה")]), el("span", { class: "t" }, [hm(x.end), el("i", "יציאה")]), el("small", day(x.candles) + (x.label.length && x.parasha ? " · " + x.label.join(", ") : ""))]);
     }));
-    renderRemind(list); renderSaved(); renderTorah(w);
+    renderRemind(list); renderSaved(); renderTorah(w); try { renderPrep(w); } catch (e) { $("prep").hidden = true; }
   }
+  // ---- getting ready for Shabbat: a checklist for the day before, cleared for every Shabbat and holiday ----
+  var PREP0 = [["🍞", "חלות"], ["🍷", "יין או מיץ ענבים לקידוש"], ["🕯️", "נרות ופמוטים"], ["🍲", "האוכל מוכן"], ["🔥", "פלטה ומיחם"], ["⏲️", "שעון שבת"],
+    ["📱", "טלפונים בטעינה"], ["🛁", "מקלחות"], ["👔", "בגדי שבת"], ["🍽️", "שולחן ערוך"], ["💡", "האורות שנשארים דולקים"], ["🗑️", "לרוקן את הפח"]];
+  S.prep = S.prep && Array.isArray(S.prep.items) ? S.prep : { items: PREP0.map(function (x) { return x[0] + " " + x[1]; }), done: {}, open: 0 };
+  var PREPW = null, prepEditing = false;
+  function prepKey(w) { var d = new Date(w.candles); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function renderPrep(w) {
+    PREPW = w; var now = Date.now(), left = w.candles - now, near = left > 0 && left < 44 * 36e5;
+    $("prepOpen").hidden = near || S.prep.open === prepKey(w) || left <= 0;
+    $("prep").hidden = left <= 0 || !(near || S.prep.open === prepKey(w));
+    if ($("prep").hidden) return;
+    var k = prepKey(w); Object.keys(S.prep.done).forEach(function (x) { if (x !== k) delete S.prep.done[x]; });
+    var done = S.prep.done[k] || [], n = S.prep.items.filter(function (t) { return done.indexOf(t) >= 0; }).length, all = S.prep.items.length;
+    $("prepCount").textContent = all && n === all ? "✨ הכול מוכן. שבת שלום!" : n + " מתוך " + all + " · הדלקה ב־" + hm(w.candles);
+    $("prepBar").style.width = (all ? Math.round(100 * n / all) : 0) + "%";
+    $("prepList").replaceChildren.apply($("prepList"), S.prep.items.map(function (t) {
+      var b = document.createElement("button"), on = done.indexOf(t) >= 0; b.type = "button"; b.setAttribute("aria-pressed", String(on && !prepEditing));
+      b.append(el("span", { class: "bx", "aria-hidden": "true" }, on && !prepEditing ? "✓" : ""), el("span", { class: "tx" }, t));
+      if (prepEditing) { b.append(el("span", { class: "x", "aria-hidden": "true" }, "✕")); b.setAttribute("aria-label", "להסיר: " + t); }
+      b.addEventListener("click", function () {
+        if (prepEditing) { S.prep.items = S.prep.items.filter(function (x) { return x !== t; }); save(); renderPrep(w); return; }
+        var d = S.prep.done[k] = S.prep.done[k] || [], i = d.indexOf(t); if (i >= 0) d.splice(i, 1); else d.push(t);
+        save(); renderPrep(w); if (d.length === S.prep.items.length) toast("✨ הכול מוכן. שבת שלום!");
+      });
+      var li = document.createElement("li"); li.append(b); return li;
+    }));
+    $("prepAdd").hidden = !prepEditing; $("prepEdit").textContent = prepEditing ? "✓ סיימתי לערוך" : "✏️ לערוך את הרשימה";
+  }
+  $("prepOpen").addEventListener("click", function () { if (!PREPW) return; S.prep.open = prepKey(PREPW); save(); renderPrep(PREPW); $("prep").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  $("prepEdit").addEventListener("click", function () { prepEditing = !prepEditing; if (PREPW) renderPrep(PREPW); if (prepEditing) $("prepNew").focus(); });
+  $("prepAdd").addEventListener("submit", function (e) { e.preventDefault(); var v = $("prepNew").value.trim().slice(0, 40); if (!v || S.prep.items.indexOf(v) >= 0 || S.prep.items.length >= 30) return; S.prep.items.push(v); $("prepNew").value = ""; save(); if (PREPW) renderPrep(PREPW); });
+  $("prepReset").addEventListener("click", function () { if (!PREPW) return; if (prepEditing) { if (!confirm("להחזיר את הרשימה המוכנה?")) return; S.prep.items = PREP0.map(function (x) { return x[0] + " " + x[1]; }); } else delete S.prep.done[prepKey(PREPW)]; save(); renderPrep(PREPW); });
+  $("prepShare").addEventListener("click", function () {
+    if (!PREPW) return; var d = S.prep.done[prepKey(PREPW)] || [], rest = S.prep.items.filter(function (t) { return d.indexOf(t) < 0; });
+    var txt = rest.length ? "🧺 מה נשאר לפני שבת (הדלקת נרות ב־" + hm(PREPW.candles) + "):\n" + rest.map(function (t) { return "• " + t; }).join("\n") : "✨ הכול מוכן לשבת. שבת שלום!";
+    if (navigator.share) navigator.share({ text: txt }).catch(function () {}); else location.href = "https://wa.me/?text=" + encodeURIComponent(txt);
+  });
   function el(tag, a, kids) {
     if (typeof a === "string") return Object.assign(document.createElement(tag), { textContent: a });
     var e = document.createElement(tag); Object.keys(a || {}).forEach(function (k) { e.setAttribute(k, a[k]); });

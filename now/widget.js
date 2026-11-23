@@ -11,15 +11,28 @@ const TZ = "Asia/Jerusalem";
 const hm = (t) => new Date(t).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 const ymd = (t) => new Date(t).toLocaleDateString("en-CA", { timeZone: TZ });
 
-// The time the sun is `alt` degrees from the horizon in the evening, on the Israeli calendar day `day` (YYYY-MM-DD). NOAA, about a minute.
-function evening(day, lat, lon, alt) {
-  const [y, m, d] = day.split("-").map(Number), base = Date.UTC(y, m - 1, d), n = Math.floor((base - Date.UTC(y, 0, 0)) / 864e5);
-  const g = 2 * Math.PI / 365 * (n - 1 + 0.5);
-  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
-  const dec = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
-  const r = Math.PI / 180, la = lat * r;
-  const ha = Math.acos(Math.cos((90 + alt) * r) / (Math.cos(la) * Math.cos(dec)) - Math.tan(la) * Math.tan(dec)) / r;
-  return base + (720 - 4 * (lon - ha) - eq) * 60e3;
+// The time the sun is `alt` degrees below the horizon in the evening of the Israeli calendar day `day` (YYYY-MM-DD),
+// with NOAA's full solar equations (the ones the calendar library in HaniaDat uses), so every Hania360 page gives the
+// same minute as HaniaDat: within a second of it over five years of days and towns.
+export function evening(day, lat, lon, alt) {
+  const [y, mo, d] = day.split("-").map(Number), R = Math.PI / 180;
+  let Y = y, M = mo; if (M <= 2) { Y -= 1; M += 12; }
+  const A = Math.floor(Y / 100), jd = Math.floor(365.25 * (Y + 4716)) + Math.floor(30.6001 * (M + 1)) + d + 2 - A + Math.floor(A / 4) - 1524.5;
+  const jc = (j) => (j - 2451545) / 36525, jdOf = (t) => t * 36525 + 2451545;
+  const L0 = (t) => { const l = (280.46646 + t * (36000.76983 + 0.0003032 * t)) % 360; return l < 0 ? l + 360 : l; };
+  const Ma = (t) => 357.52911 + t * (35999.05029 - 0.0001537 * t), ecc = (t) => 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+  const C = (t) => { const m = Ma(t) * R; return Math.sin(m) * (1.914602 - t * (0.004817 + 0.000014 * t)) + Math.sin(2 * m) * (0.019993 - 0.000101 * t) + Math.sin(3 * m) * 0.000289; };
+  const app = (t) => L0(t) + C(t) - 0.00569 - 0.00478 * Math.sin((125.04 - 1934.136 * t) * R);
+  const obl = (t) => 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60 + 0.00256 * Math.cos((125.04 - 1934.136 * t) * R);
+  const dec = (t) => Math.asin(Math.sin(obl(t) * R) * Math.sin(app(t) * R)) / R;
+  const eqt = (t) => { const e = ecc(t), l0 = L0(t) * R, m = Ma(t) * R, q = Math.tan(obl(t) * R / 2) ** 2; return 4 / R * (q * Math.sin(2 * l0) - 2 * e * Math.sin(m) + 4 * e * q * Math.sin(m) * Math.cos(2 * l0) - 0.5 * q * q * Math.sin(4 * l0) - 1.25 * e * e * Math.sin(2 * m)); };
+  const ha = (sd) => { const la = lat * R, s = sd * R; return -Math.acos(Math.max(-1, Math.min(1, Math.cos((90 + alt) * R) / (Math.cos(la) * Math.cos(s)) - Math.tan(la) * Math.tan(s)))) / R; };
+  const W = -lon, t0 = jc(jd);
+  const noon = 720 + W * 4 - eqt(jc(jdOf(t0) - 0.5 + (720 + W * 4 - eqt(jc(jdOf(t0) + W / 360))) / 1440));
+  let u = 720 + 4 * (W - ha(dec(jc(jd + noon / 1440)))) - eqt(jc(jd + noon / 1440));
+  const nt = jc(jdOf(t0) + u / 1440);
+  u = 720 + 4 * (W - ha(dec(nt))) - eqt(nt);
+  return Math.floor((Date.UTC(y, mo - 1, d) + u * 6e4) / 1000) * 1000;
 }
 const addDay = (day, k) => { const t = new Date(day + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + k); return t.toISOString().slice(0, 10); };
 
@@ -95,4 +108,4 @@ export function assetLinks() {
   return new Response(JSON.stringify([{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: "com.hania360.app", sha256_cert_fingerprints: fp } }]), { headers: { "content-type": "application/json", "cache-control": "max-age=3600" } });
 }
 // for the homepage's "היום שלך" (lib/homeme.js)
-export { evening, hebDate, nextHoliday, parasha, addDay, ymd as ilYmd, hm as ilHm };
+export { hebDate, nextHoliday, parasha, addDay, ymd as ilYmd, hm as ilHm };
