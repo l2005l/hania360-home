@@ -93,7 +93,7 @@ export class ShabbatHub {
       if (!b || typeof b.endpoint !== "string") return json({});
       // Candle lighting and the daily zman reminders share a phone; the most recent message wins.
       const id = await idOf(b.endpoint), a = await this.ctx.storage.get("s:" + id), z = await this.ctx.storage.get("z:" + id), h = await this.ctx.storage.get("h:" + id), t = await this.ctx.storage.get("t:" + id), c = await this.ctx.storage.get("c:" + id), v = await this.ctx.storage.get("v:" + id), f = await this.ctx.storage.get("f:" + id);
-      const more = [...(await this.ctx.storage.list({ prefix: "t:" + id + ":" })).values()].map((x) => x && x.msg);
+      const more = [...(await this.ctx.storage.list({ prefix: "t:" + id + ":" })).values(), ...(await this.ctx.storage.list({ prefix: "h:" + id + ":" })).values()].map((x) => x && x.msg);
       const m = [a && a.msg, z && z.msg, h && h.msg, t && t.msg, c && c.msg, v && v.msg, f && f.msg, ...more].filter(Boolean).sort((x, y) => (y.at || 0) - (x.at || 0))[0];
       return json(m || {});
     }
@@ -111,7 +111,7 @@ export class ShabbatHub {
       if (!items.length) return json({ error: "items" }, 400);
       const k = await slotOf(b, endpoint), old = (await this.ctx.storage.get(k)) || {};
       // the same app's list from before it had its own slot: drop it, so nothing comes twice
-      if (appOf(b)) { const lk = "t:" + (await idOf(endpoint)), legacy = await this.ctx.storage.get(lk); if (legacy && legacy.city === (clean(b.city, 30) || "העיר שלך")) await this.ctx.storage.delete(lk); }
+      if (appOf(b)) { const lk = b.kind + ":" + (await idOf(endpoint)), legacy = await this.ctx.storage.get(lk); if (legacy && (b.kind === "h" ? (legacy.items || []).length && legacy.items.every((x) => /^🕎/.test(x.label || "")) : legacy.city === (clean(b.city, 30) || "העיר שלך"))) await this.ctx.storage.delete(lk); }
       const before = Math.min(240, Math.max(10, +b.before || 60));
       await this.ctx.storage.put(k, { endpoint, before, city: clean(b.city, 30) || "העיר שלך", items, last: old.before === before ? old.last || 0 : 0, msg: old.msg || null });
       await this.schedule();
@@ -124,7 +124,7 @@ export class ShabbatHub {
 // Several apps keep daily reminders of kind "t" (HaniaDat's prayers, HaniaLimud, HaniaFit, HaniaShigra, HaniaMatalot).
 // Inside a hub page they share one phone address, so each app gets its own slot ("t:<id>:<app>"); before, the last app to
 // save its list replaced the others' (a missed Daf Yomi reminder). HaniaDat's prayers keep the plain "t:<id>".
-function appOf(b) { return b && b.kind === "t" && typeof b.app === "string" && /^[a-z]{2,12}$/.test(b.app) ? b.app : ""; }
+function appOf(b) { return b && (b.kind === "t" || b.kind === "h") && typeof b.app === "string" && /^[a-z]{2,12}$/.test(b.app) ? b.app : ""; }
 async function slotOf(b, endpoint) { const a = appOf(b); return (["z", "h", "t", "c", "v"].includes(b.kind) ? b.kind + ":" : "s:") + (await idOf(endpoint)) + (a ? ":" + a : ""); }
 
 export function shabbatApi(req, env) {
