@@ -377,6 +377,15 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
 
   // ---- home ----
   var tick = null;
+  // The first visit: the welcome and the first child's name right at the top, so the routine can start at once
+  function quickStart() {
+    var nm = el("input", { maxlength: "14", placeholder: "השם של הילד/ה", "aria-label": "שם הילד/ה", style: "flex:1;min-width:140px", autocomplete: "off" });
+    return el("section", { class: "card" }, [el("h1", "שגרה בלי ויכוחים"),
+      el("p", { class: "lead", text: "כל שלב בתורו, עם תמונה גדולה, שעון עדין וכוכב על כל שלב. מתחילים בשם של הילד:" }),
+      el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); var v = nm.value.trim(); if (!v) { nm.focus(); return; } S.kids.push({ id: Math.random().toString(36).slice(2, 9), name: v.slice(0, 14), av: AVS[S.kids.length % AVS.length] }); save(); home(); toast("✓ " + v.slice(0, 14) + " כאן. עוד ילד? ב״להורים״ למטה"); } },
+        [nm, el("button", { class: "btn", type: "submit", text: "➕ הוספה" })]),
+      el("p", { class: "fine", text: "השלבים והשעות מוכנים מראש, ואפשר לשנות אותם ב״להורים״ למטה." })]);
+  }
   function home() {
     clearInterval(tick); theme(); $("run").hidden = true; var h = $("home"); h.hidden = false;
     var r = R(), now = new Date(), st = startAt(r), en = endAt(r), left = Math.round((st - now) / 6e4);
@@ -385,13 +394,13 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
       el("div", { class: "mode" }, [["evening", "🌙", "שגרת ערב", "במיטה ב־" + S.r.evening.at], ["morning", "☀️", "שגרת בוקר", "יוצאים ב־" + S.r.morning.at]].map(function (m) {
         return el("button", { type: "button", "aria-pressed": String(MODE === m[0]), onclick: function () { MODE = m[0]; home(); } }, [el("span", { text: m[1] }), m[2], el("small", m[3])]);
       })),
-      joinCard(), el("p", { class: "clock", text: clockT }),
-      now.getDay() === 6 ? null : freeCard(),
-      MODE === "evening" && (now < st || now.getDay() === 5 || now.getDay() === 6) ? erevCard(st) : null,
+      joinCard(), S.kids.length ? null : quickStart(), el("p", { class: "clock", text: clockT }),
       S.kids.length ? el("section", { class: "card" }, [el("h2", "מי מתחיל?"), el("div", { class: "kids" }, S.kids.map(function (k) {
         var rn = run(k), ix = idxFor(r, k), n = ix.length || 1, d = ix.filter(function (i) { return rn.done.indexOf(i) >= 0 || rn.skip.indexOf(i) >= 0; }).length;
         return el("button", { class: "kid", type: "button", onclick: function () { start(k); } }, [el("span", { class: "av" }, [avatar(k, 58)]), el("b", k.name), el("div", { class: "mini" }, [el("i", { style: "width:" + Math.round(100 * d / n) + "%" })]), el("span", { class: "fine", text: rn.fin ? "✓ סיים/ה! ⭐ " + starsOf(k, today()) : d ? d + " מתוך " + n : "⭐ השבוע: " + weekStars(k) })]);
-      }))]) : el("section", { class: "card" }, [el("h1", "שגרה בלי ויכוחים"), el("p", { class: "lead", text: "כל שלב בתורו, עם תמונה גדולה, שעון עדין וכוכב על כל שלב. מוסיפים את הילדים למטה ומתחילים." })]),
+      }))]) : null,
+      now.getDay() === 6 ? null : freeCard(),
+      MODE === "evening" && (now < st || now.getDay() === 5 || now.getDay() === 6) ? erevCard(st) : null,
       prizeCard(), parents()]));
     tick = setInterval(function () { if (!$("home").hidden && !document.querySelector("input:focus,select:focus")) home(); }, 60000);
   }
