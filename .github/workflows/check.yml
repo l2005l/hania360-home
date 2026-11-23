@@ -1,0 +1,35 @@
+# The automatic check before every update: every pull request (and every push to main) builds the site the way
+# Cloudflare will, then opens each app in a phone-sized browser with the internet shut off. If a page throws an
+# error, stays empty, an owner-only app opens to strangers, or a built file was not rebuilt, the check fails and
+# the update does not go in. Nothing here touches the live site.
+name: check
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: The worker parses
+        run: node --check worker.js
+      - name: Every app's built page matches its source
+        run: |
+          for b in */build.py; do python3 "$b" > /dev/null || { echo "::error::$b failed"; exit 1; }; done
+          if ! git diff --quiet; then echo "::error::Built files are out of date. Run the build.py of these apps and commit:"; git diff --stat; exit 1; fi
+      - name: Build like Cloudflare (dry run)
+        run: npx --yes wrangler@4 deploy --dry-run --outdir dist
+      - name: Browser
+        run: |
+          npm init -y > /dev/null
+          npm i --no-save --no-audit --no-fund playwright@1 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+      - name: Open every app
+        run: node tools/check.mjs dist
