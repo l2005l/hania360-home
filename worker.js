@@ -55,7 +55,9 @@ import { LIGHT_CSS } from "./lib/light.js";
 import { IMG, credit } from "./lib/images.js";
 import { nowItems, nowSection, nowApi, NOW_CSS, NOW_ADMIN } from "./now/desk.js";
 import { passUser } from "./lib/account.js";
-import { homeApi, homeTaskApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
+import { homeApi, homeTaskApi, homeSigninApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
+import { home3Page } from "./lib/home3.js";
+import { llmsTxt } from "./lib/llms.js";
 import { HaniaSync, syncApi, SYNC_SNIPPET } from "./lib/sync.js";
 import ENGLISHAPP, { FILES as ENGLISH_FILES, IMAGES as ENGLISH_IMAGES } from "./english/page.js";
 import IVRITAPP, { FILES as IVRIT_FILES, IMAGES as IVRIT_IMAGES } from "./ivrit/page.js";
@@ -222,7 +224,7 @@ const ELI = `<svg class="project-logo" viewBox="0 0 64 64" aria-hidden="true"><r
 
 // Hania360 as an app on the phone: manifest, a small service worker (pages from the network, the last copy when
 // offline), and an "install" button in the light design (Android: the browser's install prompt; iPhone: how to).
-const H_MANIFEST = JSON.stringify({ name: "Hania360", short_name: "Hania360", description: "כל מה שהבית צריך: עדכונים, אפליקציות ומדריכים לכל המשפחה.", lang: "he", dir: "rtl", id: "/", start_url: "/?src=app", scope: "/", display: "standalone", background_color: "#FBFAFF", theme_color: "#FBFAFF",
+const H_MANIFEST = JSON.stringify({ name: "Hania360", short_name: "Hania360", description: "הבית שלך, מסביב לשעון: אפליקציות חינם בעברית לכל המשפחה.", lang: "he", dir: "rtl", id: "/", start_url: "/?src=app", scope: "/", display: "standalone", background_color: "#FBFAFF", theme_color: "#FBFAFF",
   icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }, { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }],
   shortcuts: [{ name: "עכשיו", url: "/?src=app#now" }, { name: "Hania Today", url: "https://today.hania360.com/" }, { name: "HaniaSport", url: "https://sport.hania360.com/" }, { name: "מדריכים", url: "/guides" }] });
 const H_SW = `const C="h360-v2";
@@ -348,7 +350,13 @@ function articlePage(a){
 }
 const ARTICLE_PAGES=Object.fromEntries(ARTICLES.map(a=>["/guides/"+a.slug,onTopic(a)?articlePage(a):articlePage(a).replace("<title>",'<meta name="robots" content="noindex, follow"><title>')]));
 
-const ABOUT = layout("אודות Hania360","מידע על Hania360 והפרויקטים HaniaSave, HaniaION ואלינויה.",`<article class="legal"><h1>אודות Hania360</h1><p>Hania360 הוא בית דיגיטלי לפרויקטים שימושיים בתחומי טכנולוגיה, חיסכון ויצירה. הרעיון המשותף הוא לקחת מידע או תהליך מפוזר ולהפוך אותו לחוויה פשוטה וברורה יותר.</p><h2>הפרויקטים</h2><p><strong>HaniaSave</strong> מסייע לרכז ולבדוק אפשרויות חיסכון לפני תשלום, לרבות הטבות, כרטיסים, שוברים וקאשבק. <strong>HaniaION</strong> מספק כלים הקשורים ל-GPS ולנתוני יונוספירה. <strong>אלינויה</strong> הוא אתר לסדנאות בוטיק ליצירה והשראה.</p><h2>איך אנחנו עובדים</h2><p>אנחנו שואפים להציג מידע ברור, שימושי ונגיש. מידע מסחרי והטבות עשויים להשתנות אצל הספקים עצמם, ולכן התנאים הסופיים של הגוף המציע הם הקובעים. כאשר נעשה שימוש בקישור שותף, אנו שואפים להציג גילוי נאות.</p></article>`,"/about");
+const ABOUT = layout("אודות Hania360 · הבית שלך, מסביב לשעון","Hania360 הוא אוסף של יותר מ־50 אפליקציות חינמיות בעברית למשפחה הישראלית: שגרה לילדים, שבת וחגים, קניות וחיסכון, טיולים ומשחקים. בלי הורדה ובלי הרשמה.",`<article class="legal"><h1>אודות Hania360</h1>
+<p><strong>Hania360 הוא אוסף של יותר מ־50 אפליקציות חינמיות בעברית למשפחה הישראלית.</strong> הסלוגן שלנו, "הבית שלך, מסביב לשעון", אומר את הרעיון: לכל שעה ביום של משפחה יש כלי קטן שעושה אותה קלה יותר. שגרת בוקר לילדים, רשימת קניות משותפת, הטבה שכדאי לנצל, עזרה בשיעורי בית, זמני שבת, שיר ערש לפני השינה.</p>
+<h2>במה זה שונה</h2><ul><li><strong>חינם לגמרי</strong>, בלי מנוי ובלי "גרסת פרו".</li><li><strong>בלי הורדה ובלי הרשמה:</strong> כל אפליקציה נפתחת ישר בדפדפן, בטלפון ובמחשב, ואפשר להוסיף אותה למסך הבית.</li><li><strong>בעברית, ובשביל משפחות בישראל:</strong> לוח עברי, זמני שבת לפי העיר, חגים, מטבע שקלים ושמות רחובות אמיתיים.</li><li><strong>שקט בשבת ובחג:</strong> אין תזכורות מכניסת שבת ועד צאתה.</li><li><strong>פרטיות:</strong> רוב הנתונים נשמרים רק בטלפון. מי שבוחר חשבון, הנתונים שלו נשמרים רק בשבילו ולא נמכרים.</li></ul>
+<h2>העולמות</h2><p><strong>הילדים שלי</strong> (שגרה, מטלות, זמן מסך, לימוד וסיפורים), <strong>הבית שלנו</strong> (קניות, חשבונות, ימי הולדת, מסמכים), <strong>היהדות שלי</strong> (שבת, תפילה, לימוד יומי וחגים), <strong>כסף וחיסכון</strong> (הטבות, שוברים, בדיקת רכב), <strong>יוצאים מהבית</strong> (טיולים, טיסות, חניה), <strong>פנאי וספורט</strong> (טלוויזיה בשידור חי, ספורט, משחקים כמו סימולטור טיסה ונהיגה בערים אמיתיות) ו<strong>בריאות ועזרה</strong> (כושר, עזרה ראשונה, כתוביות חיות).</p>
+<h2>החשבון והדף האישי</h2><p><strong>Hania Pass</strong> הוא חשבון אחד, לא חובה, לכל האפליקציות: נכנסים עם מייל ומקבלים קישור, בלי סיסמה. <strong>Hania Today</strong> הוא הדף האישי שאוסף מכל האפליקציות את מה שחשוב היום. לאנדרואיד יש אפליקציה עם ווידג׳ט למסך הבית: <a href="/app">hania360.com/app</a>.</p>
+<h2>איך האתר מתקיים</h2><p>חלק מהעמודים מציגים פרסומות, ובחלק יש קישורי שותפים (בעיקר בחיסכון ובהטבות). קישור כזה עשוי להניב עמלה, וזה לא משנה את המחיר שלכם. מידע מסחרי עשוי להשתנות אצל הספקים, והתנאים שלהם הם הקובעים.</p>
+<h2>נבנה בישראל</h2><p>Hania360 נבנה ומתוחזק בישראל. באותו בית יש גם את <strong>HaniaION</strong> (כלים לנתוני GPS ויונוספירה) ואת <strong>אלינויה</strong> (סדנאות בוטיק ליצירה). רוצים לכתוב לנו? <a href="/contact">יצירת קשר</a>.</p></article>`,"/about");
 
 const PRIVACY = layout("מדיניות פרטיות — Hania360","מדיניות הפרטיות של Hania360.",`<article class="legal"><h1>מדיניות פרטיות</h1><p>עודכן לאחרונה: 23 בנובמבר 2026.</p><p>Hania360 מכבד את פרטיות המשתמשים. דף הבית עשוי לאסוף מידע טכני בסיסי הנוצר בעת גלישה, כגון סוג מכשיר, דפדפן, עמודים שנצפו ונתוני שימוש מצרפיים, כאשר מופעלים שירותי מדידה או אבטחה.</p><h2>שירותים חיצוניים</h2><p>האתר עשוי להשתמש בשירותי תשתית, אבטחה, מדידה ופרסום של צדדים שלישיים. שירותים אלה עשויים להשתמש בעוגיות או בטכנולוגיות דומות בהתאם למדיניות שלהם ולהסכמות הנדרשות. פרויקטים שאליהם עוברים מתת-הדומיין עשויים להפעיל מדיניות פרטיות נוספת משלהם.</p><h2>פרסום וקישורי שותפים</h2><p>בעתיד עשוי להופיע באתר פרסום, לרבות באמצעות Google AdSense. שירותי פרסום עשויים להשתמש בעוגיות לצורך הצגת מודעות ומדידה, בכפוף לדין ולהגדרות ההסכמה הרלוונטיות. בחלק מהעמודים עשויים להופיע קישורי שותפים שיכולים להניב עמלה.</p><h2>יצירת קשר</h2><p>לשאלות בנושא פרטיות ניתן לפנות דרך עמוד <a href="/contact">יצירת הקשר</a>.</p><h2>התאמה אישית בדף הבית</h2><p>כדי לסדר את אזור "עכשיו" לפי מה שמעניין אתכם, הדפדפן שומר עוגייה בשם h360_i באתרי hania360.com: באילו אפליקציות שלנו השתמשתם לאחרונה, ומה בחרתם בעצמכם (קבוצה, עיר לזמני שבת, נושאים). הסידור נעשה בדפדפן עצמו. השרת לא קורא את העוגייה, לא שומר אותה ולא מתעד אותה. כדי להראות בראש דף הבית את זמני השבת בעיר שלכם, הדפדפן שולח לשרת את העיר בלבד, והיא לא נשמרת. אפשר לאפס אותה בכפתור "שינוי" ← "איפוס" בדף הבית, או למחוק את העוגיות של האתר.</p></article>`,"/privacy");
 
@@ -740,6 +748,8 @@ export default {
     if (url.pathname === "/api/live") return liveApi();
     if (url.pathname === "/api/home") return homeApi(request, env || {}, passUser); // "היום שלך" at the top of the homepage
     if (url.pathname === "/api/home/task") return homeTaskApi(request, env || {});
+    if (url.pathname === "/api/home/signin") return homeSigninApi(request, env || {}); // sign in by e-mail on the homepage
+    if (url.pathname === "/llms.txt") return new Response(llmsTxt(), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600" } });
     // one place for every reminder (signed in): hania360.com/reminders and its two calls
     if ((url.hostname === "hania360.com" || /workers\.dev$/.test(url.hostname)) && url.pathname === "/reminders") return remindersPage();
     if (url.hostname === "hania360.com" && (url.pathname === "/shana" || url.pathname === "/shana/")) return Response.redirect("https://shana.hania360.com/" + url.search, 301); // its first address
@@ -752,10 +762,14 @@ export default {
       // "/" (not /classic): the live strip, today's items (the first four, the rest behind a button), and one map of every app by world
       const a0 = HOME.indexOf('<section class="h26-sec" id="apps">'), a1 = HOME.indexOf("<script>(function(){var D=[");
       const EXTRA = '["⚽","HaniaSport","ליגת העל והיורוליג: תוצאות חיות, טבלה והקבוצה שלכם","https://sport.hania360.com/","sport"],["💗","HaniaRegaTov","למטופלים בבית חולים או במיטה: משחקים, משפחה ותיאום ביקורים","https://regatov.hania360.com/","regatov"],["🗓️","החג הקרוב","זמנים, הכנות וברכות לחג שמגיע · בתוך היהדות שלי","https://chag.hania360.com/","chag"],["🧑‍🏫","HaniaKita למורים","דפי עבודה בלחיצה וכלי כיתה","https://kita.hania360.com/","kita"],["📋","Hania Today","מה חשוב היום מכל העולמות, בדף אחד","https://today.hania360.com/","today"],';
-      const page = a0 > 0 && a1 > a0 ? HOME.slice(0, a0) + ME_HTML + ME_JS + LIVE_HTML + (sec ? sec + NOW_MORE : "") + appMap() + HOME.slice(a1).replace("<script>(function(){var D=[", "<script>(function(){var D=[" + EXTRA) : HOME;
-      const html = themed(page.replace("/*THEME*/", (sec ? NOW_CSS : "") + MAP_CSS + LIVE_CSS + ME_CSS + "/*THEME*/"), env);
+      // the new front door (lib/home3.js); the search box keeps the script it had, the rest is the page's own
+      const sEnd = HOME.indexOf("</script>", a1) + 9;
+      const search = a1 > 0 && sEnd > a1 ? HOME.slice(a1, sEnd).replace("<script>(function(){var D=[", "<script>(function(){var D=[" + EXTRA).replace('var tb=document.getElementById("toolTabs");tb.addEventListener', 'var tb=document.getElementById("toolTabs");if(tb)tb.addEventListener') : "";
+      const page = home3Page({ title: "Hania360 · אפליקציות חינם בעברית למשפחה: שגרה לילדים, שבת, קניות וחיסכון", description: "הבית שלך, מסביב לשעון: יותר מ־50 אפליקציות חינמיות בעברית למשפחה הישראלית. שגרה ומטלות לילדים, זמני שבת וחגים, רשימת קניות, הטבות וחיסכון, הזמנות לאירועים, טיולים ומשחקים. בלי הורדה ובלי הרשמה.",
+        css: CSS + LIGHT_CSS + (sec ? NOW_CSS : "") + MAP_CSS + LIVE_CSS + ME_CSS, live: LIVE_HTML, now: sec, nowMore: sec ? NOW_MORE : "", map: appMap(), me: [ME_HTML, ME_JS], search });
+      const html = page;
       if (preview) return new Response(html.replace("<title>",'<meta name="robots" content="noindex"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","referrer-policy":"no-referrer","x-robots-tag":"noindex"}});
-      return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=60","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
+      return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=60","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin","x-og":"1"}});
     }
     const page=pages[url.pathname];
     if (!page) return new Response(themed(layout("העמוד לא נמצא | Hania360","העמוד המבוקש לא נמצא.",`<article class="legal"><h1>העמוד לא נמצא</h1><p>ייתכן שהקישור שגוי או שהעמוד הועבר.</p><p><a href="/">לדף הבית</a> · <a href="/guides">לכל המדריכים</a></p></article>`,url.pathname),env),{status:404,headers:{"content-type":"text/html; charset=utf-8"}});
