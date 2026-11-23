@@ -94,3 +94,5 @@ export function assetLinks() {
   const fp = APP_SHA ? [APP_SHA] : [];
   return new Response(JSON.stringify([{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: "com.hania360.app", sha256_cert_fingerprints: fp } }]), { headers: { "content-type": "application/json", "cache-control": "max-age=3600" } });
 }
+// for the homepage's "היום שלך" (lib/homeme.js)
+export { evening, hebDate, nextHoliday, parasha, addDay, ymd as ilYmd, hm as ilHm };

@@ -55,6 +55,7 @@ import { LIGHT_CSS } from "./lib/light.js";
 import { IMG, credit } from "./lib/images.js";
 import { nowItems, nowSection, nowApi, NOW_CSS, NOW_ADMIN } from "./now/desk.js";
 import { passUser } from "./lib/account.js";
+import { homeApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
 import { HaniaSync, syncApi, SYNC_SNIPPET } from "./lib/sync.js";
 import ENGLISHAPP, { FILES as ENGLISH_FILES, IMAGES as ENGLISH_IMAGES } from "./english/page.js";
 import IVRITAPP, { FILES as IVRIT_FILES, IMAGES as IVRIT_IMAGES } from "./ivrit/page.js";
@@ -737,6 +738,7 @@ export default {
     if (url.pathname === "/sw.js") return new Response(H_SW, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" } });
     if (url.pathname === "/now") return new Response(NOW_ADMIN,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex","referrer-policy":"no-referrer"}});
     if (url.pathname === "/api/live") return liveApi();
+    if (url.pathname === "/api/home") return homeApi(request, env || {}, passUser); // "היום שלך" at the top of the homepage
     // one place for every reminder (signed in): hania360.com/reminders and its two calls
     if ((url.hostname === "hania360.com" || /workers\.dev$/.test(url.hostname)) && url.pathname === "/reminders") return remindersPage();
     if (url.hostname === "hania360.com" && (url.pathname === "/shana" || url.pathname === "/shana/")) return Response.redirect("https://shana.hania360.com/" + url.search, 301); // its first address
@@ -749,8 +751,8 @@ export default {
       // "/" (not /classic): the live strip, today's items (the first four, the rest behind a button), and one map of every app by world
       const a0 = HOME.indexOf('<section class="h26-sec" id="apps">'), a1 = HOME.indexOf("<script>(function(){var D=[");
       const EXTRA = '["⚽","HaniaSport","ליגת העל והיורוליג: תוצאות חיות, טבלה והקבוצה שלכם","https://sport.hania360.com/","sport"],["💗","HaniaRegaTov","למטופלים בבית חולים או במיטה: משחקים, משפחה ותיאום ביקורים","https://regatov.hania360.com/","regatov"],["🗓️","החג הקרוב","זמנים, הכנות וברכות לחג שמגיע · בתוך היהדות שלי","https://chag.hania360.com/","chag"],["🧑‍🏫","HaniaKita למורים","דפי עבודה בלחיצה וכלי כיתה","https://kita.hania360.com/","kita"],["📋","Hania Today","מה חשוב היום מכל העולמות, בדף אחד","https://today.hania360.com/","today"],';
-      const page = a0 > 0 && a1 > a0 ? HOME.slice(0, a0) + LIVE_HTML + (sec ? sec + NOW_MORE : "") + appMap() + HOME.slice(a1).replace("<script>(function(){var D=[", "<script>(function(){var D=[" + EXTRA) : HOME;
-      const html = themed(page.replace("/*THEME*/", (sec ? NOW_CSS : "") + MAP_CSS + LIVE_CSS + "/*THEME*/"), env);
+      const page = a0 > 0 && a1 > a0 ? HOME.slice(0, a0) + ME_HTML + ME_JS + LIVE_HTML + (sec ? sec + NOW_MORE : "") + appMap() + HOME.slice(a1).replace("<script>(function(){var D=[", "<script>(function(){var D=[" + EXTRA) : HOME;
+      const html = themed(page.replace("/*THEME*/", (sec ? NOW_CSS : "") + MAP_CSS + LIVE_CSS + ME_CSS + "/*THEME*/"), env);
       if (preview) return new Response(html.replace("<title>",'<meta name="robots" content="noindex"><title>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","referrer-policy":"no-referrer","x-robots-tag":"noindex"}});
       return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=60","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
     }
