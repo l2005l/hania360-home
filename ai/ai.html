@@ -99,7 +99,7 @@ fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;displ
   function bubble(m) {
     var b = el("div", { class: "msg " + (m.role === "user" ? "me" : "hania") });
     b.appendChild(rich(m.content));
-    if (m.used && m.used.length) b.appendChild(el("span", { class: "used", text: "מתוך: " + m.used.map(function (u) { return NAMES[u] || u; }).join(" · ") }));
+    if (m.used && m.used.length) b.appendChild(el("span", { class: "used", text: (m.instant ? "⚡ תשובה מיידית מתוך: " : "מתוך: ") + m.used.map(function (u) { return NAMES[u] || u; }).join(" · ") }));
     return b;
   }
   function hello() {
@@ -192,7 +192,7 @@ fieldset{border:1px solid var(--line);border-radius:14px;padding:10px 12px;displ
     fetch("/api/ai/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
       .then(function (r) { if (r.status === 404) throw new Error("auth"); return r.json(); })
       .then(function (j) {
-        if (j.answer) S.log.push({ role: "assistant", content: j.answer, used: j.used || [] });
+        if (j.answer) S.log.push({ role: "assistant", content: j.answer, used: j.used || [], instant: !!j.instant });
         S.pending = j.pending || null;
       })
       .catch(function (e) { S.log.push({ role: "assistant", content: e.message === "auth" ? "צריך להתחבר עם החשבון שלך ב־Hania Pass: https://pass.hania360.com/" : "אין חיבור כרגע. ננסה שוב?", local: true }); })
