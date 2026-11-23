@@ -14,7 +14,7 @@ const W = [
   { k: "bayit", e: "🏠", name: "הבית שלנו", hub: ["HaniaBayit", "https://bayit.hania360.com/"], c: "#0E9F8E", line: "כל מה שמנהל את הבית: קניות, חשבונות, מסמכים, תורנויות וימי הולדת.",
     apps: [["🛒", "קניות ומלאי", "רשימה משותפת, ומה כבר יש בבית", "https://bayit.hania360.com/#cart"], ["💡", "חשבונות", "כל החשבונות והמנויים, כמה יוצא בחודש", "https://bayit.hania360.com/#bills"],
       ["📁", "מסמכי הבית", "דרכונים, אחריות ותוקף של כל המסמכים", "https://bayit.hania360.com/#home"], ["🎂", "ימי הולדת", "גיל ויום הולדת עברי, עם תזכורת", "https://bayit.hania360.com/#gil"],
-      ["🎡", "מי בתור?", "גלגל לתורנויות", "https://bayit.hania360.com/#pick"], ["🚗", "הסעות", "מי מסיע היום", "https://bayit.hania360.com/#ride"], ["📞", "כיבוד הורים", "מי מתקשר לסבא וסבתא היום", "https://bayit.hania360.com/#kibud"]],
+      ["🎡", "מי בתור?", "גלגל לתורנויות", "https://bayit.hania360.com/#pick"], ["🚗", "הסעות", "מי מסיע היום", "https://bayit.hania360.com/#ride"], ["📞", "כיבוד הורים", "מי מתקשר לסבא וסבתא היום", "https://bayit.hania360.com/#kibud"], ["🖼️", "מסגרת לסבתא", "טאבלט ישן מציג תמונות שכל המשפחה שולחת", "https://bayit.hania360.com/#frame"]],
     more: ["🎉", "לאירועים", "הזמנה ואישורי הגעה (HaniaHazmana), גמד וענק (HaniaGamad)", "https://hazmana.hania360.com/"] },
   { k: "yahadut", e: "🕯️", name: "היהדות שלי", hub: ["HaniaYahadut", "https://yahadut.hania360.com/"], c: "#2D4BC7", line: "שבת, תפילה, לימוד וחגים, לפי העיר שלכם. בשבת בלי תזכורות.",
     apps: [["🕯️", "שבת, תפילה וסידור", "זמני שבת, התפילה של עכשיו והסידור", "https://yahadut.hania360.com/#dat"], ["📚", "לימוד יומי", "דף יומי, הלכה יומית ופרשה לשולחן שבת, עם ביאור", "https://yahadut.hania360.com/#limud"],
