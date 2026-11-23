@@ -7,7 +7,7 @@ heb = open('shabbat/hebcal.js', encoding='utf8').read()
 cities = re.search(r'CITIES = (\[.*\]);', open('lib/cities.js', encoding='utf8').read()).group(1)
 app = r('src/app.js').replace('/*CITIES*/[["ירושלים", 31.778, 35.235, 40]]', cities)
 assert '/*CITIES*/' not in app and '</script' not in app
-body = r('layla.html').replace('<script>/*APP*/</script>', '<script>' + app + '</script>').replace('<script src="/hebcal.js"></script>', '<script src="/hebcal.js?v=' + hashlib.sha1(heb.encode()).hexdigest()[:8] + '"></script>')
+body = r('layla.html').replace('<script>/*APP*/</script>', '<script>' + app + '</script>').replace('<script src="/hebcal.js" defer></script>', '<script src="/hebcal.js?v=' + hashlib.sha1(heb.encode()).hexdigest()[:8] + '" defer></script>')
 assert 'hebcal.js?v=' in body and '/*APP*/' not in body
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaLayla: הדקות שלפני השינה. הילד אומר לילה טוב לכוכבים עד שהירח נרדם, צלילי גשם וים ושירי ערש שנוצרים בטלפון, נשימות עם בועה, מנורת לילה עם מקרן כוכבים, וקריאת שמע על המיטה.">'
