@@ -55,7 +55,7 @@ import { LIGHT_CSS } from "./lib/light.js";
 import { IMG, credit } from "./lib/images.js";
 import { nowItems, nowSection, nowApi, NOW_CSS, NOW_ADMIN } from "./now/desk.js";
 import { passUser } from "./lib/account.js";
-import { homeApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
+import { homeApi, homeTaskApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
 import { HaniaSync, syncApi, SYNC_SNIPPET } from "./lib/sync.js";
 import ENGLISHAPP, { FILES as ENGLISH_FILES, IMAGES as ENGLISH_IMAGES } from "./english/page.js";
 import IVRITAPP, { FILES as IVRIT_FILES, IMAGES as IVRIT_IMAGES } from "./ivrit/page.js";
@@ -739,6 +739,7 @@ export default {
     if (url.pathname === "/now") return new Response(NOW_ADMIN,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex","referrer-policy":"no-referrer"}});
     if (url.pathname === "/api/live") return liveApi();
     if (url.pathname === "/api/home") return homeApi(request, env || {}, passUser); // "היום שלך" at the top of the homepage
+    if (url.pathname === "/api/home/task") return homeTaskApi(request, env || {});
     // one place for every reminder (signed in): hania360.com/reminders and its two calls
     if ((url.hostname === "hania360.com" || /workers\.dev$/.test(url.hostname)) && url.pathname === "/reminders") return remindersPage();
     if (url.hostname === "hania360.com" && (url.pathname === "/shana" || url.pathname === "/shana/")) return Response.redirect("https://shana.hania360.com/" + url.search, 301); // its first address
