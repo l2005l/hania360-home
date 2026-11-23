@@ -1,6 +1,6 @@
 # HaniaRace's city maps: cuts the areas around the city centres in tools/cities.txt out of the OpenStreetMap extract
 # for Israel (Geofabrik), turns each into race/city/<id>.json (tools/pbf2city.py, then tools/osm2city.py) and pushes
-# them to the branch "city-maps" for a pull request. Run it by hand (Actions → city maps → Run workflow).
+# them to the branch "city-maps" for a pull request. tools/elev.py adds the heights (open terrain tiles). Run it by hand (Actions → city maps → Run workflow).
 # Map data © OpenStreetMap contributors, under the Open Database License (ODbL).
 name: city maps
 on: workflow_dispatch
@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - shell: bash
         run: |
-          pip install -q osmium
+          pip install -q osmium pillow
           curl -sL -o il.pbf https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf
           python3 tools/pbf2city.py il.pbf tools/cities.txt raw
           while IFS='|' read -r id he la lo; do
@@ -22,5 +22,6 @@ jobs:
             read cla clo < raw/$id.center
             python3 tools/osm2city.py raw/$id.json race/city/$id.json "$he" $cla $clo 900
           done < tools/cities.txt
+          python3 tools/elev.py race/city/*.json
           git config user.name "city-maps" && git config user.email "city-maps@users.noreply.github.com"
           git checkout -b city-maps && git add race/city && git commit -m "City maps from OpenStreetMap (© OpenStreetMap contributors, ODbL)" && git push -f origin city-maps
