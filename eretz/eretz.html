@@ -1,0 +1,100 @@
+<title>HaniaEretz · מסע בארץ ישראל</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Rubik:wght@400;500;700;800&display=swap">
+<style>
+/* HaniaEretz: an illustrated map of Eretz Israel between the sea and the Jordan, for the whole family.
+   Places from the Tanach, history and nature, each with a short story; routes that walk in the footsteps of
+   Avraham, Yaakov, David and the Maccabees; a "where is it?" game; and a passport of places we have been.
+   The coastline is Natural Earth (public domain); the land's shape, lakes and the Jordan are drawn by hand. */
+:root{--paper:#F7F0DF;--paper2:#EFE3C7;--ink:#2A2016;--muted:#76664F;--line:#E0D2B4;--teal:#0E5E6F;--terra:#C2643B;--olive:#6E8B3D;--gold:#D9A33B;--violet:#7A4FB8;--sky:#2F7FC1;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Frank Ruhl Libre","David",serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:#BFD9E8;color:var(--ink);font-family:var(--font);direction:rtl;overscroll-behavior:none}
+button,input{font:inherit;color:inherit}
+canvas#m{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.paper{background:rgba(247,240,223,.94);border:1px solid var(--line);box-shadow:0 14px 34px -18px rgba(60,40,10,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#top{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));inset-inline:10px;z-index:5;display:grid;gap:8px}
+#bar{display:flex;align-items:center;gap:8px}
+#title{padding:8px 14px;border-radius:18px;margin-inline-end:auto}
+#title b{font-family:var(--serif);font-weight:900;font-size:22px;display:block;line-height:1.05;color:var(--teal)}
+#title span{font-size:12.5px;color:var(--muted)}
+.ib{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:19px;cursor:pointer;flex:none;border:1px solid var(--line)}
+#chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);background:rgba(247,240,223,.94);border-radius:99px;padding:6px 12px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 6px 16px -12px rgba(60,40,10,.6)}
+.chip[aria-pressed="true"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+#dock{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom,0px));inset-inline:10px;z-index:5;display:flex;justify-content:center;gap:8px;transition:transform .4s,opacity .4s}
+#dock button{flex:1 1 0;max-width:120px;border-radius:18px;padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink)}
+#dock button span{font-size:24px;line-height:1}
+#dock.hide{transform:translateY(130%);opacity:0;pointer-events:none}
+/* the card of a place */
+#card{position:fixed;inset-inline:10px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:8;max-width:540px;margin:0 auto;border-radius:24px;padding:16px 18px 16px;max-height:62vh;overflow:auto;
+  transform:translateY(calc(100% + 30px));transition:transform .45s cubic-bezier(.2,.85,.2,1);background:linear-gradient(180deg,#FBF6EA,#F3E8CF)}
+#card.open{transform:none}
+#card .x{position:absolute;top:10px;inset-inline-end:10px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(0,0,0,.06);cursor:pointer}
+#card .hd{display:flex;gap:12px;align-items:center;padding-inline-end:34px}
+#card .em{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-size:32px;background:#fff;box-shadow:0 0 0 4px var(--c,var(--teal)),0 10px 20px -10px rgba(0,0,0,.4);flex:none}
+#card h2{margin:0;font-family:var(--serif);font-weight:900;font-size:27px;line-height:1.1}
+#card .cat{display:inline-block;margin-top:4px;font-size:12.5px;font-weight:700;color:#fff;background:var(--c,var(--teal));border-radius:99px;padding:2px 10px}
+#card p.story{font-size:17px;line-height:1.6;margin:12px 0 6px}
+#card .ref{font-family:var(--serif);color:var(--terra);font-weight:700;font-size:15px}
+.btn{appearance:none;border:0;border-radius:15px;padding:11px 14px;font-weight:700;font-size:15.5px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;justify-content:center;text-decoration:none;background:var(--teal);color:#fff;box-shadow:0 10px 20px -12px rgba(14,94,111,.9)}
+.btn.terra{background:var(--terra);box-shadow:0 10px 20px -12px rgba(194,100,59,.9)}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.on{background:var(--olive)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.row .btn{flex:1 1 auto}
+/* sheets */
+#scrim{position:fixed;inset:0;z-index:9;background:rgba(40,25,5,.35);opacity:0;pointer-events:none;transition:opacity .3s}#scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:10;max-height:84vh;overflow-y:auto;border-radius:26px 26px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,#FBF6EA,#F3E8CF);border-top:1px solid var(--line);transform:translateY(calc(100% + 40px));transition:transform .42s cubic-bezier(.2,.85,.2,1);box-shadow:0 -18px 40px -20px rgba(60,40,10,.5)}
+.sheet.open{transform:none}
+@media (min-width:760px){.sheet{max-width:620px;margin:0 auto;border-radius:26px;bottom:16px}}
+.grab{width:46px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.sheet h2{margin:0 0 4px;font-family:var(--serif);font-weight:900;font-size:27px;color:var(--teal)}
+.sheet .sub{color:var(--muted);margin:0 0 12px;font-size:14.5px}
+.routes{display:grid;gap:10px}
+.route{display:grid;grid-template-columns:56px 1fr;gap:12px;align-items:center;text-align:start;border:1px solid var(--line);background:#fff;border-radius:18px;padding:10px 12px;cursor:pointer}
+.route span{font-size:34px;text-align:center}
+.route b{font-family:var(--serif);font-size:20px;display:block}
+.route small{color:var(--muted)}
+.list{display:grid;gap:6px}
+.list button{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:9px 12px;cursor:pointer;text-align:start;font-size:16px}
+.list button span{font-size:24px}.list button small{color:var(--muted);margin-inline-start:auto}
+.pass{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
+.stamp{aspect-ratio:1;border-radius:50%;border:3px dashed var(--c,var(--terra));display:grid;place-items:center;text-align:center;padding:6px;transform:rotate(var(--r,-8deg));color:var(--c,var(--terra));font-weight:800;font-size:12px;line-height:1.2;background:#fff;cursor:pointer}
+.stamp span{display:block;font-size:26px}
+.stamp.off{opacity:.28;border-style:dotted;filter:grayscale(1)}
+.prog{height:10px;border-radius:9px;background:var(--line);overflow:hidden;margin:6px 0 12px}.prog b{display:block;height:100%;background:linear-gradient(90deg,var(--olive),var(--gold))}
+/* the story strip of a route */
+#strip{position:fixed;inset-inline:10px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:8;max-width:560px;margin:0 auto;border-radius:22px;padding:14px 16px;background:linear-gradient(180deg,#FBF6EA,#F3E8CF)}
+#strip h3{margin:0;font-family:var(--serif);font-size:21px;color:var(--teal)}
+#strip p{margin:6px 0 10px;font-size:16px;line-height:1.55}
+#strip .dots{display:flex;gap:6px;justify-content:center;margin-bottom:8px}#strip .dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}#strip .dots i.on{background:var(--terra)}
+#quiz{position:fixed;top:calc(112px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:6;padding:10px 18px;border-radius:20px;text-align:center;min-width:min(92vw,340px)}
+#quiz b{display:block;font-family:var(--serif);font-size:23px;color:var(--teal)}
+#quiz small{color:var(--muted)}
+#toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom,0px));left:50%;transform:translate(-50%,10px);z-index:30;padding:10px 16px;border-radius:16px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center;background:#2A2016;color:#fff}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#splash{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--paper);transition:opacity 1s;pointer-events:none}
+#splash b{font-family:var(--serif);font-weight:900;font-size:40px;color:var(--teal);animation:rise 1.1s both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+</style>
+<canvas id="m" role="img" aria-label="מפה מאוירת של ארץ ישראל. נוגעים במקום כדי לקרוא עליו"></canvas>
+<div id="top">
+  <div id="bar"><div id="title" class="paper"><b>מסע בארץ ישראל</b><span id="cnt">נוגעים במקום וקוראים את הסיפור שלו</span></div>
+    <button class="ib paper" id="find" type="button" aria-label="חיפוש מקום">🔍</button><button class="ib paper" id="fit" type="button" aria-label="כל הארץ">🗺️</button></div>
+  <div id="chips"></div>
+</div>
+<div id="quiz" class="paper" hidden></div>
+<nav id="dock">
+  <button class="paper" type="button" id="dRoute"><span>📜</span>מסלולים</button>
+  <button class="paper" type="button" id="dQuiz"><span>🎯</span>איפה זה?</button>
+  <button class="paper" type="button" id="dNear"><span>🧭</span>קרוב אליי</button>
+  <button class="paper" type="button" id="dPass"><span>🛂</span>הייתי כאן</button>
+</nav>
+<section id="card" class="paper" aria-live="polite"></section>
+<section id="strip" class="paper" hidden></section>
+<div id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></section>
+<div id="toast" role="status"></div>
+<div id="splash"><b>מסע בארץ ישראל</b></div>
+<script>/*APP*/</script>
