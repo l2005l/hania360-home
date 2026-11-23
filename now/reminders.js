@@ -25,6 +25,7 @@ select{font:inherit;font-size:15px;padding:8px;border-radius:12px;border:1px sol
 </style></head><body><div class="wrap">
 <header><h1>🔔 התזכורות שלי</h1><a class="back" href="/">Hania360 ←</a></header>
 <div id="out"><p class="empty">טוען…</p></div>
+<section class="card" id="bk" hidden><b>☁️ הגיבוי שלי</b><p class="fine">האפליקציות שהנתונים שלהן נשמרים בחשבון. בטלפון חדש מתחברים, פותחים את האפליקציה, והכול חוזר.</p><ul class="next" id="bkList"></ul></section>
 <p class="fine">כאן מופיעות התזכורות שהופעלו כשהייתם מחוברים ל־Hania Pass, מכל האפליקציות ומכל הטלפונים. תזכורת שהופעלה לפני כן תופיע אחרי שתפתחו שוב את האפליקציה שלה. בשבת ובחג לא נשלחות תזכורות.</p>
 </div><script>
 (function(){"use strict";
@@ -53,6 +54,9 @@ function draw(j){var out=document.getElementById("out"),L=j.list||[];
         el("button",{class:"btn del",type:"button",text:"🗑️ להסיר",onclick:function(){if(confirm("להסיר את התזכורות של "+n[1]+"? אפשר להפעיל שוב מהאפליקציה."))call("mine-op",{op:"del",key:x.key}).then(draw)}})])]);
   })));
 }
+var AN={shigra:"🌙 שגרה",matalot:"🧹 מטלות",fit:"💪 כושר",limud:"📚 לימוד יומי",chanukah:"🕎 חנוכה",dat:"🕯️ שבת ותפילה",tv:"📺 HaniaTV",hazmana:"💌 הזמנות",race:"🏎️ מירוץ",sport:"⚽ ספורט",daber:"🗣️ HaniaDaber",bills:"🧾 חשבונות",park:"🅿️ חניה",check:"🚗 HaniaCheck",tisa:"✈️ טיסות",home:"🏠 HaniaHome",kufsa:"💰 קופה",english:"🔤 אנגלית",ivrit:"🔠 עברית",kita:"🏫 כיתה",sipur:"📖 סיפור",chag:"✡️ החג",play:"🎮 משחקים"};
+fetch("/api/sync/list",{credentials:"same-origin",cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(j){if(!j||!j.apps||!j.apps.length)return;document.getElementById("bk").hidden=false;
+  document.getElementById("bkList").replaceChildren.apply(document.getElementById("bkList"),j.apps.sort(function(a,b){return b.at-a.at}).map(function(a){return el("li",null,[el("span",{text:AN[a.app]||a.app}),el("time",{text:"נשמר "+day(a.at)+" "+hm(a.at)})])}))}).catch(function(){});
 call("mine").then(draw).catch(function(e){document.getElementById("out").replaceChildren(el("div",{class:"card empty"},e.message==="signin"?[el("div",{text:"צריך להתחבר כדי לראות את התזכורות."}),el("a",{class:"btn main",href:"https://pass.hania360.com/?return="+encodeURIComponent(location.href),text:"התחברות ל־Hania Pass"})]:[el("div",{text:"אין חיבור כרגע. ננסה שוב?"})]))});
 })();
 </script></body></html>`;

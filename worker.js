@@ -55,6 +55,7 @@ import { LIGHT_CSS } from "./lib/light.js";
 import { IMG, credit } from "./lib/images.js";
 import { nowItems, nowSection, nowApi, NOW_CSS, NOW_ADMIN } from "./now/desk.js";
 import { passUser } from "./lib/account.js";
+import { HaniaSync, syncApi, SYNC_SNIPPET } from "./lib/sync.js";
 import ENGLISHAPP, { FILES as ENGLISH_FILES, IMAGES as ENGLISH_IMAGES } from "./english/page.js";
 import IVRITAPP, { FILES as IVRIT_FILES, IMAGES as IVRIT_IMAGES } from "./ivrit/page.js";
 import HAKTAVAAPP, { FILES as HAKTAVA_FILES, IMAGES as HAKTAVA_IMAGES } from "./haktava/page.js";
@@ -76,7 +77,7 @@ import SHIURIMAPP, { FILES as SHIURIM_FILES, IMAGES as SHIURIM_IMAGES } from "./
 import { tutorApi } from "./shiurim/tutor.js";
 import CHANUKAHAPP, { FILES as CHANUKAH_FILES, IMAGES as CHANUKAH_IMAGES } from "./chanukah/page.js";
 import { RideGroup, rideApi } from "./ride/group.js";
-export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile, WidgetLink, HaniaBrief };
+export { QuizRoom, ParkHub, ShabbatHub, GiftGroup, RideGroup, FlightHub, EventRoom, StoryLimits, StatsHub, KibudCircle, PlayStore, GameRoom, MasachFamily, VaultBox, RegaRoom, ShigraFamily, LimudGroup, KitaFile, WidgetLink, HaniaBrief, HaniaSync };
 import BILLS, { FILES as BILLS_FILES, IMAGES as BILLS_IMAGES } from "./bills/page.js";
 const CSS = `
 :root{color-scheme:dark;font-family:Arial,"Noto Sans Hebrew",sans-serif;background:#071426;color:#f8fafc}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 85%,#351b53 0,transparent 30%),radial-gradient(circle at 80% 10%,#102c50 0,transparent 35%),#071426;color:#f8fafc}a{color:inherit}.shell{width:min(1080px,calc(100% - 32px));margin:auto;padding:34px 0 54px}.top{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:48px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;text-decoration:none}
@@ -347,13 +348,23 @@ const CONTACT = layout("יצירת קשר — Hania360","דרכי יצירת ק�
 const BILLS_MOVE = `<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><link rel="canonical" href="https://bills.hania360.com/"><title>HaniaBills עברה לכתובת חדשה</title></head><body style="font-family:system-ui,sans-serif;text-align:center;padding:40px 16px">HaniaBills עברה ל־<a href="https://bills.hania360.com/">bills.hania360.com</a>…<script>(function(){var d="";try{var r=localStorage.getItem("haniabills-v1"),s=r&&JSON.parse(r);if(s&&!s.sample&&s.bills&&s.bills.length)d="#move="+encodeURIComponent(r);}catch(e){}location.replace("https://bills.hania360.com/"+d);})();</script></body></html>`;
 
 /** A small installable app on its own subdomain: its page, install files and icons. */
+// The account backup script goes into every small app's page, first thing in <head>, except the vault and the assistant.
+const NO_SYNC = new Set(["kasefet", "ai", "www", "rega", "plate"]);
+function withSync(page, home) {
+  const app = (/^https:\/\/([a-z]+)\.hania360\.com\//.exec(home || "") || [])[1];
+  if (!app || NO_SYNC.has(app) || typeof page !== "string") return page;
+  const i = page.search(/<head[^>]*>/i);
+  if (i < 0) return SYNC_SNIPPET + page;
+  const j = page.indexOf(">", i) + 1;
+  return page.slice(0, j) + SYNC_SNIPPET + page.slice(j);
+}
 function smallApp(url, page, files, images, home) {
   const p = url.pathname;
   if (p === "/robots.txt") return new Response("User-agent: *\nAllow: /\nSitemap: " + home + "sitemap.xml\n",{headers:{"content-type":"text/plain"}});
   if (p === "/sitemap.xml") return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>' + home + '</loc><changefreq>weekly</changefreq></url></urlset>',{headers:{"content-type":"application/xml; charset=utf-8"}});
   if (files[p]) { const [type, body] = files[p]; return new Response(body,{headers:{"content-type":type,"cache-control":p==="/sw.js"?"no-cache":"public, max-age=3600","x-content-type-options":"nosniff"}}); }
   if (images[p]) return new Response(Uint8Array.from(atob(images[p]),c=>c.charCodeAt(0)),{headers:{"content-type":"image/png","cache-control":"public, max-age=86400"}});
-  if (p === "/" || p === "/index.html") return new Response(page,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-cache","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
+  if (p === "/" || p === "/index.html") return new Response(withSync(page, home),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-cache","x-content-type-options":"nosniff","referrer-policy":"strict-origin-when-cross-origin"}});
   return Response.redirect(home, 302);
 }
 
@@ -518,6 +529,11 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/.well-known/assetlinks.json") return assetLinks();
     if (url.pathname === "/api/widget") return widgetApi(url, env || {});
+    // Backup and sync of each small app to the account (lib/sync.js): /api/sync on the app's own address
+    if (url.pathname === "/api/sync" || url.pathname === "/api/sync/del" || url.pathname === "/api/sync/list") {
+      const h = url.hostname, app = h === "shabbat.hania360.com" ? "dat" : h.endsWith(".hania360.com") ? h.split(".")[0] : (url.searchParams.get("app") || "");
+      if (!NO_SYNC.has(app) && (h.endsWith(".hania360.com") || h === "hania360.com" && url.pathname === "/api/sync/list")) return syncApi(request, env || {}, passUser, app);
+    }
     if (url.pathname === "/widget/connect") return widgetConnect(request, env || {});
     if (url.hostname === "hania360.com" && request.method === "GET" && !url.pathname.startsWith("/api/")) widgetRefresh(request, env || {}, ctx);
     if (url.hostname === "hania360.com" && url.pathname === "/app") return Response.redirect("https://github.com/l2005l/hania360-home/releases/download/android-latest/Hania360.apk", 302);
