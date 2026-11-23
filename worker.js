@@ -367,9 +367,12 @@ function withSync(page, home) {
 async function skyTle(ctx) {
   const key = new Request("https://shamayim.hania360.com/api/sky/tle"), cache = caches.default;
   const hit = await cache.match(key); if (hit && Date.now() - +(hit.headers.get("x-at") || 0) < 6 * 3600e3) return hit;
-  const r = await fetch("https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE", { headers: { "user-agent": "HaniaShamayim/1 (+https://shamayim.hania360.com)" } }).catch(() => null);
-  const t = r && r.ok ? (await r.text()).trim() : "";
-  if (!/^.+\n1 25544/.test(t)) return hit || new Response("", { status: 503 });
+  const ua = { headers: { "user-agent": "HaniaShamayim/1 (+https://shamayim.hania360.com)", accept: "text/plain, application/json" } }, why = [];
+  // CelesTrak first (lines end in CRLF); a public mirror of the same elements as a second source
+  let t = "";
+  try { const r = await fetch("https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE", ua); const x = r.ok ? (await r.text()).replace(/\r/g, "").trim() : ""; why.push("celestrak " + r.status); if (/\n1 25544/.test(x)) t = x; } catch (e) { why.push("celestrak error"); }
+  if (!t) try { const r = await fetch("https://tle.ivanstanojevic.me/api/tle/25544", ua); const j = r.ok ? await r.json() : null; why.push("mirror " + r.status); if (j && /^1 25544/.test(j.line1 || "") && /^2 25544/.test(j.line2 || "")) t = (j.name || "ISS (ZARYA)") + "\n" + j.line1 + "\n" + j.line2; } catch (e) { why.push("mirror error"); }
+  if (!t) return hit || new Response(why.join(", "), { status: 503, headers: { "cache-control": "no-store" } });
   const res = new Response(t, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=21600", "x-at": String(Date.now()) } });
   ctx && ctx.waitUntil && ctx.waitUntil(cache.put(key, new Response(t, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=259200", "x-at": String(Date.now()) } })));
   return res;
