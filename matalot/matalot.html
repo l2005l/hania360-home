@@ -42,6 +42,20 @@ details.par>summary::-webkit-details-marker{display:none}
 .toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#132238;color:#fff;padding:10px 16px;border-radius:14px;font-size:14px;z-index:60;max-width:90vw;text-align:center}
 .burst{position:fixed;pointer-events:none;font-size:28px;z-index:70;animation:up 1s ease-out forwards}@keyframes up{to{transform:translateY(-120px) scale(1.5);opacity:0}}
 @media (prefers-reduced-motion:reduce){.burst{display:none}}
+button.e{appearance:none;border:0;background:none;padding:0;cursor:pointer;position:relative;line-height:1.1}
+button.e::after{content:"🔊";position:absolute;bottom:-4px;left:-6px;font-size:13px;opacity:.75}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.wk span{display:grid;justify-items:center;gap:1px;border-radius:12px;padding:4px 0;background:var(--bg);font-size:12px;color:var(--muted);font-weight:700}
+.wk span i{font-style:normal;font-size:16px;line-height:1.2}.wk span.now{outline:2px solid var(--main);outline-offset:-2px;color:var(--main2)}
+.wk span.all{background:color-mix(in srgb,var(--ok) 18%,var(--card));color:#166534}
+.streak{display:inline-flex;align-items:center;gap:4px;font-weight:800;color:#C2410C;background:#FFEDD5;border-radius:999px;padding:3px 10px;font-size:14px}
+.tag{display:inline-block;font-size:12px;font-weight:800;color:#7C3AED;background:#EDE9FE;border-radius:999px;padding:1px 8px;margin-inline-start:6px;vertical-align:2px}
+.party{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+.party i{position:absolute;top:-30px;font-style:normal;font-size:26px;animation:fall 2.6s ease-in forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg);opacity:.9}}
+.party b{position:absolute;left:50%;top:38%;transform:translateX(-50%);width:max-content;max-width:88vw;text-align:center;font-size:clamp(24px,7vw,40px);font-weight:900;color:var(--ink);background:var(--card);border:3px solid var(--warn);border-radius:24px;padding:14px 22px;box-shadow:0 20px 50px -20px rgba(0,0,0,.45);animation:pop .5s ease-out}
+@keyframes pop{from{transform:translateX(-50%) scale(.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.party i{display:none}}
 </style>
 
 <div class="wrap">
@@ -66,6 +80,8 @@ details.par>summary::-webkit-details-marker{display:none}
   function hubStars(n) { if (!HUB || !n) return; try { window.parent.postMessage({ hania: "stars", n: n, src: "מטלות" }, "*"); } catch (e) {} }
   var S = (function () { try { return JSON.parse(localStorage.getItem("matalot-v1")) || {}; } catch (e) { return {}; } })();
   S.kids = S.kids || []; S.chores = S.chores || []; S.log = S.log || {}; S.opts = S.opts || { approve: true, mode: "pts", rate: 1, prize: "🍕 ערב פיצה", goal: 30 }; S.rem = S.rem || { on: false, at: "17:00" };
+  // one-time chores stay a month (so their points still count and they can still be approved), then go
+  (function () { var c = new Date(); c.setDate(c.getDate() - 30); var cut = c.toLocaleDateString("en-CA"), keep = S.chores.filter(function (x) { return !x.once || x.once >= cut; }); if (keep.length !== S.chores.length) S.chores = keep; })();
   var SHARED = ["kids", "chores", "opts"], SN = {}, SNL = "", DIRTY = false;
   function store() { try { localStorage.setItem("matalot-v1", JSON.stringify(S)); } catch (e) {} }
   function save() { stamp(); store(); if (S.fam && DIRTY) famPush(); }
@@ -83,7 +99,33 @@ details.par>summary::-webkit-details-marker{display:none}
   // ---------- who does what, when ----------
   // A chore with "rot" goes to one child a week, in turn among the children chosen; otherwise each chosen child does it.
   function whoFor(c, d) { if (!c.who || !c.who.length) return []; var live = c.who.filter(function (id) { return S.kids.some(function (k) { return k.id === id; }); }); if (!live.length) return []; if (!c.rot) return live; var i = S.chores.indexOf(c); return [live[((weekNo(d) + i) % live.length + live.length) % live.length]]; }
-  function todayFor(k, d) { d = d || new Date(); return S.chores.filter(function (c) { return (c.days || []).indexOf(d.getDay()) >= 0 && whoFor(c, d).indexOf(k.id) >= 0; }); }
+  function onDay(c, d) { return c.once ? c.once === ymd(d) : (c.days || []).indexOf(d.getDay()) >= 0; }
+  function todayFor(k, d) { d = d || new Date(); return S.chores.filter(function (c) { return onDay(c, d) && whoFor(c, d).indexOf(k.id) >= 0; }); }
+  function isDone(e) { return !!e && (e.st === "ok" || e.st === "d"); }
+  // days in a row (back from today) on which the child did every chore they had; a day with no chores does not break it
+  function streak(k) {
+    var n = 0, d = new Date();
+    for (var i = 0; i < 60; i++) {
+      var T = todayFor(k, d), all = T.length && T.every(function (c) { return isDone(entry(d, c, k)); });
+      if (T.length && all) n++; else if (T.length && i > 0) break;
+      d.setDate(d.getDate() - 1);
+    }
+    return n;
+  }
+  // the phone reads the chore aloud, for children who do not read yet (only where it has a Hebrew voice)
+  var canSay = (function () { try { return "speechSynthesis" in window; } catch (e) { return false; } })();
+  function heVoice() { try { return speechSynthesis.getVoices().filter(function (x) { return /^he|^iw/i.test(x.lang); })[0] || null; } catch (e) { return null; } }
+  function say(t) { try { var v = heVoice(); if (!v) { toast("🔇 אין בטלפון הזה קול בעברית"); return; } var u = new SpeechSynthesisUtterance(t); u.voice = v; u.lang = v.lang; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {} }
+  function sayQuiet(t) { try { if (heVoice()) say(t); } catch (e) {} }
+  if (canSay) try { speechSynthesis.getVoices(); speechSynthesis.addEventListener("voiceschanged", function () {}); } catch (e) {}
+  // every chore of the day done: confetti, a little tune and a word of praise
+  function party(k) {
+    var box = el("div", { class: "party", "aria-hidden": "true" }), em = ["⭐", "🎉", "✨", "🌟", "🎈", "💛"];
+    for (var i = 0; i < 26; i++) { var x = el("i", { text: em[i % em.length] }); x.style.left = Math.round(Math.random() * 96) + "%"; x.style.animationDelay = (Math.random() * 0.7).toFixed(2) + "s"; box.append(x); }
+    box.append(el("b", { text: "🏆 " + k.name + ", סיימת הכול!" }));
+    document.body.append(box); setTimeout(function () { box.remove(); }, 3300);
+    chime([523, 659, 784, 1047]); sayQuiet("כל הכבוד " + k.name + "! סיימת את כל המטלות של היום");
+  }
   function entry(d, c, k) { var L = S.log[ymd(d)]; return L && L[c.id + "|" + k.id] || null; }
   function setEntry(d, c, k, st) { var key = ymd(d); S.log[key] = S.log[key] || {}; if (st) S.log[key][c.id + "|" + k.id] = { st: st, t: Date.now() }; else S.log[key][c.id + "|" + k.id] = { st: "", t: Date.now() }; }
   function ptsWeek(k, off) { var w = weekStart(); w.setDate(w.getDate() + 7 * (off || 0)); var n = 0; for (var i = 0; i < 7; i++) { var d = new Date(w); d.setDate(d.getDate() + i); var L = S.log[ymd(d)] || {}; for (var key in L) { var p = key.split("|"); if (p[1] === k.id && L[key].st === "ok") { var c = S.chores.filter(function (x) { return x.id === p[0]; })[0]; n += c ? +c.p || 1 : 1; } } } return n; }
@@ -118,17 +160,26 @@ details.par>summary::-webkit-details-marker{display:none}
       var btn = st === "ok" ? el("span", { class: "fine", text: "⭐ +" + (c.p || 1) })
         : st === "d" ? el("button", { class: "btn small ghost", text: "↩️ ביטול", onclick: function () { setEntry(now, c, k, ""); save(); render(); } })
         : el("button", { class: "btn ok", text: "✓ עשיתי!", onclick: function (ev) { done(ev, c, k); } });
-      return el("div", { class: cls }, [el("span", { class: "e", text: c.e }), el("div", { class: "x" }, [el("b", c.n), el("small", st === "ok" ? "כל הכבוד! ✅" : st === "d" ? "⏳ מחכה לאישור של הורה" : (c.rot ? "🔄 התור שלך השבוע · " : "") + (c.p || 1) + " נק׳")]), btn]);
+      var pic = canSay ? el("button", { class: "e", type: "button", text: c.e, "aria-label": "להקריא: " + c.n, onclick: function () { say(c.n); } }) : el("span", { class: "e", text: c.e });
+      return el("div", { class: cls }, [pic, el("div", { class: "x" }, [el("b", null, [c.n, c.once ? el("span", { class: "tag", text: "🌟 בונוס" }) : null]), el("small", st === "ok" ? "כל הכבוד! ✅" : st === "d" ? "⏳ מחכה לאישור של הורה" : (c.rot ? "🔄 התור שלך השבוע · " : "") + (c.p || 1) + " נק׳")]), btn]);
     }) : [el("p", { class: "lead", text: "😎 אין מטלות היום. יום חופש!" })];
     var head = S.opts.mode === "prize" ? "🏆 " + S.opts.prize + ": " + w + " / " + goal + " נק׳" : S.opts.mode === "money" ? "💰 השבוע: " + reward(w) : "⭐ השבוע: " + w + " נק׳";
-    return el("section", { class: "card" }, [el("h2", k.av + " המטלות של " + k.name + " להיום"), el("div", { style: "display:grid;gap:8px" }, list),
+    var sk = streak(k), ws = weekStart(), tdy = ymd(now);
+    var strip = el("div", { class: "wk", "aria-label": "השבוע של " + k.name }, DL.split("").map(function (l, i) {
+      var d = new Date(ws); d.setDate(d.getDate() + i); var Td = todayFor(k, d), dn = Td.filter(function (c) { return isDone(entry(d, c, k)); }).length, past = ymd(d) < tdy;
+      var ic = !Td.length ? "·" : dn === Td.length ? "✅" : dn ? "◐" : past ? "✗" : "○";
+      return el("span", { class: (ymd(d) === tdy ? "now" : "") + (Td.length && dn === Td.length ? " all" : ""), title: Td.length ? dn + " מתוך " + Td.length : "אין מטלות" }, [l + "׳", el("i", { text: ic })]);
+    }));
+    return el("section", { class: "card" }, [el("div", { class: "row", style: "justify-content:space-between" }, [el("h2", k.av + " המטלות של " + k.name + " להיום"), sk >= 2 ? el("span", { class: "streak", text: "🔥 " + sk + " ימים ברצף" }) : null]), strip, el("div", { style: "display:grid;gap:8px" }, list),
       el("div", { style: "display:grid;gap:4px" }, [el("b", head), S.opts.mode === "prize" ? el("div", { class: "bar" }, el("i", { style: "width:" + Math.min(100, Math.round(w / goal * 100)) + "%" })) : null, S.opts.mode === "prize" && w >= goal ? el("p", { class: "lead", text: "🎉 הגעת ליעד! הפרס שלך מחכה." }) : null])]);
   }
   function burst(ev) { var b = el("div", { class: "burst", text: "⭐" }); var r = ev.currentTarget.getBoundingClientRect(); b.style.left = r.left + r.width / 2 - 14 + "px"; b.style.top = r.top + "px"; document.body.append(b); setTimeout(function () { b.remove(); }, 1100); }
-  function chime() { try { var a = new (window.AudioContext || window.webkitAudioContext)(); [660, 880, 1320].forEach(function (f, i) { var o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.12, a.currentTime + i * 0.09); g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + i * 0.09 + 0.3); o.start(a.currentTime + i * 0.09); o.stop(a.currentTime + i * 0.09 + 0.32); }); } catch (e) {} }
+  function chime(fs) { try { var a = new (window.AudioContext || window.webkitAudioContext)(); (fs || [660, 880, 1320]).forEach(function (f, i) { var o = a.createOscillator(), g = a.createGain(); o.frequency.value = f; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.12, a.currentTime + i * 0.09); g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + i * 0.09 + 0.3); o.start(a.currentTime + i * 0.09); o.stop(a.currentTime + i * 0.09 + 0.32); }); } catch (e) {} }
   function done(ev, c, k) {
     var appr = S.opts.approve !== false; burst(ev); chime();
     setEntry(new Date(), c, k, appr ? "d" : "ok"); save();
+    var T = todayFor(k, new Date());
+    if (T.length > 1 && T.every(function (x) { return isDone(entry(new Date(), x, k)); })) setTimeout(function () { party(k); }, 350);
     if (!appr) hubStars(+c.p || 1);
     toast(appr ? "👏 יפה! הורה יאשר ותקבל/י " + (c.p || 1) + " נק׳" : "⭐ +" + (c.p || 1) + " נק׳!");
     if (S.fam) famApi({ op: "note", dev: DEV, title: "🧹 " + k.name + ": " + c.n, body: appr ? "מחכה לאישור שלך" : "בוצע ✓" }).catch(function () {});
@@ -166,11 +217,11 @@ details.par>summary::-webkit-details-marker{display:none}
       el("p", { class: "fine", text: "ילד בלי מטלות לא מופיע במסך המטלות. אפשר להוסיף אותו רק כשיגדל." })]));
     // chores
     var list = el("div", { style: "display:grid;gap:10px" });
-    S.chores.forEach(function (c) { list.append(choreEdit(c)); });
+    S.chores.forEach(function (c) { if (!c.once) list.append(choreEdit(c)); });
     var pre = el("div", { style: "display:grid;gap:8px" }, PRESETS.map(function (g) { return el("div", { style: "display:grid;gap:4px" }, [el("small", { class: "fine", text: g[0] }), el("div", { class: "row" }, g[1].map(function (p) { return el("button", { class: "chip", text: p[0] + " " + p[1], onclick: function () { addChore(p[0], p[1], p[2]); } }); }))]); }));
     inner.append(el("section", { class: "card" }, [el("h2", "🧹 המטלות"), list,
       el("details", { open: S.chores.length && !S.preOpen ? null : "", ontoggle: function () { S.preOpen = this.open; } }, [el("summary", { class: "fine", style: "cursor:pointer", text: "➕ להוסיף מרשימה מוכנה, לפי גיל" }), pre]),
-      el("button", { class: "btn small ghost", text: "✍️ מטלה משלי", onclick: function () { var n = prompt("שם המטלה:"); if (n && n.trim()) addChore("⭐", n.trim().slice(0, 30), 1); } })]));
+      el("button", { class: "btn small ghost", text: "✍️ מטלה משלי", onclick: function () { var n = prompt("שם המטלה:"); if (n && n.trim()) addChore("⭐", n.trim().slice(0, 30), 1); } })]), bonusCard());
     // reward
     var mode = el("div", { class: "row" }, [["pts", "⭐ רק נקודות"], ["prize", "🏆 פרס שבועי"], ["money", "💰 דמי כיס"]].map(function (o) { return el("button", { class: "chip", "aria-pressed": String(S.opts.mode === o[0]), text: o[1], onclick: function () { S.opts.mode = o[0]; save(); render(); } }); }));
     var extra = S.opts.mode === "prize" ? el("div", { class: "row" }, [el("input", { class: "inp", type: "text", value: S.opts.prize, maxlength: "30", "aria-label": "הפרס", onchange: function () { S.opts.prize = this.value.slice(0, 30); save(); } }), el("label", { class: "fine" }, ["יעד: ", el("input", { class: "inp", type: "number", min: "5", max: "200", value: S.opts.goal, style: "width:80px", onchange: function () { S.opts.goal = Math.max(5, Math.min(200, +this.value || 30)); save(); render(); } }), " נק׳"])])
@@ -180,6 +231,27 @@ details.par>summary::-webkit-details-marker{display:none}
       el("label", { class: "row fine" }, ["🔒 קוד הורים לאישורים ולהגדרות (לא חובה): ", el("input", { class: "inp", type: "password", inputmode: "numeric", maxlength: "6", value: S.opts.pin || "", style: "width:90px", onchange: function () { S.opts.pin = this.value.replace(/\D/g, "").slice(0, 6) || ""; S.parOk = 1; save(); } })])]));
     inner.append(remCard(), famCard());
     d.append(inner); return d;
+  }
+  // a one-time chore for today or tomorrow, with extra points ("bonus"), for the children picked
+  function bonusCard() {
+    var once = S.chores.filter(function (c) { return c.once && c.once >= ymd(); }).sort(function (a, b) { return a.once < b.once ? -1 : 1; });
+    var pick = { who: S.kids.slice(0, 1).map(function (k) { return k.id; }), day: 0, p: 2 };
+    var nm = el("input", { class: "inp", type: "text", maxlength: "30", placeholder: "למשל: לעזור לסבתא עם הסלים", "aria-label": "המשימה", style: "flex:1;min-width:160px" });
+    var who = el("div", { class: "row" }, S.kids.map(function (k) { return el("button", { class: "chip", type: "button", "aria-pressed": String(pick.who.indexOf(k.id) >= 0), text: k.av + " " + k.name, onclick: function () { var j = pick.who.indexOf(k.id); if (j >= 0) pick.who.splice(j, 1); else pick.who.push(k.id); this.setAttribute("aria-pressed", String(j < 0)); } }); }));
+    var day = el("div", { class: "row" }, ["היום", "מחר"].map(function (t, i) { return el("button", { class: "chip", type: "button", "aria-pressed": String(i === 0), text: t, onclick: function () { pick.day = i; [].forEach.call(day.children, function (b, j) { b.setAttribute("aria-pressed", String(j === i)); }); } }); }));
+    var pts = el("select", { class: "inp", "aria-label": "נקודות", onchange: function () { pick.p = +this.value; } }, [1, 2, 3, 4, 5].map(function (n) { var o = el("option", { value: n, text: n + " נק׳" }); if (n === 2) o.selected = true; return o; }));
+    var list = once.map(function (c) {
+      var names = (c.who || []).map(function (id) { var k = S.kids.filter(function (x) { return x.id === id; })[0]; return k ? k.name : ""; }).filter(Boolean).join(", ");
+      return el("div", { class: "row fine" }, [el("b", { text: c.e + " " + c.n, style: "color:var(--ink)" }), (names ? "· " + names + " " : "") + "· " + (c.once === ymd() ? "היום" : "מחר") + " · " + (c.p || 1) + " נק׳",
+        el("button", { class: "btn small ghost", type: "button", text: "🗑️", "aria-label": "למחוק", onclick: function () { S.chores.splice(S.chores.indexOf(c), 1); save(); render(); } })]);
+    });
+    return el("section", { class: "card" }, [el("h2", "🌟 משימה חד־פעמית"), el("p", { class: "fine", text: "משימה ליום אחד בלבד, עם נקודות בונוס. מופיעה רק ביום שבוחרים." }), list.length ? el("div", { style: "display:grid;gap:6px" }, list) : null,
+      S.kids.length ? el("form", { style: "display:grid;gap:8px", onsubmit: function (e) {
+        e.preventDefault(); var v = nm.value.trim(); if (!v) { nm.focus(); return; } if (!pick.who.length) { toast("בוחרים למי"); return; }
+        var d = new Date(); d.setDate(d.getDate() + pick.day);
+        S.chores.push({ id: rid(), e: "🌟", n: v.slice(0, 30), p: pick.p, once: ymd(d), days: [], who: pick.who.slice(), rot: false });
+        S.parOpen = true; save(); render(); toast("🌟 נוספה ל" + (pick.day ? "מחר" : "היום") + ": " + v.slice(0, 30));
+      } }, [el("div", { class: "row" }, [nm, pts]), el("small", { class: "fine", text: "למי:" }), who, el("small", { class: "fine", text: "מתי:" }), day, el("div", {}, el("button", { class: "btn small", type: "submit", text: "➕ הוספה" }))]) : el("p", { class: "fine", text: "קודם מוסיפים ילדים" })]);
   }
   function addChore(e, n, p) { S.preOpen = true; var c = { id: rid(), e: e, n: n, p: p || 1, days: [0, 1, 2, 3, 4], who: S.kids.map(function (k) { return k.id; }).slice(0, 1), rot: false }; S.chores.push(c); S.parOpen = true; save(); render(); toast("נוסף: " + n + ". בוחרים למי ובאילו ימים"); }
   function choreEdit(c) {
