@@ -399,8 +399,12 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   function tblName(id) { var t = A.tables.filter(function (x) { return x.id === id; })[0]; return t ? "שולחן " + t.name : ""; }
 
   // ---- sending over WhatsApp ----
+  // three messages: the invitation, a reminder to who has not answered, and a thank-you after the event to who came
+  var TPL_KEY = { invite: "hz.tpl.", remind: "hz.rtpl.", thanks: "hz.ttpl." };
   function tplFor(reminder) {
     var ev = A.event;
+    if (reminder === "thanks") return ls("hz.ttpl." + ID) || "היי {שם} 💛\nתודה שבאת לחגוג איתנו את {אירוע}!\nהיה לנו שמח במיוחד שהיית איתנו." + (ev.hosts ? "\nבאהבה, " + ev.hosts : "");
+    if (reminder === "invite") reminder = false; if (reminder === "remind") reminder = true;
     return (reminder ? ls("hz.rtpl." + ID) : ls("hz.tpl." + ID)) || (reminder ? "היי {שם}, מזכירים בחיבה 💛\nעוד לא קיבלנו ממך תשובה ל{אירוע} ב־{תאריך}.\nאפשר לאשר כאן בלחיצה:\n{קישור}" : "היי {שם} 💌\nאנחנו שמחים להזמין אותך ל{אירוע} ב־{תאריך}" + (ev.venue ? " ב{מקום}" : "") + ".\nלפרטים ואישור הגעה:\n{קישור}");
   }
   function inviteText(g, reminder) {
@@ -410,19 +414,21 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
   function wa(g, txt) { var p = (g.phone || "").replace(/\D/g, ""); if (p.charAt(0) === "0") p = "972" + p.slice(1); return "https://wa.me/" + p + "?text=" + encodeURIComponent(txt); }
   function markSent(g) { g.sent = Date.now(); saveGuests({ update: [{ id: g.id, sent: g.sent }] }).catch(function () {}); }
   function sendTab() {
-    var G = A.guests, mode = ls("hz.mode." + ID) || "invite";
-    var reminder = mode === "remind";
-    var list = reminder ? G.filter(function (g) { return !g.status || g.status === "maybe"; }) : G.slice().sort(function (a, b) { return (a.sent ? 1 : 0) - (b.sent ? 1 : 0); });
-    var tArea = el("textarea", {}); tArea.value = tplFor(reminder);
-    tArea.addEventListener("input", function () { ls(reminder ? "hz.rtpl." + ID : "hz.tpl." + ID, tArea.value); });
+    var G = A.guests, past = !!A.event.date && A.event.date < new Date().toLocaleDateString("en-CA"), mode = ls("hz.mode." + ID) || (past ? "thanks" : "invite");
+    if (!TPL_KEY[mode]) mode = "invite";
+    var reminder = mode === "remind", thanks = mode === "thanks", thx = {}; try { thx = JSON.parse(ls("hz.thx." + ID) || "{}") || {}; } catch (e) {}
+    var list = reminder ? G.filter(function (g) { return !g.status || g.status === "maybe"; }) : thanks ? G.filter(function (g) { return g.status === "yes"; }).sort(function (a, b) { return (thx[a.id] ? 1 : 0) - (thx[b.id] ? 1 : 0); }) : G.slice().sort(function (a, b) { return (a.sent ? 1 : 0) - (b.sent ? 1 : 0); });
+    var tArea = el("textarea", {}); tArea.value = tplFor(mode);
+    tArea.addEventListener("input", function () { ls(TPL_KEY[mode] + ID, tArea.value); });
     tArea.addEventListener("change", function () { paintAdmin(); });
     var rows = el("div", { class: "gl" }, list.length ? list.map(function (g) {
-      return el("div", { class: "g", style: "cursor:default" }, [el("b", { text: g.name }), g.phone ? el("a", { class: "btn sm wa", href: wa(g, inviteText(g, reminder)), target: "_blank", rel: "noopener", text: g.sent && !reminder ? "✓ שוב" : "שליחה", onclick: function (e) { markSent(g); e.currentTarget.textContent = "✓ נשלח"; } }) : el("button", { class: "btn sm ghost", type: "button", text: "העתקה", onclick: function () { navigator.clipboard.writeText(inviteText(g, reminder)).then(function () { markSent(g); toast("ההודעה עם הקישור האישי הועתקה"); }); } }),
+      var sentNow = thanks ? !!thx[g.id] : !!g.sent, mark = function () { if (thanks) { thx[g.id] = Date.now(); ls("hz.thx." + ID, JSON.stringify(thx)); } else markSent(g); };
+      return el("div", { class: "g", style: "cursor:default" }, [el("b", { text: g.name }), g.phone ? el("a", { class: "btn sm wa", href: wa(g, inviteText(g, mode)), target: "_blank", rel: "noopener", text: sentNow && !reminder ? "✓ שוב" : "שליחה", onclick: function (e) { mark(); e.currentTarget.textContent = "✓ נשלח"; } }) : el("button", { class: "btn sm ghost", type: "button", text: "העתקה", onclick: function () { navigator.clipboard.writeText(inviteText(g, mode)).then(function () { mark(); toast(thanks ? "הודעת התודה הועתקה" : "ההודעה עם הקישור האישי הועתקה"); }); } }),
         el("small", { text: [g.phone || "אין טלפון: מעתיקים ושולחים ידנית", g.sent ? "נשלח " + new Date(g.sent).toLocaleDateString("he-IL") : ""].filter(Boolean).join(" · ") }), pill(g)]);
-    }) : [el("p", { class: "note", style: "padding:14px", text: reminder ? "כולם ענו! 🎉" : "מוסיפים מוזמנים בלשונית אורחים." })]);
-    return [el("div", { class: "chips" }, [["invite", "💌 הזמנה"], ["remind", "🔔 תזכורת למי שלא ענה"]].map(function (o) { return el("button", { type: "button", "aria-pressed": String(mode === o[0]), onclick: function () { ls("hz.mode." + ID, o[0]); paintAdmin(); } }, [o[1]]); })),
-      el("div", { class: "card" }, [el("h3", { text: reminder ? "נוסח התזכורת" : "נוסח ההודעה" }), tArea, el("p", { class: "note", text: "{שם} מתחלף בשם הפרטי, ו־{קישור} בקישור האישי של כל אורח. כל לחיצה על \"שליחה\" פותחת את הצ׳אט בוואטסאפ עם ההודעה מוכנה, ושולחים." })]),
-      el("p", { class: "note", text: reminder ? list.length + " עוד לא ענו או אמרו אולי." : G.filter(function (g) { return !g.sent; }).length + " עוד לא נשלחו." }), rows];
+    }) : [el("p", { class: "note", style: "padding:14px", text: reminder ? "כולם ענו! 🎉" : thanks ? "עוד אף אחד לא אישר הגעה." : "מוסיפים מוזמנים בלשונית אורחים." })]);
+    return [el("div", { class: "chips" }, [["invite", "💌 הזמנה"], ["remind", "🔔 תזכורת למי שלא ענה"], ["thanks", "🙏 תודה שבאתם"]].map(function (o) { return el("button", { type: "button", "aria-pressed": String(mode === o[0]), onclick: function () { ls("hz.mode." + ID, o[0]); paintAdmin(); } }, [o[1]]); })),
+      el("div", { class: "card" }, [el("h3", { text: reminder ? "נוסח התזכורת" : thanks ? "נוסח התודה" : "נוסח ההודעה" }), tArea, el("p", { class: "note", text: "{שם} מתחלף בשם הפרטי, ו־{קישור} בקישור האישי של כל אורח. כל לחיצה על \"שליחה\" פותחת את הצ׳אט בוואטסאפ עם ההודעה מוכנה, ושולחים." })]),
+      el("p", { class: "note", text: reminder ? list.length + " עוד לא ענו או אמרו אולי." : thanks ? list.length + " אישרו הגעה · " + list.filter(function (g) { return !thx[g.id]; }).length + " עוד לא קיבלו תודה." : G.filter(function (g) { return !g.sent; }).length + " עוד לא נשלחו." }), rows];
   }
 
   // ---- tables ----
