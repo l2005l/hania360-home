@@ -47,7 +47,7 @@
     SC.stars_tmp = null;
     var r3 = rnd(3); SC.clouds = [0, 1, 2, 3].map(function (i) { return { x: r3() * W, y: H * (0.12 + 0.36 * r3()), s: (40 + r3() * 34) * U, v: (4 + r3() * 7) * U, a: 0.06 + r3() * 0.06 }; });
     var r4 = rnd(9); SC.flies = []; for (i = 0; i < 14; i++) SC.flies.push({ bx: r4() * W, by: hillY(1, r4() * W) - (10 + r4() * 70) * U, p: r4() * TAU, v: 0.2 + r4() * 0.4 });
-    need = 1;
+    buildLayers(); need = 1;
   }
   var need = 1;
   addEventListener("resize", layout);
@@ -56,14 +56,28 @@
   var SPR = {};
   function glow(rgb) { if (SPR[rgb]) return SPR[rgb]; var c = document.createElement("canvas"); c.width = c.height = 128; var x = c.getContext("2d"), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(" + rgb + ",.9)"); gr.addColorStop(0.25, "rgba(" + rgb + ",.35)"); gr.addColorStop(1, "rgba(" + rgb + ",0)"); x.fillStyle = gr; x.fillRect(0, 0, 128, 128); return SPR[rgb] = c; }
 
-  function drawSky(t) {
+  // Layers painted once (and again on resize): the sky's colors, and the land with the house and the tree.
+  // Each frame copies them and draws only what moves, so the animation stays light on a phone.
+  var LAYER = { sky: null, land: null, cloud: [] };
+  function offscreen(w, h) { var c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w * DPR)); c.height = Math.max(1, Math.round(h * DPR)); c.getContext("2d").setTransform(DPR, 0, 0, DPR, 0, 0); return c; }
+  function buildLayers() {
+    var main = g;
+    LAYER.sky = offscreen(W, H); g = LAYER.sky.getContext("2d"); skyBase();
+    LAYER.land = offscreen(W, H); g = LAYER.land.getContext("2d"); landBase();
+    LAYER.cloud = SC.clouds.map(function (c) { var cw = c.s * 4.8, ch = c.s * 3.2, cc = offscreen(cw, ch); g = cc.getContext("2d"); cloudBase(c, cw / 2, ch * 0.58); return cc; });
+    g = main;
+  }
+  function skyBase() {
     var gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#080420"); gr.addColorStop(0.45, "#1C1260"); gr.addColorStop(0.72, "#3A2A8E"); gr.addColorStop(1, "#5A3EA6");
     g.fillStyle = gr; g.fillRect(0, 0, W, H);
     // slow clouds of color
     [[0.75, 0.25, 0.55, "123,92,255", 0.13], [0.25, 0.5, 0.45, "255,126,182", 0.08], [0.55, 0.62, 0.5, "79,209,197", 0.06]].forEach(function (b, i) {
-      var x = W * b[0] + Math.sin(t * 0.03 + i * 2) * 40 * U, y = H * b[1] + Math.cos(t * 0.025 + i) * 30 * U, r = Math.max(W, H) * b[2], gg = g.createRadialGradient(x, y, 0, x, y, r);
+      var x = W * b[0], y = H * b[1], r = Math.max(W, H) * b[2], gg = g.createRadialGradient(x, y, 0, x, y, r);
       gg.addColorStop(0, "rgba(" + b[3] + "," + b[4] + ")"); gg.addColorStop(1, "rgba(" + b[3] + ",0)"); g.fillStyle = gg; g.fillRect(0, 0, W, H);
     });
+  }
+  function drawSky(t) {
+    g.drawImage(LAYER.sky, 0, 0, W, H);
     g.globalCompositeOperation = "lighter";
     SC.bg.forEach(function (s) {
       var a = 0.3 + 0.55 * (0.5 + 0.5 * Math.sin(t * s.v + s.p)); if (RM) a = 0.6;
@@ -118,14 +132,17 @@
     m.hit = [x, y, r * 1.2];
     if (m.sleep > 0.9 && Math.random() < 0.012) SC.zs.push({ x: x + 0.7 * r, y: y - 0.7 * r, t0: t, s: 18 * U });
   }
+  function cloudBase(c, ox, oy) {
+    [[0, 0, 1], [0.95, 0.12, 0.72], [-0.95, 0.15, 0.7], [0.4, -0.45, 0.72], [-0.42, -0.34, 0.66]].forEach(function (p) {
+      var cx = ox + p[0] * c.s, cy = oy + p[1] * c.s, rr = p[2] * c.s, gg = g.createRadialGradient(cx, cy - rr * 0.3, rr * 0.1, cx, cy, rr * 1.15);
+      gg.addColorStop(0, "rgba(225,215,255,.5)"); gg.addColorStop(1, "rgba(200,185,255,0)"); g.fillStyle = gg; g.beginPath(); g.arc(cx, cy, rr * 1.15, 0, TAU); g.fill();
+    });
+  }
   function drawClouds(t, dt) {
-    SC.clouds.forEach(function (c) {
+    SC.clouds.forEach(function (c, i) {
       c.x += c.v * dt; if (c.x - c.s * 2.4 > W) c.x = -c.s * 2.4;
-      var a = c.a * (1 + SC.fin * 0.8);
-      [[0, 0, 1], [0.95, 0.12, 0.72], [-0.95, 0.15, 0.7], [0.4, -0.45, 0.72], [-0.42, -0.34, 0.66]].forEach(function (p) {
-        var cx = c.x + p[0] * c.s, cy = c.y + p[1] * c.s, rr = p[2] * c.s, gg = g.createRadialGradient(cx, cy - rr * 0.3, rr * 0.1, cx, cy, rr * 1.15);
-        gg.addColorStop(0, "rgba(225,215,255," + a + ")"); gg.addColorStop(1, "rgba(200,185,255,0)"); g.fillStyle = gg; g.beginPath(); g.arc(cx, cy, rr * 1.15, 0, TAU); g.fill();
-      });
+      var sp = LAYER.cloud[i]; if (!sp) return; var cw = c.s * 4.8, ch = c.s * 3.2;
+      g.globalAlpha = Math.min(1, c.a * (1 + SC.fin * 0.8) / 0.5); g.drawImage(sp, c.x - cw / 2, c.y - ch * 0.58, cw, ch); g.globalAlpha = 1;
     });
   }
   function starPath(R) { g.beginPath(); for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? R * 0.5 : R; if (i) g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else g.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); }
@@ -156,23 +173,28 @@
       if (s.asleep && Math.random() < 0.004) SC.zs.push({ x: x + R * 0.6, y: y - R * 0.6, t0: t, s: 12 * U });
     });
   }
-  function drawLand(t) {
+  function drawLand(t) { g.drawImage(LAYER.land, 0, 0, W, H); houseLights(t); }
+  function landBase() {
     [0, 1, 2].forEach(function (i) {
       var h = HILLS[i], gr = g.createLinearGradient(0, H * h[0] - 30 * U, 0, H); gr.addColorStop(0, h[6][0]); gr.addColorStop(1, h[6][1]);
       g.fillStyle = gr; g.beginPath(); g.moveTo(0, H); for (var x = 0; x <= W + 8; x += 8) g.lineTo(x, hillY(i, x)); g.lineTo(W, H); g.closePath(); g.fill();
       g.strokeStyle = "rgba(190,170,255," + (0.16 - i * 0.04) + ")"; g.lineWidth = 1.2; g.beginPath(); for (x = 0; x <= W + 8; x += 8) { if (x) g.lineTo(x, hillY(i, x)); else g.moveTo(x, hillY(i, x)); } g.stroke();
-      if (i === 1) drawHouse(t);
+      if (i === 1) houseBase();
       if (i === 2) drawTree();
     });
   }
-  function drawHouse(t) {
+  function houseLights(t) {
+    var h = SC.house, s = h.s, x = h.x, y = h.y; if (h.on <= 0.02) return;
+    g.globalCompositeOperation = "lighter"; g.globalAlpha = h.on * (0.75 + 0.1 * Math.sin(t * 2.3)); var q = s * 4.2; g.drawImage(glow("255,190,100"), x - q / 2, y - s * 0.55 - q / 2, q, q); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+    g.fillStyle = "rgba(255,205,120," + (0.25 + 0.75 * h.on) + ")"; g.fillRect(x - s * 0.38, y - s * 0.72, s * 0.34, s * 0.3); g.fillRect(x + s * 0.06, y - s * 0.72, s * 0.32, s * 0.3);
+    g.fillStyle = "#0A0726"; g.fillRect(x - s * 0.06, y - s * 0.72, s * 0.04, s * 0.3);
+  }
+  function houseBase() {
     var h = SC.house, s = h.s, x = h.x, y = h.y;
-    if (h.on > 0.02) { g.globalCompositeOperation = "lighter"; g.globalAlpha = h.on * (0.75 + 0.1 * Math.sin(t * 2.3)); var q = s * 4.2; g.drawImage(glow("255,190,100"), x - q / 2, y - s * 0.55 - q / 2, q, q); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
     g.fillStyle = "#130D3C"; g.fillRect(x - s * 0.62, y - s, s * 1.24, s);
     g.fillStyle = "#0D0930"; g.beginPath(); g.moveTo(x - s * 0.82, y - s * 0.95); g.lineTo(x, y - s * 1.75); g.lineTo(x + s * 0.82, y - s * 0.95); g.closePath(); g.fill();
     g.fillRect(x + s * 0.3, y - s * 1.62, s * 0.18, s * 0.42);
-    var wc = h.on > 0.02 ? "rgba(255,205,120," + (0.25 + 0.75 * h.on) + ")" : "#221A55";
-    g.fillStyle = wc; g.fillRect(x - s * 0.38, y - s * 0.72, s * 0.34, s * 0.3); g.fillRect(x + s * 0.06, y - s * 0.72, s * 0.32, s * 0.3);
+    g.fillStyle = "#221A55"; g.fillRect(x - s * 0.38, y - s * 0.72, s * 0.34, s * 0.3); g.fillRect(x + s * 0.06, y - s * 0.72, s * 0.32, s * 0.3);
     g.fillStyle = "#0A0726"; g.fillRect(x - s * 0.06, y - s * 0.72, s * 0.04, s * 0.3);
     g.fillStyle = "#1E1650"; g.fillRect(x - s * 0.14, y - s * 0.36, s * 0.28, s * 0.36);
     h.hit = [x, y - s * 0.8, s * 1.1];
@@ -718,7 +740,7 @@
     else if (!r.hidden) { r.hidden = true; SC.paused = false; }
   }
   $("restOff").addEventListener("click", function () { S.shab = false; save(); checkRest(); });
-  setInterval(checkRest, 60000);
+  setInterval(checkRest, 60000); addEventListener("load", checkRest); // the calendar library arrives after the page (defer)
 
   // ---------- start ----------
   layout(); hello(); checkRest(); requestAnimationFrame(loop);

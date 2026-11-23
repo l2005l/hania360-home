@@ -78,6 +78,9 @@
   });
   var hash = function (s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h; };
   Object.values(C).forEach(function (c) { var p = PAL[c.cont] || [200, 200, 200], v = (hash(c.iso) % 7) * 6 - 18; c.fill = "rgb(" + p.map(function (x) { return Math.max(0, Math.min(255, x + v)); }).join(",") + ")"; });
+  // drawing in batches: one fill per color, and the borders as one line (each shared border once)
+  var GROUPS = {}; feats.forEach(function (f) { if (f.c) (GROUPS[f.c.fill] = GROUPS[f.c.fill] || []).push(f); });
+  var BORDERS = G.mesh(D.topo, D.topo.objects.countries, function (a, b) { return a !== b; });
   function flag(iso) { if (iso === "AQ") return "🇦🇶"; if (iso === "XK") return "🇽🇰"; return String.fromCodePoint.apply(null, iso.split("").map(function (ch) { return 0x1F1E6 + ch.charCodeAt(0) - 65; })); }
   var HOME = [35.0, 31.6], ISR = C.IL;
 
@@ -103,7 +106,7 @@
   var circle = G.geoCircle();
   function draw() {
     var cx = W / 2, cy = H / 2 + (W > H ? 10 : 0), r = BASE * V.zoom;
-    proj.scale(r).translate([cx, cy]).rotate([V.lon, V.lat, 0]);
+    proj.scale(r).translate([cx, cy]).rotate([V.lon, V.lat, 0]).precision(MOVING ? 1.2 : 0.5);
     g.clearRect(0, 0, W, H); g.drawImage(STARS, 0, 0, W, H);
     // the air around the Earth
     var at = g.createRadialGradient(cx, cy, r * 0.96, cx, cy, r * 1.16); at.addColorStop(0, "rgba(90,170,255,.55)"); at.addColorStop(1, "rgba(90,170,255,0)");
@@ -113,15 +116,14 @@
     g.beginPath(); path(grat); g.strokeStyle = "rgba(255,255,255,.07)"; g.lineWidth = 1; g.stroke();
     // the countries
     g.lineJoin = "round";
-    feats.forEach(function (f) {
-      var c = f.c; if (!c) return; g.beginPath(); path(f);
-      g.fillStyle = c === SEL ? "#FFD15C" : MARK && c === MARK.c ? MARK.col : c.fill; g.fill();
-    });
-    g.beginPath(); feats.forEach(function (f) { path(f); }); g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 0.6; g.stroke();
+    var special = function (c) { return c === SEL || MARK && c === MARK.c; };
+    Object.keys(GROUPS).forEach(function (col) { g.beginPath(); GROUPS[col].forEach(function (f) { if (!special(f.c)) path(f); }); g.fillStyle = col; g.fill(); });
+    [SEL, MARK && MARK.c].forEach(function (c, i) { if (!c) return; g.beginPath(); c.feats.forEach(function (f) { path(f); }); g.fillStyle = i === 0 ? "#FFD15C" : MARK.col; g.fill(); });
+    g.beginPath(); path(BORDERS); g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 0.6; g.stroke();
     if (SEL) { g.beginPath(); SEL.feats.forEach(function (f) { path(f); }); g.strokeStyle = "#fff"; g.lineWidth = 2; g.stroke(); }
     // night, as it is right now
     var sp = sunPoint(new Date()), anti = [sp[0] > 0 ? sp[0] - 180 : sp[0] + 180, -sp[1]];
-    [[98, 0.05], [96, 0.05], [94, 0.06], [92, 0.06], [90, 0.07], [88, 0.07], [86, 0.07], [83, 0.07], [78, 0.06]].forEach(function (n) { g.beginPath(); path(circle.center(anti).radius(n[0])()); g.fillStyle = "rgba(4,10,40," + n[1] + ")"; g.fill(); });
+    [[97, 0.07], [94, 0.08], [91, 0.1], [88, 0.1], [84, 0.1], [78, 0.08]].forEach(function (n) { g.beginPath(); path(circle.center(anti).radius(n[0])()); g.fillStyle = "rgba(4,10,40," + n[1] + ")"; g.fill(); });
     // depth: darker toward the rim, a little light on the side facing the viewer
     var sh = g.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.2, cx, cy, r); sh.addColorStop(0, "rgba(255,255,255,.10)"); sh.addColorStop(0.6, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,40,.45)");
     g.fillStyle = sh; g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.fill();
@@ -144,14 +146,14 @@
   function label(t, x, y, size, ink, halo) { g.font = "700 " + size + "px Rubik, sans-serif"; g.lineWidth = 4; g.strokeStyle = halo; g.strokeText(t, x, y); g.fillStyle = ink; g.fillText(t, x, y); }
 
   // ---------- the loop: inertia, a slow spin when nobody touches, flights and fly-to ----------
-  var last = performance.now();
+  var last = performance.now(), MOVING = false, odd = false;
   function loop(t) {
-    requestAnimationFrame(loop); var dt = Math.min(64, t - last); last = t;
+    requestAnimationFrame(loop); var dt = Math.min(64, t - last); last = t; MOVING = !!(ANIM || FLY || drag || pinch);
     if (ANIM) { var k = Math.min(1, (t - ANIM.t0) / ANIM.ms), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2, p = ANIM.i(e); V.lon = -p[0]; V.lat = -p[1]; V.zoom = ANIM.z0 + (ANIM.z1 - ANIM.z0) * e; need = 1; if (k >= 1) { var done = ANIM.done; ANIM = null; done && done(); } }
     else if (FLY) flyStep(t);
     else if (!drag) {
       if (Math.abs(V.vx) + Math.abs(V.vy) > 0.001) { V.lon += V.vx * dt; V.lat = clampLat(V.lat - V.vy * dt); V.vx *= 0.94; V.vy *= 0.94; need = 1; }
-      else if (!RM && t - V.idle > 5000 && !SEL && !Q) { V.lon += dt * 0.004; need = 1; }
+      else if (!RM && t - V.idle > 5000 && !SEL && !Q) { odd = !odd; if (odd) { V.lon += dt * 0.008; need = 1; MOVING = true; } }
     }
     if (MARK && MARK.pulse) need = 1;
     if (need) { need = 0; draw(); }

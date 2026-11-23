@@ -6,7 +6,7 @@ b64 = lambda p: base64.b64encode(open('tv/' + p, 'rb').read()).decode()
 heb = open('shabbat/hebcal.js', encoding='utf8').read()
 import re as _re
 cities = _re.search(r'CITIES = (\[.*\]);', open('lib/cities.js', encoding='utf8').read()).group(1)
-body = r('tv.html').replace('/*CITIES*/[["ירושלים", 31.778, 35.235, 40]]', cities).replace('<script src="/hebcal.js"></script>', '<script src="/hebcal.js?v=' + hashlib.sha1(heb.encode()).hexdigest()[:8] + '"></script>')
+body = r('tv.html').replace('/*CITIES*/[["ירושלים", 31.778, 35.235, 40]]', cities).replace('<script src="/hebcal.js" defer></script>', '<script src="/hebcal.js?v=' + hashlib.sha1(heb.encode()).hexdigest()[:8] + '" defer></script>')
 assert 'hebcal.js?v=' in body and '/*CITIES*/' not in body
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaTV: ערוצי טלוויזיה ורדיו בשידור חי במקום אחד, בחינם. רק שידורים רשמיים וחוקיים: חדשות מישראל ומהעולם, ספורט, חלל, טבע, מוזיקה, ילדים ורדיו.">'
