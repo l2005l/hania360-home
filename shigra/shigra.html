@@ -318,6 +318,67 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     E.items[i] = L[Math.floor(Math.random() * L.length)][0]; E.kept = 1; store(); home();
   }
 
+
+  // ---- a day off (school vacation, Chanukah): a plan for the whole day, without screens ----
+  // [id, emoji, title, what to do, min age, max age, minutes, kind]
+  var OUT = [
+    ["park", "🛝", "גן שעשועים", "יוצאים לגן השעשועים הקרוב. לוקחים כדור, מים ופרי.", 2, 12, 60, "יציאה"],
+    ["library", "📚", "הספרייה העירונית", "בוחרים ספרים חדשים לשבוע. בחופשות יש בהרבה ספריות שעת סיפור, כדאי לבדוק.", 3, 12, 60, "יציאה"],
+    ["nature", "🌲", "טיול קצר בטבע", "שביל קרוב או פארק: אוספים עלים, אבנים ואצטרובלים, ומהם יוצרים בבית.", 3, 12, 90, "יציאה"],
+    ["grand", "👵", "ביקור אצל סבא וסבתא", "מכינים להם ציור או עוגיות, ובאים לבקר.", 2, 12, 90, "יציאה"],
+    ["bike", "🚲", "אופניים וקורקינט", "סיבוב רכיבה בשכונה או בפארק, עם קסדה.", 4, 12, 60, "יציאה"],
+    ["museum", "🔭", "מוזיאון או מרכז מדע", "בחופשות רבים מהם מציעים פעילות לילדים. בודקים שעות ומחירים באתר שלהם לפני שיוצאים.", 4, 12, 120, "יציאה"],
+    ["picnic", "🧺", "פיקניק", "מכינים כריכים ויוצאים לדשא הקרוב. משחקים בכדור ובתופסת.", 2, 12, 90, "יציאה"],
+    ["errand", "🛒", "סידורים יחד", "כל ילד מקבל רשימה קטנה משלו במכולת ומחפש את הדברים בעצמו.", 4, 12, 40, "יציאה"]
+  ];
+  var CHI = [
+    ["sufgan", "🍩", "מכינים סופגניות או לביבות", "בצק פשוט או לביבות תפוחי אדמה. הילדים לשים ומקשטים, ומבוגר מטגן.", 4, 12, 60, "מטבח"],
+    ["menorahc", "🕎", "בונים חנוכייה", "מפקקים, קרטון או פלסטלינה. בסוף מצלמים ושולחים לסבא וסבתא.", 3, 12, 40, "יצירה"],
+    ["dreidelt", "🎲", "טורניר סביבון", "כל אחד מקבל 10 סוכריות, ומשחקים עם הסביבון של HaniaChanukah (ב״היהדות שלי״).", 3, 12, 30, "משחק"],
+    ["jars", "🫙", "צנצנות אור", "מקשטים צנצנות בנייר צבעוני ובמדבקות, ומכניסים נר לד.", 4, 12, 30, "יצירה"],
+    ["play8", "🎭", "הסיפור של חנוכה בהצגה", "מחלקים תפקידים: המכבים, אנטיוכוס ופך השמן, ומציגים להורים.", 4, 12, 30, "משחק"],
+    ["colorch", "🖍️", "דפי צביעה של חנוכה", "חנוכייה, סביבון, סופגנייה ופך השמן, להדפסה מ־HaniaChanukah.", 3, 10, 20, "רגוע"]
+  ];
+  function chanukahDay(d) {
+    try { var p = new Intl.DateTimeFormat("en-u-ca-hebrew", { day: "numeric", month: "long" }).formatToParts(d), m = "", dd = 0; p.forEach(function (x) { if (x.type === "month") m = x.value; if (x.type === "day") dd = +x.value; }); return m === "Kislev" && dd >= 25 || m === "Tevet" && dd <= 3; } catch (e) { return false; }
+  }
+  function freeState() { S.free = S.free || {}; return S.free; }
+  function freePlan(F) {
+    var ages = agesNow(), R0 = seeded(hashS(today() + ages.join(",") + "free" + (F.n || 0))), ch = chanukahDay(new Date());
+    var asOut = function (x) { return [x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[8]]; };
+    var night = /ערב|לילה|פנס|ירח|כוכב|ערש|לישון|לילה טוב/, all = IDEAS.filter(function (x) { return fits(x, ages) && !night.test(x[2] + " " + x[3]) && !(ch && x[0] === "colorpg"); }).map(asOut), used = [];
+    var take = function (L, n) { L = L.filter(function (x) { return used.indexOf(x[0]) < 0 && (!ages.length || x[4] <= Math.max.apply(0, ages) && x[5] >= Math.min.apply(0, ages)); }).map(function (x) { return [x, R0()]; }).sort(function (a, b) { return a[1] - b[1]; }).slice(0, n).map(function (x) { used.push(x[0][0]); return x[0][0]; }); return L; };
+    var lively = all.filter(function (x) { return x[7] !== "רגוע" && x[7] !== "מטבח"; }), calm = all.filter(function (x) { return x[7] === "רגוע"; }), kitchen = all.filter(function (x) { return x[7] === "מטבח"; });
+    return [
+      ["🌅", "בוקר", "09:00", (ch ? take(CHI.filter(function (x) { return x[7] !== "מטבח" && x[7] !== "רגוע"; }), 1) : []).concat(take(lively, ch ? 2 : 3))],
+      ["🍳", "צהריים", "12:00", (ch ? take(CHI.filter(function (x) { return x[7] === "מטבח"; }), 1) : take(kitchen, 1))],
+      ["😌", "מנוחה", "13:30", (ch ? take(CHI.filter(function (x) { return x[7] === "רגוע"; }), 1) : []).concat(take(calm, 1))],
+      ["🌳", "אחר הצהריים", "15:00", take(OUT, 1).concat(take(lively, 1))]
+    ].concat(ch ? [["🕎", "ערב", "", take(CHI.filter(function (x) { return x[0] === "dreidelt" || x[0] === "play8"; }), 1)]] : []);
+  }
+  function freeCard() {
+    var F = freeState(), ch = chanukahDay(new Date()), on = F.on === today();
+    if (!on) return el("section", { class: "card", style: "display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap" }, [
+      el("div", null, [el("b", { text: ch ? "🕎 חופשת חנוכה?" : "☀️ היום יום חופש?" }), el("div", { class: "fine", text: "תוכנית לכל היום, בלי מסכים, לפי גילאי הילדים" })]),
+      el("button", { class: "btn small", type: "button", text: "לתוכנית של היום", onclick: function () { F.on = today(); F.d = null; store(); home(); } })]);
+    if (F.d !== today() || !F.plan) { F.d = today(); F.plan = freePlan(F); F.done = []; store(); }
+    var BY = {}; IDEAS.concat([]).forEach(function (x) { BY[x[0]] = [x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[8], x[9]]; }); OUT.concat(CHI).forEach(function (x) { BY[x[0]] = x; });
+    var blocks = F.plan.map(function (b) {
+      return el("div", { style: "display:grid;gap:6px;margin-top:10px" }, [el("b", { style: "font-size:16px", text: b[0] + " " + b[1] + (b[2] ? " · מ־" + b[2] : "") })].concat(b[3].map(function (id) {
+        var x = BY[id]; if (!x) return null; var done = F.done.indexOf(id) >= 0;
+        return el("div", { class: "srow", style: "align-items:flex-start;" + (done ? "opacity:.55" : "") }, [el("span", { style: "font-size:28px;line-height:1.1", text: x[1] }),
+          el("div", { style: "flex:1;min-width:0;display:grid;gap:2px" }, [el("b", { text: x[2] + " (" + x[6] + " דק׳)" }), el("span", { class: "fine", text: x[3] }), x[8] ? el("span", { class: "fine", text: "🧺 צריך: " + x[8] }) : null]),
+          el("button", { class: "btn small ghost", type: "button", text: done ? "↩️" : "✓", "aria-label": done ? "ביטול" : "עשינו", onclick: function () { var j = F.done.indexOf(id); if (j >= 0) F.done.splice(j, 1); else F.done.push(id); store(); home(); } })]);
+      })));
+    });
+    return el("section", { class: "card" }, [
+      el("h2", ch ? "🕎 יום בחופשת חנוכה" : "☀️ יום חופש בלי מסכים"),
+      el("p", { class: "fine", text: "בוקר בתנועה, צהריים במטבח, מנוחה, ויציאה אחר הצהריים." + (ch ? " עם פעילויות של חנוכה, ובערב מדליקים יחד." : "") })
+    ].concat(blocks, [el("div", { class: "row", style: "margin-top:12px" }, [
+      el("button", { class: "btn small", type: "button", text: "🎲 תוכנית אחרת", onclick: function () { F.n = (F.n || 0) + 1; F.d = null; store(); home(); } }),
+      el("button", { class: "btn small ghost", type: "button", text: "סגירה", onclick: function () { F.on = null; store(); home(); } })])]));
+  }
+
   // ---- home ----
   var tick = null;
   function home() {
@@ -329,6 +390,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
         return el("button", { type: "button", "aria-pressed": String(MODE === m[0]), onclick: function () { MODE = m[0]; home(); } }, [el("span", { text: m[1] }), m[2], el("small", m[3])]);
       })),
       joinCard(), el("p", { class: "clock", text: clockT }),
+      now.getDay() === 6 ? null : freeCard(),
       MODE === "evening" && (now < st || now.getDay() === 5 || now.getDay() === 6) ? erevCard(st) : null,
       S.kids.length ? el("section", { class: "card" }, [el("h2", "מי מתחיל?"), el("div", { class: "kids" }, S.kids.map(function (k) {
         var rn = run(k), ix = idxFor(r, k), n = ix.length || 1, d = ix.filter(function (i) { return rn.done.indexOf(i) >= 0 || rn.skip.indexOf(i) >= 0; }).length;
