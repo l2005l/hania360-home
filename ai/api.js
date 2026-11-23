@@ -253,6 +253,42 @@ async function askClaude(env, sys, hist, c, city) {
   return { answer: "לא הספקתי לסיים. אפשר לשאול שוב בצורה פשוטה יותר?", used };
 }
 
+// ---- instant answers: the everyday questions are answered straight from the apps, with no model call ----
+// They are fast, always right, and do not count toward the daily cap. Anything else goes to the model as before.
+const hmOf = (t) => new Date(t).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", timeZone: TZ });
+const INSTANT = [
+  [/^(מה יש לי|מה מחכה לי|מה אצלי|מה התוכניות שלי)( היום| להיום)?\s*\??$/, "my_today"],
+  [/^(מתי (נכנסת|יוצאת|נכנס|יוצא) (ה)?שבת|זמני (ה)?שבת|מתי הדלקת נרות|מתי מדליקים נרות)( השבוע| הזה| הזו)?\s*\??$/, "day"],
+  [/^(מה )?(ה)?דף (ה)?יומי( היום)?\s*\??$/, "limud"],
+  [/^(מה )?(ה)?(חדשות|מבזקים|כותרות)( עכשיו| היום)?\s*\??$/, "news"],
+  [/^(מה משדרים|מה יש בטלוויזיה|מה בשידור חי)( עכשיו)?\s*\??$/, "tv"]
+];
+export function instantTool(q) { q = String(q || "").replace(/[״"']/g, "").replace(/\s+/g, " ").trim(); if (q.length > 40) return ""; for (const [re, t] of INSTANT) if (re.test(q)) return t; return ""; }
+export function instantText(tool, r) {
+  if (!r || r.error) return "";
+  if (tool === "my_today") {
+    const out = [], tasks = r.tasks || [], cal = (r.calendar_today || []).filter((e) => e && e.title), notes = (r.notes_today || []).filter((n) => !n.done);
+    const timed = cal.map((e) => [e.allDay ? "" : e.time || "", "📅 " + e.title]).concat(notes.map((n) => [n.time || "", "📝 " + n.text])).sort((a, b) => (a[0] || "99").localeCompare(b[0] || "99"));
+    if (timed.length) out.push("היום:\n" + timed.slice(0, 8).map((x) => "• " + (x[0] ? x[0] + " " : "") + x[1]).join("\n"));
+    const today = ymd(Date.now()), due = tasks.filter((t) => !t.day || t.day <= today);
+    if (due.length) out.push("משימות (" + due.length + "):\n" + due.slice(0, 8).map((t) => "• " + t.text + (t.late ? " ⚠️ באיחור" : "") + (t.who ? " (" + t.who + ")" : "")).join("\n") + (due.length > 8 ? "\n• ועוד " + (due.length - 8) : ""));
+    const bd = (r.birthdays || []).filter((x) => x.days <= 7);
+    if (bd.length) out.push(bd.slice(0, 3).map((x) => "🎂 " + x.name + (x.days === 0 ? " חוגג/ת היום!" : " · יום הולדת בעוד " + x.days + (x.days === 1 ? " יום" : " ימים"))).join("\n"));
+    const v = (r.vouchers_expiring || []).filter((x) => x.days <= 7);
+    if (v.length) out.push(v.slice(0, 3).map((x) => "🎟️ שובר " + x.store + (x.balance ? " (₪" + Math.round(x.balance) + ")" : "") + " פג " + (x.days === 0 ? "היום" : x.days === 1 ? "מחר" : "בעוד " + x.days + " ימים")).join("\n"));
+    return out.length ? out.join("\n\n") : "היום פנוי: אין משימות פתוחות ואין אירועים ביומן 🌿";
+  }
+  if (tool === "day") {
+    const sh = r.shab || {};
+    if (sh.now) return "🕯️ " + (sh.label || "שבת שלום") + "\nצאת השבת ב" + r.city + ": " + sh.out;
+    return "🕯️ " + (sh.label || "שבת") + " · " + r.city + "\nהדלקת נרות " + (sh.day === "היום" ? "היום" : "ביום שישי") + " ב־" + sh.in + "\nצאת שבת ב־" + sh.out + (r.chag && r.chag.days <= 14 ? "\n" + (r.chag.days === 0 ? "היום " + r.chag.n : r.chag.n + " בעוד " + r.chag.days + " ימים") : "");
+  }
+  if (tool === "limud") { const L = (Array.isArray(r) ? r : []).filter((x) => x.what && x.value).slice(0, 6); return L.length ? "📚 הלימוד של היום:\n" + L.map((x) => "• " + x.what + ": " + x.value).join("\n") : ""; }
+  if (tool === "news") { const N = (Array.isArray(r) ? r : []).slice(0, 6); return N.length ? "📰 המבזקים האחרונים:\n" + N.map((t) => "• " + t).join("\n") : ""; }
+  if (tool === "tv") { const L = (r.live || []).slice(0, 8); return (L.length ? "📺 בשידור חי עכשיו:\n" + L.map((x) => "• " + x).join("\n") : "📺 כרגע אין שידור חי בערוצים ש־HaniaTV בודקת.") + "\nלצפייה: " + (r.open || "https://tv.hania360.com/"); }
+  return "";
+}
+
 export async function aiApi(request, env, ctx) {
   const url = new URL(request.url);
   if (url.pathname === "/api/ai/usage") { const r = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "GET" }); const j = await r.json(); const d = ymd(Date.now()); return json({ today: (j.days && j.days[d] && j.days[d].ai) || 0, cap: PER_DAY, brain: env.ANTHROPIC_API_KEY ? "Claude" : "Llama" }); }
@@ -273,6 +309,14 @@ export async function aiApi(request, env, ctx) {
     return json({ answer: lines.join("\n"), done: true });
   }
 
+  // an everyday question: straight from the app, no model call and not counted
+  {
+    const last = (Array.isArray(b.messages) ? b.messages : []).slice(-1)[0], tool = last && last.role === "user" ? instantTool(last.content) : "";
+    if (tool) {
+      try { const txt = instantText(tool, await run(tool, {}, c)); if (txt) return json({ answer: txt, used: [tool], instant: true }); }
+      catch (e) { /* the model will try */ }
+    }
+  }
   if (env.SIPUR) {
     const lim = await env.SIPUR.get(env.SIPUR.idFromName("limits")).fetch("https://l/", { method: "POST", body: JSON.stringify({ ns: "ai:", device: "owner", perDay: PER_DAY, perDevice: PER_DAY }) }).then((r) => r.json()).catch(() => ({ ok: true }));
     if (!lim.ok) return json({ answer: "הגעתי למכסה היומית (" + PER_DAY + " שאלות). נמשיך מחר 🙂" });
