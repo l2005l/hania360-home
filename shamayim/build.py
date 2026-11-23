@@ -1,12 +1,12 @@
-# Builds HaniaShamayim (python3 shamayim/build.py), served at shamayim.hania360.com:
+# Builds HaniaShamayim (python3 shamayim/build.py), served at sky.hania360.com:
 #   shamayim/page.js                        the page (shamayim.html), manifest, service worker, icons
-#   public/_a/shamayim.hania360.com/sky.js  Astronomy Engine + satellite.js + the star data (data.json) + src/app.js
+#   public/_a/sky.hania360.com/sky.js       Astronomy Engine + satellite.js + the star data (data.json) + src/app.js
 # data.json was made once from d3-celestial's data (BSD; Hipparcos/XHIP stars, IAU constellations with Hebrew names,
 # the Milky Way outline), compacted: stars to magnitude 6, positions to 0.01°.
 import json, base64, hashlib, os, re, subprocess
 r = lambda p: open('shamayim/' + p, encoding='utf8').read()
 b64 = lambda p: base64.b64encode(open('shamayim/' + p, 'rb').read()).decode()
-OUT = 'public/_a/shamayim.hania360.com/'
+OUT = 'public/_a/sky.hania360.com/'
 os.makedirs(OUT, exist_ok=True)
 cities = re.search(r'CITIES = (\[.*\]);', open('lib/cities.js', encoding='utf8').read()).group(1)
 app = r('src/app.js').replace('/*CITIES*/[["ירושלים", 31.778, 35.235, 40]]', cities)
@@ -16,7 +16,7 @@ open(OUT + 'sky.js', 'w', encoding='utf8').write(sky)
 body = r('shamayim.html').replace('@SKYV@', hashlib.sha1(sky.encode()).hexdigest()[:10])
 head = ('<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
         '<meta name="description" content="HaniaShamayim: השמיים החיים מעל המקום שלך. מכוונים את הטלפון ורואים כוכבים, קבוצות כוכבים בעברית, הירח, כוכבי הלכת ותחנת החלל. עם מולד הלבנה, קידוש לבנה, מזל החודש וצאת הכוכבים.">'
-        '<link rel="canonical" href="https://shamayim.hania360.com/"><meta name="theme-color" content="#02040C">'
+        '<link rel="canonical" href="https://sky.hania360.com/"><meta name="theme-color" content="#02040C">'
         '<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="apple-mobile-web-app-title" content="שמיים"><meta name="apple-mobile-web-app-capable" content="yes">')
 i = body.index('<style>')
 page = head + body[:i] + '</head><body>' + body[i:] + '\n<script src="/install.js" data-name="HaniaShamayim" data-color="#02040C" defer></script>\n</body></html>'
