@@ -81,7 +81,7 @@
         P("p", { class: "kicker", text: "Hania360 · " + YEAR }), P("h2", { text: "תודה על שנה מדהימה 💛" }),
         st.length ? tiles(st) : P("p", { class: "lead", text: "שנה טובה ומתוקה!" }),
         P("div", { class: "btns" }, [
-          D.demo ? el("a", { class: "btn light", href: "https://pass.hania360.com/?return=" + encodeURIComponent("https://hania360.com/shana"), text: "🔐 לראות את השנה שלנו" }) : el("button", { class: "btn light", type: "button", text: "📤 לשתף תמונה", onclick: share }),
+          D.demo ? el("a", { class: "btn light", href: "https://pass.hania360.com/?return=" + encodeURIComponent("https://shana.hania360.com/"), text: "🔐 לראות את השנה שלנו" }) : el("button", { class: "btn light", type: "button", text: "📤 לשתף תמונה", onclick: share }),
           el("button", { class: "btn ghost", type: "button", text: "↻ מההתחלה", onclick: function () { go(0); } })])]);
     } });
     return L;
@@ -103,7 +103,7 @@
     return [{ end: 1, make: function () { return slide("cover", deco(["#FF4FA3", "#FF9A3D", "#7B3CFF"], ["⭐", "🌙", "🎈", "💛", "✨", "🏡"]), [
       P("p", { class: "kicker", text: "Hania360 · " + YEAR }), P("h1", { text: "השנה שלנו" }),
       P("p", { class: "lead", text: empty ? "עוד אין מספיק בגיבוי כדי לספר שנה. השנה נבנית מהשגרה, המטלות, הלימוד והכושר באפליקציות של Hania360, כשמחוברים לחשבון." : "השנה שלכם נבנית מהגיבוי בחשבון Hania360: שגרה, מטלות, לימוד וכושר. מתחברים פעם אחת, והגיבוי עובד מעצמו." }),
-      P("div", { class: "btns" }, [empty ? null : el("a", { class: "btn light", href: "https://pass.hania360.com/?return=" + encodeURIComponent("https://hania360.com/shana"), text: "🔐 התחברות" }),
+      P("div", { class: "btns" }, [empty ? null : el("a", { class: "btn light", href: "https://pass.hania360.com/?return=" + encodeURIComponent("https://shana.hania360.com/"), text: "🔐 התחברות" }),
         el("button", { class: "btn " + (empty ? "light" : "ghost"), type: "button", text: "👀 שנה לדוגמה", onclick: function () { start(demo()); } })])]); } }];
   }
   function demo() {
