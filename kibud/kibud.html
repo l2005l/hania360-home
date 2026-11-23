@@ -3,7 +3,7 @@
 <style>
 /* Layout: a warm family card. Today's call first (whose turn, call, ✓), then the next days, the family feed, and settings. */
 :root{
-  --bg:#FBF5EE; --card:#FFFFFF; --ink:#3A2418; --muted:#7D6556; --line:#EADCCD; --acc:#C8553D; --acc-deep:#A13F2B; --ok:#2E8B57; --soft:#F5EADF; --warm:#F2C14E;
+  --bg:#FBF5EE; --card:#FFFFFF; --ink:#3A2418; --muted:#7D6556; --line:#EADCCD; --acc:#BB4C35; --acc-deep:#A13F2B; --ok:#2E8B57; --soft:#F5EADF; --warm:#F2C14E;
   --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1C1410;--card:#271C16;--ink:#F6EBE1;--muted:#BBA696;--line:#3C2D24;--soft:#30241D;color-scheme:dark}}
@@ -38,7 +38,7 @@ label.f{display:grid;gap:5px;font-size:14px;font-weight:600;color:var(--muted)}
 .hero{text-align:center;display:grid;gap:8px;justify-items:center;padding:6px 0}
 .hero p{margin:0;max-width:460px}
 /* today */
-.today{background:linear-gradient(160deg,#C8553D,#9E3B2A);color:#fff;border:0;text-align:center;justify-items:center;padding:22px 16px}
+.today{background:linear-gradient(160deg,#BB4C35,#9E3B2A);color:#fff;border:0;text-align:center;justify-items:center;padding:22px 16px}
 .today .who{font-size:clamp(26px,8vw,36px);font-weight:900;line-height:1.15}
 .today .sub{opacity:.85;margin:0}
 .today .btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;width:100%}
@@ -87,7 +87,7 @@ details[open] summary{margin-bottom:10px}
 </style>
 
 <div class="wrap">
-  <header><div class="logo"><svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" fill="#C8553D"/><path d="M17 26c-1 0-9-5-9-11 0-3 2.4-5 5-5 1.8 0 3.1.9 4 2.1.9-1.2 2.2-2.1 4-2.1 2.6 0 5 2 5 5 0 6-8 11-9 11z" fill="#fff"/></svg><span>Hania<b>Kibud</b></span></div><button class="btn ghost act" type="button" id="shareBtn" hidden>📤 הזמנת המשפחה</button></header>
+  <header><div class="logo"><svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" fill="#BB4C35"/><path d="M17 26c-1 0-9-5-9-11 0-3 2.4-5 5-5 1.8 0 3.1.9 4 2.1.9-1.2 2.2-2.1 4-2.1 2.6 0 5 2 5 5 0 6-8 11-9 11z" fill="#fff"/></svg><span>Hania<b>Kibud</b></span></div><button class="btn ghost act" type="button" id="shareBtn" hidden>📤 הזמנת המשפחה</button></header>
 
   <!-- create -->
   <section id="vNew" style="display:grid;gap:14px">

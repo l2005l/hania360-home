@@ -5,7 +5,7 @@
    own chores (a small child can have none), on the days chosen; a chore nobody likes can rotate between children
    each week. The child marks ✓, a parent approves, points add up to a weekly prize or pocket money. Both parents see
    the same thing (the family copy is in shigra/family.js, kind "chores"). */
-:root{--bg:#F2F8FF;--card:#fff;--ink:#132238;--muted:#5D6B82;--line:#DCE6F2;--main:#0EA5E9;--main2:#0284C7;--ok:#16A34A;--warn:#F59E0B;--pink:#F472B6;--font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
+:root{--bg:#F2F8FF;--card:#fff;--ink:#132238;--muted:#5D6B82;--line:#DCE6F2;--main:#0A75A6;--main2:#02699F;--ok:#16A34A;--warn:#F59E0B;--pink:#F472B6;--font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#0B1522;--card:#132235;--ink:#E8F1FB;--muted:#9FB0C6;--line:#22344B}}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{direction:rtl;margin:0;font-family:var(--font);font-size:16px;line-height:1.5;color:var(--ink);background:var(--bg)}
@@ -23,7 +23,7 @@ h1{margin:0;font-size:clamp(24px,6vw,32px)}h2{margin:0;font-size:19px}h3{margin:
 .btn.small{padding:7px 11px;font-size:14px;border-radius:12px}.btn.ok{background:var(--ok);box-shadow:0 4px 0 #0F7A35}
 .chip{appearance:none;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--ink)}
 .chip[aria-pressed="true"]{border-color:var(--main);background:color-mix(in srgb,var(--main) 14%,var(--card));color:var(--main2)}
-.hero{background:linear-gradient(135deg,#0EA5E9,#6366F1 60%,#F472B6);color:#fff;border:0}.hero .lead,.hero .fine{color:rgba(255,255,255,.9)}
+.hero{background:linear-gradient(135deg,#0A75A6,#6366F1 60%,#F472B6);color:#fff;border:0}.hero .lead,.hero .fine{color:rgba(255,255,255,.9)}
 .kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .kid{appearance:none;font:inherit;color:inherit;cursor:pointer;background:var(--card);border:2px solid var(--line);border-radius:20px;padding:12px 8px;display:grid;justify-items:center;gap:2px}
 .kid[aria-pressed="true"]{border-color:var(--main);box-shadow:0 0 0 3px color-mix(in srgb,var(--main) 25%,transparent)}
@@ -32,7 +32,7 @@ h1{margin:0;font-size:clamp(24px,6vw,32px)}h2{margin:0;font-size:19px}h3{margin:
 .ch .e{font-size:34px;width:44px;text-align:center}.ch .x{flex:1;min-width:0}.ch .x b{display:block;font-size:17px}.ch .x small{color:var(--muted)}
 .ch.done{border-color:color-mix(in srgb,var(--ok) 50%,var(--line));background:color-mix(in srgb,var(--ok) 9%,var(--card))}
 .ch.wait{border-color:color-mix(in srgb,var(--warn) 55%,var(--line));background:color-mix(in srgb,var(--warn) 9%,var(--card))}
-.bar{height:12px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#22C55E,#0EA5E9);border-radius:9px}
+.bar{height:12px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#22C55E,#0A75A6);border-radius:9px}
 .grid7{display:grid;grid-template-columns:110px repeat(7,1fr);gap:4px;font-size:13px;align-items:center}
 .grid7 .h{text-align:center;color:var(--muted);font-weight:700}.grid7 .c{text-align:center;border-radius:8px;padding:4px 0;background:var(--bg)}.grid7 .c.on{background:color-mix(in srgb,var(--ok) 22%,var(--card));font-weight:800}
 details.par>summary{cursor:pointer;font-weight:800;list-style:none;padding:12px 14px;border-radius:16px;background:var(--card);border:1.5px dashed var(--line)}

@@ -3,7 +3,7 @@
 /* Layout: one screen for the worst moment. The call button is always at the top; a big grid of situations;
    each opens as large numbered steps that can be read aloud. CPR and choking have their own live helpers. */
 :root{
-  --bg:#FFF7F6; --surface:#FFFFFF; --ink:#1E1A1D; --muted:#6B5F64; --line:#F0D9DA; --red:#D7263D; --red-dark:#A3172B; --red-bg:#FDE4E6; --amber:#B4560A; --amber-bg:#FFF0DD; --ok:#11845B; --ok-bg:#E3F5EC; --blue:#1C5DB8;
+  --bg:#FFF7F6; --surface:#FFFFFF; --ink:#1E1A1D; --muted:#6B5F64; --line:#F0D9DA; --red:#D3253C; --red-dark:#A3172B; --red-bg:#FDE4E6; --amber:#B4560A; --amber-bg:#FFF0DD; --ok:#11845B; --ok-bg:#E3F5EC; --blue:#1C5DB8;
   --font:system-ui,-apple-system,"Segoe UI","Arial Hebrew","Noto Sans Hebrew",sans-serif;
   color-scheme:light;
 }
@@ -14,7 +14,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 .wrap{max-width:640px;margin:0 auto;padding:10px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px));display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .top{position:sticky;top:0;z-index:10;background:var(--bg);padding:6px 0 8px;display:grid;gap:8px}
 .call{display:flex;align-items:center;justify-content:center;gap:12px;background:var(--red);color:#fff;text-decoration:none;border-radius:20px;padding:16px;font-size:24px;font-weight:900;box-shadow:0 8px 24px rgba(215,38,61,.35)}
-.call small{font-size:15px;font-weight:600;opacity:.9}
+.call small{font-size:15px;font-weight:600;color:#fff}
 .mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .mini a,.mini button{appearance:none;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:8px 4px;font:inherit;font-size:13px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;display:grid;gap:1px}
 .mini b{font-size:16px}
@@ -156,7 +156,7 @@ textarea{min-height:70px}
     var g = G(), med = jget("ez.med", null);
     if (location.hash) history.replaceState(null, "", location.pathname);
     show([
-      el("div", { class: "who", role: "radiogroup", "aria-label": "למי עוזרים" }, Object.keys(W).map(function (k) { return el("button", { type: "button", role: "radio", "aria-pressed": String(WHO === k), onclick: function () { WHO = k; ls("ez.who", k); home(); } }, [k === "adult" ? "🧑 מבוגר" : k === "child" ? "🧒 ילד" : "👶 תינוק"]); })),
+      el("div", { class: "who", role: "group", "aria-label": "למי עוזרים" }, Object.keys(W).map(function (k) { return el("button", { type: "button", "aria-pressed": String(WHO === k), onclick: function () { WHO = k; ls("ez.who", k); home(); } }, [k === "adult" ? "🧑 מבוגר" : k === "child" ? "🧒 ילד" : "👶 תינוק"]); })),
       el("div", { class: "grid" }, ORDER.map(function (k) { var x = g[k]; return el("button", { type: "button", class: "sit" + (x.hot ? " hot" : ""), onclick: function () { guide(k); } }, [el("i", { text: x.icon, "aria-hidden": "true" }), x.name]); })),
       el("button", { class: "btn ghost", type: "button", text: med && med.name ? "🪪 הכרטיס הרפואי של " + med.name : "🪪 כרטיס רפואי לחירום", onclick: medCard }),
       el("p", { class: "note", text: "מבוסס על הנחיות עזרה ראשונה מקובלות של מד״א. לא מחליף קורס עזרה ראשונה, ותמיד מחייגים 101. עובד גם בלי אינטרנט אחרי פתיחה ראשונה." })]);

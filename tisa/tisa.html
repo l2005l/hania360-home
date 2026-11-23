@@ -4,7 +4,7 @@
 /* Layout: three tabs (my flights, board, what I'm owed); a flight opens as a full card below the tabs. */
 :root{
   --bg:#EEF4FB; --surface:#FFFFFF; --ink:#0F2240; --muted:#5E6E86; --line:#D8E2EF;
-  --sky:#1C7CF2; --dusk:#6A4CF5; --sun:#FF8A3D; --ok:#0E8A5F; --ok-bg:#E1F5EC; --warn:#B4560A; --warn-bg:#FFF0E0; --bad:#C62D3A; --bad-bg:#FDE7E9; --info:#1C5DB8; --info-bg:#E4EEFC;
+  --sky:#0D6ADE; --dusk:#6A4CF5; --sun:#FF8A3D; --ok:#0E8A5F; --ok-bg:#E1F5EC; --warn:#B4560A; --warn-bg:#FFF0E0; --bad:#C62D3A; --bad-bg:#FDE7E9; --info:#1C5DB8; --info-bg:#E4EEFC;
   --font:"Rubik",system-ui,-apple-system,"Segoe UI","Arial Hebrew",sans-serif;
   color-scheme:light;
 }
@@ -16,7 +16,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);line
 header{display:flex;align-items:center;gap:10px}
 header b{font-size:21px;font-weight:900}header b span{color:var(--sky)}
 header a{margin-inline-start:auto;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
-.hero{border-radius:24px;padding:20px;color:#fff;background:linear-gradient(135deg,#1C7CF2,#6A4CF5 60%,#FF8A3D);display:grid;gap:6px;box-shadow:0 14px 30px rgba(28,124,242,.25)}
+.hero{border-radius:24px;padding:20px;color:#fff;background:linear-gradient(135deg,#0D6ADE,#6A4CF5 60%,#FF8A3D);display:grid;gap:6px;box-shadow:0 14px 30px rgba(28,124,242,.25)}
 .hero h1{margin:0;font-size:clamp(25px,7vw,36px);line-height:1.15;font-weight:900;text-wrap:balance}
 .hero p{margin:0;font-size:16px;opacity:.95}
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:5px}

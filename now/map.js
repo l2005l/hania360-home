@@ -57,7 +57,7 @@ export const MAP_CSS = `
 .m26-w>summary::-webkit-details-marker{display:none}
 .m26-we{width:46px;height:46px;flex:0 0 46px;border-radius:15px;display:grid;place-items:center;font-size:24px;background:color-mix(in srgb,var(--c) 16%,#fff);border:1.5px solid color-mix(in srgb,var(--c) 30%,#fff)}
 .m26-wt{flex:1;min-width:0;display:grid}.m26-wt b{font-size:17px;color:#0F172A}.m26-wt small{color:#64748B;font-size:13px;line-height:1.35}
-.m26-n{font-size:12px;font-weight:800;color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff);border-radius:99px;padding:3px 9px;white-space:nowrap}
+.m26-n{font-size:12.5px;font-weight:800;color:color-mix(in srgb,var(--c) 62%,#000);background:color-mix(in srgb,var(--c) 10%,#fff);border-radius:99px;padding:3px 9px;white-space:nowrap}
 .m26-n:after{content:" ▾";display:inline-block;transition:transform .2s}
 .m26-w[open] .m26-n:after{transform:rotate(180deg)}
 .m26-w[open]>summary{border-bottom:1px solid rgba(15,23,42,.07);background:color-mix(in srgb,var(--c) 5%,#fff)}

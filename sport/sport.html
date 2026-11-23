@@ -133,7 +133,11 @@ addEventListener("load",syncMe);
 var D={il:null,euro:null,nba:null,news:null,world:{}},TEAM={},ERR={};
 function loadTeam(id){if(!id||TEAM[id])return;TEAM[id]={wait:1};api("team?id="+id).then(function(j){TEAM[id]=j;render()}).catch(function(){TEAM[id]={err:1}})}
 function api(p){return fetch("/api/sport/"+p,{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j.error)throw new Error(j.error);return j})}
-function load(k,p){if(D[k]&&k!=="world")return Promise.resolve(D[k]);return api(p).then(function(j){if(k==="world")D.world[p]=j;else D[k]=j;delete ERR[k];render();return j}).catch(function(){ERR[k]=1;render()})}
+// Each page draw asks for what it needs; this answers from memory, and asks the server once at a time and, after a
+// failure, not again for a minute (before, a draw after every answer asked again, in a loop).
+var BUSY={},ERRAT={};
+function load(k,p){var key=k==="world"?p:k,have=k==="world"?D.world[p]:D[k];if(have)return Promise.resolve(have);if(BUSY[key])return BUSY[key];if(ERR[k]&&Date.now()-(ERRAT[key]||0)<60000)return Promise.resolve(null);
+  return BUSY[key]=api(p).then(function(j){delete BUSY[key];if(k==="world")D.world[p]=j;else D[k]=j;delete ERR[k];render();return j}).catch(function(){delete BUSY[key];ERR[k]=1;ERRAT[key]=Date.now();render()})}
 setInterval(function(){if(document.hidden)return;D.il=null;D.euro=null;D.news=null;D.world={};load("il","il");load("euro","euro");load("news","news");if(tab==="world"||tab==="home")load("world","world?d="+wday)},120000);
 
 /* ---- views ---- */

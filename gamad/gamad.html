@@ -4,7 +4,7 @@
 <style>
 /* Layout: wrapping paper. A gift box that opens to the secret name; around it the wish list and anonymous notes. Single festive look. */
 :root{
-  --paper:#FFF1F4; --paper-2:#FFE3EA; --ink:#2B1030; --muted:#7B5C78; --ribbon:#E2336B; --ribbon-deep:#B81C50; --mint:#14A889; --gold:#F4B400; --card:#FFFFFF; --line:#F3C9D6;
+  --paper:#FFF1F4; --paper-2:#FFE3EA; --ink:#2B1030; --muted:#7B5C78; --ribbon:#D31E58; --ribbon-deep:#B81C50; --mint:#14A889; --gold:#F4B400; --card:#FFFFFF; --line:#F3C9D6;
   --display:"Varela Round","Rubik",system-ui,sans-serif; --body:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
 }
@@ -222,7 +222,7 @@ table{width:100%;border-collapse:collapse}td{padding:8px;border-top:1px solid va
   $("askForm").addEventListener("submit", function (e) { e.preventDefault(); var q = $("askIn").value.trim(); if (!q) return; api("ask", { g: me.g, t: me.t, q: q }).then(function () { $("askIn").value = ""; toast("נשלח בעילום שם 🤫"); loadMe(me.g, me.t); }).catch(function (x) { toast(x.code === "limit" ? "שלחת כבר הרבה שאלות" : "השליחה נכשלה"); }); });
 
   // ---- confetti ------------------------------------------------------------------------
-  var cf = $("confetti"), cc = cf.getContext("2d"), bits = [], run = false, COL = ["#E2336B", "#14A889", "#F4B400", "#FFFFFF", "#7B5CF0"];
+  var cf = $("confetti"), cc = cf.getContext("2d"), bits = [], run = false, COL = ["#D31E58", "#14A889", "#F4B400", "#FFFFFF", "#7B5CF0"];
   function confetti() {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     var r = devicePixelRatio || 1; cf.width = innerWidth * r; cf.height = innerHeight * r;

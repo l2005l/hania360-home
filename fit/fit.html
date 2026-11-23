@@ -5,7 +5,7 @@
    train, how many days), a workout player with moving demos, rest timer and sound, foods with swaps for what you do
    not like (kosher: no meat with dairy), reminders on training days (never on Shabbat), and progress that keeps you
    going. Everything is calculated on the phone and stays there. */
-:root{--bg:#F3F6F4;--surface:#fff;--ink:#14231C;--muted:#5B6B63;--line:#DDE6E1;--main:#12B76A;--main2:#079455;--dark:#0B3B2A;--hot:#FF6B35;--warn:#F5A524;--blue:#3B82F6;--fig:#22303A;--fig2:#A2ADB8;
+:root{--bg:#F3F6F4;--surface:#fff;--ink:#14231C;--muted:#5B6B63;--line:#DDE6E1;--main:#0D7F4A;--main2:#079455;--dark:#0B3B2A;--hot:#FF6B35;--warn:#F5A524;--blue:#3B82F6;--fig:#22303A;--fig2:#A2ADB8;
   --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (prefers-color-scheme:dark){:root{--bg:#0C1411;--surface:#15211C;--ink:#E9F3EE;--muted:#9DB0A6;--line:#26372F;--fig:#E3ECE8;--fig2:#5E6F68}}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -36,7 +36,7 @@ nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:10;background:var(--surf
 nav.tabs button{appearance:none;border:0;background:none;font:inherit;font-size:12px;font-weight:700;color:var(--muted);display:grid;justify-items:center;gap:1px;padding:4px 10px;cursor:pointer;border-radius:12px;min-width:64px}
 nav.tabs button span{font-size:22px;line-height:1.1}
 nav.tabs button[aria-selected="true"]{color:var(--main2);background:color-mix(in srgb,var(--main) 12%,transparent)}
-.hero{background:linear-gradient(135deg,#0B3B2A,#12B76A);color:#fff;border:0}
+.hero{background:linear-gradient(135deg,#0B3B2A,#0D7F4A);color:#fff;border:0}
 .hero .lead,.hero .fine{color:rgba(255,255,255,.85)}
 .ring{width:84px;height:84px;flex:0 0 auto}
 .kp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -462,7 +462,7 @@ nav.tabs button[aria-selected="true"]{color:var(--main2);background:color-mix(in
     var W = S.wt.slice(-40); if (W.length < 2) return el("p", { class: "fine", text: "אחרי שתי שקילות יופיע כאן גרף." });
     var ks = W.map(function (w) { return w.kg; }), lo = Math.min.apply(0, ks) - 1, hi = Math.max.apply(0, ks) + 1, X = function (i) { return 30 + i * (300 / (W.length - 1)); }, Y = function (k) { return 10 + (hi - k) / (hi - lo) * 110; };
     var pts = W.map(function (w, i) { return X(i).toFixed(1) + "," + Y(w.kg).toFixed(1); }).join(" ");
-    return el("div", { html: '<svg viewBox="0 0 340 140" width="100%" role="img" aria-label="גרף משקל"><text x="2" y="' + (Y(hi - 1) + 4) + '" font-size="10" fill="currentColor" opacity=".6">' + r1(hi - 1) + '</text><text x="2" y="' + (Y(lo + 1) + 4) + '" font-size="10" fill="currentColor" opacity=".6">' + r1(lo + 1) + '</text><polyline points="' + pts + '" fill="none" stroke="#12B76A" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>' + W.map(function (w, i) { return '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(w.kg).toFixed(1) + '" r="3.5" fill="#12B76A"/>'; }).join("") + "</svg>" });
+    return el("div", { html: '<svg viewBox="0 0 340 140" width="100%" role="img" aria-label="גרף משקל"><text x="2" y="' + (Y(hi - 1) + 4) + '" font-size="10" fill="currentColor" opacity=".6">' + r1(hi - 1) + '</text><text x="2" y="' + (Y(lo + 1) + 4) + '" font-size="10" fill="currentColor" opacity=".6">' + r1(lo + 1) + '</text><polyline points="' + pts + '" fill="none" stroke="#0D7F4A" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>' + W.map(function (w, i) { return '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(w.kg).toFixed(1) + '" r="3.5" fill="#0D7F4A"/>'; }).join("") + "</svg>" });
   }
   function progTab() {
     var tot = S.log.length, mins = S.log.reduce(function (a, l) { return a + (l.min || 0); }, 0), month = ymd().slice(0, 7), mo = S.log.filter(function (l) { return l.d.slice(0, 7) === month; }).length;

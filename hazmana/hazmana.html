@@ -4,7 +4,7 @@
 /* Layout: three faces of one page. The invitation (what guests see) is a single card in the event's theme;
    creating is one form; managing is five tabs (summary, guests, sending, tables, invitation). */
 :root{
-  --bg:#F7F3EE; --surface:#FFFFFF; --ink:#2A2230; --muted:#7A6E7E; --line:#EADFD6; --accent:#B8893B; --accent-ink:#fff; --ok:#11845B; --ok-bg:#E3F5EC; --warn:#B5590B; --warn-bg:#FFF1E0; --bad:#C62D3A; --bad-bg:#FDE7E9;
+  --bg:#F7F3EE; --surface:#FFFFFF; --ink:#2A2230; --muted:#726776; --line:#EADFD6; --accent:#8A662C; --accent-ink:#fff; --ok:#11845B; --ok-bg:#E3F5EC; --warn:#B5590B; --warn-bg:#FFF1E0; --bad:#C62D3A; --bad-bg:#FDE7E9;
   --font:"Rubik",system-ui,-apple-system,"Segoe UI","Arial Hebrew",sans-serif; --serif:"Frank Ruhl Libre","David",serif;
   color-scheme:light;
 }
@@ -126,6 +126,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
 .linkbox{display:flex;gap:8px}.linkbox input{direction:ltr;font-size:14px}
 
 .faq{max-width:720px;margin:8px auto 30px;padding:0 16px;display:grid;gap:8px}.faq h2{font-size:20px;margin:6px 0}.faqq{border:1px solid rgba(127,127,127,.3);border-radius:14px;padding:4px 14px}.faqq summary{cursor:pointer;font-weight:700;padding:8px 0}.faqq p{margin:0 0 10px;line-height:1.6;opacity:.9}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
 </style>
 
 <div class="wrap" id="app">
@@ -270,10 +271,10 @@ input:focus,select:focus,textarea:focus{outline:3px solid color-mix(in srgb,var(
   function eventForm(ev, onSave, saveLabel) {
     ev = Object.assign({ kind: "wedding", theme: "gold", askKids: true, askDiet: true }, ev || {});
     var f = {};
-    var kinds = el("div", { class: "chips", role: "radiogroup", "aria-label": "סוג האירוע" });
-    function paintKinds() { kinds.replaceChildren.apply(kinds, Object.keys(KINDS).map(function (k) { return el("button", { type: "button", role: "radio", "aria-pressed": String(ev.kind === k), onclick: function () { var auto = !f.message.value || Object.keys(MSG).some(function (x) { return MSG[x] === f.message.value; }); ev.kind = k; if (auto) f.message.value = MSG[k]; f.chupLab.firstChild.textContent = k === "wedding" ? "שעת חופה" : "שעת הטקס"; paintKinds(); } }, [KINDS[k][0] + " " + KINDS[k][1]]); })); }
-    var themes = el("div", { class: "themes", role: "radiogroup", "aria-label": "עיצוב" });
-    function paintThemes() { themes.replaceChildren.apply(themes, THEMES.map(function (t) { return el("button", { type: "button", role: "radio", "aria-pressed": String(ev.theme === t[0]), style: "background:linear-gradient(135deg," + t[2] + " 55%," + t[3] + ");color:" + (t[5] ? "#F3EBD8" : "#2A2230"), onclick: function () { ev.theme = t[0]; paintThemes(); } }, [t[1]]); })); }
+    var kinds = el("div", { class: "chips", role: "group", "aria-label": "סוג האירוע" });
+    function paintKinds() { kinds.replaceChildren.apply(kinds, Object.keys(KINDS).map(function (k) { return el("button", { type: "button", "aria-pressed": String(ev.kind === k), onclick: function () { var auto = !f.message.value || Object.keys(MSG).some(function (x) { return MSG[x] === f.message.value; }); ev.kind = k; if (auto) f.message.value = MSG[k]; f.chupLab.firstChild.textContent = k === "wedding" ? "שעת חופה" : "שעת הטקס"; paintKinds(); } }, [KINDS[k][0] + " " + KINDS[k][1]]); })); }
+    var themes = el("div", { class: "themes", role: "group", "aria-label": "עיצוב" });
+    function paintThemes() { themes.replaceChildren.apply(themes, THEMES.map(function (t) { return el("button", { type: "button", "aria-pressed": String(ev.theme === t[0]), style: "background:linear-gradient(135deg," + t[2] + " 55%," + t[3] + ");color:" + (t[5] ? "#F3EBD8" : "#2A2230"), onclick: function () { ev.theme = t[0]; paintThemes(); } }, [t[1]]); })); }
     var inp = function (k, label, attrs) { f[k] = el("input", Object.assign({ value: ev[k] || "" }, attrs || {})); return el("label", { class: "f" }, [label, f[k]]); };
     f.message = el("textarea", {}); f.message.value = ev.message || MSG[ev.kind];
     f.chupLab = inp("chuppah", ev.kind === "wedding" ? "שעת חופה" : "שעת הטקס", { type: "time" });
