@@ -780,6 +780,1196 @@ function sndHit(k) {
   s.connect(f); f.connect(g); g.connect(SND.master); s.start(); s.stop(a.currentTime + 0.4);
 }
 
+// HaniaRace's open city ("עיר פתוחה"): real Israeli streets. The maps come from OpenStreetMap (© OpenStreetMap
+// contributors, ODbL), prepared by tools/osm2city.py into race/city/<id>.json: local metres around the city centre
+// (x east, z south, in decimetres), roads on a shared list of points (so junctions are known), buildings, parks,
+// sand, water, the coast, traffic lights, stop signs, crossings and places for missions.
+// This file reads a map into what the rest of the city needs: the roads as a graph (for traffic and the GPS),
+// a 1 m grid of what is where (road, pavement, building, water) for driving and knocks, and lookups by place.
+var CITY_LIST = [
+  ["tel-aviv", "תל אביב", "רוטשילד, דיזנגוף, אלנבי והטיילת"], ["jerusalem", "ירושלים", "יפו, המלך ג׳ורג׳, בן יהודה ומחנה יהודה"],
+  ["haifa", "חיפה", "הדר והעיר התחתית"], ["rishon", "ראשון לציון", "מרכז העיר"], ["petah-tikva", "פתח תקווה", "מרכז העיר"],
+  ["ashdod", "אשדוד", "מרכז העיר והים"], ["netanya", "נתניה", "כיכר העצמאות והים"], ["beer-sheva", "באר שבע", "העיר העתיקה והמרכז"],
+  ["holon", "חולון", "מרכז העיר"], ["bnei-brak", "בני ברק", "רבי עקיבא וז׳בוטינסקי"], ["ramat-gan", "רמת גן", "מרכז העיר"],
+  ["rehovot", "רחובות", "הרצל ומרכז העיר"], ["ashkelon", "אשקלון", "אפרידר והים"], ["bat-yam", "בת ים", "הטיילת ומרכז העיר"],
+  ["beit-shemesh", "בית שמש", "מרכז העיר"], ["kfar-saba", "כפר סבא", "ויצמן ומרכז העיר"], ["herzliya", "הרצליה", "מרכז העיר"],
+  ["hadera", "חדרה", "מרכז העיר"], ["modiin", "מודיעין", "מרכז העיר"], ["netivot", "נתיבות", "מרכז העיר"]
+];
+var CITY_V = "b4023644a0"; // the maps' version (race/build.py)
+// road kinds (from osm2city.py): 1 highway, 2 main, 3 secondary, 4 tertiary, 5 street, 6 shared street, 7 service lane
+var ROAD_W = [0, 15, 13, 11, 9.5, 7.5, 5.5, 4.6], ROAD_V = [0, 90, 60, 55, 50, 40, 25, 20];
+
+function cityRead(D) {
+  var C = { D: D, name: D.name, names: D.names || [], R: D.r };
+  var vs = D.verts, nv = vs.length / 2, VX = new Float32Array(nv), VZ = new Float32Array(nv);
+  for (var i = 0; i < nv; i++) { VX[i] = vs[2 * i] / 10; VZ[i] = vs[2 * i + 1] / 10; }
+  C.VX = VX; C.VZ = VZ; C.nv = nv;
+  // the roads, and every piece between two points as a directed edge (one way where the street is one way)
+  var roads = [], E = { a: [], b: [], road: [], len: [], dx: [], dz: [] }, OUT = []; for (i = 0; i < nv; i++) OUT.push([]);
+  var deg = new Uint8Array(nv);
+  D.roads.forEach(function (r, ri) {
+    var t = r[0], lanes = r[2], w = lanes ? Math.max(4.2, Math.min(24, lanes * 3.3 + 1)) : ROAD_W[t];
+    if (r[3] && !lanes) w *= 0.8; // a one-way street of unknown lanes is a little narrower
+    var R2 = { t: t, name: r[1] >= 0 ? C.names[r[1]] : "", lanes: lanes, ow: r[3], vmax: (r[4] || ROAD_V[t]) / 3.6, ring: r[5], w: w, v: r[6] };
+    roads.push(R2);
+    for (var k = 0; k < R2.v.length; k++) deg[R2.v[k]] += k === 0 || k === R2.v.length - 1 ? 1 : 2;
+    for (k = 0; k + 1 < R2.v.length; k++) {
+      var a = R2.v[k], b = R2.v[k + 1], dx = VX[b] - VX[a], dz = VZ[b] - VZ[a], L = Math.hypot(dx, dz);
+      if (L < 0.05) continue;
+      if (R2.ow >= 0) { OUT[a].push(E.a.length); E.a.push(a); E.b.push(b); E.road.push(ri); E.len.push(L); E.dx.push(dx / L); E.dz.push(dz / L); }
+      if (R2.ow <= 0) { OUT[b].push(E.a.length); E.a.push(b); E.b.push(a); E.road.push(ri); E.len.push(L); E.dx.push(-dx / L); E.dz.push(-dz / L); }
+    }
+  });
+  C.roads = roads; C.E = E; C.OUT = OUT; C.deg = deg; C.ne = E.a.length;
+  // what is where, on a 1 m grid: 0 ground, 1 road, 2 building, 3 pavement or path, 4 water, 5 green
+  var L = Math.ceil(C.R + 130), N = 2 * L, G = new Uint8Array(N * N);
+  C.L = L; C.N = N; C.G = G;
+  function cell(x, z) { var i = Math.floor(x + L), j = Math.floor(z + L); return i < 0 || j < 0 || i >= N || j >= N ? -1 : j * N + i; }
+  C.cell = cell;
+  C.at = function (x, z) { var c = cell(x, z); return c < 0 ? 2 : G[c]; };
+  function poly(pts, v, only) { // fill a polygon (flat [x,z,...] in metres)
+    var n = pts.length / 2, z0 = 1e9, z1 = -1e9, k;
+    for (k = 0; k < n; k++) { z0 = Math.min(z0, pts[2 * k + 1]); z1 = Math.max(z1, pts[2 * k + 1]); }
+    for (var z = Math.max(-L, Math.floor(z0)) + 0.5; z < Math.min(L, z1); z++) {
+      var xs = [];
+      for (k = 0; k < n; k++) {
+        var ax = pts[2 * k], az = pts[2 * k + 1], bx = pts[(2 * k + 2) % (2 * n)], bz = pts[(2 * k + 3) % (2 * n)];
+        if ((az <= z) !== (bz <= z)) xs.push(ax + (z - az) / (bz - az) * (bx - ax));
+      }
+      xs.sort(function (p, q) { return p - q; });
+      for (k = 0; k + 1 < xs.length; k += 2) {
+        var row = (Math.floor(z) + L) * N;
+        for (var x = Math.max(-L, Math.ceil(xs[k] - 0.5)); x < Math.min(L, xs[k + 1] - 0.5); x++) { var c2 = row + x + L; if (!only || only(G[c2])) G[c2] = v; }
+      }
+    }
+  }
+  function thick(ax, az, bx, bz, r, v, only) { // a thick line
+    var x0 = Math.floor(Math.min(ax, bx) - r), x1 = Math.ceil(Math.max(ax, bx) + r), z0 = Math.floor(Math.min(az, bz) - r), z1 = Math.ceil(Math.max(az, bz) + r);
+    var dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1e-6, r2 = r * r;
+    for (var z = Math.max(-L, z0); z < Math.min(L, z1); z++) for (var x = Math.max(-L, x0); x < Math.min(L, x1); x++) {
+      var px = x + 0.5, pz = z + 0.5, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / l2)), qx = ax + t * dx - px, qz = az + t * dz - pz;
+      if (qx * qx + qz * qz <= r2) { var c = (z + L) * N + x + L; if (!only || only(G[c])) G[c] = v; }
+    }
+  }
+  C.poly = poly; C.thick = thick;
+  var M = function (a) { var o = new Float32Array(a.length); for (var k = 0; k < a.length; k++) o[k] = a[k] / 10; return o; };
+  C.areas = (D.areas || []).map(function (a) { return { k: a[0], p: M(a.slice(1)) }; });
+  C.areas.forEach(function (a) { if (a.k === "g") poly(a.p, 5); else if (a.k === "s" || a.k === "l" || a.k === "p") poly(a.p, 3); });
+  C.walks = (D.walks || []).map(M);
+  C.walks.forEach(function (w) { for (var k = 0; k + 3 < w.length; k += 2) thick(w[k], w[k + 1], w[k + 2], w[k + 3], 1.3, 3, function (g) { return g !== 1; }); });
+  // pavements along the streets (not for highways and lanes), then the roads over them
+  roads.forEach(function (r) { if (r.t < 2 || r.t > 6) return; for (var k = 0; k + 1 < r.v.length; k++) thick(VX[r.v[k]], VZ[r.v[k]], VX[r.v[k + 1]], VZ[r.v[k + 1]], r.w / 2 + 2.6, 3, function (g) { return g !== 1; }); });
+  roads.forEach(function (r) { for (var k = 0; k + 1 < r.v.length; k++) thick(VX[r.v[k]], VZ[r.v[k]], VX[r.v[k + 1]], VZ[r.v[k + 1]], r.w / 2, 1); });
+  // the sea: whatever lies to the right of the coastline (OpenStreetMap draws it with the land on its left)
+  C.coast = (D.coast || []).map(M);
+  C.water = [];
+  if (C.coast.length) seaFill(C);
+  C.areas.forEach(function (a) { if (a.k === "w") { poly(a.p, 4, function (g) { return g !== 1; }); C.water.push(a.p); } });
+  // buildings last: they win over pavements (but never block a road: some outlines overlap the street by a little)
+  C.bld = (D.bld || []).map(function (b) { return { h: b[0] / 10, k: b[1], p: M(b.slice(2)) }; });
+  C.bld.forEach(function (b) { poly(b.p, 2, function (g) { return g !== 1; }); });
+  // points: traffic lights, stop and give-way signs, crossings, bus stops, lamps, trees
+  var nd = D.nodes || {}; C.nodes = {}; for (var key in nd) C.nodes[key] = M(nd[key]);
+  C.poi = (D.poi || []).map(function (p) { return { k: p[0], name: p[1] >= 0 ? C.names[p[1]] : "", x: p[2] / 10, z: p[3] / 10 }; });
+  // a coarse index of the road pieces, to find the nearest street fast
+  var B = 40, nb = Math.ceil(N / B), IDX = []; for (i = 0; i < nb * nb; i++) IDX.push(null);
+  roads.forEach(function (r, ri) { for (var k = 0; k + 1 < r.v.length; k++) {
+    var ax = VX[r.v[k]], az = VZ[r.v[k]], bx = VX[r.v[k + 1]], bz = VZ[r.v[k + 1]];
+    var i0 = Math.floor((Math.min(ax, bx) - 8 + L) / B), i1 = Math.floor((Math.max(ax, bx) + 8 + L) / B), j0 = Math.floor((Math.min(az, bz) - 8 + L) / B), j1 = Math.floor((Math.max(az, bz) + 8 + L) / B);
+    for (var jj = Math.max(0, j0); jj <= Math.min(nb - 1, j1); jj++) for (var ii = Math.max(0, i0); ii <= Math.min(nb - 1, i1); ii++) (IDX[jj * nb + ii] = IDX[jj * nb + ii] || []).push(ri, k);
+  } });
+  C.near = function (x, z, maxd, filt) { // the nearest road piece: { road, k, t, x, z, d, dx, dz }
+    var ii = Math.floor((x + L) / B), jj = Math.floor((z + L) / B), best = null, bd = (maxd || 30) * (maxd || 30);
+    for (var j = jj - 1; j <= jj + 1; j++) for (var i2 = ii - 1; i2 <= ii + 1; i2++) {
+      if (i2 < 0 || j < 0 || i2 >= nb || j >= nb) continue; var l = IDX[j * nb + i2]; if (!l) continue;
+      for (var q = 0; q < l.length; q += 2) {
+        var r = roads[l[q]], k = l[q + 1]; if (filt && !filt(r)) continue;
+        var ax = VX[r.v[k]], az = VZ[r.v[k]], dx = VX[r.v[k + 1]] - ax, dz = VZ[r.v[k + 1]] - az, l2 = dx * dx + dz * dz || 1e-6;
+        var t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2)), px = ax + t * dx, pz = az + t * dz, d2 = (px - x) * (px - x) + (pz - z) * (pz - z);
+        if (d2 < bd) { bd = d2; var ln = Math.sqrt(l2); best = { road: l[q], k: k, t: t, x: px, z: pz, d: Math.sqrt(d2), dx: dx / ln, dz: dz / ln }; }
+      }
+    }
+    return best;
+  };
+  return C;
+}
+// The sea. OpenStreetMap draws the coastline with the land on its left and the water on its right, so along each row
+// of the grid every crossing of the coast flips land and water, and its direction says which side is which.
+function seaFill(C) {
+  var segs = [];
+  C.coast.forEach(function (c) { for (var k = 0; k + 3 < c.length; k += 2) segs.push(c[k], c[k + 1], c[k + 2], c[k + 3]); });
+  var n = segs.length / 4, L = C.L, N = C.N, G = C.G, any = 0;
+  for (var j = 0; j < N; j++) {
+    var z = j - L + 0.5, xs = [];
+    for (var k = 0; k < n; k++) {
+      var az = segs[4 * k + 1], bz = segs[4 * k + 3];
+      if ((az <= z) === (bz <= z)) continue;
+      var ax = segs[4 * k], bx = segs[4 * k + 2];
+      xs.push([ax + (z - az) / (bz - az) * (bx - ax), bz < az ? 1 : -1]); // 1: the coast heads north here, water to the east
+    }
+    if (!xs.length) continue;
+    any = 1; xs.sort(function (p, q) { return p[0] - q[0]; });
+    var wet = xs[0][1] < 0, q = 0, row = j * N; // west of the first crossing: water if that crossing heads south
+    for (var i = 0; i < N; i++) {
+      var x = i - L + 0.5;
+      while (q < xs.length && xs[q][0] < x) { wet = xs[q][1] > 0; q++; }
+      if (wet && G[row + i] !== 1) G[row + i] = 4;
+    }
+  }
+  C.hasSea = !!any;
+}
+// The shortest way by car between two points of the road graph (A*), as a list of edges.
+function cityRoute(C, fromE, toV) {
+  var E = C.E, VX = C.VX, VZ = C.VZ, ne = C.ne, gs = new Float32Array(ne).fill(Infinity), prev = new Int32Array(ne).fill(-1), done = new Uint8Array(ne);
+  var tx = VX[toV], tz = VZ[toV], heap = [], push = function (e, f) { heap.push([f, e]); var i = heap.length - 1; while (i > 0) { var p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; var t = heap[p]; heap[p] = heap[i]; heap[i] = t; i = p; } };
+  var pop = function () { var top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; var i = 0; for (;;) { var l = 2 * i + 1, r = l + 1, m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; var t = heap[m]; heap[m] = heap[i]; heap[i] = t; i = m; } } return top; };
+  var cost = function (e) { var r = C.roads[E.road[e]]; return E.len[e] / Math.max(6, Math.min(r.vmax, 18)); };
+  fromE.forEach(function (e) { gs[e] = cost(e) * 0.5; push(e, gs[e]); });
+  var found = -1, n = 0;
+  while (heap.length && n++ < 200000) {
+    var it = pop(), e = it[1]; if (done[e]) continue; done[e] = 1;
+    var b = E.b[e]; if (b === toV) { found = e; break; }
+    var outs = C.OUT[b];
+    for (var q = 0; q < outs.length; q++) {
+      var f = outs[q]; if (E.b[f] === E.a[e] && outs.length > 1) continue; // no U-turn unless it is a dead end
+      var g = gs[e] + cost(f); if (g < gs[f]) { gs[f] = g; prev[f] = e; push(f, g + Math.hypot(VX[E.b[f]] - tx, VZ[E.b[f]] - tz) / 18); }
+    }
+  }
+  if (found < 0) return null;
+  var path = []; for (var x = found; x >= 0; x = prev[x]) path.push(x);
+  return path.reverse();
+}
+
+// The open city in 3D, from the map read by citydata.js: the ground, sea and parks; the roads with pavements, the
+// painted kerbs (red-white and blue-white, as in Israel), lane lines and zebra crossings; the buildings (by the city:
+// Jerusalem stone, Tel Aviv's white plaster, glass towers), with solar water heaters on the roofs and windows lit at
+// night; street-name signs at the junctions, stop and give-way signs, speed limits, traffic lights, bus stops, lamps,
+// trees and palms. Everything is merged into a few meshes per area of the city (so the far parts are skipped).
+var CB = { tile: 400 };
+function cbRand(seed) { var s = Math.abs(Math.floor(seed * 9301 + 49297)) % 233280 || 1; return function () { s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+// a growing set of triangles for one material, split by area of the city
+function cbBatch() {
+  var T = {};
+  return {
+    get: function (x, z) { var k = Math.floor(x / CB.tile) + "," + Math.floor(z / CB.tile); return T[k] || (T[k] = { p: [], n: [], u: [], c: [] }); },
+    tiles: T
+  };
+}
+function cbQuad(b, a1, a2, a3, a4, n, uv, col) { // a quad as two triangles: corners [x,y,z] in order, normal, uv [u0,v0,u1,v1]
+  var P = b.p, N = b.n, U = b.u, Cc = b.c, cs = [a1, a2, a3, a1, a3, a4], us = [[uv[0], uv[1]], [uv[2], uv[1]], [uv[2], uv[3]], [uv[0], uv[1]], [uv[2], uv[3]], [uv[0], uv[3]]];
+  // face the way of the normal (three.js draws only the front of a triangle): turn the corners round if needed
+  var ux = a2[0] - a1[0], uy = a2[1] - a1[1], uz = a2[2] - a1[2], vx = a3[0] - a1[0], vy = a3[1] - a1[1], vz = a3[2] - a1[2];
+  if ((uy * vz - uz * vy) * n[0] + (uz * vx - ux * vz) * n[1] + (ux * vy - uy * vx) * n[2] < 0) { cs = [a1, a3, a2, a1, a4, a3]; us = [us[0], us[2], us[1], us[3], us[5], us[4]]; }
+  for (var i = 0; i < 6; i++) { P.push(cs[i][0], cs[i][1], cs[i][2]); N.push(n[0], n[1], n[2]); U.push(us[i][0], us[i][1]); if (col) Cc.push(col[0], col[1], col[2]); }
+}
+function cbTri(b, a1, a2, a3, uvs, col) { // a flat triangle, facing up whichever way its corners go
+  if ((a2[2] - a1[2]) * (a3[0] - a1[0]) - (a2[0] - a1[0]) * (a3[2] - a1[2]) < 0) { var tt = a2; a2 = a3; a3 = tt; if (uvs) uvs = [uvs[0], uvs[2], uvs[1]]; }
+  [a1, a2, a3].forEach(function (a, i) { b.p.push(a[0], a[1], a[2]); b.n.push(0, 1, 0); b.u.push(uvs ? uvs[i][0] : a[0] / 4, uvs ? uvs[i][1] : a[2] / 4); if (col) b.c.push(col[0], col[1], col[2]); });
+}
+function cbFlush(scene, batch, mat, opt) { // the batch → meshes in the scene
+  var out = [];
+  for (var k in batch.tiles) {
+    var t = batch.tiles[k]; if (!t.p.length) continue;
+    var g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(t.p, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(t.n, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(t.u, 2));
+    if (t.c.length) g.setAttribute("color", new THREE.Float32BufferAttribute(t.c, 3));
+    g.computeBoundingSphere();
+    var m = new THREE.Mesh(g, mat); m.matrixAutoUpdate = false; m.receiveShadow = !(opt && opt.noRecv); m.castShadow = !!(opt && opt.cast); if (opt && opt.order) m.renderOrder = opt.order;
+    scene.add(m); out.push(m);
+  }
+  return out;
+}
+// a polygon on the ground (flat [x,z,...]), triangulated
+function cbFlat(b, pts, y, s) {
+  var v = []; for (var i = 0; i < pts.length; i += 2) v.push(new THREE.Vector2(pts[i], pts[i + 1]));
+  if (v.length < 3) return;
+  if (THREE.ShapeUtils.isClockWise(v)) v.reverse();
+  var tri; try { tri = THREE.ShapeUtils.triangulateShape(v, []); } catch (e) { return; }
+  s = s || 4;
+  tri.forEach(function (t) { cbTri(b, [v[t[0]].x, y, v[t[0]].y], [v[t[2]].x, y, v[t[2]].y], [v[t[1]].x, y, v[t[1]].y], [[v[t[0]].x / s, v[t[0]].y / s], [v[t[2]].x / s, v[t[2]].y / s], [v[t[1]].x / s, v[t[1]].y / s]]); });
+}
+// a strip along a polyline (points as [x,z] pairs): from offset o1 to o2 to its right, at height y, texture every `rep` m
+function cbStrip(b, P, o1, o2, y, rep, col) {
+  var acc = 0;
+  for (var k = 0; k + 1 < P.length; k++) {
+    var ax = P[k][0], az = P[k][1], bx = P[k + 1][0], bz = P[k + 1][1], dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz); if (L < 0.01) continue;
+    // mitred sides: average the directions at the joints
+    var n0 = cbNormal(P, k), n1 = cbNormal(P, k + 1);
+    var u0 = acc / rep, u1 = (acc + L) / rep; acc += L;
+    cbQuad(b, [ax + n0[0] * o1, y, az + n0[1] * o1], [bx + n1[0] * o1, y, bz + n1[1] * o1], [bx + n1[0] * o2, y, bz + n1[1] * o2], [ax + n0[0] * o2, y, az + n0[1] * o2], [0, 1, 0], [u0, 0, u1, 1], col);
+  }
+}
+function cbNormal(P, k) { // the right-hand side at point k (x east, z south: right of (dx,dz) is (-dz,dx))
+  var a = P[Math.max(0, k - 1)], b = P[k], c = P[Math.min(P.length - 1, k + 1)], d1x = b[0] - a[0], d1z = b[1] - a[1], d2x = c[0] - b[0], d2z = c[1] - b[1];
+  var l1 = Math.hypot(d1x, d1z) || 1, l2 = Math.hypot(d2x, d2z) || 1;
+  if (k === 0) { d1x = d2x; d1z = d2z; l1 = l2; } if (k === P.length - 1) { d2x = d1x; d2z = d1z; l2 = l1; }
+  var nx = -(d1z / l1 + d2z / l2), nz = d1x / l1 + d2x / l2, nl = Math.hypot(nx, nz) || 1, cos = (nx / nl) * (-d2z / l2) + (nz / nl) * (d2x / l2);
+  var m = 1 / Math.max(0.5, cos); // longer at sharp joints, but not too long
+  return [nx / nl * m, nz / nl * m];
+}
+// ---------- textures ----------
+function cbCanvas(w, h, draw) { var c = document.createElement("canvas"); c.width = w; c.height = h; var x = c.getContext("2d"); draw(x, w, h); var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; t.encoding = THREE.sRGBEncoding; return t; }
+function cbNoise(x, w, h, base, n, a, sz) { x.fillStyle = base; x.fillRect(0, 0, w, h); for (var i = 0; i < n; i++) { var v = Math.random(); x.fillStyle = "rgba(" + (v < 0.5 ? "0,0,0" : "255,255,255") + "," + (Math.random() * a) + ")"; x.fillRect(Math.random() * w, Math.random() * h, sz || 2, sz || 2); } }
+// Facades: one tile is 4 windows across and 4 floors up (3.4 m × 3.1 m each). style: 0 white plaster, 1 Jerusalem stone,
+// 2 glass tower, 3 older block with air conditioners, 4 coloured plaster. The second texture lights some windows at night.
+var FACADE = { cols: 4, rows: 4, cw: 3.4, fh: 3.1 };
+function cbFacade(style, lit) {
+  var W = 512, H = 512, cw = W / 4, fh = H / 4, R = cbRand(style * 7 + (lit ? 3 : 1));
+  return cbCanvas(W, H, function (x) {
+    if (lit) { x.fillStyle = "#000"; x.fillRect(0, 0, W, H); }
+    else if (style === 1) { // stone courses
+      x.fillStyle = "#D9C6A0"; x.fillRect(0, 0, W, H);
+      for (var y = 0; y < H; y += 16) for (var xx = (y / 16) % 2 ? -18 : 0; xx < W; xx += 36) { var t = 0.85 + Math.random() * 0.2; x.fillStyle = "rgb(" + Math.round(217 * t) + "," + Math.round(198 * t) + "," + Math.round(160 * t) + ")"; x.fillRect(xx + 1, y + 1, 34, 14); }
+    } else if (style === 2) { x.fillStyle = "#5E7A93"; x.fillRect(0, 0, W, H); }
+    else { cbNoise(x, W, H, style === 0 ? "#F1EEE6" : style === 3 ? "#C9C4B8" : "#EBDDC7", 4000, 0.06); }
+    for (var r = 0; r < 4; r++) for (var c = 0; c < 4; c++) {
+      var X = c * cw, Y = r * fh, on = R() < 0.28;
+      if (style === 2) { // glass: full panels with thin mullions
+        if (lit) { if (on) { x.fillStyle = R() < 0.5 ? "#FFE2A8" : "#CFE6FF"; x.fillRect(X + 3, Y + 3, cw - 6, fh - 6); } continue; }
+        var gr = x.createLinearGradient(X, Y, X + cw, Y + fh); gr.addColorStop(0, "#8FB3CF"); gr.addColorStop(1, "#3F5C78"); x.fillStyle = gr; x.fillRect(X + 3, Y + 3, cw - 6, fh - 6); continue;
+      }
+      var ww = style === 0 && c % 2 ? cw * 0.72 : cw * 0.46, wh = fh * 0.5, wx = X + (cw - ww) / 2, wy = Y + fh * 0.2;
+      if (lit) { if (on) { x.fillStyle = R() < 0.7 ? "#FFD58A" : "#BFD9FF"; x.fillRect(wx, wy, ww, wh); } continue; }
+      x.fillStyle = "#2B3440"; x.fillRect(wx, wy, ww, wh);
+      x.fillStyle = "rgba(170,200,230,.35)"; x.fillRect(wx + 3, wy + 3, ww * 0.45, wh - 6);
+      if (style === 1) { x.fillStyle = "#3F6B5A"; x.fillRect(wx - 6, wy, 6, wh); x.fillRect(wx + ww, wy, 6, wh); } // shutters
+      if (style === 0 && c % 2) { x.fillStyle = "#FFFFFF"; x.fillRect(X + 4, wy + wh, cw - 8, fh * 0.26); x.fillStyle = "#DAD6CC"; x.fillRect(X + 4, wy + wh, cw - 8, 3); } // balcony
+      if ((style === 3 || style === 4) && R() < 0.55) { x.fillStyle = "#E9E9E4"; x.fillRect(wx + ww * 0.15, wy + wh + 4, ww * 0.7, fh * 0.16); x.fillStyle = "#9AA0A6"; for (var g = 0; g < 4; g++) x.fillRect(wx + ww * 0.2 + g * ww * 0.15, wy + wh + 7, 2, fh * 0.1); } // air conditioner
+      if (style !== 1) { x.fillStyle = "rgba(0,0,0,.08)"; x.fillRect(X, Y + fh - 4, cw, 4); }
+    }
+  });
+}
+// A sheet of street-name plates (white with a blue frame, like many Israeli street signs) and traffic signs
+function cbSignSheet(names) {
+  var cols = 4, slotW = 512, slotH = 128, rows = Math.max(1, Math.ceil((names.length + 8) / cols)), H = Math.min(4096, rows * slotH);
+  var tex = cbCanvas(cols * slotW, H, function (x) {
+    x.textAlign = "center"; x.textBaseline = "middle";
+    names.forEach(function (n, i) {
+      var X = (i % cols) * slotW, Y = Math.floor(i / cols) * slotH; if (Y + slotH > H) return;
+      x.fillStyle = "#1B3F8C"; x.fillRect(X, Y, slotW, slotH); x.fillStyle = "#FFFFFF"; x.fillRect(X + 9, Y + 9, slotW - 18, slotH - 18);
+      x.fillStyle = "#1B3F8C"; var fs = 64; x.font = "800 " + fs + "px Rubik, Arial, sans-serif"; while (x.measureText(n).width > slotW - 40 && fs > 26) { fs -= 4; x.font = "800 " + fs + "px Rubik, Arial, sans-serif"; }
+      x.fillText(n, X + slotW / 2, Y + slotH / 2 + 3);
+    });
+  });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  return { tex: tex, uv: function (i) { var X = (i % cols) * slotW, Y = Math.floor(i / cols) * slotH, W2 = cols * slotW; return [X / W2, 1 - (Y + slotH) / H, (X + slotW) / W2, 1 - Y / H]; } };
+}
+function cbTrafficSigns() {
+  // 0 stop, 1 give way, 2..: speed limits 30 40 50 60 70 80 90, 9 bus stop, 10 the grey back of a sign
+  var sp = [30, 40, 50, 60, 70, 80, 90], S = 128, n = 11;
+  var tex = cbCanvas(S * n, S, function (x) {
+    x.textAlign = "center"; x.textBaseline = "middle";
+    // stop: a red octagon with "עצור"
+    x.save(); x.translate(S / 2, S / 2); x.fillStyle = "#FFFFFF"; x.beginPath(); for (var i = 0; i < 8; i++) { var a = Math.PI / 8 + i * Math.PI / 4; x.lineTo(Math.cos(a) * 62, Math.sin(a) * 62); } x.fill();
+    x.fillStyle = "#C8102E"; x.beginPath(); for (i = 0; i < 8; i++) { a = Math.PI / 8 + i * Math.PI / 4; x.lineTo(Math.cos(a) * 56, Math.sin(a) * 56); } x.fill();
+    x.fillStyle = "#FFFFFF"; x.font = "900 34px Rubik, Arial"; x.fillText("עצור", 0, 3); x.restore();
+    // give way: a red-edged triangle pointing down
+    x.save(); x.translate(S * 1.5, S / 2); x.fillStyle = "#C8102E"; x.beginPath(); x.moveTo(-60, -50); x.lineTo(60, -50); x.lineTo(0, 56); x.fill(); x.fillStyle = "#FFFFFF"; x.beginPath(); x.moveTo(-40, -38); x.lineTo(40, -38); x.lineTo(0, 32); x.fill(); x.restore();
+    sp.forEach(function (v, k) { x.save(); x.translate(S * (2.5 + k), S / 2); x.fillStyle = "#C8102E"; x.beginPath(); x.arc(0, 0, 60, 0, 7); x.fill(); x.fillStyle = "#FFFFFF"; x.beginPath(); x.arc(0, 0, 46, 0, 7); x.fill(); x.fillStyle = "#111"; x.font = "900 46px Arial"; x.fillText(String(v), 0, 3); x.restore(); });
+    x.fillStyle = "#9AA0A6"; x.fillRect(S * 10 + 8, 8, S - 16, S - 16);
+    x.save(); x.translate(S * 9.5, S / 2); x.fillStyle = "#1B6FD0"; x.fillRect(-56, -56, 112, 112); x.fillStyle = "#FFF"; x.font = "64px Arial"; x.fillText("🚌", 0, 4); x.restore();
+  });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  return { tex: tex, uv: function (i) { return [i / n, 0, (i + 1) / n, 1]; }, speed: function (v) { var k = sp.indexOf(v); return k < 0 ? -1 : 2 + k; } };
+}
+// ---------- the whole city ----------
+function cityBuild(C, scene, cityId) {
+  var VX = C.VX, VZ = C.VZ, R = cbRand(C.nv + 7), M = {}, hi = G.hi;
+  var lam = function (o) { return new THREE.MeshLambertMaterial(o); };
+  // ground and sea
+  var big = (C.L + 1800) * 2;
+  var gTex = cbCanvas(256, 256, function (x, w, h) { cbNoise(x, w, h, "#CBBF9F", 3000, 0.08); }); gTex.repeat.set(big / 12, big / 12);
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(big, big), lam({ map: gTex })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+  M.sea = new THREE.MeshPhongMaterial({ color: 0x1D6FA3, shininess: 90, specular: 0x88AACC, transparent: true, opacity: 0.94 });
+  var sea = cbBatch(), G2 = C.G, N = C.N, L = C.L;
+  // the sea and lakes from the grid: runs of water cells per row (4 m rows), plus the open sea beyond the map edge
+  for (var j = 0; j < N; j += 4) {
+    var row = Math.min(N - 1, j + 2) * N, i0 = -1;
+    for (var i = 0; i <= N; i++) {
+      var wet = i < N && G2[row + i] === 4;
+      if (wet && i0 < 0) i0 = i; if (!wet && i0 >= 0) {
+        var xa = i0 - L - (i0 === 0 ? 1800 : 0.6), xb = i - L + (i === N ? 1800 : 0.6), za = j - L - (j === 0 ? 1800 : 0), zb = j + 4 - L + (j + 4 >= N ? 1800 : 0);
+        cbQuad(sea.get((xa + xb) / 2, (za + zb) / 2), [xa, 0.05, za], [xb, 0.05, za], [xb, 0.05, zb], [xa, 0.05, zb], [0, 1, 0], [0, 0, 1, 1]); i0 = -1;
+      }
+    }
+  }
+  if (C.hasSea) { // the far sea: extend the first and last rows outwards
+    for (var side = 0; side < 2; side++) {
+      var jr = side ? N - 1 : 0, rr = jr * N, s0 = -1;
+      for (i = 0; i <= N; i++) { var w2 = i < N && G2[rr + i] === 4; if (w2 && s0 < 0) s0 = i; if (!w2 && s0 >= 0) { var xa2 = s0 - L - (s0 === 0 ? 1800 : 0), xb2 = i - L + (i === N ? 1800 : 0), za2 = side ? L : -L - 1800, zb2 = side ? L + 1800 : -L; cbQuad(sea.get(xa2, za2), [xa2, 0.05, za2], [xb2, 0.05, za2], [xb2, 0.05, zb2], [xa2, 0.05, zb2], [0, 1, 0], [0, 0, 1, 1]); s0 = -1; } }
+    }
+  }
+  cbFlush(scene, sea, M.sea, { noRecv: true });
+  // parks, sand, squares, car parks
+  var gr = cbCanvas(256, 256, function (x, w, h) { cbNoise(x, w, h, "#6E9E4A", 5000, 0.12); }), sd = cbCanvas(256, 256, function (x, w, h) { cbNoise(x, w, h, "#E6D3A3", 4000, 0.08); });
+  var pv = cbCanvas(256, 256, function (x, w, h) { x.fillStyle = "#C9C6BE"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(0,0,0,.12)"; for (var k = 0; k <= w; k += 32) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, h); x.stroke(); x.beginPath(); x.moveTo(0, k); x.lineTo(w, k); x.stroke(); } });
+  var asph = cbCanvas(256, 256, function (x, w, h) { cbNoise(x, w, h, "#4A4D52", 6000, 0.1); });
+  M.grass = lam({ map: gr, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }); M.sand = lam({ map: sd, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  M.pave = lam({ map: pv, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); M.lot = lam({ map: asph, color: 0xB8B8B8, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  var bG = cbBatch(), bS = cbBatch(), bP = cbBatch(), bL = cbBatch();
+  C.areas.forEach(function (a) { var b = a.k === "g" ? bG : a.k === "s" ? bS : a.k === "p" ? bL : a.k === "l" ? bP : null; if (b) cbFlat(b.get(a.p[0], a.p[1]), a.p, a.k === "g" ? 0.03 : 0.04, a.k === "p" ? 6 : 4); });
+  // pavements along streets, paths
+  roadsAsPts().forEach(function (r) { if (r.t < 2 || r.t > 6) return; var b = bP.get(r.P[0][0], r.P[0][1]); cbStrip(b, r.P, r.w / 2 - 0.2, r.w / 2 + 2.8, 0.06, 3); cbStrip(b, r.P, -r.w / 2 - 2.8, -r.w / 2 + 0.2, 0.06, 3); });
+  C.walks.forEach(function (w) { var P = []; for (var k = 0; k < w.length; k += 2) P.push([w[k], w[k + 1]]); cbStrip(bP.get(P[0][0], P[0][1]), P, -1.2, 1.2, 0.05, 3); });
+  cbFlush(scene, bG, M.grass); cbFlush(scene, bS, M.sand); cbFlush(scene, bP, M.pave); cbFlush(scene, bL, M.lot);
+  function roadsAsPts() { return C._rp || (C._rp = C.roads.map(function (r) { return { t: r.t, w: r.w, ow: r.ow, name: r.name, lanes: r.lanes, vmax: r.vmax, P: r.v.map(function (v) { return [VX[v], VZ[v]]; }) }; })); }
+  // roads: asphalt, then round patches at the junctions, kerbs and paint
+  M.road = lam({ map: asph, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  var curbT = cbCanvas(64, 8, function (x) { x.fillStyle = "#E8E8E8"; x.fillRect(0, 0, 64, 8); x.fillStyle = "#C8102E"; x.fillRect(0, 0, 32, 8); });
+  var curbB = cbCanvas(64, 8, function (x) { x.fillStyle = "#E8E8E8"; x.fillRect(0, 0, 64, 8); x.fillStyle = "#1B5FC0"; x.fillRect(0, 0, 32, 8); });
+  var curbG = cbCanvas(64, 8, function (x) { x.fillStyle = "#B9B9B4"; x.fillRect(0, 0, 64, 8); });
+  M.curb = [lam({ map: curbG, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), lam({ map: curbT, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }), lam({ map: curbB, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })];
+  var dash = cbCanvas(16, 64, function (x) { x.clearRect(0, 0, 16, 64); x.fillStyle = "#F4F4F0"; x.fillRect(0, 0, 16, 32); });
+  M.paint = new THREE.MeshLambertMaterial({ map: dash, transparent: true, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5, depthWrite: false });
+  M.white = new THREE.MeshLambertMaterial({ color: 0xF4F4F0, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5, depthWrite: false });
+  var bR = cbBatch(), bC = [cbBatch(), cbBatch(), cbBatch()], bD = cbBatch(), bW = cbBatch();
+  roadsAsPts().forEach(function (r, ri) {
+    var b = bR.get(r.P[0][0], r.P[0][1]); cbStrip(b, r.P, -r.w / 2, r.w / 2, 0.08, 8);
+    if (r.t >= 2 && r.t <= 6) { // kerbs: main roads red-white (no stopping), some streets blue-white (paid parking), the rest grey
+      var ck = r.t <= 3 ? 1 : (ri % 3 === 0 ? 2 : 0), cb = bC[ck].get(r.P[0][0], r.P[0][1]);
+      cbStrip(cb, r.P, r.w / 2 - 0.05, r.w / 2 + 0.3, 0.09, 2); cbStrip(cb, r.P, -r.w / 2 - 0.3, -r.w / 2 + 0.05, 0.09, 2);
+    }
+    if (!r.ow && r.t <= 5 && r.w >= 7) cbStrip(bD.get(r.P[0][0], r.P[0][1]), r.P, -0.08, 0.08, 0.1, 6); // the dashed middle line
+    if (r.ow && r.w >= 7) { var nl = Math.max(2, Math.round(r.w / 3.4)); for (var q = 1; q < nl; q++) { var o = -r.w / 2 + q * r.w / nl; cbStrip(bD.get(r.P[0][0], r.P[0][1]), r.P, o - 0.07, o + 0.07, 0.1, 6); } }
+  });
+  // round patches where roads meet, so the corners are filled
+  for (var v = 0; v < C.nv; v++) {
+    if (C.deg[v] < 3) continue;
+    var wmax = 0; C.OUT[v].forEach(function (e) { wmax = Math.max(wmax, C.roads[C.E.road[e]].w); });
+    if (!wmax) continue; var rr2 = wmax / 2 + 0.4, b2 = bR.get(VX[v], VZ[v]), cx = VX[v], cz = VZ[v];
+    for (var a = 0; a < 12; a++) { var a0 = a / 12 * Math.PI * 2, a1 = (a + 1) / 12 * Math.PI * 2; cbTri(b2, [cx, 0.081, cz], [cx + Math.cos(a1) * rr2, 0.081, cz + Math.sin(a1) * rr2], [cx + Math.cos(a0) * rr2, 0.081, cz + Math.sin(a0) * rr2]); }
+  }
+  // zebra crossings and stop lines
+  var cross = C.nodes.cross || [];
+  C.zebras = [];
+  for (var k = 0; k < cross.length; k += 2) {
+    var nr = C.near(cross[k], cross[k + 1], 6); if (!nr) continue; var rd = C.roads[nr.road]; if (rd.t > 6) continue;
+    var dx = nr.dx, dz = nr.dz, rx = -dz, rz = dx, bw = bW.get(nr.x, nr.z), hw = rd.w / 2 - 0.3;
+    C.zebras.push({ x: nr.x, z: nr.z, dx: dx, dz: dz, w: rd.w });
+    for (var s = -hw; s < hw - 0.3; s += 1.0) cbQuad(bw, [nr.x + rx * s - dx * 1.6, 0.11, nr.z + rz * s - dz * 1.6], [nr.x + rx * (s + 0.5) - dx * 1.6, 0.11, nr.z + rz * (s + 0.5) - dz * 1.6], [nr.x + rx * (s + 0.5) + dx * 1.6, 0.11, nr.z + rz * (s + 0.5) + dz * 1.6], [nr.x + rx * s + dx * 1.6, 0.11, nr.z + rz * s + dz * 1.6], [0, 1, 0], [0, 0, 1, 1]);
+  }
+  cbFlush(scene, bR, M.road); bC.forEach(function (b, i3) { cbFlush(scene, b, M.curb[i3]); }); cbFlush(scene, bD, M.paint, { noRecv: true }); cbFlush(scene, bW, M.white, { noRecv: true });
+  // ---------- buildings ----------
+  var style = cityId === "jerusalem" ? [1, 1, 1, 1] : cityId === "tel-aviv" ? [0, 0, 0, 4] : cityId === "bnei-brak" || cityId === "beit-shemesh" ? [3, 4, 1, 0] : [4, 3, 0, 4];
+  M.fac = []; M.facLit = [];
+  for (var st = 0; st < 5; st++) { var lit = cbFacade(st, 1); M.facLit.push(lit); M.fac.push(new THREE.MeshLambertMaterial({ map: cbFacade(st, 0), emissiveMap: lit, emissive: 0x000000, vertexColors: true })); }
+  M.roof = lam({ color: 0xBDB8AE });
+  var bF = [0, 1, 2, 3, 4].map(cbBatch), bRf = cbBatch(), heaters = [];
+  var tint = function (st2) { var t = 0.9 + R() * 0.12; return st2 === 4 ? [[1, 0.95, 0.86], [0.98, 0.93, 0.9], [0.95, 0.97, 1], [1, 0.9, 0.82]][Math.floor(R() * 4)].map(function (c) { return c * t; }) : [t, t, t]; };
+  C.bld.forEach(function (b, bi) {
+    var p = b.p, n = p.length / 2; if (n < 3) return;
+    var area = 0, cx = 0, cz = 0; for (var q2 = 0; q2 < n; q2++) { var q3 = (q2 + 1) % n; area += p[2 * q2] * p[2 * q3 + 1] - p[2 * q3] * p[2 * q2 + 1]; cx += p[2 * q2]; cz += p[2 * q2 + 1]; }
+    var ccw = area > 0; area = Math.abs(area) / 2; cx /= n; cz /= n;
+    var h = b.h;
+    if (!h) { var fl = area < 60 ? 1 + Math.floor(R() * 2) : area < 250 ? 2 + Math.floor(R() * 3) : area < 1500 ? 3 + Math.floor(R() * (cityId === "netivot" ? 3 : 6)) : 2 + Math.floor(R() * 3); if (b.k === 2) fl = Math.min(fl, 2); h = fl * FACADE.fh + 0.6; }
+    var st2 = h > 45 ? 2 : b.k === 7 ? 1 : style[Math.floor(R() * 4)], col = tint(st2), bb = bF[st2].get(cx, cz);
+    var tw = FACADE.cols * FACADE.cw, th = FACADE.rows * FACADE.fh, acc2 = R() * 4;
+    for (q2 = 0; q2 < n; q2++) {
+      var ia = ccw ? q2 : (q2 + 1) % n, ib = ccw ? (q2 + 1) % n : q2;
+      var ax = p[2 * ia], az = p[2 * ia + 1], bx = p[2 * ib], bz = p[2 * ib + 1], el = Math.hypot(bx - ax, bz - az); if (el < 0.05) continue;
+      // outward normal: with the outline counter-clockwise in (x, z) the outside is to the right of each edge
+      var nx = (bz - az) / el, nz = -(bx - ax) / el;
+      if (!ccw) { nx = -nx; nz = -nz; }
+      cbQuad(bb, [bx, 0, bz], [ax, 0, az], [ax, h, az], [bx, h, bz], [nx, 0, nz], [(acc2 + el) / tw, 0, acc2 / tw, h / th], col);
+      acc2 += el;
+    }
+    cbFlat(bRf.get(cx, cz), p, h, 6);
+    if (h < 40 && area > 70 && b.k !== 3 && b.k !== 4 && R() < 0.8) { var nh = Math.min(6, 1 + Math.floor(area / 160)); for (var hh = 0; hh < nh; hh++) heaters.push([cx + (R() - 0.5) * Math.sqrt(area) * 0.5, h, cz + (R() - 0.5) * Math.sqrt(area) * 0.5, R() * 0.4]); }
+  });
+  C.facMeshes = [];
+  bF.forEach(function (b, i4) { C.facMeshes = C.facMeshes.concat(cbFlush(scene, b, M.fac[i4], { cast: hi })); });
+  cbFlush(scene, bRf, M.roof, { cast: false });
+  // solar water heaters (a white tank and a dark panel) on the roofs: one instanced mesh each
+  if (heaters.length) {
+    var tankG = new THREE.CylinderGeometry(0.32, 0.32, 1.4, 8); tankG.rotateZ(Math.PI / 2); tankG.translate(0, 0.9, -0.4);
+    var panG = new THREE.BoxGeometry(1.1, 0.06, 1.8); panG.rotateX(-0.5); panG.translate(0, 0.55, 0.5);
+    var tank = new THREE.InstancedMesh(tankG, lam({ color: 0xF2F2EE }), heaters.length), pan = new THREE.InstancedMesh(panG, new THREE.MeshPhongMaterial({ color: 0x1D2C4A, shininess: 80 }), heaters.length), mm = new THREE.Matrix4(), qq = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
+    heaters.forEach(function (hz, i5) { qq.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI + hz[3]); mm.compose(new THREE.Vector3(hz[0], hz[1], hz[2]), qq, one); tank.setMatrixAt(i5, mm); pan.setMatrixAt(i5, mm); });
+    scene.add(tank); scene.add(pan);
+  }
+  // ---------- street furniture ----------
+  var poleG = new THREE.CylinderGeometry(0.06, 0.06, 1, 6); poleG.translate(0, 0.5, 0);
+  var poles = [], signs = []; // poles: [x, z, height]; signs: plates [x, y, z, angle, w, h, sheet, slot]
+  // street-name plates: at junctions where streets with names meet, one pole at a corner with a plate along each street
+  var sheetNames = C.names.slice(0, 1000), sheet = cbSignSheet(sheetNames), named = {};
+  for (v = 0; v < C.nv; v++) {
+    if (C.deg[v] < 3) continue;
+    var byName = {}; C.OUT[v].forEach(function (e) { var r = C.roads[C.E.road[e]]; if (r.name && r.t <= 6 && !byName[r.name]) byName[r.name] = { e: e, r: r }; });
+    var keys = Object.keys(byName); if (keys.length < 2) continue;
+    var key2 = Math.round(VX[v] / 25) + "," + Math.round(VZ[v] / 25); if (named[key2]) continue; named[key2] = 1;
+    var e0 = byName[keys[0]], e1 = byName[keys[1]], d0 = [C.E.dx[e0.e], C.E.dz[e0.e]], d1 = [C.E.dx[e1.e], C.E.dz[e1.e]];
+    // the pole stands on the corner between the two streets
+    var bx = d0[0] + d1[0], bz = d0[1] + d1[1], bl = Math.hypot(bx, bz); if (bl < 0.2) { bx = -d0[1]; bz = d0[0]; bl = 1; }
+    var reach = Math.max(e0.r.w, e1.r.w) / 2 + 2.2, cxp = VX[v] + bx / bl * reach * 1.25, czp = VZ[v] + bz / bl * reach * 1.25;
+    if (C.at(cxp, czp) === 1 || C.at(cxp, czp) === 2) continue;
+    poles.push([cxp, czp, 3.2]);
+    // each plate runs along its street, so the drivers on the other street read it as they come
+    [e0, e1].forEach(function (it, m2) {
+      var idx = sheetNames.indexOf(it.r.name); if (idx < 0) return;
+      signs.push([cxp, 2.75 + m2 * 0.42, czp, -C.E.dz[it.e], C.E.dx[it.e], 1.5, 0.38, 0, idx, 1]);
+    });
+  }
+  // traffic signs on the right side of the road, facing the drivers coming toward the point
+  var ts = cbTrafficSigns();
+  function roadside(x, z, maxd, slot, hgt) {
+    var nr2 = C.near(x, z, maxd || 8); if (!nr2) return null; var rd2 = C.roads[nr2.road];
+    var dir = rd2.ow < 0 ? -1 : 1, dx2 = nr2.dx * dir, dz2 = nr2.dz * dir, rx2 = -dz2, rz2 = dx2, off = rd2.w / 2 + 0.9;
+    var px = nr2.x + rx2 * off - dx2 * 4, pz = nr2.z + rz2 * off - dz2 * 4;
+    poles.push([px, pz, hgt || 2.4]); signs.push([px, (hgt || 2.4) - 0.35, pz, -dx2, -dz2, 0.7, 0.7, 1, slot, 0]);
+    return nr2;
+  }
+  var stops = C.nodes.stop || [], gives = C.nodes.give || [];
+  for (k = 0; k < stops.length; k += 2) roadside(stops[k], stops[k + 1], 8, 0);
+  for (k = 0; k < gives.length; k += 2) roadside(gives[k], gives[k + 1], 8, 1);
+  // a speed sign at the start of each long street with a known limit
+  roadsAsPts().forEach(function (r) { var sl = ts.speed(Math.round(r.vmax * 3.6)); if (sl < 0 || r.t > 4 || r.P.length < 2) return; var len = 0; for (var k2 = 0; k2 + 1 < r.P.length; k2++) len += Math.hypot(r.P[k2 + 1][0] - r.P[k2][0], r.P[k2 + 1][1] - r.P[k2][1]); if (len < 120) return; roadside(r.P[1][0], r.P[1][1], 6, sl); });
+  // bus stops: a shelter and a sign
+  var bus = C.nodes.bus || [], shelters = [];
+  for (k = 0; k < bus.length; k += 2) { var nb2 = C.near(bus[k], bus[k + 1], 14); if (!nb2) continue; var rdb = C.roads[nb2.road], sgn = (bus[k] - nb2.x) * -nb2.dz + (bus[k + 1] - nb2.z) * nb2.dx >= 0 ? 1 : -1, off2 = rdb.w / 2 + 1.6; shelters.push([nb2.x - nb2.dz * off2 * sgn, nb2.z + nb2.dx * off2 * sgn, Math.atan2(nb2.dx, nb2.dz) + (sgn > 0 ? 0 : Math.PI)]); }
+  // plates: two materials (street names, traffic signs), merged
+  var plateB = [cbBatch(), cbBatch()];
+  // sg: [x, y, z, normal x, normal z, width, height, sheet, slot, two-sided]. The text reads left to right for
+  // someone facing the plate: their right hand is (nz, -nx) in this map (x east, z south).
+  signs.forEach(function (sg) {
+    var uv = sg[7] ? ts.uv(sg[8]) : sheet.uv(sg[8]), b3 = plateB[sg[7]].get(sg[0], sg[2]), hw2 = sg[5] / 2, hh2 = sg[6] / 2;
+    var face = function (nx, nz, u) {
+      var rx = nz, rz = -nx, lx = sg[0] - rx * hw2 + nx * 0.02, lz = sg[2] - rz * hw2 + nz * 0.02, qx = sg[0] + rx * hw2 + nx * 0.02, qz = sg[2] + rz * hw2 + nz * 0.02;
+      cbQuad(b3, [lx, sg[1] - hh2, lz], [qx, sg[1] - hh2, qz], [qx, sg[1] + hh2, qz], [lx, sg[1] + hh2, lz], [nx, 0, nz], u);
+    };
+    face(sg[3], sg[4], uv);
+    face(-sg[3], -sg[4], sg[9] ? uv : ts.uv(10));
+  });
+  cbFlush(scene, plateB[0], new THREE.MeshLambertMaterial({ map: sheet.tex, side: THREE.FrontSide }), { noRecv: true });
+  cbFlush(scene, plateB[1], new THREE.MeshLambertMaterial({ map: ts.tex, transparent: true, alphaTest: 0.5 }), { noRecv: true });
+  // traffic lights: a pole with a box on each street coming in; the lamps are instanced so their colours can change
+  var sig = C.nodes.sig || [], lights = [], seenV = {};
+  for (k = 0; k < sig.length; k += 2) {
+    var best = -1, bd = 15 * 15; for (v = 0; v < C.nv; v++) { if (C.deg[v] < 2) continue; var dd = (VX[v] - sig[k]) * (VX[v] - sig[k]) + (VZ[v] - sig[k + 1]) * (VZ[v] - sig[k + 1]); if (dd < bd) { bd = dd; best = v; } }
+    if (best < 0 || seenV[best]) continue; seenV[best] = 1;
+    var ins = []; for (var e = 0; e < C.ne; e++) if (C.E.b[e] === best) ins.push(e);
+    ins.forEach(function (e2) {
+      var r = C.roads[C.E.road[e2]], dx3 = C.E.dx[e2], dz3 = C.E.dz[e2], ox = -dz3 * (r.w / 2 + 0.8), oz = dx3 * (r.w / 2 + 0.8);
+      var px = VX[best] - dx3 * (r.w * 0.6 + 2) + ox, pz = VZ[best] - dz3 * (r.w * 0.6 + 2) + oz;
+      poles.push([px, pz, 3.6]); lights.push({ v: best, e: e2, x: px, z: pz, h: Math.atan2(-dx3, -dz3), axis: Math.abs(dx3) > Math.abs(dz3) ? 0 : 1 });
+    });
+  }
+  C.lights = lights; C.sigV = seenV;
+  if (lights.length) {
+    var box = new THREE.BoxGeometry(0.36, 1.0, 0.3); box.translate(0, 3.35, 0);
+    var boxes = new THREE.InstancedMesh(box, lam({ color: 0x23262B }), lights.length), lampG = new THREE.SphereGeometry(0.11, 8, 6);
+    var mk = function (y) { var g2 = lampG.clone(); g2.translate(0, y, 0.17); return g2; };
+    C.lampMesh = [mk(3.67), mk(3.35), mk(3.03)].map(function (g3) { var im = new THREE.InstancedMesh(g3, new THREE.MeshBasicMaterial({ color: 0xFFFFFF }), lights.length); scene.add(im); return im; });
+    var m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one2 = new THREE.Vector3(1, 1, 1);
+    lights.forEach(function (lt, i6) { q4.setFromAxisAngle(up, lt.h); m4.compose(new THREE.Vector3(lt.x, 0, lt.z), q4, one2); boxes.setMatrixAt(i6, m4); C.lampMesh.forEach(function (im) { im.setMatrixAt(i6, m4); }); });
+    scene.add(boxes);
+  }
+  // street lamps along the bigger streets, every 32 m, alternating sides
+  var lamps = [];
+  roadsAsPts().forEach(function (r) { if (r.t > 4) return; var acc3 = 16, sideL = 1; for (var k3 = 0; k3 + 1 < r.P.length; k3++) { var ax3 = r.P[k3][0], az3 = r.P[k3][1], dx4 = r.P[k3 + 1][0] - ax3, dz4 = r.P[k3 + 1][1] - az3, l4 = Math.hypot(dx4, dz4); if (l4 < 0.1) continue; dx4 /= l4; dz4 /= l4; while (acc3 < l4) { var o3 = (r.w / 2 + 0.7) * sideL, lx = ax3 + dx4 * acc3 - dz4 * o3, lz = az3 + dz4 * acc3 + dx4 * o3; var gl = C.at(lx, lz); if (gl !== 1 && gl !== 2 && gl !== 4) lamps.push([lx, lz, Math.atan2(dz4 * sideL, -dx4 * sideL)]); sideL = -sideL; acc3 += 32; } acc3 -= l4; } });
+  C.lamps = lamps;
+  if (lamps.length) {
+    var lpG = new THREE.CylinderGeometry(0.07, 0.1, 7, 6); lpG.translate(0, 3.5, 0); var armG = new THREE.BoxGeometry(0.1, 0.1, 1.6); armG.translate(0, 6.9, 0.7);
+    var headG = new THREE.BoxGeometry(0.35, 0.12, 0.6); headG.translate(0, 6.85, 1.4);
+    var lpM = new THREE.InstancedMesh(lpG, lam({ color: 0x8D9399 }), lamps.length), arM = new THREE.InstancedMesh(armG, lam({ color: 0x8D9399 }), lamps.length);
+    C.lampHeads = new THREE.InstancedMesh(headG, new THREE.MeshBasicMaterial({ color: 0x9AA0A6 }), lamps.length);
+    var m5 = new THREE.Matrix4(), q5 = new THREE.Quaternion(), up2 = new THREE.Vector3(0, 1, 0), o5 = new THREE.Vector3(1, 1, 1);
+    lamps.forEach(function (lp, i7) { q5.setFromAxisAngle(up2, lp[2]); m5.compose(new THREE.Vector3(lp[0], 0, lp[1]), q5, o5); lpM.setMatrixAt(i7, m5); arM.setMatrixAt(i7, m5); C.lampHeads.setMatrixAt(i7, m5); });
+    scene.add(lpM); scene.add(arM); scene.add(C.lampHeads);
+  }
+  // poles for the signs
+  if (poles.length) { var pm = new THREE.InstancedMesh(poleG, lam({ color: 0x9AA0A6 }), poles.length), m6 = new THREE.Matrix4(); poles.forEach(function (p2, i8) { m6.makeScale(1, p2[2], 1); m6.setPosition(p2[0], 0, p2[1]); pm.setMatrixAt(i8, m6); }); scene.add(pm); }
+  // bus shelters
+  if (shelters.length) {
+    var shG = new THREE.BoxGeometry(3.2, 0.12, 1.5); shG.translate(0, 2.5, 0); var bkG = new THREE.BoxGeometry(3.2, 2.2, 0.06); bkG.translate(0, 1.3, -0.7);
+    var shM = new THREE.InstancedMesh(shG, lam({ color: 0x2F6FC0 }), shelters.length), bkM = new THREE.InstancedMesh(bkG, new THREE.MeshLambertMaterial({ color: 0xBFD9F2, transparent: true, opacity: 0.55 }), shelters.length), m7 = new THREE.Matrix4(), q7 = new THREE.Quaternion(), up3 = new THREE.Vector3(0, 1, 0), o7 = new THREE.Vector3(1, 1, 1);
+    shelters.forEach(function (s2, i9) { q7.setFromAxisAngle(up3, s2[2]); m7.compose(new THREE.Vector3(s2[0], 0, s2[1]), q7, o7); shM.setMatrixAt(i9, m7); bkM.setMatrixAt(i9, m7); });
+    scene.add(shM); scene.add(bkM);
+  }
+  // trees: from the map, and along the bigger streets where the map has none; palms by the sea
+  var trees = [], palms = [], tr = C.nodes.tree || [];
+  for (k = 0; k < tr.length && trees.length < 6000; k += 2) { var g4 = C.at(tr[k], tr[k + 1]); if (g4 !== 1 && g4 !== 2 && g4 !== 4) trees.push([tr[k], tr[k + 1], 0.8 + R() * 0.6]); }
+  C.areas.forEach(function (a) { if (a.k !== "g" && a.k !== "s") return; var p = a.p, x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (var k4 = 0; k4 < p.length; k4 += 2) { x0 = Math.min(x0, p[k4]); x1 = Math.max(x1, p[k4]); z0 = Math.min(z0, p[k4 + 1]); z1 = Math.max(z1, p[k4 + 1]); } var nT = Math.min(60, Math.floor((x1 - x0) * (z1 - z0) / (a.k === "s" ? 900 : 260))); for (var t2 = 0; t2 < nT; t2++) { var x5 = x0 + R() * (x1 - x0), z5 = z0 + R() * (z1 - z0), g5 = C.at(x5, z5); if (a.k === "g" ? g5 === 5 : g5 === 3) (a.k === "s" ? palms : trees).push([x5, z5, 0.8 + R() * 0.6]); } });
+  if (C.hasSea) roadsAsPts().forEach(function (r) { if (r.t > 4) return; for (var k5 = 0; k5 < r.P.length; k5++) { var x6 = r.P[k5][0], z6 = r.P[k5][1], near = 0; for (var dd2 = -30; dd2 <= 30; dd2 += 10) if (C.at(x6 + dd2, z6) === 4 || C.at(x6, z6 + dd2) === 4) near = 1; if (near && R() < 0.7) palms.push([x6 - (r.w / 2 + 1.6), z6, 1]); } });
+  if (trees.length) {
+    var trunkG = new THREE.CylinderGeometry(0.12, 0.18, 2.4, 5); trunkG.translate(0, 1.2, 0); var crownG = new THREE.IcosahedronGeometry(1.7, 0); crownG.translate(0, 3.4, 0);
+    var tM = new THREE.InstancedMesh(trunkG, lam({ color: 0x6B4F36 }), trees.length), cM = new THREE.InstancedMesh(crownG, lam({ color: 0x4F7F3A }), trees.length), m8 = new THREE.Matrix4(), col2 = new THREE.Color();
+    trees.forEach(function (t3, i10) { m8.makeScale(t3[2], t3[2], t3[2]); m8.setPosition(t3[0], 0, t3[1]); tM.setMatrixAt(i10, m8); cM.setMatrixAt(i10, m8); col2.setHSL(0.24 + R() * 0.06, 0.45, 0.32 + R() * 0.1); cM.setColorAt(i10, col2); });
+    cM.castShadow = hi; scene.add(tM); scene.add(cM);
+  }
+  if (palms.length) {
+    var ptG = new THREE.CylinderGeometry(0.14, 0.22, 7, 6); ptG.translate(0, 3.5, 0); var lf = new THREE.ConeGeometry(2.6, 1.2, 7, 1, true); lf.translate(0, 6.9, 0);
+    var pT = new THREE.InstancedMesh(ptG, lam({ color: 0x8A6B47 }), palms.length), pL = new THREE.InstancedMesh(lf, new THREE.MeshLambertMaterial({ color: 0x3E7A34, side: THREE.DoubleSide }), palms.length), m9 = new THREE.Matrix4();
+    palms.forEach(function (p3, i11) { m9.makeScale(p3[2], p3[2], p3[2]); m9.setPosition(p3[0], 0, p3[1]); pT.setMatrixAt(i11, m9); pL.setMatrixAt(i11, m9); });
+    scene.add(pT); scene.add(pL);
+  }
+  C.M = M;
+  return C;
+}
+
+// The living city: traffic lights that change, cars that drive on the right along the real streets (they keep their
+// distance, stop at red lights, for people on the crossing and for you), and people who walk on the pavements, cross
+// at the zebra crossings and step aside when a car comes too close. Nobody gets hurt in this city.
+var LIGHT_CYCLE = 26; // s: 11 green, 2 yellow, 0 both red… for each of the two directions
+function lightState(C, v, axis, t) { // 0 green, 1 yellow, 2 red
+  var ph = (t + (v * 7.31) % LIGHT_CYCLE) % LIGHT_CYCLE, a = ph < 13 ? 0 : 1, q = ph % 13;
+  if (a !== axis) return 2;
+  return q < 10.5 ? 0 : q < 12.5 ? 1 : 2;
+}
+function cityLive(C, scene, W) {
+  var L = { cars: [], peds: [], t: 0 }, E = C.E, VX = C.VX, VZ = C.VZ;
+  // ---- traffic lights: colour the lamps every quarter second ----
+  var lcol = [new THREE.Color(0xFF2B2B), new THREE.Color(0xFFB020), new THREE.Color(0x2BE36B)], dim = new THREE.Color(0x2A2A2A);
+  L.lights = function (t) {
+    if (!C.lampMesh) return;
+    C.lights.forEach(function (lt, i) {
+      var s = lightState(C, lt.v, lt.axis, t);
+      C.lampMesh[0].setColorAt(i, s === 2 ? lcol[0] : dim); C.lampMesh[1].setColorAt(i, s === 1 ? lcol[1] : dim); C.lampMesh[2].setColorAt(i, s === 0 ? lcol[2] : dim);
+    });
+    C.lampMesh.forEach(function (m) { if (m.instanceColor) m.instanceColor.needsUpdate = true; });
+  };
+  L.lights(0);
+  // can a car on edge e go through its end now?
+  L.go = function (e, t) {
+    var b = E.b[e]; if (!C.sigV[b]) return 2; // 2: no light here
+    var axis = Math.abs(E.dx[e]) > Math.abs(E.dz[e]) ? 0 : 1; return lightState(C, b, axis, t) === 0 ? 1 : 0;
+  };
+  // ---- cars ----
+  var KINDS = ["sedan", "taxi", "hatchback-sports", "suv", "van", "sedan", "taxi", "truck", "delivery", "sedan-sports", "suv-luxury", "police", "garbage-truck"];
+  function lane(e) { var r = C.roads[E.road[e]]; return r.ow ? (r.w > 7 ? (Math.random() < 0.5 ? -1 : 1) * r.w / 5 : 0) : Math.min(r.w / 4, 2.2); }
+  function placeOn(c) {
+    var e = c.e, a = E.a[e], f = Math.min(1, c.s / E.len[e]), x = VX[a] + E.dx[e] * c.s, z = VZ[a] + E.dz[e] * c.s, o = c.lane;
+    c.x = x - E.dz[e] * o; c.z = z + E.dx[e] * o; var h = Math.atan2(E.dx[e], E.dz[e]), dh = h - c.h; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; c.h += dh * Math.min(1, 0.18 + f * 0.1);
+  }
+  function spawn(me, near) {
+    for (var tries = 0; tries < 30; tries++) {
+      var e = Math.floor(Math.random() * C.ne), r = C.roads[E.road[e]]; if (r.t > 6) continue;
+      var a = E.a[e], d = Math.hypot(VX[a] - me.x, VZ[a] - me.z);
+      if (d < (near ? 40 : 90) || d > 260) continue;
+      var spec = CAR_BY[KINDS[Math.floor(Math.random() * KINDS.length)]];
+      var c = { e: e, s: Math.random() * E.len[e], v: 6, spec: spec, lane: 0, h: Math.atan2(E.dx[e], E.dz[e]), x: 0, z: 0, u: 0, steer: 0, r: 0, wait: 0, honk: 0, m: spec.m };
+      c.lane = lane(e); c.vmax = Math.min(r.vmax, 16.7) * (0.75 + Math.random() * 0.25); placeOn(c);
+      if (C.at(c.x, c.z) === 2) continue;
+      L.cars.push(c);
+      loadModel(spec.id).then(function (m) { if (L.cars.indexOf(c) < 0 || c.V) return; c.V = carMesh(spec, m); scene.add(c.V.root); });
+      return c;
+    }
+  }
+  function nextEdge(e) {
+    var b = E.b[e], outs = C.OUT[b].filter(function (f) { return E.b[f] !== E.a[e] && C.roads[E.road[f]].t <= 6; });
+    if (!outs.length) return -1;
+    // mostly straight on, sometimes a turn
+    var w = outs.map(function (f) { var dot = E.dx[e] * E.dx[f] + E.dz[e] * E.dz[f]; return dot > 0.7 ? 3 : 1; }), sum = w.reduce(function (p, q) { return p + q; }, 0), r = Math.random() * sum;
+    for (var i = 0; i < outs.length; i++) { r -= w[i]; if (r <= 0) return outs[i]; } return outs[0];
+  }
+  L.target = G.hi ? 30 : 14;
+  L.stepCars = function (dt, me, t) {
+    while (L.cars.length < L.target && Math.random() < 0.5) if (!spawn(me, L.cars.length < 4)) break;
+    for (var i = L.cars.length - 1; i >= 0; i--) {
+      var c = L.cars[i], e = c.e, d0 = Math.hypot(c.x - me.x, c.z - me.z);
+      if (d0 > 330) { if (c.V) scene.remove(c.V.root); L.cars.splice(i, 1); continue; }
+      var want = c.vmax, left = E.len[e] - c.s, fx = Math.sin(c.h), fz = Math.cos(c.h);
+      // a red light at the end of this piece of road
+      var go = L.go(e, t), r = C.roads[E.road[e]];
+      if (go === 0) { var stopAt = left - (r.w * 0.6 + 3); if (stopAt < 30) want = Math.min(want, Math.max(0, stopAt) * 0.6); }
+      // the car (or you) in front
+      var gap = 1e9;
+      L.cars.forEach(function (o) { if (o === c) return; var dx = o.x - c.x, dz = o.z - c.z, ah = dx * fx + dz * fz, sd = Math.abs(dx * fz - dz * fx); if (ah > 0 && ah < 30 && sd < 2.2) gap = Math.min(gap, ah); });
+      var pdx = me.x - c.x, pdz = me.z - c.z, pah = pdx * fx + pdz * fz, psd = Math.abs(pdx * fz - pdz * fx); if (pah > 0 && pah < 30 && psd < 2.6) gap = Math.min(gap, pah);
+      // people on a crossing just ahead
+      L.peds.forEach(function (p) { if (!p.cross) return; var dx = p.x - c.x, dz = p.z - c.z, ah = dx * fx + dz * fz, sd = Math.abs(dx * fz - dz * fx); if (ah > 0 && ah < 16 && sd < 4) gap = Math.min(gap, ah); });
+      if (gap < 1e9) want = Math.min(want, Math.max(0, (gap - 6) * 0.7));
+      c.v += Math.max(-8 * dt, Math.min(2.6 * dt, want - c.v)); if (c.v < 0.05) { c.v = 0; c.wait += dt; } else c.wait = 0;
+      c.braking = want < c.v - 0.5 || c.v < 0.5;
+      // stuck behind you for long: a honk
+      if (c.wait > 4 && pah > 0 && pah < 12 && psd < 2.6 && t - c.honk > 6) { c.honk = t; if (d0 < 40) W.honk(c); }
+      c.s += c.v * dt;
+      while (c.s > E.len[c.e]) {
+        var ne = nextEdge(c.e); if (ne < 0) { c.s = E.len[c.e]; c.v = 0; if (c.wait > 3) { if (c.V) scene.remove(c.V.root); L.cars.splice(i, 1); c = null; } break; }
+        c.s -= E.len[c.e]; c.e = ne; c.lane = lane(ne); c.vmax = Math.min(C.roads[E.road[ne]].vmax, 16.7) * (0.75 + Math.random() * 0.25);
+      }
+      if (!c) continue;
+      placeOn(c); c.u = c.v;
+      if (c.V) syncCar(c.V, c, dt, W.night, t);
+    }
+  };
+  // you and the traffic: a soft knock (you bounce, they stop for a moment)
+  L.knock = function (me) {
+    var hit = 0;
+    L.cars.forEach(function (c) {
+      var dx = me.x - c.x, dz = me.z - c.z, d = Math.hypot(dx, dz), R2 = c.spec.m > 3000 ? 3.2 : 2.4;
+      if (d < R2 && d > 1e-3) {
+        var nx = dx / d, nz = dz / d, pen = R2 - d; me.x += nx * pen; me.z += nz * pen;
+        var v = vel(me), vn = v[0] * nx + v[1] * nz;
+        if (vn < 0) { setVel(me, (v[0] - nx * vn * 1.4) * 0.8, (v[1] - nz * vn * 1.4) * 0.8); hit = Math.max(hit, -vn); }
+        c.v = 0; c.wait = 2;
+      }
+    });
+    return hit;
+  };
+  // ---- people ----
+  var body = new THREE.CylinderGeometry(0.22, 0.26, 1.15, 6); body.translate(0, 0.95, 0);
+  var head = new THREE.SphereGeometry(0.17, 8, 6); head.translate(0, 1.72, 0);
+  var legs = new THREE.BoxGeometry(0.3, 0.45, 0.16); legs.translate(0, 0.22, 0);
+  var NP = G.hi ? 60 : 26, mats = [new THREE.MeshLambertMaterial({ color: 0xFFFFFF }), new THREE.MeshLambertMaterial({ color: 0xE6B48A }), new THREE.MeshLambertMaterial({ color: 0x2F3A4F })];
+  var IB = new THREE.InstancedMesh(body, mats[0], NP), IH = new THREE.InstancedMesh(head, mats[1], NP), IL = new THREE.InstancedMesh(legs, mats[2], NP);
+  [IB, IH, IL].forEach(function (m) { m.frustumCulled = false; scene.add(m); });
+  var shirt = [0xE03131, 0x1971C2, 0x2F9E44, 0xF08C00, 0xFFFFFF, 0x862E9C, 0x495057, 0xF783AC, 0x0CA678], skin = [0xF1C27D, 0xE0AC69, 0xC68642, 0x8D5524, 0xFFDBAC], tmp = new THREE.Color();
+  for (var i = 0; i < NP; i++) { IB.setColorAt(i, tmp.set(shirt[i % shirt.length])); IH.setColorAt(i, tmp.set(skin[i % skin.length])); IL.setColorAt(i, tmp.set(i % 3 ? 0x2F3A4F : 0x6B5B4B)); }
+  var walkable = C.roads.map(function (r, ri) { return r.t >= 2 && r.t <= 6 ? ri : -1; }).filter(function (x) { return x >= 0; });
+  function newPed(me, p) {
+    p = p || {};
+    for (var tries = 0; tries < 20; tries++) {
+      if (C.zebras.length && Math.random() < 0.22) { // someone about to cross at a zebra crossing
+        var zb = C.zebras[Math.floor(Math.random() * C.zebras.length)], dz0 = Math.hypot(zb.x - me.x, zb.z - me.z); if (dz0 < 30 || dz0 > 160) continue;
+        var sd = Math.random() < 0.5 ? 1 : -1, rx = -zb.dz, rz = zb.dx;
+        p.cross = { x0: zb.x + rx * (zb.w / 2 + 1.2) * sd, z0: zb.z + rz * (zb.w / 2 + 1.2) * sd, x1: zb.x - rx * (zb.w / 2 + 1.2) * sd, z1: zb.z - rz * (zb.w / 2 + 1.2) * sd, f: -Math.random() * 6 };
+        p.x = p.cross.x0; p.z = p.cross.z0; p.sp = 1.3; p.dodge = 0; return p;
+      }
+      var ri = walkable[Math.floor(Math.random() * walkable.length)], r = C.roads[ri]; if (!r || r.v.length < 2) continue;
+      var k = Math.floor(Math.random() * (r.v.length - 1)), ax = VX[r.v[k]], az = VZ[r.v[k]], d = Math.hypot(ax - me.x, az - me.z);
+      if (d < 25 || d > 170) continue;
+      p.cross = null; p.ri = ri; p.k = k; p.t = Math.random(); p.side = Math.random() < 0.5 ? 1 : -1; p.dir = Math.random() < 0.5 ? 1 : -1; p.sp = 1.0 + Math.random() * 0.6; p.dodge = 0; p.ph = Math.random() * 6;
+      return p;
+    }
+    return null;
+  }
+  L.stepPeds = function (dt, me, t) {
+    while (L.peds.length < NP) { var np = newPed(me); if (!np) break; L.peds.push(np); }
+    var m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), s1 = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3();
+    var ms = Math.hypot(me.u, me.v);
+    L.peds.forEach(function (p, i) {
+      if (Math.hypot(p.x - me.x, p.z - me.z) > 200) { newPed(me, p); }
+      var hx = 0, hz = 1;
+      if (p.cross) {
+        var cr = p.cross; cr.f += dt * p.sp / Math.hypot(cr.x1 - cr.x0, cr.z1 - cr.z0);
+        var f = Math.max(0, Math.min(1, cr.f)); p.x = cr.x0 + (cr.x1 - cr.x0) * f; p.z = cr.z0 + (cr.z1 - cr.z0) * f; hx = cr.x1 - cr.x0; hz = cr.z1 - cr.z0;
+        if (cr.f >= 1.15) newPed(me, p); else if (cr.f < 0) { hx = cr.x1 - cr.x0; hz = cr.z1 - cr.z0; }
+        p.onRoad = cr.f > 0 && cr.f < 1;
+      } else {
+        var r = C.roads[p.ri], ia = r.v[p.k], ib = r.v[p.k + 1], ax = VX[ia], az = VZ[ia], bx = VX[ib], bz = VZ[ib], len = Math.hypot(bx - ax, bz - az) || 1;
+        p.t += p.dir * p.sp * dt / len;
+        if (p.t > 1) { if (p.k + 2 < r.v.length) { p.k++; p.t = 0; } else { p.t = 1; p.dir = -1; } }
+        if (p.t < 0) { if (p.k > 0) { p.k--; p.t = 1; } else { p.t = 0; p.dir = 1; } }
+        ia = r.v[p.k]; ib = r.v[p.k + 1]; ax = VX[ia]; az = VZ[ia]; bx = VX[ib]; bz = VZ[ib]; len = Math.hypot(bx - ax, bz - az) || 1;
+        var dx = (bx - ax) / len, dz = (bz - az) / len, off = (r.w / 2 + 1.3) * p.side;
+        p.x = ax + (bx - ax) * p.t - dz * off; p.z = az + (bz - az) * p.t + dx * off; hx = dx * p.dir; hz = dz * p.dir; p.onRoad = false;
+      }
+      // a car coming at them: step aside
+      var ddx = p.x - me.x, ddz = p.z - me.z, dd = Math.hypot(ddx, ddz);
+      if (dd < 5.5 && ms > 2) p.dodge = Math.min(1, p.dodge + dt * 4); else p.dodge = Math.max(0, p.dodge - dt * 1.5);
+      var px = p.x + (dd > 0.01 ? ddx / dd : 0) * p.dodge * 2.6, pz = p.z + (dd > 0.01 ? ddz / dd : 0) * p.dodge * 2.6;
+      if (p.dodge > 0.9 && !p.said && dd < 3) { p.said = 1; W.dodged(p); }
+      if (p.dodge === 0) p.said = 0;
+      var wait = p.cross && p.cross.f < 0, bob = wait ? 0 : Math.abs(Math.sin((t + (p.ph || i)) * 7)) * 0.06 + p.dodge * Math.sin(p.dodge * 3.14) * 0.5;
+      q.setFromAxisAngle(up, Math.atan2(hx, hz)); pos.set(px, bob, pz); m.compose(pos, q, s1);
+      IB.setMatrixAt(i, m); IH.setMatrixAt(i, m); IL.setMatrixAt(i, m);
+    });
+    for (var j = L.peds.length; j < NP; j++) { m.makeScale(0, 0, 0); IB.setMatrixAt(j, m); IH.setMatrixAt(j, m); IL.setMatrixAt(j, m); }
+    IB.instanceMatrix.needsUpdate = IH.instanceMatrix.needsUpdate = IL.instanceMatrix.needsUpdate = true;
+    if (IB.instanceColor) IB.instanceColor.needsUpdate = IH.instanceColor.needsUpdate = IL.instanceColor.needsUpdate = true;
+  };
+  L.dispose = function () { L.cars.forEach(function (c) { if (c.V) scene.remove(c.V.root); }); L.cars = []; };
+  return L;
+}
+
+// The open city: driving where you like on real streets, the street you are on, the GPS, missions (deliveries, taxi,
+// ambulance, fire truck, a street race, hidden stars), the time of day, rain and the radio.
+// main.js hands it what it shares (the renderer, the camera, the controls, the screens) as `A`.
+function cityMode(A) {
+  var M = { on: false }, W = null, cam = A.cam, R = A.R;
+  var $ = function (i) { return document.getElementById(i); };
+  var el = function (t, cls, txt) { var e = document.createElement(t); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+  var S = A.S; S.city = S.city || {}; S.cset = S.cset || { id: "tel-aviv", time: "now", wx: "clear" };
+  var CACHE = {};
+  // ---------- the picker ----------
+  M.screen = function () {
+    A.show("city");
+    var box = $("cyList"); box.replaceChildren();
+    CITY_LIST.forEach(function (c) {
+      var got = (S.city[c[0]] && S.city[c[0]].got || []).length;
+      var b = el("button", "trk" + (S.cset.id === c[0] ? " on" : "")); b.append(el("b", "", "🏙️ " + c[1]), el("small", "", c[2] + (got ? " · ⭐ " + got + "/" + STAR_N : "")));
+      b.onclick = function () { S.cset.id = c[0]; A.save(); [].forEach.call(box.children, function (x) { x.classList.toggle("on", x === b); }); };
+      box.append(b);
+    });
+    var chips = function (id, key, list) { var g = $(id); g.replaceChildren.apply(g, list.map(function (o) { var b = el("button", "chip" + (S.cset[key] === o[0] ? " on" : ""), o[1]); b.onclick = function () { S.cset[key] = o[0]; A.save(); M.screen(); }; return b; })); };
+    chips("cyTime", "time", [["now", "🕐 כמו עכשיו"], ["day", "☀️ צהריים"], ["dusk", "🌅 שקיעה"], ["night", "🌙 לילה"]]);
+    chips("cyWx", "wx", [["clear", "☀️ בהיר"], ["rain", "🌧️ גשם"]]);
+    $("cyCar").textContent = "🚗 " + CAR_BY[S.car].n;
+  };
+  // ---------- time of day ----------
+  function hourNow() { var p = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jerusalem" }).split(":"); return +p[0] + p[1] / 60; }
+  function hourOf(k) { return k === "day" ? 12.5 : k === "dusk" ? 17.6 : k === "night" ? 22 : hourNow(); }
+  // colours at a few hours, mixed in between
+  var SKY = [[0, "#050A18", "#18223D", 0.06, 0x8FA6D8, 0.2], [5.5, "#1B2547", "#E79A6A", 0.25, 0xFFB07A, 0.35], [7.5, "#5FA8E8", "#DCEBF5", 0.85, 0xFFF2DD, 0.7], [12, "#4F9DE6", "#D7EAF6", 1.0, 0xFFFFFF, 0.78],
+    [16.3, "#5FA3E4", "#E8E3D2", 0.85, 0xFFF0D8, 0.7], [17.6, "#3A4C8C", "#F49B5B", 0.45, 0xFFA060, 0.48], [18.6, "#0E1631", "#3B3157", 0.1, 0x9CA8D8, 0.26], [24, "#050A18", "#18223D", 0.06, 0x8FA6D8, 0.2]];
+  function skyAt(h) {
+    for (var i = 0; i + 1 < SKY.length; i++) if (h >= SKY[i][0] && h <= SKY[i + 1][0]) {
+      var a = SKY[i], b = SKY[i + 1], f = (h - a[0]) / (b[0] - a[0] || 1), mix = function (x, y) { return new THREE.Color(x).lerp(new THREE.Color(y), f); };
+      return { top: mix(a[1], b[1]), hor: mix(a[2], b[2]), sun: a[3] + (b[3] - a[3]) * f, sunCol: mix(a[4], b[4]), hemi: a[5] + (b[5] - a[5]) * f, night: h < 6 || h > 18.3 };
+    }
+    return skyAt(12);
+  }
+  function skyTex(s) { var c = document.createElement("canvas"); c.width = 4; c.height = 256; var x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, "#" + s.top.getHexString()); g.addColorStop(0.62, "#" + s.hor.getHexString()); g.addColorStop(1, "#" + s.hor.getHexString()); x.fillStyle = g; x.fillRect(0, 0, 4, 256); var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; }
+  // ---------- going into a city ----------
+  M.start = function (id) {
+    id = id || S.cset.id; A.show("loading"); $("ldText").textContent = "בונה את " + (CITY_LIST.find(function (c) { return c[0] === id; }) || [0, ""])[1] + "…";
+    var spec = CAR_BY[S.car];
+    var get = CACHE[id] ? Promise.resolve(CACHE[id]) : fetch("/city/" + id + ".json?v=" + CITY_V).then(function (r) { if (!r.ok) throw new Error("map " + r.status); return r.json(); }).then(function (d) { CACHE = {}; CACHE[id] = d; return d; });
+    Promise.all([get, loadModel(spec.id)]).then(function (res) {
+      setTimeout(function () { try { build(id, res[0], spec, res[1]); } catch (e) { console.error(e); $("ldText").textContent = "לא הצלחנו לבנות את העיר. נסו שוב."; } }, 30);
+    }).catch(function (e) { console.error(e); $("ldText").textContent = "לא הצלחנו לטעון את המפה. בדקו את החיבור ונסו שוב."; });
+  };
+  function build(id, D, spec, model) {
+    M.exit(true);
+    var scene = new THREE.Scene(), C = cityRead(D), hr = hourOf(S.cset.time), sk = skyAt(hr), rain = S.cset.wx === "rain";
+    cityBuild(C, scene, id);
+    W = { id: id, C: C, scene: scene, t: 0, hour: hr, sky: sk, night: sk.night, rain: rain, msgT: 0, camH: 0, camP: new THREE.Vector3(), shake: 0, street: "", red: {}, mis: null, said: {} };
+    if (rain) { sk.top.multiplyScalar(0.6); sk.hor.lerp(new THREE.Color(0x8C949E), 0.6); sk.sun *= 0.35; }
+    scene.background = skyTex(sk);
+    scene.fog = new THREE.Fog(sk.hor.clone().lerp(new THREE.Color(0xC8CCD2), rain ? 0.4 : 0.1), rain ? 40 : 90, (G.hi ? 470 : 320) * (rain ? 0.6 : 1));
+    var hemi = new THREE.HemisphereLight(sk.top.clone().lerp(new THREE.Color(0xFFFFFF), sk.night ? 0.2 : 0.5), sk.night ? 0x2A2A33 : 0x8A7F6A, sk.night ? 0.32 : sk.hemi + 0.15); scene.add(hemi);
+    var sun = new THREE.DirectionalLight(sk.sunCol, sk.sun); sun.castShadow = G.hi && sk.sun > 0.3;
+    if (sun.castShadow) { sun.shadow.mapSize.set(1024, 1024); var sc = sun.shadow.camera; sc.left = sc.bottom = -70; sc.right = sc.top = 70; sc.near = 10; sc.far = 400; sun.shadow.bias = -0.0006; }
+    scene.add(sun); scene.add(sun.target); W.sun = sun;
+    var amb = new THREE.AmbientLight(sk.night ? 0x6C7AA8 : 0xFFFFFF, sk.night ? 0.06 : 0.05); scene.add(amb);
+    // the angle of the sun from the hour (east in the morning, west in the evening), so the shadows are right
+    var ang = (hr - 6) / 12 * Math.PI; W.sunDir = new THREE.Vector3(-Math.cos(ang) * 120, Math.max(25, Math.sin(Math.max(0.15, Math.min(Math.PI - 0.15, ang))) * 160), 60);
+    W.env = makeEnv({ sky: ["#" + sk.top.getHexString(), "#" + sk.hor.getHexString()], ground: "#8A7F6A", night: sk.night, warm: hr > 16 && hr < 19 });
+    scene.environment = W.env;
+    // night: windows lit, street lamps glowing
+    var nightK = sk.night ? 1 : hr > 17.3 && hr < 18.6 ? 0.5 : 0;
+    C.M.fac.forEach(function (m) { m.emissive.setRGB(nightK, nightK * 0.92, nightK * 0.8); });
+    if (rain) { C.M.road.color.setRGB(0.72, 0.72, 0.76); }
+    if (nightK && C.lamps.length) {
+      var pos = []; C.lamps.forEach(function (lp) { pos.push(lp[0] + Math.sin(lp[2]) * 1.4, 6.75, lp[1] + Math.cos(lp[2]) * 1.4); });
+      var g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      scene.add(new THREE.Points(g, new THREE.PointsMaterial({ map: glowTex(), color: 0xFFD9A0, size: 7, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9 * nightK })));
+      if (C.lampHeads) C.lampHeads.material.color.set(0xFFF2D0);
+      W.head = new THREE.SpotLight(0xFFF2D5, 1.6, 70, 0.55, 0.5, 1.2); scene.add(W.head); scene.add(W.head.target);
+    }
+    if (rain) W.rainFx = makeRain(scene);
+    // you: start on a main street near the centre
+    var st = startPoint(C), me = { spec: spec, u: 0, v: 0, r: 0, steer: 0, nitro: 1, boost: 0, off: 0, slip: 0, hit: 0, spin: 0, t: 0, lat: 0, vmax: spec.top / 3.6, A0: 27.78 / spec.acc * 1.32, m: spec.m, I: spec.m * 1.6, gear: 1, rpm: 0.2, x: st.x, z: st.z, h: st.h };
+    W.me = me; W.V = carMesh(spec, model); scene.add(W.V.root); W.camH = me.h; W.camP.set(me.x - Math.sin(me.h) * 8, 4, me.z - Math.cos(me.h) * 8);
+    W.live = cityLive(C, scene, { honk: function () { sndBeep(392, 0.25, 0.08); setTimeout(function () { sndBeep(392, 0.25, 0.08); }, 300); }, dodged: function () { if (W.t - (W.said.dodge || -9) > 8) { W.said.dodge = W.t; flash("😮 זהירות, הולכי רגל!", 1.6); } }, get night() { return W.night; } });
+    W.fx = makeFx(scene); W.stars = makeStars(C, scene, id); W.mapC = mapCanvas(C);
+    W.guide = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x4DABF7, transparent: true, opacity: 0.55, depthWrite: false, fog: false })); W.guide.renderOrder = 3; W.guide.frustumCulled = false; scene.add(W.guide);
+    W.beam = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 60, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xFFD43B, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false, fog: false })); W.beam.visible = false; scene.add(W.beam);
+    W.ring = new THREE.Mesh(new THREE.RingGeometry(3.4, 4.2, 32), new THREE.MeshBasicMaterial({ color: 0xFFD43B, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })); W.ring.rotation.x = -Math.PI / 2; W.ring.position.y = 0.2; W.ring.visible = false; scene.add(W.ring);
+    M.on = true; G.state = "city"; document.body.classList.add("incity"); $("cStreet").textContent = ""; HC = {};
+    A.show(null); $("chud").hidden = false; $("cbWater").hidden = true;
+    cam.far = 1200; cam.updateProjectionMatrix();
+    flash("🏙️ " + C.name + " · " + (st.name ? "רחוב " + st.name : "סעו לאן שבא לכם"), 3);
+    hudMis();
+  }
+  function startPoint(C) {
+    var best = null, bd = 1e18;
+    // a named city street (not a highway) near the centre, and not too wide
+    C.roads.forEach(function (r) { if (r.t > 5 || r.t < 3 || !r.name || r.w > 13) return; for (var k = 0; k + 1 < r.v.length; k++) { var x = (C.VX[r.v[k]] + C.VX[r.v[k + 1]]) / 2, z = (C.VZ[r.v[k]] + C.VZ[r.v[k + 1]]) / 2, d = x * x + z * z; if (d < bd) { bd = d; best = { r: r, k: k, x: x, z: z }; } } });
+    if (!best) C.roads.forEach(function (r) { var x = C.VX[r.v[0]], z = C.VZ[r.v[0]], d = x * x + z * z; if (d < bd) { bd = d; best = { r: r, k: 0, x: x, z: z }; } });
+    var r = best.r, dx = C.VX[r.v[best.k + 1]] - C.VX[r.v[best.k]], dz = C.VZ[r.v[best.k + 1]] - C.VZ[r.v[best.k]], l = Math.hypot(dx, dz) || 1, o = r.ow ? 0 : r.w / 4;
+    if (r.ow < 0) { dx = -dx; dz = -dz; }
+    return { x: best.x - dz / l * o, z: best.z + dx / l * o, h: Math.atan2(dx, dz), name: r.name };
+  }
+  M.exit = function (keepScreen) {
+    if (!W) { M.on = false; return; }
+    W.live.dispose(); radio(0, true);
+    var seen = new Set();
+    W.scene.traverse(function (o) {
+      if (o.geometry) o.geometry.dispose();
+      [].concat(o.material || []).forEach(function (m) { if (seen.has(m) || W.V.root === o) return; seen.add(m); ["map", "emissiveMap"].forEach(function (k) { if (m[k] && m[k].isCanvasTexture) m[k].dispose(); }); });
+    });
+    if (W.scene.background && W.scene.background.dispose) W.scene.background.dispose();
+    W = null; M.on = false; document.body.classList.remove("incity"); $("chud").hidden = true; $("cMapBig").hidden = true; $("cPanel").hidden = true;
+    if (!keepScreen) { G.state = null; A.menu(); }
+  };
+  function flash(t, sec) { var m = $("hMsg"); m.textContent = t; m.hidden = false; if (W) W.msgT = sec || 2; }
+  // ---------- one step ----------
+  var HB = 1.25, CR = 1.05;
+  function blocked(x, z) { var g = W.C.at(x, z); return g === 2 || g === 4; }
+  M.step = function (dt) {
+    var w = W, me = w.me, C = w.C; w.t += dt;
+    var inp = w.mis && w.mis.freeze ? { thr: 0, brk: 1, steer: 0 } : A.input();
+    me.thr = inp.thr; me.braking = inp.brk > 0 && me.u > 0.5;
+    var g = C.at(me.x, me.z); me.lat = g === 1 ? 0 : 99;
+    var ox = me.x, oz = me.z;
+    drive(me, inp, dt, { w: 4 }, w.rain ? 0.8 : 1);
+    // buildings and water: the car stops at them and slides along walls
+    var fx = Math.sin(me.h), fz = Math.cos(me.h), hit = 0;
+    for (var s = -1; s <= 1; s += 2) {
+      var px = me.x + fx * HB * s, pz = me.z + fz * HB * s;
+      if (!blockedR(px, pz)) continue;
+      var n = normalAt(px, pz), v = vel(me), vn = v[0] * n[0] + v[1] * n[1];
+      if (vn < 0) { setVel(me, (v[0] - n[0] * vn * 1.3) * 0.9, (v[1] - n[1] * vn * 1.3) * 0.9); hit = Math.max(hit, -vn); }
+      for (var it = 0; it < 6 && blockedR(me.x + fx * HB * s, me.z + fz * HB * s); it++) { me.x += n[0] * 0.25; me.z += n[1] * 0.25; }
+    }
+    if (blockedR(me.x, me.z)) { me.x = ox; me.z = oz; me.u *= -0.2; me.v = 0; }
+    if (C.at(me.x, me.z) === 4 || C.at(me.x + fx * 2.5, me.z + fz * 2.5) === 4) { if (!w.said.sea || w.t - w.said.sea > 3) { w.said.sea = w.t; flash("🌊 זה הים! חוזרים לכביש", 1.6); } }
+    var lim = C.L - 8; if (Math.abs(me.x) > lim || Math.abs(me.z) > lim) { me.x = Math.max(-lim, Math.min(lim, me.x)); me.z = Math.max(-lim, Math.min(lim, me.z)); me.u *= 0.5; if (w.t - (w.said.edge || -9) > 4) { w.said.edge = w.t; flash("🗺️ כאן נגמרת המפה של " + C.name, 1.8); } }
+    hit = Math.max(hit, w.live.knock(me));
+    if (hit > 3) { sndHit(Math.min(1, hit / 15)); w.shake = Math.min(1, hit / 12); }
+    // the city around you
+    w.live.stepCars(dt, me, w.t); w.live.stepPeds(dt, me, w.t);
+    if (Math.floor(w.t * 4) !== Math.floor((w.t - dt) * 4)) w.live.lights(w.t);
+    // the street you are on, and its speed limit
+    var nr = C.near(me.x, me.z, 14);
+    if (nr) { var r = C.roads[nr.road]; if (r.name && r.name !== w.street) { w.street = r.name; $("cStreet").textContent = r.name; $("cStreet").classList.remove("pop"); void $("cStreet").offsetWidth; $("cStreet").classList.add("pop"); } w.lim = Math.round(r.vmax * 3.6 / 10) * 10; w.nr = nr; }
+    // red lights and zebra crossings
+    if (C.lights.length && Math.abs(me.u) > 4) C.lights.forEach(function (lt) {
+      var v = lt.v, dx = C.VX[v] - me.x, dz = C.VZ[v] - me.z; if (dx * dx + dz * dz > 25) return;
+      var ex = C.E.dx[lt.e], ez = C.E.dz[lt.e]; if (fx * ex + fz * ez < 0.8) return;
+      if (lightState(C, v, lt.axis, w.t) === 2 && w.t - (w.red[v] || -99) > 10) { w.red[v] = w.t; flash("🚦 עברת באור אדום!", 1.8); sndBeep(220, 0.3, 0.1); }
+    });
+    w.live.peds.forEach(function (p) { if (p.onRoad && Math.abs(me.u) > 3 && Math.hypot(p.x - me.x, p.z - me.z) < 7 && w.t - (w.said.zebra || -9) > 6) { w.said.zebra = w.t; flash("🚸 עוצרים להולכי רגל במעבר החציה!", 2); } });
+    w.stars.step(dt, me, w.t, function (n) { got(n); });
+    misStep(dt);
+    if (w.msgT > 0) { w.msgT -= dt; if (w.msgT <= 0) $("hMsg").hidden = true; }
+  };
+  function blockedR(x, z) { return blocked(x + CR * 0.7, z) || blocked(x - CR * 0.7, z) || blocked(x, z + CR * 0.7) || blocked(x, z - CR * 0.7); }
+  function normalAt(x, z) { var nx = 0, nz = 0; for (var dz = -2; dz <= 2; dz++) for (var dx = -2; dx <= 2; dx++) if (blocked(x + dx, z + dz)) { nx -= dx; nz -= dz; } var l = Math.hypot(nx, nz); return l ? [nx / l, nz / l] : [-Math.sin(W.me.h), -Math.cos(W.me.h)]; }
+  M.resetCar = function () { if (!W) return; var me = W.me, nr = W.C.near(me.x, me.z, 400); if (!nr) return; var r = W.C.roads[nr.road], d = r.ow < 0 ? -1 : 1, o = r.ow ? 0 : r.w / 4; me.x = nr.x - nr.dz * d * o; me.z = nr.z + nr.dx * d * o; me.h = Math.atan2(nr.dx * d, nr.dz * d); me.u = me.v = me.r = 0; flash("🔄 חזרה לכביש", 1.2); };
+  // ---------- drawing ----------
+  M.render = function (dt) {
+    var w = W, me = w.me, t = w.t;
+    syncCar(w.V, me, dt, w.night, t);
+    if (Math.abs(me.u) > 5 && me.slip > 0.55) { var bx = me.x - Math.sin(me.h) * 1.3, bz = me.z - Math.cos(me.h) * 1.3; if (Math.random() < 0.6) w.fx.puff(bx, bz, "#DDDDDD", 0); w.fx.mark(bx + Math.cos(me.h) * 0.85, bz - Math.sin(me.h) * 0.85, me.h); w.fx.mark(bx - Math.cos(me.h) * 0.85, bz + Math.sin(me.h) * 0.85, me.h); }
+    w.fx.step(dt); if (w.rainFx) w.rainFx(cam.position, dt);
+    if (w.fire) w.fire.step(dt, t);
+    var mode = A.S.set.cam, dh = me.h - w.camH; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
+    w.camH += dh * Math.min(1, dt * (mode === 2 ? 12 : 3.2));
+    var fx = Math.sin(w.camH), fz = Math.cos(w.camH), sp = Math.abs(me.u), por = innerHeight > innerWidth;
+    var big = me.spec.m > 3000 ? 1.35 : 1, dist = (mode === 1 ? 14 : 7.4 + sp * 0.03) * (por ? 1.3 : 1) * big, hgt = (mode === 1 ? 6.5 : 2.9 + sp * 0.008) * big + (por ? 1 : 0);
+    if (mode === 2) { cam.position.set(me.x + Math.sin(me.h) * 0.4, 1.7 * big, me.z + Math.cos(me.h) * 0.4); cam.lookAt(me.x + Math.sin(me.h) * 20, 1.2, me.z + Math.cos(me.h) * 20); }
+    else {
+      var tx = me.x - fx * dist, tz = me.z - fz * dist;
+      // keep the camera out of buildings: come closer when a wall is between
+      for (var k = 0; k < 6 && W.C.at(tx, tz) === 2; k++) { tx += fx * dist * 0.15; tz += fz * dist * 0.15; }
+      w.camP.x += (tx - w.camP.x) * Math.min(1, dt * 8); w.camP.z += (tz - w.camP.z) * Math.min(1, dt * 8); w.camP.y += (hgt - w.camP.y) * Math.min(1, dt * 5);
+      cam.position.copy(w.camP); cam.lookAt(me.x + fx * 4, 1.2, me.z + fz * 4);
+    }
+    if (w.shake > 0) { cam.position.x += (Math.random() - 0.5) * w.shake * 0.5; cam.position.y += (Math.random() - 0.5) * w.shake * 0.4; w.shake = Math.max(0, w.shake - dt * 2.5); }
+    var fov = 62 + Math.min(12, sp * 0.12) + me.boost * 7; if (Math.abs(cam.fov - fov) > 0.1) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix(); }
+    w.sun.position.set(me.x + w.sunDir.x * 0.5, w.sunDir.y, me.z + w.sunDir.z * 0.5); w.sun.target.position.set(me.x, 0, me.z);
+    if (w.head) { w.head.position.set(me.x + Math.sin(me.h) * 1.5, 1.4, me.z + Math.cos(me.h) * 1.5); w.head.target.position.set(me.x + Math.sin(me.h) * 30, 0, me.z + Math.cos(me.h) * 30); }
+    if (w.beam.visible) { w.beam.material.opacity = 0.25 + Math.sin(t * 4) * 0.1; w.ring.scale.setScalar(1 + Math.sin(t * 5) * 0.08); }
+    var near = null, nd = 1e9; w.live.cars.forEach(function (c) { var d = Math.hypot(c.x - me.x, c.z - me.z); if (d < nd) { nd = d; near = c; } });
+    sndFrame(me, near ? { u: near.v, spec: near.spec, rpm: 0.3, slip: 0, off: 0, boost: 0, thr: 0.3 } : null, nd, !!w.paused);
+    R.render(w.scene, cam);
+  };
+  // ---------- the heads-up display ----------
+  var HC = {};
+  function set(id, v) { if (HC[id] !== v) { HC[id] = v; $(id).textContent = v; } }
+  M.hud = function () {
+    var w = W, me = w.me, kmh = Math.round(Math.abs(me.u) * 3.6);
+    set("hSpd", String(kmh)); set("hGear", me.u < -0.5 ? "R" : String(me.gear));
+    $("hRpm").style.width = Math.round(me.rpm * 100) + "%"; $("hNitro").style.width = Math.round(me.nitro * 100) + "%";
+    set("cLim", w.lim ? String(w.lim) : ""); $("cLim").hidden = !w.lim; $("cLim").classList.toggle("over", !!w.lim && kmh > w.lim + 9);
+    drawMini();
+    if (w.mis) hudMis();
+  };
+  // the small map: the whole city drawn once, then turned with the car each frame
+  function mapCanvas(C) {
+    var sc = 0.5, N = Math.ceil(C.N * sc), cv = document.createElement("canvas"); cv.width = cv.height = N;
+    var x = cv.getContext("2d"), L = C.L, P = function (X, Z) { return [(X + L) * sc, (Z + L) * sc]; };
+    x.fillStyle = "#E9E4D8"; x.fillRect(0, 0, N, N);
+    // water and parks from the grid (coarse)
+    var G2 = C.G, img = x.getImageData(0, 0, N, N), d = img.data;
+    for (var j = 0; j < N; j++) for (var i = 0; i < N; i++) { var g = G2[Math.floor(j / sc) * C.N + Math.floor(i / sc)], o = (j * N + i) * 4; if (g === 4) { d[o] = 120; d[o + 1] = 180; d[o + 2] = 225; } else if (g === 5) { d[o] = 182; d[o + 1] = 214; d[o + 2] = 160; } else if (g === 2) { d[o] = 214; d[o + 1] = 206; d[o + 2] = 192; } }
+    x.putImageData(img, 0, 0);
+    [[7, "#FFFFFF", 2.2], [6, "#FFFFFF", 2.6], [5, "#FFFFFF", 3.4], [4, "#FFF4C9", 4.2], [3, "#FFE58A", 5], [2, "#FFD75E", 5.6], [1, "#F7B267", 6.4]].forEach(function (L2) {
+      x.strokeStyle = "#B9B1A2"; x.lineWidth = L2[2] + 1.4; x.lineCap = x.lineJoin = "round";
+      C.roads.forEach(function (r) { if (r.t !== L2[0]) return; x.beginPath(); r.v.forEach(function (v, k) { var p = P(C.VX[v], C.VZ[v]); if (k) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.stroke(); });
+      x.strokeStyle = L2[1]; x.lineWidth = L2[2];
+      C.roads.forEach(function (r) { if (r.t !== L2[0]) return; x.beginPath(); r.v.forEach(function (v, k) { var p = P(C.VX[v], C.VZ[v]); if (k) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.stroke(); });
+    });
+    return { cv: cv, sc: sc };
+  }
+  function drawMini() {
+    var w = W, cv = $("cMap"), x = cv.getContext("2d"), S2 = cv.width, me = w.me, mc = w.mapC, z = 2.4; // canvas px per map px
+    x.save(); x.clearRect(0, 0, S2, S2); x.beginPath(); x.arc(S2 / 2, S2 / 2, S2 / 2 - 2, 0, 7); x.clip();
+    x.translate(S2 / 2, S2 * 0.62); x.rotate(Math.PI + me.h); x.scale(-z, z); // map north is -z; the car points up
+    x.drawImage(mc.cv, -(me.x + w.C.L) * mc.sc, -(me.z + w.C.L) * mc.sc);
+    var P = function (X, Z) { return [(X - me.x) * mc.sc, (Z - me.z) * mc.sc]; };
+    if (w.route && w.route.pts.length) { x.strokeStyle = "rgba(25,113,194,.9)"; x.lineWidth = 4 / z * 1.6; x.lineCap = x.lineJoin = "round"; x.beginPath(); w.route.pts.forEach(function (p, k) { var q = P(p[0], p[1]); if (k) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }); x.stroke(); }
+    if (w.tgt) { var q = P(w.tgt.x, w.tgt.z); x.fillStyle = "#F59F00"; x.beginPath(); x.arc(q[0], q[1], 5 / z * 1.4, 0, 7); x.fill(); x.strokeStyle = "#fff"; x.lineWidth = 1.2 / z * 1.6; x.stroke(); }
+    w.stars.list.forEach(function (s) { if (s.got) return; var q2 = P(s.x, s.z); if (Math.abs(q2[0]) > 80 || Math.abs(q2[1]) > 80) return; x.fillStyle = "#FFD43B"; x.font = (9 / z * 1.4) + "px sans-serif"; x.save(); x.translate(q2[0], q2[1]); x.scale(-1, 1); x.rotate(-(Math.PI + me.h)); x.fillText("★", -3, 3); x.restore(); });
+    x.fillStyle = "rgba(255,107,107,.9)"; w.live.cars.forEach(function (c) { var q3 = P(c.x, c.z); x.fillRect(q3[0] - 1, q3[1] - 1, 2, 2); });
+    x.restore();
+    // the car
+    x.fillStyle = "#1971C2"; x.strokeStyle = "#fff"; x.lineWidth = 2; x.beginPath(); x.moveTo(S2 / 2, S2 * 0.62 - 9); x.lineTo(S2 / 2 + 7, S2 * 0.62 + 7); x.lineTo(S2 / 2, S2 * 0.62 + 3); x.lineTo(S2 / 2 - 7, S2 * 0.62 + 7); x.closePath(); x.fill(); x.stroke();
+    // north
+    var nA = Math.PI + me.h; x.save(); x.translate(S2 / 2 + Math.sin(-nA) * (S2 / 2 - 14) * -1, S2 / 2 - Math.cos(nA) * (S2 / 2 - 14) * -1); x.fillStyle = "#C92A2A"; x.font = "bold 14px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("צ", 0, 0); x.restore();
+    if (w.route && w.route.left != null) { set("cDist", w.route.left > 950 ? (w.route.left / 1000).toFixed(1) + " ק״מ" : Math.round(w.route.left / 10) * 10 + " מ׳"); $("cDist").hidden = false; } else $("cDist").hidden = true;
+  }
+  // ---------- the GPS ----------
+  function routeTo(x, z) {
+    var w = W, C = w.C, me = w.me, nt = C.near(x, z, 80); if (!nt) return null;
+    var r = C.roads[nt.road], toV = nt.t < 0.5 ? r.v[nt.k] : r.v[nt.k + 1];
+    var nm = C.near(me.x, me.z, 60); if (!nm) return null;
+    var rm = C.roads[nm.road], a = rm.v[nm.k], b = rm.v[nm.k + 1], from = [];
+    C.OUT[a].forEach(function (e) { if (C.E.b[e] === b) from.push(e); }); C.OUT[b].forEach(function (e) { if (C.E.b[e] === a) from.push(e); });
+    var fx = Math.sin(me.h), fz = Math.cos(me.h);
+    from.sort(function (p, q) { return (C.E.dx[q] * fx + C.E.dz[q] * fz) - (C.E.dx[p] * fx + C.E.dz[p] * fz); });
+    var path = cityRoute(C, from.slice(0, 2), toV); if (!path) return null;
+    var pts = [[me.x, me.z]]; path.forEach(function (e) { pts.push([C.VX[C.E.b[e]], C.VZ[C.E.b[e]]]); }); pts.push([x, z]);
+    return { pts: pts, edges: path, x: x, z: z };
+  }
+  function setTarget(x, z, label) {
+    var w = W; w.tgt = { x: x, z: z, label: label }; w.route = routeTo(x, z); w.routeT = w.t;
+    w.beam.position.set(x, 30, z); w.beam.visible = true; w.ring.position.set(x, 0.2, z); w.ring.visible = true; guide();
+  }
+  function clearTarget() { var w = W; w.tgt = null; w.route = null; w.beam.visible = w.ring.visible = false; w.guide.geometry.dispose(); w.guide.geometry = new THREE.BufferGeometry(); $("cDist").hidden = true; }
+  // a blue line on the road for the next stretch of the way
+  function guide() {
+    var w = W, rt = w.route; if (!rt) return;
+    var me = w.me, pts = rt.pts, k0 = 0, bd = 1e18;
+    for (var k = 0; k + 1 < pts.length; k++) { var d = Math.hypot(pts[k][0] - me.x, pts[k][1] - me.z); if (d < bd) { bd = d; k0 = k; } }
+    var P = [[me.x, me.z]], len = 0, left = 0;
+    for (k = k0 + 1; k < pts.length; k++) { var l = Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]); left += k === k0 + 1 ? Math.hypot(pts[k][0] - me.x, pts[k][1] - me.z) : l; if (len < 160) { P.push(pts[k]); len += l; } }
+    rt.left = left;
+    if (P.length < 2) return;
+    var b = cbBatch(); cbStrip(b.get(0, 0), P, -0.9, 0.9, 0.25, 4);
+    var t = b.tiles[Object.keys(b.tiles)[0]], g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(t.p, 3));
+    w.guide.geometry.dispose(); w.guide.geometry = g;
+    if (bd > 30 && w.t - w.routeT > 2) { w.route = routeTo(w.tgt.x, w.tgt.z); w.routeT = w.t; } // off the way: plan again
+  }
+  // ---------- hidden stars: 15 in each city, on the streets ----------
+  function makeStars(C, scene, id) {
+    var rnd = cbRand(C.nv * 3 + id.length), list = [], got = (S.city[id] && S.city[id].got) || [];
+    var tries = 0;
+    while (list.length < STAR_N && tries++ < 4000) {
+      var r = C.roads[Math.floor(rnd() * C.roads.length)]; if (!r || r.t > 6) continue;
+      var k = Math.floor(rnd() * r.v.length), x = C.VX[r.v[k]], z = C.VZ[r.v[k]];
+      if (Math.hypot(x, z) > C.R) continue; if (list.some(function (s) { return Math.hypot(s.x - x, s.z - z) < C.R / 4; })) continue;
+      list.push({ x: x, z: z, got: got.indexOf(list.length) >= 0 });
+    }
+    var sh = new THREE.Shape(); for (var i = 0; i < 10; i++) { var a = i / 10 * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? 0.55 : 1.3; if (i) sh.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else sh.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    var geo = new THREE.ExtrudeGeometry(sh, { depth: 0.3, bevelEnabled: false }), mat = new THREE.MeshBasicMaterial({ color: 0xFFD43B, fog: false });
+    list.forEach(function (s) { if (s.got) return; s.m = new THREE.Mesh(geo, mat); s.m.position.set(s.x, 2, s.z); scene.add(s.m); });
+    return { list: list, step: function (dt, me, t, cb) { list.forEach(function (s, i2) { if (s.got || !s.m) return; s.m.rotation.y = t * 2; s.m.position.y = 2 + Math.sin(t * 3 + i2) * 0.3; if (Math.hypot(s.x - me.x, s.z - me.z) < 3.5) { s.got = true; W.scene.remove(s.m); cb(i2); } }); } };
+  }
+  var STAR_N = 15;
+  function got(i) {
+    var c = S.city[W.id] = S.city[W.id] || { got: [], best: {} }; if (c.got.indexOf(i) < 0) c.got.push(i);
+    S.bonus = (S.bonus || 0) + 1; A.save();
+    sndBeep(988, 0.12); setTimeout(function () { sndBeep(1319, 0.2); }, 120);
+    flash("⭐ מצאת כוכב! " + c.got.length + "/" + STAR_N + " ב" + W.C.name, 2.2);
+  }
+  // ---------- missions ----------
+  var MIS = [
+    ["delivery", "🍕 משלוח", "אוספים הזמנה ומביאים אותה בזמן"], ["taxi", "🚕 מונית", "אוספים נוסע ומורידים אותו ביעד"],
+    ["ambulance", "🚑 אמבולנס", "מגיעים מהר למי שצריך עזרה ומביאים לבית החולים"], ["fire", "🚒 כבאית", "שריפה בבניין! מגיעים ומכבים"],
+    ["race", "🏁 מרוץ רחוב", "עוברים בכל נקודות הביקורת בזמן"], ["goto", "📍 נסיעה לרחוב", "בוחרים רחוב והניווט לוקח אתכם"]
+  ];
+  M.panel = function () {
+    if (!W) return; var p = $("cPanel"), list = $("cpList"); p.hidden = false; W.paused = 1;
+    list.replaceChildren();
+    if (W.mis) { var b0 = el("button", "trk"); b0.append(el("b", "", "✖ לבטל את המשימה")); b0.onclick = function () { endMis(0); closePanel(); }; list.append(b0); }
+    MIS.forEach(function (m) {
+      var best = S.city[W.id] && S.city[W.id].best && S.city[W.id].best[m[0]];
+      var b = el("button", "trk"); b.append(el("b", "", m[1]), el("small", "", m[2] + (best ? " · " + "⭐".repeat(best) : ""))); b.onclick = function () { closePanel(); if (m[0] === "goto") streets(); else newMis(m[0]); }; list.append(b);
+    });
+    $("cpStars").textContent = "⭐ " + ((S.city[W.id] && S.city[W.id].got || []).length) + "/" + STAR_N + " כוכבים נסתרים ב" + W.C.name;
+  };
+  function closePanel() { $("cPanel").hidden = true; $("cStreets").hidden = true; if (W) W.paused = 0; }
+  $("cpClose").onclick = closePanel;
+  // choosing a street to drive to: all the city's named streets, with a search box
+  function streets() {
+    var C = W.C, box = $("cStreets"), q = $("csQ"), out = $("csList"), names = {};
+    C.roads.forEach(function (r) { if (r.name && r.t <= 6) (names[r.name] = names[r.name] || []).push(r); });
+    var all = Object.keys(names).sort(function (a, b) { return a.localeCompare(b, "he"); });
+    var draw = function () { var f = q.value.trim(); out.replaceChildren.apply(out, all.filter(function (n) { return !f || n.indexOf(f) >= 0; }).slice(0, 80).map(function (n) { var b = el("button", "chip", n); b.onclick = function () { var rs = names[n], r = rs[Math.floor(rs.length / 2)], v = r.v[Math.floor(r.v.length / 2)]; box.hidden = true; W.paused = 0; startGoto(C.VX[v], C.VZ[v], n); }; return b; })); };
+    q.value = ""; q.oninput = draw; draw(); box.hidden = false; W.paused = 1; setTimeout(function () { q.focus(); }, 50);
+  }
+  $("csClose").onclick = closePanel;
+  function startGoto(x, z, name) { W.mis = { kind: "goto", stage: 0, t0: W.t, label: "📍 לרחוב " + name, steps: [{ x: x, z: z, say: "הגעת לרחוב " + name + " 🎉" }] }; setTarget(x, z, name); flash("📍 נוסעים לרחוב " + name, 2); hudMis(); }
+  // a random spot on a street, 'min'–'max' metres from a point
+  function spot(x0, z0, min, max, filt) {
+    var C = W.C;
+    for (var i = 0; i < 400; i++) {
+      var r = C.roads[Math.floor(Math.random() * C.roads.length)]; if (r.t < 2 || r.t > 6 || (filt && !filt(r))) continue;
+      var k = Math.floor(Math.random() * (r.v.length - 1)), x = (C.VX[r.v[k]] + C.VX[r.v[k + 1]]) / 2, z = (C.VZ[r.v[k]] + C.VZ[r.v[k + 1]]) / 2, d = Math.hypot(x - x0, z - z0);
+      if (d >= min && d <= max && Math.abs(x) < C.L - 30 && Math.abs(z) < C.L - 30) return { x: x, z: z, name: r.name };
+    }
+    return null;
+  }
+  function streetOf(x, z) { var n = W.C.near(x, z, 40); return n ? W.C.roads[n.road].name : ""; }
+  function placeName(kinds, fallback) {
+    var C = W.C, me = W.me, list = C.poi.filter(function (p) { return kinds.indexOf(p.k) >= 0 && Math.hypot(p.x - me.x, p.z - me.z) > 250 && Math.hypot(p.x - me.x, p.z - me.z) < 1100; });
+    if (!list.length) return null; var p = list[Math.floor(Math.random() * list.length)], nr = C.near(p.x, p.z, 60); if (!nr) return null;
+    return { x: nr.x, z: nr.z, name: p.name, street: C.roads[nr.road].name };
+  }
+  var FARES = ["תודה! לאן? 🙂", "שלום, אני ממהר לפגישה!", "אפשר לנסוע לאט? יש לי עוגה ביד 🎂", "יאללה, אני מאחר להצגה!", "תודה שעצרת!"];
+  function newMis(kind) {
+    var me = W.me, C = W.C, m = { kind: kind, stage: 0, t0: W.t, steps: [] };
+    var nm = function (p) { return p && p.name ? p.name : ""; }, st = function (p) { return p && (p.street || p.name) ? "ברחוב " + (p.street || p.name) : ""; };
+    if (kind === "delivery") {
+      var pick = placeName(["c"]) || spot(me.x, me.z, 150, 500), drop = pick && spot(pick.x, pick.z, 350, 1000);
+      if (!pick || !drop) return flash("לא מצאנו כתובת, נסו שוב", 1.5);
+      m.label = "🍕 משלוח"; m.steps = [{ x: pick.x, z: pick.z, say: "📦 ההזמנה אצלך! עכשיו ל" + (drop.name ? "רחוב " + drop.name : "כתובת"), what: "לאסוף מבית קפה " + st(pick) }, { x: drop.x, z: drop.z, say: "🍕 נמסר! הלקוח מרוצה", what: "למסור " + (drop.name ? "ברחוב " + drop.name : "בכתובת") }];
+    } else if (kind === "taxi") {
+      var a = spot(me.x, me.z, 120, 450), b = a && spot(a.x, a.z, 400, 1100);
+      if (!a || !b) return flash("לא מצאנו נוסע, נסו שוב", 1.5);
+      m.label = "🚕 מונית"; m.steps = [{ x: a.x, z: a.z, say: FARES[Math.floor(Math.random() * FARES.length)] + " לרחוב " + (b.name || "הבא"), what: "לאסוף נוסע " + st(a) }, { x: b.x, z: b.z, say: "🚕 הנוסע הגיע. נסיעה טובה!", what: "להוריד " + st(b) }];
+      m.fare = Math.round(12 + Math.hypot(b.x - a.x, b.z - a.z) / 1000 * 7);
+    } else if (kind === "ambulance") {
+      var pt = spot(me.x, me.z, 250, 700), h = placeName(["h"]) || (pt && spot(pt.x, pt.z, 500, 1200));
+      if (!pt || !h) return flash("נסו שוב", 1.5);
+      m.label = "🚑 אמבולנס"; m.car = "ambulance"; m.steps = [{ x: pt.x, z: pt.z, say: "🩹 החולה עלה. מהר, לבית החולים!", what: "להגיע למי שצריך עזרה " + st(pt) }, { x: h.x, z: h.z, say: "🏥 הגעתם בזמן. כל הכבוד!", what: "לבית החולים" + (h.name ? " " + h.name : "") }];
+    } else if (kind === "fire") {
+      var bl = null; for (var i = 0; i < 300 && !bl; i++) { var b2 = C.bld[Math.floor(Math.random() * C.bld.length)]; if (!b2) break; var cx = 0, cz = 0, n = b2.p.length / 2; for (var k = 0; k < n; k++) { cx += b2.p[2 * k]; cz += b2.p[2 * k + 1]; } cx /= n; cz /= n; var dd = Math.hypot(cx - me.x, cz - me.z); var nr = C.near(cx, cz, 30); if (dd > (i < 200 ? 300 : 120) && dd < (i < 200 ? 900 : 1600) && nr) bl = { x: nr.x, z: nr.z, bx: cx, bz: cz, h: b2.h || 10 }; }
+      if (!bl) return flash("נסו שוב", 1.5);
+      m.label = "🚒 כבאית"; m.car = "firetruck"; m.steps = [{ x: bl.x, z: bl.z, say: "", what: "שריפה " + st({ street: streetOf(bl.x, bl.z) }) + "! מהר!", fire: bl }];
+      W.fire = makeFire(W.scene, bl.bx, bl.bz, bl.h);
+    } else if (kind === "race") {
+      var end = spot(me.x, me.z, 900, 1600), rt = end && routeTo(end.x, end.z);
+      if (!rt) return flash("נסו שוב", 1.5);
+      var cps = [], acc = 0; for (var q = 1; q < rt.pts.length; q++) { acc += Math.hypot(rt.pts[q][0] - rt.pts[q - 1][0], rt.pts[q][1] - rt.pts[q - 1][1]); if (acc > 220) { cps.push({ x: rt.pts[q][0], z: rt.pts[q][1], what: "נקודת ביקורת", pass: 1 }); acc = 0; } }
+      cps.push({ x: end.x, z: end.z, what: "קו הסיום", pass: 1, say: "🏁 סיימת!" });
+      m.label = "🏁 מרוץ רחוב"; m.steps = cps; m.race = 1;
+    }
+    // the time: by the length of the way at a good city speed
+    var len = 0, px = me.x, pz = me.z; m.steps.forEach(function (s) { len += Math.hypot(s.x - px, s.z - pz) * 1.35; px = s.x; pz = s.z; });
+    m.limit = Math.round(len / (kind === "race" ? 13 : kind === "ambulance" || kind === "fire" ? 11 : 9) + 15);
+    W.mis = m;
+    var go = function () { m.t0 = W.t; setTarget(m.steps[0].x, m.steps[0].z, m.steps[0].what); flash(m.label + ": " + m.steps[0].what, 2.6); hudMis(); };
+    if (m.car && W.me.spec.id !== m.car) swapCar(m.car, go); else go();
+    if (m.car) W.me.siren = true;
+  }
+  function swapCar(id, then) {
+    var spec = CAR_BY[id]; loadModel(id).then(function (model) {
+      var me = W.me; W.scene.remove(W.V.root); W.V = carMesh(spec, model); W.scene.add(W.V.root);
+      me.spec = spec; me.vmax = spec.top / 3.6; me.A0 = 27.78 / spec.acc * 1.32; me.m = spec.m; me.I = spec.m * 1.6; me.u = me.v = me.r = 0;
+      then();
+    });
+  }
+  function misStep(dt) {
+    var w = W, m = w.mis; if (!m) return;
+    if (w.route && Math.floor(w.t * 2) !== Math.floor((w.t - dt) * 2)) guide();
+    var s = m.steps[m.stage], me = w.me, d = Math.hypot(s.x - me.x, s.z - me.z), sp = Math.abs(me.u);
+    if (s.fire) {
+      if (d < 30 && sp < 3) { m.spray = (m.spray || 0) + dt; $("cbWater").hidden = false; w.fire.douse(m.spray / 5); if (m.spray > 5) { w.fire.out(); w.fire = null; s.say = "💦 השריפה כובתה! גיבורים"; next(); } }
+      else $("cbWater").hidden = true;
+      return;
+    }
+    var ok = s.pass ? d < 9 : d < 7 && sp < 2.5;
+    if (!ok && !s.pass && d < 7 && w.t - (w.said.stop || -9) > 3) { w.said.stop = w.t; flash("✋ עוצרים כדי ש" + (m.kind === "taxi" ? "הנוסע יעלה" : "יוכלו להעמיס"), 1.2); }
+    if (ok) next();
+  }
+  function next() {
+    var w = W, m = w.mis, s = m.steps[m.stage];
+    if (s.say) flash(s.say, 2.2); sndBeep(784, 0.12); setTimeout(function () { sndBeep(1047, 0.18); }, 110);
+    m.stage++;
+    if (m.stage >= m.steps.length) return endMis(1);
+    var n = m.steps[m.stage]; setTarget(n.x, n.z, n.what);
+    if (m.kind === "taxi" && m.stage === 1) m.pick = w.t;
+  }
+  function endMis(ok) {
+    var w = W, m = w.mis; if (!m) return; w.mis = null; clearTarget(); $("cbWater").hidden = true; $("cMis").hidden = true; w.me.siren = false;
+    if (m.car && w.me.spec.id !== S.car) setTimeout(function () { if (W && !W.mis) swapCar(S.car, function () {}); }, ok ? 2500 : 0); // back to your own car
+    if (w.fire) { w.fire.out(); w.fire = null; }
+    if (!ok || m.kind === "goto") { if (ok) flash(m.steps[m.steps.length - 1].say, 2.5); return; }
+    var used = w.t - m.t0, st = used <= m.limit * 0.75 ? 3 : used <= m.limit ? 2 : 1;
+    var c = S.city[w.id] = S.city[w.id] || { got: [], best: {} }; c.best = c.best || {};
+    var gain = Math.max(0, st - (c.best[m.kind] || 0)); c.best[m.kind] = Math.max(c.best[m.kind] || 0, st); S.bonus = (S.bonus || 0) + gain; A.save();
+    var t = Math.floor(used / 60) + ":" + String(Math.floor(used % 60)).padStart(2, "0");
+    setTimeout(function () { flash(m.label + " הושלם! " + "⭐".repeat(st) + " · " + t + (m.fare ? " · ₪" + m.fare : "") + (gain ? " · +" + gain + " כוכבים" : ""), 4); }, 1600);
+  }
+  function hudMis() {
+    var w = W, box = $("cMis"); if (!w || !w.mis) { box.hidden = true; return; }
+    var m = w.mis, s = m.steps[m.stage], left = m.limit ? Math.max(0, m.limit - (w.t - m.t0)) : null;
+    set("cMisT", m.label + (m.race ? " · " + (m.stage) + "/" + m.steps.length : ""));
+    set("cMisW", s ? s.what || "" : "");
+    set("cMisC", left == null ? "" : "⏱ " + Math.floor(left / 60) + ":" + String(Math.floor(left % 60)).padStart(2, "0"));
+    $("cMisC").classList.toggle("late", left === 0); box.hidden = false;
+  }
+  // ---------- fire and smoke ----------
+  function makeFire(scene, x, z, h) {
+    var g = new THREE.Group(), fl = [], sm = [], top = Math.max(4, h) + 0.5;
+    for (var i = 0; i < 10; i++) { var s = sprite(i % 2 ? 0xFF7A1A : 0xFFB020, 5 + Math.random() * 4); s.position.set(x + (Math.random() - 0.5) * 8, top - 2 + Math.random() * 3, z + (Math.random() - 0.5) * 8); g.add(s); fl.push(s); }
+    var smM = new THREE.SpriteMaterial({ map: glowTex(), color: 0x444444, transparent: true, opacity: 0.5, depthWrite: false });
+    for (i = 0; i < 14; i++) { var p = new THREE.Sprite(smM.clone()); p.position.set(x, top + i * 3, z); p.scale.setScalar(6 + i); p.userData.y0 = i * 3; g.add(p); sm.push(p); }
+    var light = new THREE.PointLight(0xFF7A1A, 2.5, 60); light.position.set(x, top + 2, z); g.add(light);
+    scene.add(g); var k = 1;
+    return { step: function (dt, t) { fl.forEach(function (s, i2) { var f = (0.8 + Math.sin(t * 9 + i2) * 0.25) * k; s.scale.setScalar((5 + i2 % 4) * f); s.material.opacity = k; }); sm.forEach(function (p) { p.userData.y0 = (p.userData.y0 + dt * 4) % 42; p.position.y = top + p.userData.y0; p.material.opacity = 0.5 * (1 - p.userData.y0 / 42) * (0.3 + 0.7 * k); }); light.intensity = 2.5 * k; },
+      douse: function (f) { k = Math.max(0, 1 - f); }, out: function () { scene.remove(g); } };
+  }
+  // ---------- rain ----------
+  function makeRain(scene) {
+    var n = G.hi ? 2400 : 1100, pos = new Float32Array(n * 6);
+    for (var i = 0; i < n; i++) { var x = (Math.random() - 0.5) * 80, y = Math.random() * 30, z = (Math.random() - 0.5) * 80; pos.set([x, y, z, x + 0.05, y - 0.7, z], i * 6); }
+    var g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    var ln = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xBFD3E6, transparent: true, opacity: 0.45 })); ln.frustumCulled = false; scene.add(ln);
+    return function (c, dt) {
+      for (var i2 = 0; i2 < n; i2++) { var o = i2 * 6; pos[o + 1] -= 26 * dt; pos[o + 4] -= 26 * dt; if (pos[o + 1] < 0) { var y2 = 25 + Math.random() * 5; pos[o + 1] = y2; pos[o + 4] = y2 - 0.7; } }
+      g.attributes.position.needsUpdate = true; ln.position.set(c.x, 0, c.z);
+    };
+  }
+  // ---------- the radio: three stations of original music, made on the phone ----------
+  var RADIO = [["📻 גלי חניה · פופ", 112, [0, 2, 4, 7, 9], [[0, 4, 7], [9, 0, 4], [5, 9, 0], [7, 11, 2]]], ["📻 רדיו ים תיכון", 96, [0, 1, 4, 5, 7, 8, 10], [[0, 4, 7], [1, 5, 8], [0, 4, 7], [10, 2, 5]]], ["📻 לילה בעיר · לו־פיי", 78, [0, 3, 5, 7, 10], [[0, 3, 7, 10], [5, 8, 0, 3], [3, 7, 10, 2], [8, 0, 3, 7]]]];
+  var RS = { st: 0, timer: 0, g: null, step: 0, next: 0 };
+  function radio(k, quiet) {
+    if (RS.timer) { clearInterval(RS.timer); RS.timer = 0; } if (RS.g) { try { RS.g.gain.setTargetAtTime(0, SND.ctx.currentTime, 0.1); } catch (e) {} RS.g = null; }
+    RS.st = k; $("cbRadio").classList.toggle("on", !!k); if (!k) { if (!quiet) flash("📻 הרדיו כבוי", 1); return; }
+    if (!SND.ctx) sndInit(); if (!SND.ctx) return;
+    var a = SND.ctx, st = RADIO[k - 1], g = a.createGain(); g.gain.value = 0.32; g.connect(SND.master); RS.g = g; RS.step = 0; RS.next = a.currentTime + 0.1;
+    var rnd = cbRand(k * 101), mel = []; for (var i = 0; i < 16; i++) mel.push(rnd() < 0.62 ? st[2][Math.floor(rnd() * st[2].length)] + (rnd() < 0.3 ? 12 : 0) : null);
+    var beat = 60 / st[1] / 4, base = k === 2 ? 50 : 48, hz = function (n) { return 440 * Math.pow(2, (n - 69) / 12); };
+    function note(f, t0, len, type, vol, cut) { var o = a.createOscillator(), e = a.createGain(), fl = a.createBiquadFilter(); o.type = type; o.frequency.value = f; fl.type = "lowpass"; fl.frequency.value = cut || 2400; e.gain.setValueAtTime(0, t0); e.gain.linearRampToValueAtTime(vol, t0 + 0.012); e.gain.exponentialRampToValueAtTime(0.0008, t0 + len); o.connect(fl); fl.connect(e); e.connect(g); o.start(t0); o.stop(t0 + len + 0.05); }
+    function noise(t0, len, vol, f, hp) { var s = a.createBufferSource(), fl = a.createBiquadFilter(), e = a.createGain(); s.buffer = SND.noise; fl.type = hp ? "highpass" : "bandpass"; fl.frequency.value = f; e.gain.setValueAtTime(vol, t0); e.gain.exponentialRampToValueAtTime(0.0008, t0 + len); s.connect(fl); fl.connect(e); e.connect(g); s.start(t0); s.stop(t0 + len + 0.02); }
+    function kick(t0) { var o = a.createOscillator(), e = a.createGain(); o.frequency.setValueAtTime(130, t0); o.frequency.exponentialRampToValueAtTime(42, t0 + 0.18); e.gain.setValueAtTime(0.5, t0); e.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3); o.connect(e); e.connect(g); o.start(t0); o.stop(t0 + 0.32); }
+    RS.timer = setInterval(function () {
+      while (RS.next < a.currentTime + 0.25) {
+        var s = RS.step, t0 = RS.next, bar = Math.floor(s / 16) % 4, ch = st[3][bar], q = s % 16;
+        if (q % 4 === 0 && (k !== 3 || q % 8 === 0)) kick(t0);
+        if (q === 4 || q === 12) noise(t0, k === 3 ? 0.25 : 0.14, k === 3 ? 0.12 : 0.18, 1800);
+        if (q % 2 === 0) noise(t0, 0.04, k === 3 ? 0.03 : 0.05, 7000, 1);
+        if (k === 2 && (q === 3 || q === 7 || q === 11)) noise(t0, 0.06, 0.08, 900); // a darbuka-like tak
+        if (q === 0 || q === 8) ch.forEach(function (n) { note(hz(base + 12 + n), t0, beat * 7.5, k === 3 ? "sine" : "triangle", 0.045, 1600); });
+        if (q % 4 === 0 || (k === 1 && q % 4 === 3)) note(hz(base - 12 + ch[0]), t0, beat * 2.5, "sawtooth", 0.11, 380);
+        var m = mel[q]; if (m != null && (bar < 3 || q < 12)) note(hz(base + 24 + m + (bar === 2 ? 2 : 0)), t0, beat * (k === 3 ? 3 : 1.6), k === 2 ? "sawtooth" : "square", k === 3 ? 0.03 : 0.035, k === 2 ? 1800 : 2600);
+        RS.step++; RS.next += beat;
+      }
+    }, 60);
+    flash(st[0], 1.6);
+  }
+  M.radio = function () { radio((RS.st + 1) % (RADIO.length + 1)); };
+  // ---------- the big map: tap anywhere to drive there ----------
+  M.bigMap = function () {
+    if (!W) return; var box = $("cMapBig"), cv = $("cBig"), x = cv.getContext("2d"), mc = W.mapC, C = W.C;
+    box.hidden = false; W.paused = 1;
+    var S2 = Math.min(innerWidth - 24, innerHeight - 110, 900); cv.width = cv.height = S2;
+    var k = S2 / mc.cv.width; x.drawImage(mc.cv, 0, 0, S2, S2);
+    var P = function (X, Z) { return [(X + C.L) * mc.sc * k, (Z + C.L) * mc.sc * k]; };
+    if (W.route) { x.strokeStyle = "rgba(25,113,194,.9)"; x.lineWidth = 4; x.beginPath(); W.route.pts.forEach(function (p, i) { var q = P(p[0], p[1]); if (i) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }); x.stroke(); }
+    W.stars.list.forEach(function (s) { if (s.got) return; var q = P(s.x, s.z); x.fillStyle = "#F59F00"; x.font = "16px sans-serif"; x.fillText("★", q[0] - 6, q[1] + 6); });
+    var me = P(W.me.x, W.me.z); x.fillStyle = "#1971C2"; x.beginPath(); x.arc(me[0], me[1], 7, 0, 7); x.fill(); x.strokeStyle = "#fff"; x.lineWidth = 2; x.stroke();
+    cv.onclick = function (e) { var r = cv.getBoundingClientRect(), X = (e.clientX - r.left) / r.width * S2 / k / mc.sc - C.L, Z = (e.clientY - r.top) / r.height * S2 / k / mc.sc - C.L, n = C.near(X, Z, 80); if (!n) return; box.hidden = true; W.paused = 0; startGoto(n.x, n.z, C.roads[n.road].name || "הנקודה שבחרת"); };
+  };
+  $("cmClose").onclick = function () { $("cMapBig").hidden = true; if (W) W.paused = 0; };
+  $("cbMis").onclick = function () { M.panel(); };
+  $("cbRadio").onclick = function () { M.radio(); };
+  $("cbMap").onclick = function () { M.bigMap(); };
+  $("cbHorn").onclick = function () { sndBeep(415, 0.35, 0.12); };
+  $("cyBack").onclick = function () { A.menu(); };
+  $("cyCar").onclick = function () { A.garage(); };
+  $("cyGo").onclick = function () { sndInit(); M.start(); };
+  M.key = function (code) {
+    if (code === "KeyM") { if ($("cMapBig").hidden) M.bigMap(); else $("cmClose").onclick(); }
+    if (code === "KeyB") M.radio();
+    if (code === "KeyJ") M.panel();
+    if (code === "KeyH" && W && W.me.spec.siren) W.me.siren = !W.me.siren;
+  };
+  M.frame = function (dt, acc) {
+    if (!W) return acc;
+    if (!W.paused) { acc += dt; var n = 0; while (acc >= 1 / 60 && n < 4) { M.step(1 / 60); acc -= 1 / 60; n++; } if (n === 4) acc = 0; }
+    M.render(dt); M.hud(); return acc;
+  };
+  M.pause = function (on) { if (!W) return; W.paused = on ? 1 : 0; };
+  Object.defineProperty(M, "W", { get: function () { return W; } });
+  return M;
+}
+
 // HaniaRace: the screens, the race itself (countdown, laps, positions, finish), the controls (keyboard, touch,
 // tilting the phone, game pad), the dashboard, and what is saved on the phone (stars, best laps, ghost, settings).
 (function () {
@@ -804,7 +1994,7 @@ function sndHit(k) {
   cv.addEventListener("webglcontextlost", function (e) { e.preventDefault(); setTimeout(function () { location.reload(); }, 600); });
 
   // ---------- screens ----------
-  var SCR = ["menu", "garage", "track", "settings", "results", "champ", "pause", "loading"];
+  var SCR = ["menu", "garage", "track", "settings", "results", "champ", "pause", "loading", "city"];
   function show(id) { SCR.forEach(function (s) { $("s-" + s).hidden = s !== id; }); $("hud").hidden = !!id && id !== "pause"; $("touch").hidden = !(G.state && !id && touch && S.set.ctl !== "kb"); if (id) document.body.classList.add("menu"); else document.body.classList.remove("menu"); }
   function el(t, cls, txt) { var e = document.createElement(t); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 
@@ -829,18 +2019,20 @@ function sndHit(k) {
   }
   $("gPrev").onclick = function () { gi = (gi - 1 + CARS.length) % CARS.length; garage(); };
   $("gNext").onclick = function () { gi = (gi + 1) % CARS.length; garage(); };
-  $("gPick").onclick = function () { var c = CARS[gi]; if (stars() < c.star) return; S.car = c.id; save(); trackScreen(); };
-  $("gBack").onclick = menu;
+  $("gPick").onclick = function () { var c = CARS[gi]; if (stars() < c.star) return; S.car = c.id; save(); if (MODE === "city") CM.screen(); else trackScreen(); };
+  $("gBack").onclick = function () { if (MODE === "city") CM.screen(); else menu(); };
 
   // ---------- menu ----------
   var MODE = "quick";
   function menu() {
-    show("menu"); G.state = null; endScene();
+    if (CM && CM.on) CM.exit(true);
+    show("menu"); G.state = null; endScene(); if (MODE === "city") MODE = "quick";
     $("mStars").textContent = "⭐ " + stars() + " כוכבים · " + CARS.filter(function (c) { return stars() >= c.star; }).length + "/" + CARS.length + " רכבים";
     $("mCar").textContent = "🚗 " + CAR_BY[S.car].n;
   }
   [].forEach.call(document.querySelectorAll("[data-mode]"), function (b) { b.onclick = function () { sndInit(); MODE = b.dataset.mode; if (MODE === "champ") trackScreen(); else trackScreen(); }; });
   $("mGarage").onclick = function () { sndInit(); garage(); };
+  $("mCity").onclick = function () { sndInit(); MODE = "city"; CM.screen(); };
   $("mSettings").onclick = settings;
 
   // ---------- choosing a track ----------
@@ -944,6 +2136,14 @@ function sndHit(k) {
   var K = {}, TB = {}, tilt = 0;
   addEventListener("keydown", function (e) {
     K[e.code] = 1; sndInit();
+    if (CM.on) {
+      if (e.code === "KeyC") { S.set.cam = (S.set.cam + 1) % 3; save(); }
+      if (e.code === "KeyR") CM.resetCar();
+      if (e.code === "Escape" || e.code === "KeyP") pause();
+      CM.key(e.code);
+      if (/Arrow|Space/.test(e.code)) e.preventDefault();
+      return;
+    }
     if (!W) return;
     if (e.code === "KeyC") { S.set.cam = (S.set.cam + 1) % 3; save(); }
     if (e.code === "KeyR") resetCar();
@@ -968,9 +2168,12 @@ function sndHit(k) {
     return { thr: thr, brk: brk, steer: st, analog: analog, hand: K.Space || TB.hand || (gp && gp.buttons[1] && gp.buttons[1].pressed) ? 1 : 0, nitro: K.ShiftLeft || K.ShiftRight || K.KeyN || TB.nitro || (gp && gp.buttons[2] && gp.buttons[2].pressed) ? 1 : 0 };
   }
   function resetCar() { if (!W || W.state !== "race") return; var c = W.me; place(c, W.tr, c.idx, 0); flash("🔄 חזרה לכביש", 1.2); }
-  $("tbPause").onclick = pause; $("tbCam").onclick = function () { S.set.cam = (S.set.cam + 1) % 3; save(); }; $("tbReset").onclick = resetCar;
-  function pause() { if (!W || W.state === "done") return; if (W.paused) { W.paused = 0; show(null); return; } W.paused = 1; show("pause"); }
-  $("pCont").onclick = pause; $("pRestart").onclick = function () { start(W.T.id); }; $("pExit").onclick = function () { CH = null; menu(); };
+  $("tbPause").onclick = pause; $("tbCam").onclick = function () { S.set.cam = (S.set.cam + 1) % 3; save(); }; $("tbReset").onclick = function () { if (CM.on) CM.resetCar(); else resetCar(); };
+  function pause() {
+    if (CM.on) { var cw = CM.W; if (!cw) return; if (cw.paused && !$("s-pause").hidden) { CM.pause(0); show(null); } else if (!cw.paused) { CM.pause(1); show("pause"); } return; }
+    if (!W || W.state === "done") return; if (W.paused) { W.paused = 0; show(null); return; } W.paused = 1; show("pause");
+  }
+  $("pCont").onclick = pause; $("pRestart").onclick = function () { if (CM.on) CM.start(); else start(W.T.id); }; $("pExit").onclick = function () { CH = null; if (CM.on) CM.exit(); else menu(); };
 
   // ---------- one step of the race (1/60 s) ----------
   function step(dt) {
@@ -1125,6 +2328,7 @@ function sndHit(k) {
   var last = performance.now(), acc = 0, ga = 0;
   function frame(now) {
     var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (CM.on) { acc = CM.frame(dt, acc); requestAnimationFrame(frame); return; }
     if (W && G.state === "race") {
       acc += dt; var n = 0; while (acc >= 1 / 60 && n < 4) { step(1 / 60); acc -= 1 / 60; n++; }
       if (n === 4) acc = 0;
@@ -1136,7 +2340,9 @@ function sndHit(k) {
     } else if (SND.ctx) sndFrame({ u: 0, slip: 0, off: 0, rpm: 0, boost: 0, spec: CAR_BY[S.car] }, null, 1e9, true);
     requestAnimationFrame(frame);
   }
-  document.addEventListener("visibilitychange", function () { if (document.hidden && W && G.state === "race" && !W.paused && W.state !== "done") pause(); });
+  document.addEventListener("visibilitychange", function () { if (document.hidden && ((W && G.state === "race" && !W.paused && W.state !== "done") || (CM.on && CM.W && !CM.W.paused))) pause(); });
+  // the open city (citymode.js) shares the renderer, the camera, the controls and the screens
+  var CM = cityMode({ R: R, cam: cam, input: input, show: show, S: S, save: save, menu: menu, garage: garage });
   menu(); requestAnimationFrame(frame);
-  window.__race = { get W() { return W; }, start: start, menu: menu, S: S, setMode: function (m) { MODE = m; }, sim: function (sec) { for (var i = 0; i < sec * 60 && W; i++) step(1 / 60); if (W) hud(); } };
+  window.__race = { get W() { return W; }, CM: CM, start: start, menu: menu, S: S, setMode: function (m) { MODE = m; }, sim: function (sec) { for (var i = 0; i < sec * 60 && W; i++) step(1 / 60); if (W) hud(); } };
 })();

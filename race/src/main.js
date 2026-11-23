@@ -22,7 +22,7 @@
   cv.addEventListener("webglcontextlost", function (e) { e.preventDefault(); setTimeout(function () { location.reload(); }, 600); });
 
   // ---------- screens ----------
-  var SCR = ["menu", "garage", "track", "settings", "results", "champ", "pause", "loading"];
+  var SCR = ["menu", "garage", "track", "settings", "results", "champ", "pause", "loading", "city"];
   function show(id) { SCR.forEach(function (s) { $("s-" + s).hidden = s !== id; }); $("hud").hidden = !!id && id !== "pause"; $("touch").hidden = !(G.state && !id && touch && S.set.ctl !== "kb"); if (id) document.body.classList.add("menu"); else document.body.classList.remove("menu"); }
   function el(t, cls, txt) { var e = document.createElement(t); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
 
@@ -47,18 +47,20 @@
   }
   $("gPrev").onclick = function () { gi = (gi - 1 + CARS.length) % CARS.length; garage(); };
   $("gNext").onclick = function () { gi = (gi + 1) % CARS.length; garage(); };
-  $("gPick").onclick = function () { var c = CARS[gi]; if (stars() < c.star) return; S.car = c.id; save(); trackScreen(); };
-  $("gBack").onclick = menu;
+  $("gPick").onclick = function () { var c = CARS[gi]; if (stars() < c.star) return; S.car = c.id; save(); if (MODE === "city") CM.screen(); else trackScreen(); };
+  $("gBack").onclick = function () { if (MODE === "city") CM.screen(); else menu(); };
 
   // ---------- menu ----------
   var MODE = "quick";
   function menu() {
-    show("menu"); G.state = null; endScene();
+    if (CM && CM.on) CM.exit(true);
+    show("menu"); G.state = null; endScene(); if (MODE === "city") MODE = "quick";
     $("mStars").textContent = "⭐ " + stars() + " כוכבים · " + CARS.filter(function (c) { return stars() >= c.star; }).length + "/" + CARS.length + " רכבים";
     $("mCar").textContent = "🚗 " + CAR_BY[S.car].n;
   }
   [].forEach.call(document.querySelectorAll("[data-mode]"), function (b) { b.onclick = function () { sndInit(); MODE = b.dataset.mode; if (MODE === "champ") trackScreen(); else trackScreen(); }; });
   $("mGarage").onclick = function () { sndInit(); garage(); };
+  $("mCity").onclick = function () { sndInit(); MODE = "city"; CM.screen(); };
   $("mSettings").onclick = settings;
 
   // ---------- choosing a track ----------
@@ -162,6 +164,14 @@
   var K = {}, TB = {}, tilt = 0;
   addEventListener("keydown", function (e) {
     K[e.code] = 1; sndInit();
+    if (CM.on) {
+      if (e.code === "KeyC") { S.set.cam = (S.set.cam + 1) % 3; save(); }
+      if (e.code === "KeyR") CM.resetCar();
+      if (e.code === "Escape" || e.code === "KeyP") pause();
+      CM.key(e.code);
+      if (/Arrow|Space/.test(e.code)) e.preventDefault();
+      return;
+    }
     if (!W) return;
     if (e.code === "KeyC") { S.set.cam = (S.set.cam + 1) % 3; save(); }
     if (e.code === "KeyR") resetCar();
@@ -186,9 +196,12 @@
     return { thr: thr, brk: brk, steer: st, analog: analog, hand: K.Space || TB.hand || (gp && gp.buttons[1] && gp.buttons[1].pressed) ? 1 : 0, nitro: K.ShiftLeft || K.ShiftRight || K.KeyN || TB.nitro || (gp && gp.buttons[2] && gp.buttons[2].pressed) ? 1 : 0 };
   }
   function resetCar() { if (!W || W.state !== "race") return; var c = W.me; place(c, W.tr, c.idx, 0); flash("🔄 חזרה לכביש", 1.2); }
-  $("tbPause").onclick = pause; $("tbCam").onclick = function () { S.set.cam = (S.set.cam + 1) % 3; save(); }; $("tbReset").onclick = resetCar;
-  function pause() { if (!W || W.state === "done") return; if (W.paused) { W.paused = 0; show(null); return; } W.paused = 1; show("pause"); }
-  $("pCont").onclick = pause; $("pRestart").onclick = function () { start(W.T.id); }; $("pExit").onclick = function () { CH = null; menu(); };
+  $("tbPause").onclick = pause; $("tbCam").onclick = function () { S.set.cam = (S.set.cam + 1) % 3; save(); }; $("tbReset").onclick = function () { if (CM.on) CM.resetCar(); else resetCar(); };
+  function pause() {
+    if (CM.on) { var cw = CM.W; if (!cw) return; if (cw.paused && !$("s-pause").hidden) { CM.pause(0); show(null); } else if (!cw.paused) { CM.pause(1); show("pause"); } return; }
+    if (!W || W.state === "done") return; if (W.paused) { W.paused = 0; show(null); return; } W.paused = 1; show("pause");
+  }
+  $("pCont").onclick = pause; $("pRestart").onclick = function () { if (CM.on) CM.start(); else start(W.T.id); }; $("pExit").onclick = function () { CH = null; if (CM.on) CM.exit(); else menu(); };
 
   // ---------- one step of the race (1/60 s) ----------
   function step(dt) {
@@ -343,6 +356,7 @@
   var last = performance.now(), acc = 0, ga = 0;
   function frame(now) {
     var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (CM.on) { acc = CM.frame(dt, acc); requestAnimationFrame(frame); return; }
     if (W && G.state === "race") {
       acc += dt; var n = 0; while (acc >= 1 / 60 && n < 4) { step(1 / 60); acc -= 1 / 60; n++; }
       if (n === 4) acc = 0;
@@ -354,7 +368,9 @@
     } else if (SND.ctx) sndFrame({ u: 0, slip: 0, off: 0, rpm: 0, boost: 0, spec: CAR_BY[S.car] }, null, 1e9, true);
     requestAnimationFrame(frame);
   }
-  document.addEventListener("visibilitychange", function () { if (document.hidden && W && G.state === "race" && !W.paused && W.state !== "done") pause(); });
+  document.addEventListener("visibilitychange", function () { if (document.hidden && ((W && G.state === "race" && !W.paused && W.state !== "done") || (CM.on && CM.W && !CM.W.paused))) pause(); });
+  // the open city (citymode.js) shares the renderer, the camera, the controls and the screens
+  var CM = cityMode({ R: R, cam: cam, input: input, show: show, S: S, save: save, menu: menu, garage: garage });
   menu(); requestAnimationFrame(frame);
-  window.__race = { get W() { return W; }, start: start, menu: menu, S: S, setMode: function (m) { MODE = m; }, sim: function (sec) { for (var i = 0; i < sec * 60 && W; i++) step(1 / 60); if (W) hud(); } };
+  window.__race = { get W() { return W; }, CM: CM, start: start, menu: menu, S: S, setMode: function (m) { MODE = m; }, sim: function (sec) { for (var i = 0; i < sec * 60 && W; i++) step(1 / 60); if (W) hud(); } };
 })();
