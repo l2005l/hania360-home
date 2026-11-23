@@ -275,7 +275,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     for (var i = 0; i < 8; i++) {
       if (i === 4) cs.append(el("div", { class: "cand sh lit", style: "--cc:#FFF2C9" }, [el("span", { class: "flame" })]));
       var has = i >= 8 - n, on = has && lit(i);
-      var c = el(onTap ? "button" : "div", { class: "cand" + (has ? "" : " empty") + (on ? " lit" : ""), style: "--cc:" + COLORS[i], "data-i": String(i), "aria-label": has ? "נר " + (8 - i) : null }, [el("span", { class: "flame" })]);
+      var c = el(onTap ? "button" : "div", { class: "cand" + (has ? "" : " empty") + (on ? " lit" : ""), style: "--cc:" + COLORS[i], "data-i": String(i), role: onTap ? null : "img", "aria-label": has ? "נר " + (8 - i) : null }, [el("span", { class: "flame" })]);
       if (onTap && has) { c.type = "button"; c.classList.add("tap"); c.addEventListener("click", function (e) { onTap(+e.currentTarget.getAttribute("data-i"), e.currentTarget); }); }
       cs.append(c);
     }

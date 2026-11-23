@@ -4,7 +4,7 @@
 /* Layout: one big card at a time for the child (the step, its picture, a gentle clock, one big "done" button);
    the parents set the steps and the bedtime below. Evening is a calm night palette; morning is bright. */
 :root{
-  --bg:#FFF7EE; --surface:#FFFFFF; --ink:#26203F; --muted:#6E6890; --line:#F0E1CF; --main:#7A5CFA; --main2:#5B3FE0; --sun:#FFB53B; --ok:#1DB37C; --ok2:#DFF6EC;
+  --bg:#FFF7EE; --surface:#FFFFFF; --ink:#26203F; --muted:#6E6890; --line:#F0E1CF; --main:#6E4DFA; --main2:#5B3FE0; --sun:#FFB53B; --ok:#1DB37C; --ok2:#DFF6EC;
   --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Noto Serif Hebrew","David",serif; color-scheme:light;
 }
 .night{--bg:#141133;--surface:#1F1B4A;--ink:#F3F0FF;--muted:#B4ADDB;--line:#332D6B;--ok2:#163A33;color-scheme:dark}
@@ -63,7 +63,7 @@ img.ph{border-radius:50%;object-fit:cover;vertical-align:middle;border:2px solid
 .faces{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}.faces button{appearance:none;border:2px solid var(--line);background:var(--surface);border-radius:16px;font-size:30px;padding:4px 8px;cursor:pointer}
 .faces button[aria-pressed="true"]{border-color:var(--main);background:color-mix(in srgb,var(--main) 14%,var(--surface))}
 .diary{display:grid;gap:6px}.diary div{display:flex;gap:8px;align-items:baseline;border-bottom:1px dashed var(--line);padding-bottom:4px}
-.mic{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:4px 7px;cursor:pointer;font-size:15px}.mic.rec{background:#FF5D5D;color:#fff;border-color:#FF5D5D}
+.mic{appearance:none;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:4px 7px;cursor:pointer;font-size:15px;min-width:38px;min-height:38px}.mic.rec{background:#FF5D5D;color:#fff;border-color:#FF5D5D}
 .join{border:2px solid var(--main)}
 .memgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.memc{appearance:none;border:1px solid var(--line,#ddd);background:var(--surface,#fff);color:inherit;font:inherit;border-radius:16px;padding:6px;display:grid;gap:2px;text-align:right;cursor:pointer}.memc img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;background:#0001}.memc small{opacity:.7;font-size:12px}.memc.gone{opacity:.4}.memview{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.92);display:grid;place-items:center;align-content:center;gap:10px;padding:16px;color:#fff}.memview img{max-width:100%;max-height:72vh;border-radius:14px}.memview p{margin:0;text-align:center}
 .story-ov{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:14px max(16px,env(safe-area-inset-left,0px)) 110px}
@@ -92,8 +92,8 @@ img.ph{border-radius:50%;object-fit:cover;vertical-align:middle;border:2px solid
 .srow{display:grid;grid-template-columns:48px minmax(0,1fr) 66px auto;gap:5px;align-items:center}
 .srow select.em{font-size:24px;padding:4px;text-align:center}
 .srow input{width:100%}
-.srow .ctl{display:flex;gap:2px}
-.srow .ctl button{appearance:none;border:0;background:var(--bg);color:var(--ink);border-radius:8px;width:26px;height:34px;font-size:13px;cursor:pointer;padding:0}
+.srow .ctl{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}
+.srow .ctl button{appearance:none;border:0;background:var(--bg);color:var(--ink);border-radius:8px;width:34px;height:38px;font-size:13px;cursor:pointer;padding:0}
 .srow select{padding:8px 4px}
 .srow .who{grid-column:2/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.srow .who .chip{padding:4px 10px;font-size:13.5px;border-radius:10px}.srow .who small{color:var(--muted);font-size:12.5px}
 .hair{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px 0 4px}.hair p{width:100%;text-align:center;margin:0}.hair .chip{font-size:17px;padding:10px 14px}
@@ -663,7 +663,7 @@ details summary{cursor:pointer;font-weight:800;font-size:17px}
     var L = S.goal.list, now = prizeOf();
     var plist = el("div", { class: "row" }, L.map(function (p, i) {
       return el("span", { class: "chip", style: p === now ? "border-color:var(--main);font-weight:800" : "" }, [S.goal.rot ? null : el("button", { type: "button", style: "all:unset;cursor:pointer", text: p, title: "לבחור את הפרס הזה", onclick: function () { S.goal.prize = p; save(); home(); } }), S.goal.rot ? p : null,
-        el("button", { type: "button", style: "all:unset;cursor:pointer;margin-inline-start:6px", "aria-label": "להסיר את " + p, text: "✕", onclick: function () { if (L.length > 1) { L.splice(i, 1); if (S.goal.prize === p) S.goal.prize = L[0]; save(); home(); } } })]);
+        el("button", { type: "button", style: "all:unset;cursor:pointer;margin-inline-start:6px;min-width:28px;min-height:28px;text-align:center", "aria-label": "להסיר את " + p, text: "✕", onclick: function () { if (L.length > 1) { L.splice(i, 1); if (S.goal.prize === p) S.goal.prize = L[0]; save(); home(); } } })]);
     }));
     var np = el("input", { maxlength: "30", placeholder: "פרס חדש, למשל 🧁 אפייה ביחד", "aria-label": "פרס חדש" });
     var add = el("form", { class: "row", onsubmit: function (e) { e.preventDefault(); var v = np.value.trim().slice(0, 30); if (!v || L.indexOf(v) >= 0 || L.length >= 12) return; L.push(v); if (!S.goal.rot) S.goal.prize = v; save(); home(); } }, [el("label", { style: "flex:1" }, [np]), el("button", { class: "btn small", type: "submit", text: "➕ להוסיף" })]);

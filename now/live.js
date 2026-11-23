@@ -54,7 +54,7 @@ export const LIVE_CSS = `
 .l26-news{grid-column:1/-1;display:flex;gap:10px;align-items:center;min-height:0}
 .l26-news .l26-h{flex:1;min-width:0;font-size:15px;font-weight:700;color:#0F172A;transition:opacity .35s}
 .l26-news .l26-ago{white-space:nowrap}
-.l26-badge{background:#DC2626;color:#fff;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:900;white-space:nowrap}
+.l26-badge{background:#B91C1C;color:#fff!important;border-radius:8px;padding:2px 8px;font-size:12px;font-weight:900;white-space:nowrap}
 .l26-src{font-size:11px;color:#94A3B8;text-align:left}
 `;
 

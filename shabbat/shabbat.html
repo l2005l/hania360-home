@@ -47,7 +47,7 @@ header{display:flex;align-items:center;gap:10px}
 .weeks b{font-family:var(--display);font-weight:700;font-size:18px}
 .weeks small{grid-column:1;color:var(--muted);font-size:13px}
 .weeks .t{font-variant-numeric:tabular-nums;font-weight:700;color:var(--flame);text-align:left}
-.weeks .t i{display:block;font-style:normal;font-size:11px;color:var(--muted);font-weight:500;text-align:left}
+.weeks .t i{display:block;font-style:normal;font-size:12px;color:var(--muted);font-weight:500;text-align:left}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--wax);border-radius:12px;padding:8px 12px;font:inherit;font-weight:600;font-size:14.5px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--flame);border-color:var(--flame);color:#2A1A08}
@@ -143,7 +143,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
 
   <section class="card tef" id="tefila">
     <h2>🕍 התפילה היום <small id="tefDate"></small></h2>
-    <div class="chips" id="tefTabs" role="tablist"></div>
+    <div class="chips" id="tefTabs" role="group" aria-label="איזו תפילה"></div>
     <ul class="tefl" id="tefList"></ul>
     <p class="fine" id="tefFood" hidden></p>
     <div class="chips" id="tefNus" aria-label="נוסח"></div>
@@ -593,7 +593,7 @@ details.zd summary{cursor:pointer;font-weight:700;list-style:none;display:flex;j
     if (!window.TEFILA) return;
     var now = new Date(), r = TEFILA.day(now, S.nusach || "ashkenaz", place().name), tab = S.tefTab && S.tefTabDay === now.toDateString() ? S.tefTab : nowPrayer();
     $("tefDate").textContent = { ashkenaz: "נוסח אשכנז", sefard: "נוסח ספרד", mizrach: "עדות המזרח" }[S.nusach || "ashkenaz"];
-    $("tefTabs").replaceChildren.apply($("tefTabs"), PR.map(function (p) { var b = el("button", { type: "button", class: "chip", role: "tab", "aria-pressed": String(p[0] === tab) }, [p[1] + (p[0] === "arvit" ? " (בערב)" : "")]); b.addEventListener("click", function () { S.tefTab = p[0]; S.tefTabDay = now.toDateString(); save(); renderTef(); }); return b; }));
+    $("tefTabs").replaceChildren.apply($("tefTabs"), PR.map(function (p) { var b = el("button", { type: "button", class: "chip", "aria-pressed": String(p[0] === tab) }, [p[1] + (p[0] === "arvit" ? " (בערב)" : "")]); b.addEventListener("click", function () { S.tefTab = p[0]; S.tefTabDay = now.toDateString(); save(); renderTef(); }); return b; }));
     var list = r.prayers[tab] || [], special = list.filter(function (x) { return x.isNew || !ROUTINE.test(x.t); }), routine = list.filter(function (x) { return !x.isNew && ROUTINE.test(x.t); });
     var kids = [];
     if (!list.length) kids.push(el("li", { class: "routine" }, [el("b", r.kind === "weekday" ? "תפילה רגילה" : r.notes[0] || "סדר של שבת או חג")]));
