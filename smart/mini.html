@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex"><title>הבית החכם</title>
+<style>
+/* The house's state, small, for the hania360.com home page. It reads the address and key that the app keeps on this
+   phone and asks Home Assistant directly; nothing reaches the page around it except the height of this box. */
+html,body{margin:0;background:transparent}
+body{font:15px/1.4 Assistant,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+a{display:flex;align-items:center;gap:12px;text-decoration:none;background:#0F3B3A;color:#EAF4F2;border-radius:16px;padding:11px 14px;min-height:60px;box-sizing:border-box}
+a:focus-visible{outline:3px solid #F5B544;outline-offset:-3px}
+img{width:36px;height:36px;border-radius:9px;flex:none}
+.t{flex:1;min-width:0}.t b{display:block;font-size:15.5px}
+.t span{display:block;font-size:13.5px;color:#BFD8D4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t span i{font-style:normal;color:#FFE3A6}
+.go{color:#FFE3A6;font-weight:700;font-size:14px;white-space:nowrap}
+</style></head><body>
+<a id="a" href="https://smart.hania360.com/" target="_top" hidden><img src="/icons/icon-192.png" alt=""><span class="t"><b id="b">הבית החכם</b><span id="s"></span></span><span class="go">לבית ←</span></a>
+<script>
+(function(){"use strict";
+var tell=function(h){try{parent.postMessage({t:"hsmart",h:h},"*")}catch(e){}};
+var S=null;try{S=JSON.parse(localStorage.getItem("hsmart1")||"null")}catch(e){}
+var url=S&&S.ha&&String(S.ha.url||"").trim().replace(/\/+$/,""),tok=S&&S.ha&&S.ha.token;
+if(!url||!tok||!/^https:\/\//i.test(url))return tell(0);
+var ctl=window.AbortController?new AbortController():null,tm=setTimeout(function(){if(ctl)ctl.abort()},7000);
+fetch(url+"/api/states",{headers:{Authorization:"Bearer "+tok},cache:"no-store",signal:ctl?ctl.signal:undefined}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(L){clearTimeout(tm);
+  var st=function(id){for(var i=0;i<L.length;i++)if(L[i].entity_id===id)return L[i];return null};
+  var find=function(re){for(var i=0;i<L.length;i++)if(re.test(L[i].entity_id))return L[i];return null};
+  var iss=find(/^binary_sensor\..*issur_melacha/);if(iss&&iss.state==="on")return tell(0);
+  var d=S.dev||{},B=st(d.boiler),C=(d.covers||[]).map(st).filter(Boolean),W=st(d.away),cand=find(/^sensor\..*upcoming_candle_lighting$/),parts=[];
+  var main=B?(B.state==="on"?"🔥 הדוד דולק":"הדוד כבוי"):"הבית החכם";
+  if(W&&W.state==="on")parts.push("<i>🧳 לא בבית בשבת</i>");
+  if(C.length){var open=C.filter(function(c){return c.state!=="closed"}).length;parts.push(open===0?"התריסים סגורים":open===C.length?"התריסים פתוחים":open+" מתוך "+C.length+" תריסים פתוחים")}
+  if(cand){var t=new Date(cand.state);if(!isNaN(t)&&t-Date.now()<6*864e5&&t>Date.now())parts.push("🕯️ "+t.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit",hour12:false})+" "+t.toLocaleDateString("he-IL",{weekday:"long"}).replace(/^יום /,"ב"))}
+  document.getElementById("b").textContent=main;document.getElementById("s").innerHTML=parts.join(" · ")||"הכול כרגיל";
+  var a=document.getElementById("a");a.hidden=false;a.setAttribute("aria-label",main+". "+document.getElementById("s").textContent+". לפתוח את הבית החכם");
+  tell(a.offsetHeight)}).catch(function(){tell(0)});
+})();
+</script>
+</body></html>

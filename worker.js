@@ -58,7 +58,7 @@ import { passUser } from "./lib/account.js";
 import { homeApi, homeTaskApi, homeSigninApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
 import { FeedbackBox, feedbackApi, feedbackPage, feedbackAdmin } from "./lib/feedback.js";
 import { loz } from "./lib/loz.js";
-import { smart } from "./lib/smart.js";
+import { smart, shigraTimes } from "./lib/smart.js";
 import { home3Page } from "./lib/home3.js";
 import { llmsTxt } from "./lib/llms.js";
 import { HaniaSync, syncApi, SYNC_SNIPPET } from "./lib/sync.js";
@@ -652,7 +652,7 @@ export default {
       return smallApp(url, REGAPAGE, REGA_FILES, REGA_IMAGES, "https://regatov.hania360.com/");
     }
     if (url.hostname === "sport.hania360.com" || url.searchParams.get("app") === "sport" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/sport/") ? sportApi(request, ctx) : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : smallApp(url, SPORTAPP, SPORT_FILES, SPORT_IMAGES, "https://sport.hania360.com/");
-    if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : url.pathname === "/api/shigra/fam" ? shigraApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
+    if (url.hostname === "shigra.hania360.com" || url.searchParams.get("app") === "shigra" && /workers\.dev$/.test(url.hostname)) return url.pathname === "/hsmart" ? shigraTimes() : url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/sipur/story" ? storyApi(request, env || {}) : url.pathname === "/api/shigra/fam" ? shigraApi(request, env || {}) : smallApp(url, SHIGRAAPP, SHIGRA_FILES, SHIGRA_IMAGES, "https://shigra.hania360.com/");
     if (url.hostname === "matalot.hania360.com" || url.searchParams.get("app") === "matalot" && /workers\.dev$/.test(url.hostname)) return url.pathname.startsWith("/api/shabbat/") ? shabbatApi(request, env || {}) : url.pathname === "/api/matalot/fam" ? shigraApi(request, env || {}, "chores") : smallApp(url, MATALOTPAGE, MATALOT_FILES, MATALOT_IMAGES, "https://matalot.hania360.com/");
     if (url.hostname === "race.hania360.com" || url.searchParams.get("app") === "race" && /workers\.dev$/.test(url.hostname)) return smallApp(url, RACEPAGE, RACE_FILES, RACE_IMAGES, "https://race.hania360.com/");
     if (url.hostname === "layla.hania360.com" || url.searchParams.get("app") === "layla" && /workers\.dev$/.test(url.hostname)) return smallApp(url, LAYLAPAGE, LAYLA_FILES, LAYLA_IMAGES, "https://layla.hania360.com/");
