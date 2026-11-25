@@ -17,6 +17,20 @@ export const TICKER = [
 
 export default [
   {
+    id: "2026-11-25-maccabi-bayern", for: ["b:TEL"], from: "2026-11-25", until: "2026-11-30", chip: "כדורסל", big: "79:87",
+    title: "מכבי תל אביב ניצחה את באיירן במינכן 79:87",
+    body: "ביורוליג, ביום שלישי 24.11, מכבי הובילה כבר במחצית 43:50 וסיימה עם ניצחון חוץ. רומן סורקין היה הקלע המוביל שלה, עם 17 נקודות. אצל באיירן קלעו מרג׳ון ביצ׳אמפ ודוויין וושינגטון 13 כל אחד. אחרי המשחק, לשתי הקבוצות 4 ניצחונות העונה.",
+    sources: [["FC Bayern Basketball", "https://fcbayern.com/basketball/en/news/postgame/2026-27/11/fc-bayern-basketball---maccabi-tel-aviv-game-report"], ["Sofascore", "https://www.sofascore.com/news/maccabi-tel-aviv-outlast-bayern-munchen-87-79-in-euroleague-test"]],
+    apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
+  },
+  {
+    id: "2026-11-25-avdija-31", from: "2026-11-25", until: "2026-11-29", chip: "כדורסל", big: "31",
+    title: "דני אבדיה קלע 31, ופורטלנד ניצחה את פילדלפיה 111:128",
+    body: "במשחק חוץ ביום שני 23.11 (שעון ארה״ב), אבדיה קלע 12 מ־19 מהשדה, כולל 5 שלשות מ־9, והוסיף 7 אסיסטים. זה ההפסד הרביעי בלבד של ה־76ers העונה, ולפורטלנד עכשיו 11 ניצחונות ו־6 הפסדים.",
+    sources: [["OPB (AP)", "https://www.opb.org/article/2026/11/24/portland-trail-blazers-deni-avdija-31-points-beat-philadelphia-76ers/"], ["Jerusalem Post", "https://www.jpost.com/international/article-915921"]],
+    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
+  },
+  {
     id: "2026-11-24-rate-hold", from: "2026-11-24", until: "2027-01-04", chip: "כסף", big: "3.25%",
     title: "בנק ישראל השאיר את הריבית על 3.25%. ההחלטה הבאה ב־4.1.2027",
     body: "ביום שני 23.11 הריבית נשארה בלי שינוי, כצפוי, והפריים נשאר 4.75%. אז התשלום החודשי במסלול פריים במשכנתא לא משתנה, וגם הריבית על אוברדרפט והלוואות בפריים. האינפלציה השנתית ירדה ל־1.1%, ולפי החזאים שבנק ישראל מצטט, היא צפויה לעלות לכ־2% בתחילת 2027. ההחלטה הבאה: יום שני 4.1.2027.",
@@ -36,20 +50,6 @@ export default [
     body: "ביום ראשון 22.11 אישר בית הדין של ההתאחדות לכדורגל הסדר טיעון בפרשת העירויים: 3 נקודות פחות וקנס של 70,000 ₪. טבריה פתחה את העונה כבר עם 6 נקודות פחות, בפרשת החוזים הכפולים. אחרי 10 מחזורים יש לה נקודה אחת, 5 פחות מהפועל פתח תקווה שמעל הקו האדום. הליגה חוזרת מהפגרה ב־27.11.",
     sources: [["ynet", "https://www.ynet.co.il/sport/israelisoccer/article/skiwrwgyxx"], ["וואלה ספורט", "https://sports.walla.co.il/item/3877224"], ["ספורט 1 (הטבלה)", "https://sport1.maariv.co.il/israeli-soccer/ligat-haal/article/2003661"]],
     apps: [["⚽", "HaniaSport", "הטבלה, המחזור הבא והקבוצה שלכם", "https://sport.hania360.com/#il", "לטבלה"]],
-  },
-  {
-    id: "2026-11-22-maccabi-holon", for: ["b:TEL"], from: "2026-11-22", until: "2026-11-25", chip: "כדורסל", big: "93:58",
-    title: "מכבי תל אביב ניצחה את הפועל חולון 93:58 ביד אליהו",
-    body: "במחזור ה־7 של ליגת העל, במוצאי שבת 21.11, רומן סורקין קלע 13 נקודות וויל ריימן 12. בחולון בלט אדאמה סאנוגו, עם 27 נקודות ו־13 ריבאונדים. זה בא אחרי ההפסד לדובאי ביורוליג (80:74). המשחק הבא של מכבי: ביום שלישי 24.11, מול באיירן מינכן ביורוליג.",
-    sources: [["וואלה ספורט", "https://sports.walla.co.il/item/3877055"], ["ערוץ הספורט", "https://playbasket.sport5.co.il/?FLNum=21&GameID=155857"]],
-    apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
-  },
-  {
-    id: "2026-11-22-avdija-return", from: "2026-11-22", until: "2026-11-26", chip: "כדורסל", big: "20",
-    title: "דני אבדיה חזר עם 20 נקודות, ופורטלנד הפסידה לניקס בשלשה בבאזר",
-    body: "אחרי שני משחקים בחוץ בגלל כף הרגל, אבדיה שיחק 36 דקות במדיסון סקוור גארדן: 20 נקודות, 9 ריבאונדים ו־5 אסיסטים. פורטלנד חזרה מפיגור של 26, ואבדיה העלה אותה ל־94:96 מהקו, 3.2 שניות לסיום. אבל מיקאל ברידג׳ס קלע שלשה בבאזר, והניקס ניצחו 96:97.",
-    sources: [["ערוץ 7", "https://www.israelnationalnews.com/flashes/698139"], ["CBS Sports", "https://www.cbssports.com/fantasy/basketball/news/trail-blazers-deni-avdija-scores-20-points-with-five-dimes/"], ["ClutchPoints", "https://clutchpoints.com/nba/new-york-knicks/knicks-news-mikal-bridges-calls-game-buzzer-beater-3-blazers"]],
-    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
   {
     id: "2026-11-21-hapoel-paris", for: ["b:HTA"], from: "2026-11-21", until: "2026-11-26", chip: "כדורסל", big: "96:97",
