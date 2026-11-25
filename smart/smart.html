@@ -281,9 +281,13 @@ $("copyY").onclick=function(){var t=$("yaml").textContent;(navigator.clipboard?n
 // existing automations (not Hania's) that touch the same devices: they could do the same thing twice
 function scanOthers(){var ids=[S.dev.boiler].concat(S.dev.covers,S.timers.map(function(t){return t.entity})).filter(Boolean);H.ours={};H.other=[];
   var autos=ofDomain("automation");autos.forEach(function(a){var id=a.attributes.id;if(id&&String(id).indexOf("hania_")===0)H.ours[id]=a.entity_id});
-  var others=autos.filter(function(a){var id=a.attributes.id;return id&&String(id).indexOf("hania_")!==0}).slice(0,60);
+  var others=autos.filter(function(a){var id=a.attributes.id;return!id||String(id).indexOf("hania_")!==0}).slice(0,80);
   if(!ids.length||!others.length){drawDup();return Promise.resolve()}
-  return Promise.all(others.map(function(a){return api("/api/config/automation/config/"+encodeURIComponent(a.attributes.id)).then(function(c){var s=JSON.stringify(c);if(ids.some(function(i){return s.indexOf('"'+i+'"')>=0||s.indexOf(i+",")>=0}))H.other.push({ent:a.entity_id,name:nm(a),on:a.state==="on"})}).catch(function(){})})).then(drawDup)}
+  // automations from YAML files or packages can't be read here: their names tell what they are about
+  var words=[];if(S.dev.boiler)words.push("דוד|בוילר|boiler|water.?heater");if(S.dev.covers.length)words.push("תריס|shutter|blind|cover");S.timers.forEach(function(t){var n=(t.name||"").trim();if(n.length>1)words.push(n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"))});
+  var byName=words.length?new RegExp(words.join("|"),"i"):null,add=function(a,yaml){H.other.push({ent:a.entity_id,name:nm(a),on:a.state==="on",yaml:yaml})};
+  return Promise.all(others.map(function(a){var id=a.attributes.id;var guess=function(){if(byName&&byName.test(nm(a)))add(a,true)};if(!id){guess();return null}
+    return api("/api/config/automation/config/"+encodeURIComponent(id)).then(function(c){var s=JSON.stringify(c);if(ids.some(function(i){return s.indexOf('"'+i+'"')>=0||s.indexOf(i+",")>=0}))add(a,false)}).catch(guess)})).then(drawDup)}
 function restore(){if(S.savedAt)return Promise.resolve();var ids=Object.keys(H.ours);if(!ids.length)return Promise.resolve();
   return Promise.all(ids.map(function(id){return api("/api/config/automation/config/"+encodeURIComponent(id)).then(function(c){return c&&c.variables&&c.variables.hania}).catch(function(){return null})})).then(function(L){L=L.filter(Boolean);if(!L.length)return;
     Object.keys(DEF).forEach(function(k){S.r[k].on=false});S.timers=[];
@@ -291,7 +295,8 @@ function restore(){if(S.savedAt)return Promise.resolve();var ids=Object.keys(H.o
       if(v.k==="timer"&&v.t&&v.t.id){if(!S.timers.some(function(t){return t.id===v.t.id}))S.timers.push(v.t)}else if(DEF[v.k])S.r[v.k]=Object.assign({},DEF[v.k],v.r||{},{on:true})});
     S.savedAt=Date.now();save();fillDevices();drawAll();toast("ההגדרות נטענו מ־Home Assistant")})}
 function drawDup(){var L=H.other.filter(function(o){return o.on});$("dup").hidden=!L.length;
-  $("dup").innerHTML="<b>יש לך כבר אוטומציות שמפעילות את אותם מכשירים.</b> אם מפעילים כאן מתכון שעושה אותו דבר, כדאי לכבות את הישנה כדי שלא יהיו כפילויות. היא לא נמחקת, ואפשר להפעיל אותה שוב ב־Home Assistant.<ul class=\"list\">"+L.map(function(o){return'<li><span>'+esc(o.name)+'</span><button class="btn line" type="button" data-off="'+esc(o.ent)+'">כיבוי</button></li>'}).join("")+"</ul>"}
+  var y=L.some(function(o){return o.yaml});
+  $("dup").innerHTML="<b>יש לך כבר אוטומציות שמפעילות את אותם מכשירים.</b> כדי שלא יפעלו פעמיים, אפשר לכבות כאן את המתכון שעושה אותו דבר, או לכבות את הישנה. היא לא נמחקת, ואפשר להפעיל אותה שוב ב־Home Assistant."+(y?" אוטומציות מקובץ או מחבילה (packages) מזוהות לפי השם, וכיבוי שלהן מכאן נשמר רק עד ההפעלה הבאה של Home Assistant.":"")+"<ul class=\"list\">"+L.map(function(o){return'<li><span>'+esc(o.name)+(o.yaml?' <small class="note">(מקובץ)</small>':"")+'</span><button class="btn line" type="button" data-off="'+esc(o.ent)+'">כיבוי</button></li>'}).join("")+"</ul>"}
 $("dup").addEventListener("click",function(ev){var b=ev.target.closest("[data-off]");if(!b)return;var e=b.getAttribute("data-off");api("/api/services/automation/turn_off",{method:"POST",body:{entity_id:e}}).then(function(){H.other.forEach(function(o){if(o.ent===e)o.on=false});drawDup();toast("האוטומציה הישנה כובתה")}).catch(function(){toast("לא הצלחנו לכבות")})});
 
 $("save").onclick=function(){if(shabbatNow())return;var L=build(),want={},b=this;L.forEach(function(a){want[a.id]=1});b.disabled=true;b.textContent="שומר...";
