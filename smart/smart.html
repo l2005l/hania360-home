@@ -98,8 +98,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--soft);margin-top:6px}
 <div class="err" id="cErr" hidden></div>
 <details><summary>מה צריך להגדיר ב־Home Assistant (פעם אחת)</summary><ol class="note">
 <li>כתובת https: בתוסף Tailscale לבחור <b>Share Home Assistant with Serve</b>, או Nabu Casa, או דומיין משלך.</li>
-<li>בקובץ configuration.yaml, בתוך <code>http:</code>, להוסיף:<pre>  cors_allowed_origins:
-    - https://smart.hania360.com</pre>ולהפעיל מחדש.</li>
+<li>לאשר את האפליקציה: הגדרות ← מערכת ← רשת ← <b>HTTP server</b> ← ב־<b>CORS allowed origins</b> להוסיף <code>https://smart.hania360.com</code>, לשמור ולהפעיל מחדש. עם Tailscale serve צריך שם גם להפעיל <b>Trust X-Forwarded-For</b> ולהוסיף ל־Trusted proxies את <code>127.0.0.1</code>.<br><span class="note">בגרסאות לפני 2026.8 זה נמצא בקובץ configuration.yaml, תחת <code>http:</code> (<code>cors_allowed_origins</code>).</span></li>
 <li>התוסף <b>Jewish Calendar</b> (הגדרות ← מכשירים ושירותים ← הוספה), עם העיר ודקות הדלקת הנרות שלך.</li>
 <li>מפתח גישה: לוחצים על שם המשתמש למטה משמאל ← אבטחה ← Long-lived access tokens ← יצירה. מעתיקים לכאן.</li></ol></details>
 </section>
@@ -153,7 +152,7 @@ function connErr(e){var b=$("cErr"),u=base();b.hidden=false;
   if(e.k==="auth")b.innerHTML="<b>המפתח לא התקבל.</b> כדאי ליצור מפתח חדש ב־Home Assistant ולהדביק אותו שוב.";
   else if(e.k==="url")b.innerHTML="<b>הכתובת צריכה להתחיל ב־https://</b> (דפדפן לא מתחבר מאתר מאובטח לכתובת http).";
   else if(e.k==="http")b.innerHTML="<b>Home Assistant ענה בשגיאה "+esc(e.s)+".</b> ייתכן שהכתובת לא מלאה.";
-  else b.innerHTML="<b>לא הצלחנו להגיע ל־Home Assistant.</b> כדאי לבדוק:<ul><li>ש־Tailscale פעיל בטלפון הזה.</li><li>שהכתובת "+esc(u||"…")+" נפתחת בדפדפן.</li><li>שהוספת את cors_allowed_origins עם https://smart.hania360.com ושה־Home Assistant הופעל מחדש.</li></ul>"}
+  else b.innerHTML="<b>לא הצלחנו להגיע ל־Home Assistant.</b> כדאי לבדוק:<ul><li>ש־Tailscale פעיל בטלפון הזה.</li><li>שהכתובת "+esc(u||"…")+" נפתחת בדפדפן.</li><li>שב־Home Assistant, בהגדרות ← מערכת ← רשת ← HTTP server, ב־CORS allowed origins יש https://smart.hania360.com, ושהוא הופעל מחדש.</li></ul>"}
 function connect(quiet){if(!/^https:\/\/[^\s/]+/i.test(base())){if(!quiet)connErr({k:"url"});return Promise.reject()}if(!S.ha.token){if(!quiet)$("tok").focus();return Promise.reject()}
   $("go").disabled=true;$("go").textContent="מתחבר...";
   return Promise.all([api("/api/config"),api("/api/states"),api("/api/services").catch(function(){return[]})]).then(function(a){
