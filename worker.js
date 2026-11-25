@@ -58,6 +58,7 @@ import { passUser } from "./lib/account.js";
 import { homeApi, homeTaskApi, homeSigninApi, ME_HTML, ME_CSS, ME_JS } from "./lib/homeme.js";
 import { FeedbackBox, feedbackApi, feedbackPage, feedbackAdmin } from "./lib/feedback.js";
 import { loz } from "./lib/loz.js";
+import { smart } from "./lib/smart.js";
 import { home3Page } from "./lib/home3.js";
 import { llmsTxt } from "./lib/llms.js";
 import { HaniaSync, syncApi, SYNC_SNIPPET } from "./lib/sync.js";
@@ -724,6 +725,7 @@ export default {
     if (url.hostname === "pick.hania360.com" || url.searchParams.get("app") === "pick" && /workers\.dev$/.test(url.hostname)) return pickApp(url);
     if (url.hostname === "bills.hania360.com" || url.searchParams.get("app") === "bills" && /workers\.dev$/.test(url.hostname)) return bill(url);
     if (url.hostname === "loz.hania360.com" || url.searchParams.get("app") === "loz" && /workers\.dev$/.test(url.hostname)) return loz(url);
+    if (url.hostname === "smart.hania360.com" || url.searchParams.get("app") === "smart" && /workers\.dev$/.test(url.hostname)) return smart(url);
     if (url.hostname === "www.hania360.com") return Response.redirect("https://hania360.com" + url.pathname + url.search, 301);
     const GUIDES=guidesPage();
     const pages = {"/":HOME,"/index.html":HOME,"/guides":GUIDES,"/guides/":GUIDES,...ARTICLE_PAGES,"/about":ABOUT,"/privacy":PRIVACY,"/terms":TERMS,"/contact":CONTACT};
