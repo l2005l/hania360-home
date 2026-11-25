@@ -276,7 +276,17 @@ function handData(s){return{v:1,d:s,f:S.set.me||"",ev:evs(s).map(function(e){var
 function handMsg(s){var L=evs(s),out=["היי, כאן "+(S.set.me||"הסגן")+" 📨","הלו״ז "+forDay(s)+" מחכה לשיבוץ ("+(L.length===1?"אירוע אחד":L.length+" אירועים")+"):",""];
   L.forEach(function(e){out.push("• "+e.s+"-"+e.e+" "+e.t)});out.push("");out.push("לפתיחה ולשיבוץ:");out.push(ORIGIN+"/#in="+b64u(handData(s)));return out.join("\n")}
 var wa=function(phone,text){return"https://wa.me/"+(phone||"")+"?text="+encodeURIComponent(text)};
-function openWa(phone,text){var w=window.open(wa(phone,text),"_blank","noopener");if(!w)location.href=wa(phone,text)}
+// Straight into the WhatsApp app, once. On a phone (and in the installed app, whose outside links open in a browser
+// tab where wa.me only shows WhatsApp's web page) the app's own link is used; on a computer, wa.me in a new tab.
+var UA=navigator.userAgent||"",ANDROID=/android/i.test(UA),IOS=/iphone|ipad|ipod/i.test(UA)||(/Macintosh/.test(UA)&&navigator.maxTouchPoints>1);
+function waTarget(phone,text){var q=(phone?"phone="+phone+"&":"")+"text="+encodeURIComponent(text);
+  if(ANDROID)return"intent://send/?"+q+"#Intent;scheme=whatsapp;S.browser_fallback_url="+encodeURIComponent(wa(phone,text))+";end";
+  if(IOS)return"whatsapp://send?"+q;return wa(phone,text)}
+var opening=0;
+function openWa(phone,text){if(Date.now()-opening<1500)return;opening=Date.now();var u=waTarget(phone,text);
+  if(ANDROID){location.href=u;return}
+  if(IOS){var web=wa(phone,text),t=setTimeout(function(){if(!document.hidden)location.href=web},1800),v=function(){if(document.hidden){clearTimeout(t);document.removeEventListener("visibilitychange",v)}};document.addEventListener("visibilitychange",v);location.href=u;return}
+  var w=window.open(u,"_blank");if(w){try{w.opener=null}catch(e){}}else location.href=u}
 function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast("הועתק")}).catch(function(){var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast("הועתק")}catch(e){}a.remove()})}
 function mark(k,text,id){var x=S.sent[day]=S.sent[day]||{};var v={t:Date.now(),h:hash(text)};if(id)(x.p=x.p||{})[id]=v;else x[k]=v;save()}
 function stamp(v,text){if(!v)return"";var t=new Date(v.t),w=pad(t.getHours())+":"+pad(t.getMinutes());return v.h===hash(text)?"נשלח ב־"+w:"עודכן מאז ששלחת ב־"+w}
@@ -426,7 +436,7 @@ document.querySelectorAll("dialog").forEach(function(d){d.addEventListener("clic
 document.addEventListener("keydown",function(e){if(document.querySelector("dialog[open]")||/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||""))return;if(e.key==="ArrowRight")$("prev").click();if(e.key==="ArrowLeft")$("next").click()});
 addEventListener("storage",function(e){if(e.key===KEY){S=load();draw()}});
 draw();fromLink();addEventListener("hashchange",fromLink);
-window.__loz={S:function(){return S},parse:parse,icsParse:icsParse,groupMsg:function(){return groupMsg(day)},personMsg:function(n){var p=S.team.filter(function(x){return x.name===n})[0];return p?personMsg(p,day):""},handMsg:function(){return handMsg(day)},day:function(d){if(d){day=d;draw()}return day}};
+window.__loz={waTarget:waTarget,S:function(){return S},parse:parse,icsParse:icsParse,groupMsg:function(){return groupMsg(day)},personMsg:function(n){var p=S.team.filter(function(x){return x.name===n})[0];return p?personMsg(p,day):""},handMsg:function(){return handMsg(day)},day:function(d){if(d){day=d;draw()}return day}};
 })();
 if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})});
 </script>
