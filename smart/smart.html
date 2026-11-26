@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HaniaSmart · הבית החכם</title><meta name="description" content="הבית החכם בשבת ובחול, ל־Home Assistant: הדוד לפני שבת וחג, דוד חכם ביום חול, תריסים לפי השמש, שעון שבת לפלטה, לאורות ולמזגן, והודעה שהבית מוכן לשבת. בעברית, בחינם, לפי זמני השבת של העיר שלך."><link rel="canonical" href="https://smart.hania360.com/"><meta name="theme-color" content="#0F3B3A"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="referrer" content="no-referrer">
+<html lang="he" dir="rtl" data-ver="__VER__"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>HaniaSmart · הבית החכם</title><meta name="description" content="הבית החכם בשבת ובחול, ל־Home Assistant: הדוד לפני שבת וחג, דוד חכם ביום חול, תריסים לפי השמש, שעון שבת לפלטה, לאורות ולמזגן, והודעה שהבית מוכן לשבת. בעברית, בחינם, לפי זמני השבת של העיר שלך."><link rel="canonical" href="https://smart.hania360.com/"><meta name="theme-color" content="#0F3B3A"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/apple-180.png"><link rel="icon" href="/icons/icon-192.png"><meta name="referrer" content="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Assistant:wght@400;600;700;800&display=swap">
 <style>
 /* The house at evening: deep teal walls, warm window light. A small drawing of the house shows its state (boiler, shutter,
@@ -615,7 +615,10 @@ $("go").onclick=function(){var u=$("url").value.trim(),t=$("tok").value.trim();S
 $("bConn").onclick=function(){$("cConn").hidden=!$("cConn").hidden;if(!$("cConn").hidden)$("cConn").scrollIntoView({behavior:"smooth",block:"start"})};
 $("out").onclick=function(){if(!confirm("לנתק ולמחוק את המפתח מהטלפון? האוטומציות שכבר נשמרו ממשיכות לרוץ ב־Home Assistant."))return;S.ha.token="";save();flag(false);ON=false;location.reload()};
 drawStatus();if(S.ha.url&&S.ha.token)connect(true).catch(function(){$("cConn").hidden=false});
-setInterval(function(){if(!document.hidden)refresh()},30000);document.addEventListener("visibilitychange",function(){if(!document.hidden)refresh()});
+// after an update the app reloads itself when it comes back to the screen (all settings are kept on the phone)
+function newVer(){var me=document.documentElement.getAttribute("data-ver");if(!/^[0-9a-f]{10}$/.test(me||"")||location.protocol!=="https:")return;
+  fetch("/ver",{cache:"no-store"}).then(function(r){return r.ok?r.text():""}).then(function(v){v=String(v).trim();if(!/^[0-9a-f]{10}$/.test(v)||v===me||busy("app"))return;try{if(sessionStorage.getItem("hsv")===v)return;sessionStorage.setItem("hsv",v)}catch(e){return}location.reload()}).catch(function(){})}
+setInterval(function(){if(!document.hidden)refresh()},30000);document.addEventListener("visibilitychange",function(){if(!document.hidden){refresh();newVer()}});newVer();
 window.__smart={S:function(){return S},build:build,H:function(){return H},firstCandles:firstCandles,chanDict:chanDict,loadCost:loadCost,doSave:doSave,makeAway:makeAway,wsRun:wsRun};
 })();
 if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})});
