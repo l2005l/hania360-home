@@ -17,11 +17,18 @@ export const TICKER = [
 
 export default [
   {
-    id: "2026-11-27-ligat-haal-back", img: "now-ligat-haal", for: ["f:10181", "f:7855", "f:10185", "f:9754"], from: "2026-11-27", until: "2026-11-30", chip: "כדורגל", big: "14:00",
-    title: "ליגת העל חוזרת היום: הפועל תל אביב בפתח תקווה ב־14:00",
-    body: "המחזור ה־11 נפתח היום, שישי 27.11, במכבי פתח תקווה (מקום 9, 10 נקודות) מול הפועל תל אביב (מקום 1, 25 נקודות) באצטדיון שלמה ביטוח. צפויים כ־8,500 אוהדי הפועל. מחר, שבת 28.11: מכבי תל אביב (מקום 2, 24 נקודות) מול הפועל פתח תקווה בבלומפילד ב־19:00, וסכנין מול מכבי חיפה ב־15:00. הפועל באר שבע (מקום 3) משחקת בנתניה ביום שני 30.11 ב־20:00.",
-    sources: [["פתח תקווה NEWS", "https://www.ptnews.co.il/65863"], ["וואלה ספורט (המחזור)", "https://sports.walla.co.il/leagueround/25774"]],
+    id: "2026-11-28-hapoel-loses-mpt", img: "now-ligat-haal", for: ["f:10181", "f:7855", "f:9754"], from: "2026-11-28", until: "2026-12-01", chip: "כדורגל", big: "2:0",
+    title: "הפועל תל אביב הפסידה 2:0 במכבי פתח תקווה, ומכבי תל אביב יכולה לעלות לראש",
+    body: "ביום שישי 27.11, במחזור ה־11, גיא חדידה כבש מפנדל בדקה ה־44 וקייל ספנס הוסיף בדקה ה־74. היו 9,842 צופים. הרצף של הפועל, שישה ניצחונות, נגמר, והיא נשארת עם 25 נקודות. מכבי תל אביב (24) מארחת הערב, שבת 28.11, את הפועל פתח תקווה בבלומפילד ב־19:00, וניצחון יעלה אותה למקום הראשון. הפועל באר שבע (22) משחקת בנתניה ביום שני 30.11 ב־20:00.",
+    sources: [["ONE", "https://www.one.co.il/Article/539987.html"], ["פתח תקווה NEWS", "https://www.ptnews.co.il/65922"], ["וואלה ספורט (המחזור)", "https://sports.walla.co.il/leagueround/25774"]],
     apps: [["⚽", "HaniaSport", "הטבלה, המחזור הבא והקבוצה שלכם", "https://sport.hania360.com/#il", "לטבלה"]],
+  },
+  {
+    id: "2026-11-28-avdija-33", from: "2026-11-28", until: "2026-12-02", chip: "כדורסל", big: "33",
+    title: "דני אבדיה קלע 33, ופורטלנד ניצחה את סן אנטוניו 111:116",
+    body: "אחרי 31 נקודות בפילדלפיה, אבדיה הוסיף 33 נקודות, 12 ריבאונדים ו־7 אסיסטים מול סגנית אלופת ה־NBA. לפורטלנד עכשיו 12 ניצחונות ו־6 הפסדים.",
+    sources: [["ynet", "https://www.ynet.co.il/news/article/rjgvursyqx"], ["הארץ", "https://www.haaretz.co.il/sport/nba/2026-11-26/ty-article/000001a2-162f-d62f-a5ff-df6f92c60000"], ["כאן", "https://www.kan.org.il/content/kan-news/sport/1123498/"]],
+    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
   {
     id: "2026-11-27-hapoel-olympiacos", for: ["b:HTA"], from: "2026-11-27", until: "2026-12-02", chip: "כדורסל", big: "79:104",
@@ -50,13 +57,6 @@ export default [
     body: "ביורוליג, ביום שלישי 24.11, מכבי הובילה כבר במחצית 43:50 וסיימה עם ניצחון חוץ. רומן סורקין היה הקלע המוביל שלה, עם 17 נקודות. אצל באיירן קלעו מרג׳ון ביצ׳אמפ ודוויין וושינגטון 13 כל אחד. אחרי המשחק, לשתי הקבוצות 4 ניצחונות העונה.",
     sources: [["FC Bayern Basketball", "https://fcbayern.com/basketball/en/news/postgame/2026-27/11/fc-bayern-basketball---maccabi-tel-aviv-game-report"], ["Sofascore", "https://www.sofascore.com/news/maccabi-tel-aviv-outlast-bayern-munchen-87-79-in-euroleague-test"]],
     apps: [["🏀", "HaniaSport", "יורוליג: תוצאות, טבלה והמשחק הבא", "https://sport.hania360.com/#hoops", "לכדורסל"]],
-  },
-  {
-    id: "2026-11-25-avdija-31", from: "2026-11-25", until: "2026-11-29", chip: "כדורסל", big: "31",
-    title: "דני אבדיה קלע 31, ופורטלנד ניצחה את פילדלפיה 111:128",
-    body: "במשחק חוץ ביום שני 23.11 (שעון ארה״ב), אבדיה קלע 12 מ־19 מהשדה, כולל 5 שלשות מ־9, והוסיף 7 אסיסטים. זה ההפסד הרביעי בלבד של ה־76ers העונה, ולפורטלנד עכשיו 11 ניצחונות ו־6 הפסדים.",
-    sources: [["OPB (AP)", "https://www.opb.org/article/2026/11/24/portland-trail-blazers-deni-avdija-31-points-beat-philadelphia-76ers/"], ["Jerusalem Post", "https://www.jpost.com/international/article-915921"]],
-    apps: [["🏀", "HaniaSport", "תוצאות, טבלאות והמשחק הבא", "https://sport.hania360.com/", "לספורט"]],
   },
   {
     id: "2026-11-24-rate-hold", from: "2026-11-24", until: "2027-01-04", chip: "כסף", big: "3.25%",
@@ -136,13 +136,6 @@ export default [
     body: "שר האוצר האריך חלקית את הפחתת הבלו, אז המחיר עלה ל־7.85 ₪ לליטר (95, שירות עצמי) ולא ל־8.35 ₪.",
     sources: [["כלכליסט", "https://www.calcalist.co.il/local_news/article/rje0rn116gx"]],
     apps: [["⛽", "HaniaSave", "איזה כרטיס שלכם נותן הנחה בתדלוק", "https://save.hania360.com/", "לבדוק"]],
-  },
-  {
-    id: "2026-11-09-ligat-haal", img: "now-ligat-haal", for: ["f:10181", "f:7855", "f:9754"], from: "2026-11-09", until: "2026-11-27", chip: "כדורגל",
-    title: "הפועל תל אביב יוצאת לפגרה בראש ליגת העל",
-    body: "1:0 בבאר שבע בדקה ה־91 העלה את הפועל למקום הראשון, נקודה לפני מכבי תל אביב. הליגה חוזרת ב־27.11.",
-    sources: [["וואלה ספורט", "https://sports.walla.co.il/item/3875308"]],
-    apps: [["⚽", "HaniaSport", "הטבלה, המחזור הבא והקבוצה שלכם", "https://sport.hania360.com/#il", "לטבלה"], ["📰", "הכתבה המלאה", "מה הוביל לפסגה, ומה בהמשך", "/guides/hapoel-tel-aviv-top-before-break", "לקריאה"]],
   },
   {
     id: "2026-11-14-water-2027", from: "2026-11-14", until: "2026-12-31", chip: "כסף", big: "2.3%",
